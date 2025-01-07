@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Properties>
+        <property name="LOG_HOME">./logs</property>
+        <Property name="LOG_EXCEPTION_CONVERSION_WORD">%xThrowable</Property>
+        <Property name="LOG_LEVEL_PATTERN">%5p</Property>
+        <property name="LOG_DATEFORMAT_PATTERN">yy-MM-dd HH:mm:ss</property>
+        <property name="FILE_LOG_PATTERN">%d{${sys:LOG_DATEFORMAT_PATTERN}} ${sys:LOG_LEVEL_PATTERN} %pid - [%15.15t] %-40.40c{1.} - 4L :%X{mdc_trace_id_str} %m%n${sys:LOG_EXCEPTION_CONVERSION_WORD}</property>
+    </Properties>
+    <Appenders>
+        <!-- 普通日志 -->
+        <RollingFile name="NormalLogFile" fileName="${LOG_HOME}/web.log" filePattern="${LOG_HOME}/web.log.%d{yyyy-MM-dd}">
+            <PatternLayout charset="UTF-8" pattern="${FILE_LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+        <!-- 异常日志 -->
+        <RollingFile name="ErrorLogFile" fileName="${LOG_HOME}/web-error.log" filePattern="${LOG_HOME}/web-error.log.%d{yyyy-MM-dd}">
+            <PatternLayout charset="UTF-8" pattern="${FILE_LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+            <Filters>
+                <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Root level="WARN">
+            <AppenderRef ref="NormalLogFile" />
+            <AppenderRef ref="ErrorLogFile" />
+        </Root>
+    </Loggers>
+</Configuration>
