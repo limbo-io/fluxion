@@ -155,7 +155,7 @@ public class Lockable<T> {
                 return invokeInWriteLock(operation);
 
             default:
-                throw new IllegalArgumentException("未知的加锁模式：" + mode);
+                throw new IllegalArgumentException("Unknown mode：" + mode);
         }
     }
 

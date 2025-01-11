@@ -18,13 +18,13 @@ package io.fluxion.test.core.flow;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.core.type.TypeReference;
-import io.fluxion.platform.executor.Executor;
-import io.fluxion.platform.flow.Flow;
-import io.fluxion.platform.flow.FlowConfig;
-import io.fluxion.platform.flow.FlowNode;
+import io.fluxion.core.executor.Executor;
+import io.fluxion.core.flow.Flow;
+import io.fluxion.core.flow.FlowConfig;
+import io.fluxion.core.flow.FlowNode;
 import io.fluxion.common.utils.Lambda;
 import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.platform.dao.entity.FlowEntity;
+import io.fluxion.core.dao.entity.FlowEntity;
 import org.junit.jupiter.api.Test;
 import org.reflections.Reflections;
 

@@ -16,8 +16,6 @@
 
 package io.fluxion.common.utils.time;
 
-import lombok.experimental.UtilityClass;
-
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -25,7 +23,6 @@ import java.time.ZoneId;
 /**
  * @author brozen
  */
-@UtilityClass
 public class LocalTimeUtils {
 
     /**

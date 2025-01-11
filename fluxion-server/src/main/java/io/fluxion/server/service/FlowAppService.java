@@ -17,14 +17,14 @@
 package io.fluxion.server.service;
 
 import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.platform.cqrs.Query;
-import io.fluxion.platform.dao.entity.FlowEntity;
-import io.fluxion.platform.dao.repository.FlowEntityRepository;
-import io.fluxion.platform.flow.FlowConfig;
-import io.fluxion.platform.utils.JpaHelper;
-import io.fluxion.platform.version.model.Version;
-import io.fluxion.platform.version.model.VersionRefType;
-import io.fluxion.platform.version.query.VersionByIdQuery;
+import io.fluxion.core.cqrs.Query;
+import io.fluxion.core.dao.entity.FlowEntity;
+import io.fluxion.core.dao.repository.FlowEntityRepo;
+import io.fluxion.core.flow.FlowConfig;
+import io.fluxion.core.utils.JpaHelper;
+import io.fluxion.core.version.model.Version;
+import io.fluxion.core.version.model.VersionRefType;
+import io.fluxion.core.version.query.VersionByIdQuery;
 import io.fluxion.remote.api.PageResponse;
 import io.fluxion.server.api.flow.request.FlowPageRequest;
 import io.fluxion.server.api.flow.view.FlowView;
@@ -47,7 +47,7 @@ import java.util.List;
 public class FlowAppService {
 
     @Resource
-    private FlowEntityRepository flowEntityRepository;
+    private FlowEntityRepo flowEntityRepo;
 
     public PageResponse<FlowView> page(FlowPageRequest request) {
         // 查询条件
@@ -68,14 +68,14 @@ public class FlowAppService {
         };
         // 分页条件
         Pageable pageable = JpaHelper.pageable(request);
-        Page<FlowEntity> queryResult = flowEntityRepository.findAll(condition, pageable);
+        Page<FlowEntity> queryResult = flowEntityRepo.findAll(condition, pageable);
         List<FlowEntity> entities = queryResult.getContent();
         // 封装分页返回结果
         return request.response(queryResult.getTotalElements(), FlowConverter.toView(entities));
     }
 
     public FlowView get(String flowId, String versionId) {
-        FlowEntity flowEntity = flowEntityRepository.findById(flowId).orElse(null);
+        FlowEntity flowEntity = flowEntityRepo.findById(flowId).orElse(null);
         if (flowEntity == null) {
             return null;
         }
@@ -85,7 +85,8 @@ public class FlowAppService {
         Version version = Query.query(VersionByIdQuery.builder()
                 .refId(flowId)
                 .refType(VersionRefType.FLOW)
-                .version(versionId).build(),
+                .version(versionId)
+                .build(),
             VersionByIdQuery.Response.class
         ).getVersion();
 

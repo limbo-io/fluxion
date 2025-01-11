@@ -17,8 +17,6 @@
 
 package io.fluxion.common.utils.time;
 
-import lombok.experimental.UtilityClass;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -30,7 +28,6 @@ import static io.fluxion.common.utils.time.Formatters.YMD_HMS_SSS;
 /**
  * @author Brozen
  */
-@UtilityClass
 public class InstantUtils {
 
 

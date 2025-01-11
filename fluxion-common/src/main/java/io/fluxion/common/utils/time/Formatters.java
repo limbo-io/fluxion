@@ -16,8 +16,6 @@
 
 package io.fluxion.common.utils.time;
 
-import lombok.experimental.UtilityClass;
-
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -27,7 +25,6 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author Brozen
  */
-@UtilityClass
 public class Formatters {
 
 

@@ -19,7 +19,6 @@ package io.fluxion.remote.lb.strategies;
 import io.fluxion.remote.lb.AbstractLBStrategy;
 import io.fluxion.remote.lb.Invocation;
 import io.fluxion.remote.lb.LBServer;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,7 +27,6 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * @author Brozen
  */
-@Slf4j
 public class RandomLBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
 
     @Override

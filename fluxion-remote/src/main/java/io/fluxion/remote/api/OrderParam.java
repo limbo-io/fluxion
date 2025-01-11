@@ -16,14 +16,11 @@
 
 package io.fluxion.remote.api;
 
-import lombok.Data;
-
 /**
  * 排序
  * @author Devil
  * @date 2021/6/10 3:10 下午
  */
-@Data
 public class OrderParam {
     /**
      * 需要进行排序的字段
@@ -43,5 +40,13 @@ public class OrderParam {
     public OrderParam(String column, String sort) {
         this.column = column;
         this.sort = sort;
+    }
+
+    public String getColumn() {
+        return column;
+    }
+
+    public String getSort() {
+        return sort;
     }
 }

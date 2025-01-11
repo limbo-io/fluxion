@@ -16,21 +16,12 @@
 
 package io.fluxion.remote.lb.strategies;
 
-import io.fluxion.remote.lb.AbstractLBStrategy;
-import io.fluxion.remote.lb.Invocation;
-import io.fluxion.remote.lb.LBServer;
-import io.fluxion.remote.lb.LBServerStatistics;
-import io.fluxion.remote.lb.LBServerStatisticsProvider;
-import lombok.extern.slf4j.Slf4j;
+import io.fluxion.remote.lb.*;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Duration;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -38,7 +29,6 @@ import java.util.stream.Collectors;
  *
  * @author Brozen
  */
-@Slf4j
 public class LFULBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
 
     /**

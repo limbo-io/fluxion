@@ -19,7 +19,6 @@ package io.fluxion.remote.lb.strategies;
 import io.fluxion.remote.lb.AbstractLBStrategy;
 import io.fluxion.remote.lb.Invocation;
 import io.fluxion.remote.lb.LBServer;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -28,9 +27,9 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
+ * todo
  * @author Brozen
  */
-@Slf4j
 public class AppointLBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
 
     /**

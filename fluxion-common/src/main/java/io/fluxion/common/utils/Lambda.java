@@ -16,8 +16,6 @@
 
 package io.fluxion.common.utils;
 
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.Serializable;
 import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.Method;
@@ -30,7 +28,6 @@ import java.util.regex.Pattern;
  *
  * @author Devil
  */
-@Slf4j
 public class Lambda {
 
     private static final Pattern RETURN_TYPE_PATTERN = Pattern.compile("\\(.*\\)L(.*);");

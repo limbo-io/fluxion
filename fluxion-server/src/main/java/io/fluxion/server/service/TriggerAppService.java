@@ -16,9 +16,9 @@
 
 package io.fluxion.server.service;
 
-import io.fluxion.platform.dao.entity.TriggerEntity;
-import io.fluxion.platform.dao.repository.TriggerEntityRepository;
-import io.fluxion.platform.utils.JpaHelper;
+import io.fluxion.core.dao.entity.TriggerEntity;
+import io.fluxion.core.dao.repository.TriggerEntityRepo;
+import io.fluxion.core.utils.JpaHelper;
 import io.fluxion.remote.api.PageResponse;
 import io.fluxion.server.api.trigger.request.TriggerPageRequest;
 import io.fluxion.server.api.trigger.view.TriggerView;
@@ -40,7 +40,7 @@ import java.util.List;
 public class TriggerAppService {
 
     @Resource
-    private TriggerEntityRepository triggerEntityRepository;
+    private TriggerEntityRepo triggerEntityRepo;
 
     public PageResponse<TriggerView> page(TriggerPageRequest request) {
         // 查询条件
@@ -56,14 +56,14 @@ public class TriggerAppService {
         };
         // 分页条件
         Pageable pageable = JpaHelper.pageable(request);
-        Page<TriggerEntity> queryResult = triggerEntityRepository.findAll(condition, pageable);
+        Page<TriggerEntity> queryResult = triggerEntityRepo.findAll(condition, pageable);
         List<TriggerEntity> entities = queryResult.getContent();
         // 封装分页返回结果
         return request.response(queryResult.getTotalElements(), TriggerConverter.toView(entities));
     }
 
     public TriggerView get(String id) {
-        TriggerEntity entity = triggerEntityRepository.findById(id).orElse(null);
+        TriggerEntity entity = triggerEntityRepo.findById(id).orElse(null);
         if (entity == null) {
             return null;
         }

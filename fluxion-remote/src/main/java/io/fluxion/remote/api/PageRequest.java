@@ -16,7 +16,6 @@
 
 package io.fluxion.remote.api;
 
-import lombok.Data;
 import org.apache.commons.collections4.CollectionUtils;
 
 import javax.validation.constraints.Max;
@@ -31,7 +30,6 @@ import java.util.List;
  * @date 2020/3/6 8:35 AM
  * @email brozen@qq.com
  */
-@Data
 public class PageRequest {
     /**
      * 页码，从1开始
@@ -72,6 +70,26 @@ public class PageRequest {
      */
     public int getOffset() {
         return pageSize * (current - 1);
+    }
+
+    public int getCurrent() {
+        return current;
+    }
+
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    public List<String> getOrderBy() {
+        return orderBy;
+    }
+
+    public List<String> getSort() {
+        return sort;
+    }
+
+    public boolean isSearchCount() {
+        return searchCount;
     }
 
     public List<OrderParam> getOrders() {

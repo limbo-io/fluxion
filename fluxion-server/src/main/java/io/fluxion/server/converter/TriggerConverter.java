@@ -17,8 +17,8 @@
 package io.fluxion.server.converter;
 
 import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.platform.dao.entity.TriggerEntity;
-import io.fluxion.platform.trigger.TriggerConfig;
+import io.fluxion.core.dao.entity.TriggerEntity;
+import io.fluxion.core.trigger.TriggerConfig;
 import io.fluxion.server.api.trigger.view.TriggerView;
 import org.apache.commons.collections4.CollectionUtils;
 

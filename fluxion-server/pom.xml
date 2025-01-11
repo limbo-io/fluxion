@@ -35,11 +35,7 @@
     <dependencies>
         <dependency>
             <groupId>io.github.fluxion-io</groupId>
-            <artifactId>fluxion-remote</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.fluxion-io</groupId>
-            <artifactId>fluxion-server-core</artifactId>
+            <artifactId>fluxion-core</artifactId>
         </dependency>
         <dependency>
             <groupId>io.github.fluxion-io</groupId>

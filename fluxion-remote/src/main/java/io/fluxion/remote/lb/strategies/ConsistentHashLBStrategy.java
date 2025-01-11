@@ -16,12 +16,10 @@
 
 package io.fluxion.remote.lb.strategies;
 
+import io.fluxion.common.utils.MD5Utils;
 import io.fluxion.remote.lb.AbstractLBStrategy;
 import io.fluxion.remote.lb.Invocation;
 import io.fluxion.remote.lb.LBServer;
-import io.fluxion.common.utils.MD5Utils;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
@@ -32,7 +30,6 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author Brozen
  */
-@Slf4j
 public class ConsistentHashLBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
 
     /**
@@ -43,7 +40,6 @@ public class ConsistentHashLBStrategy<S extends LBServer> extends AbstractLBStra
     /**
      * 一致性哈希算法中，计算 LBServer 虚拟节点时的分片数量。默认 64。
      */
-    @Setter
     private int replicas = 64;
 
 

@@ -19,7 +19,6 @@ package io.fluxion.remote.lb.strategies;
 import io.fluxion.remote.lb.AbstractLBStrategy;
 import io.fluxion.remote.lb.Invocation;
 import io.fluxion.remote.lb.LBServer;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
@@ -34,7 +33,6 @@ import java.util.stream.Collectors;
  *
  * @author Brozen
  */
-@Slf4j
 public class RoundRobinLBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
 
     /**

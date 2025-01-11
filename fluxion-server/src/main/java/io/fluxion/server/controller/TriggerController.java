@@ -17,9 +17,9 @@
 package io.fluxion.server.controller;
 
 import io.fluxion.common.utils.ValidatorUtils;
-import io.fluxion.platform.cqrs.Cmd;
-import io.fluxion.platform.exception.PlatformException;
-import io.fluxion.platform.trigger.cmd.*;
+import io.fluxion.core.cqrs.Cmd;
+import io.fluxion.core.exception.PlatformException;
+import io.fluxion.core.trigger.cmd.*;
 import io.fluxion.remote.api.PageResponse;
 import io.fluxion.server.api.trigger.request.TriggerConfigRequest;
 import io.fluxion.server.api.trigger.request.TriggerCreateRequest;
@@ -37,7 +37,7 @@ import javax.annotation.Resource;
 import javax.validation.ConstraintViolation;
 import java.util.Set;
 
-import static io.fluxion.platform.exception.ErrorCode.PARAM_ERROR;
+import static io.fluxion.core.exception.ErrorCode.PARAM_ERROR;
 
 /**
  * @author Devil

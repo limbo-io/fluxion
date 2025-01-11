@@ -26,7 +26,7 @@
     </parent>
 
     <artifactId>fluxion-test</artifactId>
-    <description>ALl Testing</description>
+    <description>All Testing</description>
 
     <properties>
         <maven.install.skip>true</maven.install.skip>
@@ -36,13 +36,7 @@
     <dependencies>
         <dependency>
             <groupId>io.github.fluxion-io</groupId>
-            <artifactId>fluxion-common</artifactId>
-            <version>${revision}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.github.fluxion-io</groupId>
-            <artifactId>fluxion-server-core</artifactId>
-            <version>${revision}</version>
+            <artifactId>fluxion-core</artifactId>
         </dependency>
 
         <!-- test -->

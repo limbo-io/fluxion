@@ -16,8 +16,6 @@
 
 package io.fluxion.remote.api;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.util.Collections;
 import java.util.List;
@@ -26,8 +24,6 @@ import java.util.List;
  * @author Brozen
  * @since 2021-06-16
  */
-@Getter
-@NoArgsConstructor
 public class PageResponse<T> extends Response<List<T>> {
 
     /**

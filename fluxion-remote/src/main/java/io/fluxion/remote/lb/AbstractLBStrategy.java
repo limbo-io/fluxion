@@ -16,8 +16,9 @@
 
 package io.fluxion.remote.lb;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,8 +26,9 @@ import java.util.Optional;
 /**
  * @author Brozen
  */
-@Slf4j
 public abstract class AbstractLBStrategy<S extends LBServer> implements LBStrategy<S> {
+
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 
     /**
      * {@inheritDoc}

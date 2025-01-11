@@ -16,15 +16,10 @@
 
 package io.fluxion.remote.api;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
 /**
  * @author Brozen
  * @since 2021-06-16
  */
-@Getter
-@NoArgsConstructor
 public class Response<T> {
 
     public static final String SUCCESS_MSG = "success";
@@ -50,6 +45,17 @@ public class Response<T> {
         this.data = data;
     }
 
+    public int getCode() {
+        return code;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public T getData() {
+        return data;
+    }
 
     /**
      * 获取一个响应类Builder

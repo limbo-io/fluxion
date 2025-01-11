@@ -16,7 +16,7 @@
 
 package io.fluxion.server.api.trigger.request;
 
-import io.fluxion.platform.trigger.Trigger;
+import io.fluxion.core.trigger.Trigger;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;

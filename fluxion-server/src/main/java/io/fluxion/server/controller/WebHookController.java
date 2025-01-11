@@ -16,8 +16,8 @@
 
 package io.fluxion.server.controller;
 
-import io.fluxion.platform.cqrs.Cmd;
-import io.fluxion.platform.flow.cmd.FlowCreateCmd;
+import io.fluxion.core.cqrs.Cmd;
+import io.fluxion.core.flow.cmd.FlowCreateCmd;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

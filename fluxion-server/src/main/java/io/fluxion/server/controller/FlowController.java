@@ -16,8 +16,8 @@
 
 package io.fluxion.server.controller;
 
-import io.fluxion.platform.cqrs.Cmd;
-import io.fluxion.platform.flow.cmd.*;
+import io.fluxion.core.cqrs.Cmd;
+import io.fluxion.core.flow.cmd.*;
 import io.fluxion.remote.api.PageResponse;
 import io.fluxion.server.api.flow.request.FlowConfigRequest;
 import io.fluxion.server.api.flow.request.FlowCreateRequest;
