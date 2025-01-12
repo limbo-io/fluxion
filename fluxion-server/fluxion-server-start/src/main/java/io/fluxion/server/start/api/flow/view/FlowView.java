@@ -16,7 +16,7 @@
 
 package io.fluxion.server.start.api.flow.view;
 
-import io.fluxion.core.flow.FlowConfig;
+import io.fluxion.server.core.flow.FlowConfig;
 import lombok.Data;
 
 

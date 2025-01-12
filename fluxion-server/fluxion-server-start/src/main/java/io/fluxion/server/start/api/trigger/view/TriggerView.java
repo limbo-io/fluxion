@@ -16,8 +16,8 @@
 
 package io.fluxion.server.start.api.trigger.view;
 
-import io.fluxion.core.trigger.Trigger;
-import io.fluxion.core.trigger.TriggerConfig;
+import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.TriggerConfig;
 import lombok.Data;
 
 

@@ -16,7 +16,7 @@
 
 package io.fluxion.server.start.api.flow.request;
 
-import io.fluxion.remote.api.PageRequest;
+import io.fluxion.remote.core.api.PageRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

@@ -16,9 +16,9 @@
 
 package io.fluxion.server.start.component;
 
-import io.fluxion.core.cluster.Node;
-import io.fluxion.core.cluster.NodeManger;
 import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.server.core.cluster.Node;
+import io.fluxion.server.core.cluster.NodeManger;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;

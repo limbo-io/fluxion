@@ -16,14 +16,15 @@
 
 package io.fluxion.server.start.controller;
 
-import io.fluxion.core.cqrs.Cmd;
-import io.fluxion.remote.api.PageResponse;
-import io.fluxion.server.api.flow.request.FlowConfigRequest;
-import io.fluxion.server.api.flow.request.FlowCreateRequest;
-import io.fluxion.server.api.flow.request.FlowPageRequest;
-import io.fluxion.server.api.flow.request.FlowUpdateRequest;
-import io.fluxion.server.api.flow.view.FlowView;
-import io.fluxion.server.service.FlowAppService;
+import io.fluxion.remote.core.api.PageResponse;
+import io.fluxion.server.core.flow.cmd.*;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.start.api.flow.request.FlowConfigRequest;
+import io.fluxion.server.start.api.flow.request.FlowCreateRequest;
+import io.fluxion.server.start.api.flow.request.FlowPageRequest;
+import io.fluxion.server.start.api.flow.request.FlowUpdateRequest;
+import io.fluxion.server.start.api.flow.view.FlowView;
+import io.fluxion.server.start.service.FlowAppService;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;

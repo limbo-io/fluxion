@@ -17,15 +17,16 @@
 package io.fluxion.server.start.controller;
 
 import io.fluxion.common.utils.ValidatorUtils;
-import io.fluxion.core.cqrs.Cmd;
-import io.fluxion.core.exception.PlatformException;
-import io.fluxion.remote.api.PageResponse;
-import io.fluxion.server.api.trigger.request.TriggerConfigRequest;
-import io.fluxion.server.api.trigger.request.TriggerCreateRequest;
-import io.fluxion.server.api.trigger.request.TriggerPageRequest;
-import io.fluxion.server.api.trigger.request.TriggerUpdateRequest;
-import io.fluxion.server.api.trigger.view.TriggerView;
-import io.fluxion.server.service.TriggerAppService;
+import io.fluxion.remote.core.api.PageResponse;
+import io.fluxion.server.core.trigger.cmd.*;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.exception.PlatformException;
+import io.fluxion.server.start.api.trigger.request.TriggerConfigRequest;
+import io.fluxion.server.start.api.trigger.request.TriggerCreateRequest;
+import io.fluxion.server.start.api.trigger.request.TriggerPageRequest;
+import io.fluxion.server.start.api.trigger.request.TriggerUpdateRequest;
+import io.fluxion.server.start.api.trigger.view.TriggerView;
+import io.fluxion.server.start.service.TriggerAppService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,7 +37,8 @@ import javax.annotation.Resource;
 import javax.validation.ConstraintViolation;
 import java.util.Set;
 
-import static io.fluxion.core.exception.ErrorCode.PARAM_ERROR;
+import static io.fluxion.server.infrastructure.exception.ErrorCode.PARAM_ERROR;
+
 
 /**
  * @author Devil

@@ -16,13 +16,13 @@
 
 package io.fluxion.server.start.service;
 
-import io.fluxion.core.dao.entity.TriggerEntity;
-import io.fluxion.core.dao.repository.TriggerEntityRepo;
-import io.fluxion.core.utils.JpaHelper;
-import io.fluxion.remote.api.PageResponse;
-import io.fluxion.server.api.trigger.request.TriggerPageRequest;
-import io.fluxion.server.api.trigger.view.TriggerView;
-import io.fluxion.server.converter.TriggerConverter;
+import io.fluxion.remote.core.api.PageResponse;
+import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
+import io.fluxion.server.infrastructure.dao.repository.TriggerEntityRepo;
+import io.fluxion.server.infrastructure.utils.JpaHelper;
+import io.fluxion.server.start.api.trigger.request.TriggerPageRequest;
+import io.fluxion.server.start.api.trigger.view.TriggerView;
+import io.fluxion.server.start.converter.TriggerConverter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;

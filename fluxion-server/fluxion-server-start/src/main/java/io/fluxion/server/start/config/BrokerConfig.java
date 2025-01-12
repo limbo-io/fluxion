@@ -16,7 +16,7 @@
 
 package io.fluxion.server.start.config;
 
-import io.fluxion.remote.constants.Protocol;
+import io.fluxion.remote.core.constants.Protocol;
 import lombok.Data;
 
 /**

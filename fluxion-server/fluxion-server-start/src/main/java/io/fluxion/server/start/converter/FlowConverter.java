@@ -16,8 +16,8 @@
 
 package io.fluxion.server.start.converter;
 
-import io.fluxion.core.dao.entity.FlowEntity;
-import io.fluxion.server.api.flow.view.FlowView;
+import io.fluxion.server.infrastructure.dao.entity.FlowEntity;
+import io.fluxion.server.start.api.flow.view.FlowView;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.Collections;
