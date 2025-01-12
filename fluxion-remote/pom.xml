@@ -27,13 +27,13 @@
 
     <artifactId>fluxion-remote</artifactId>
     <version>${revision}</version>
+    <packaging>pom</packaging>
     <description>remote call</description>
 
-    <dependencies>
-        <dependency>
-            <groupId>io.github.fluxion-io</groupId>
-            <artifactId>fluxion-common</artifactId>
-        </dependency>
-    </dependencies>
+    <modules>
+        <module>fluxion-remote-core</module>
+        <module>fluxion-remote-netty</module>
+        <module>fluxion-remote-vertx</module>
+    </modules>
 
 </project>

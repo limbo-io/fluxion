@@ -27,12 +27,11 @@
 
     <artifactId>fluxion-worker</artifactId>
     <version>${revision}</version>
+    <packaging>pom</packaging>
 
-    <dependencies>
-        <dependency>
-            <groupId>io.github.fluxion-io</groupId>
-            <artifactId>fluxion-remote</artifactId>
-        </dependency>
-    </dependencies>
-
+    <modules>
+        <module>fluxion-worker-core</module>
+        <module>fluxion-worker-demo</module>
+        <module>fluxion-worker-spring-boot-starter</module>
+    </modules>
 </project>

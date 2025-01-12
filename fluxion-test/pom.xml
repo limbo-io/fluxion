@@ -36,7 +36,7 @@
     <dependencies>
         <dependency>
             <groupId>io.github.fluxion-io</groupId>
-            <artifactId>fluxion-core</artifactId>
+            <artifactId>fluxion-server-core</artifactId>
         </dependency>
 
         <!-- test -->

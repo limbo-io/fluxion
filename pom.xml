@@ -15,10 +15,7 @@
         <module>fluxion-common</module>
         <module>fluxion-remote</module>
         <module>fluxion-server</module>
-        <module>fluxion-core</module>
         <module>fluxion-worker</module>
-        <module>fluxion-worker-spring-boot-starter</module>
-        <module>fluxion-worker-demo</module>
     </modules>
 
     <properties>
@@ -32,11 +29,9 @@
         <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.3.0</maven-javadoc-plugin.version>
         <spring.boot.version>2.7.18</spring.boot.version>
-        <axon.version>4.9.1</axon.version>
         <jackson.version>2.17.2</jackson.version>
         <slf4j>1.7.30</slf4j>
         <netty.version>4.1.109.Final</netty.version>
-        <vertx.version>4.5.9</vertx.version>
     </properties>
 
     <dependencyManagement>
@@ -49,17 +44,17 @@
             </dependency>
             <dependency>
                 <groupId>io.github.fluxion-io</groupId>
-                <artifactId>fluxion-remote</artifactId>
+                <artifactId>fluxion-remote-core</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.fluxion-io</groupId>
-                <artifactId>fluxion-core</artifactId>
+                <artifactId>fluxion-server-core</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.fluxion-io</groupId>
-                <artifactId>fluxion-worker</artifactId>
+                <artifactId>fluxion-worker-core</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
@@ -68,15 +63,6 @@
                 <version>${revision}</version>
             </dependency>
             <!-- Fluxion End-->
-
-            <!-- Jackson BOM 先于 spring-boot-dependencies 因为其中也引入了 -->
-            <dependency>
-                <groupId>com.fasterxml.jackson</groupId>
-                <artifactId>jackson-bom</artifactId>
-                <version>${jackson.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
 
             <!-- SpringBoot BOM -->
             <dependency>
@@ -87,11 +73,11 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- AXON BOM -->
+            <!-- Jackson BOM 先于 spring-boot-dependencies 因为其中也引入了 -->
             <dependency>
-                <groupId>org.axonframework</groupId>
-                <artifactId>axon-bom</artifactId>
-                <version>${axon.version}</version>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -103,13 +89,6 @@
                 <version>${netty.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-
-            <!-- vertx -->
-            <dependency>
-                <groupId>io.vertx</groupId>
-                <artifactId>vertx-web</artifactId>
-                <version>${vertx.version}</version>
             </dependency>
 
             <!-- JSR & JEE -->
@@ -212,25 +191,6 @@
     </build>
 
     <profiles>
-        <!-- mvn clean package -Dmaven.test.skip=true -Pdev -->
-        <profile>
-            <id>dev</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <properties>
-                <profiles.active>dev</profiles.active>
-            </properties>
-        </profile>
-
-        <!-- mvn clean package -Dmaven.test.skip=true -Pprod -->
-        <profile>
-            <id>prod</id>
-            <properties>
-                <profiles.active>prod</profiles.active>
-            </properties>
-        </profile>
-
         <!-- mvn clean deploy -Dmaven.test.skip=true -Pdeploy -->
         <profile>
             <id>deploy</id>
