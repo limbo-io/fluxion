@@ -22,10 +22,10 @@ import com.cronutils.model.definition.CronDefinition;
 import com.cronutils.model.definition.CronDefinitionBuilder;
 import com.cronutils.model.time.ExecutionTime;
 import com.cronutils.parser.CronParser;
-import io.fluxion.server.infrastructure.schedule.Scheduled;
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.infrastructure.schedule.Scheduled;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.ZonedDateTime;
@@ -49,6 +49,7 @@ public class CronScheduleCalculator implements ScheduleCalculator {
 
     /**
      * 通过此策略计算下一次触发调度的时间戳。如果不应该被触发，返回0或负数。
+     *
      * @param scheduled 待调度对象
      * @return 下次触发调度的时间戳，当返回非正数时，表示作业不会有触发时间。
      */
@@ -63,7 +64,8 @@ public class CronScheduleCalculator implements ScheduleCalculator {
 
             // 解析下次触发时间
             Optional<ZonedDateTime> nextSchedule = executionTime.nextExecution(
-                    scheduled.lastTriggerAt() == null ? ZonedDateTime.now() : scheduled.lastTriggerAt().atZone(TimeUtils.zoneOffset())
+                scheduled.lastTriggerAt() == null ? ZonedDateTime.now()
+                    : scheduled.lastTriggerAt().atZone(TimeUtils.defaultZoneOffset())
             );
             if (!nextSchedule.isPresent()) {
                 log.error("cron expression {} {} next schedule is null", cron, cronType);

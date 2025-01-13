@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.executor;
+package io.fluxion.server.core.executor.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import io.fluxion.server.core.executor.Executor;
 import io.fluxion.server.core.flow.FlowConstants;
-import io.fluxion.server.core.flow.ValidateSuppressInfo;
+import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.StringUtils;
@@ -31,7 +32,7 @@ import java.util.List;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-@JsonTypeName(Executor.Type.SHELL_SCRIPT_EXECUTOR)
+@JsonTypeName(Executor.Type.SHELL_SCRIPT)
 public class ShellScriptExecutor extends Executor {
     /**
      * 脚本

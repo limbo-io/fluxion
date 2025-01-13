@@ -14,20 +14,26 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.condition;
+package io.fluxion.server.core.executor.option;
 
-import io.fluxion.server.core.flow.FlowNode;
+import lombok.*;
 
 /**
- * @author Devil
+ * 超时参数 单位毫秒
+ *
+ * @author KaiFengCai
+ * @since 2023/2/3
  */
-public abstract class Condition extends FlowNode {
+@Data
+@Setter(AccessLevel.NONE)
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder(builderClassName = "Builder", toBuilder = true)
+public class OvertimeOption {
 
     /**
-     * test condition
-     * @param context
-     * @return result pass or not
+     * 调度超时 负数或者为空表示不会超时
      */
-    public abstract boolean test(ConditionContext context);
+    private Integer schedule;
 
 }

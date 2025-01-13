@@ -41,7 +41,7 @@ public class DelayTask extends AbstractTask {
     }
 
     @Override
-    public void execute() {
+    public void run() {
         consumer.accept(this);
     }
 

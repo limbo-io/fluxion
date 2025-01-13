@@ -18,7 +18,7 @@ package io.fluxion.server.core.trigger;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.fluxion.server.core.flow.FlowConstants;
-import io.fluxion.server.core.flow.ValidateSuppressInfo;
+import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.Data;

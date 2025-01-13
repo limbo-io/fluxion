@@ -16,6 +16,8 @@
 
 package io.fluxion.common.utils.time;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -48,8 +50,12 @@ public class Formatters {
      */
     static final Map<String, DateTimeFormatter> FORMATTERS = new ConcurrentHashMap<>();
     static {
-        String zoneOffset = System.getProperty("limbo.time.zone-offset", "+8");
-        DEFAULT_ZONE = DEFAULT_ZONE_OFFSET = ZoneOffset.of(zoneOffset);
+        String configZoneOffset = System.getProperty("limbo.time.zone-offset");
+        ZoneOffset zoneOffset = TimeUtils.defaultZoneOffset();
+        if (StringUtils.isNotBlank(configZoneOffset)) {
+            zoneOffset = ZoneOffset.of(configZoneOffset);
+        }
+        DEFAULT_ZONE = DEFAULT_ZONE_OFFSET = zoneOffset;
 
         FORMATTERS.put(YMD_HMS, DateTimeFormatter.ofPattern(YMD_HMS).withZone(DEFAULT_ZONE));
         FORMATTERS.put(YMD, DateTimeFormatter.ofPattern(YMD).withZone(DEFAULT_ZONE));

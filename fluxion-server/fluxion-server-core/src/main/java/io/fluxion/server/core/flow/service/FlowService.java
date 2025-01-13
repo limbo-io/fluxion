@@ -18,21 +18,20 @@ package io.fluxion.server.core.flow.service;
 
 import io.fluxion.common.utils.Lambda;
 import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.server.core.flow.Flow;
+import io.fluxion.server.core.flow.FlowConfig;
+import io.fluxion.server.core.flow.cmd.*;
+import io.fluxion.server.core.flow.query.FlowByIdQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
+import io.fluxion.server.infrastructure.dag.DAG;
 import io.fluxion.server.infrastructure.dao.entity.FlowEntity;
 import io.fluxion.server.infrastructure.dao.repository.FlowEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
-import io.fluxion.server.core.execution.FlowExecution;
-import io.fluxion.server.core.flow.Flow;
-import io.fluxion.server.core.flow.FlowConfig;
-import io.fluxion.server.core.flow.ValidateSuppressInfo;
-import io.fluxion.server.core.flow.cmd.*;
-import io.fluxion.server.core.flow.dag.DAG;
-import io.fluxion.server.core.flow.query.FlowByIdQuery;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
+import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import io.fluxion.server.infrastructure.version.cmd.VersionCreateCmd;
 import io.fluxion.server.infrastructure.version.cmd.VersionUpdateCmd;
 import io.fluxion.server.infrastructure.version.model.Version;
@@ -167,17 +166,6 @@ public class FlowService {
             }
         }
         return new FlowByIdQuery.Response(flow);
-    }
-
-    @CommandHandler
-    public void handle(FlowExecuteCmd cmd) {
-        Flow flow = Query.query(new FlowByIdQuery(cmd.getId()), FlowByIdQuery.Response.class).getFlow();
-        if (flow == null) {
-            return;
-        }
-        FlowExecution execution = null; // todo
-        execution.execute();
-
     }
 
 }

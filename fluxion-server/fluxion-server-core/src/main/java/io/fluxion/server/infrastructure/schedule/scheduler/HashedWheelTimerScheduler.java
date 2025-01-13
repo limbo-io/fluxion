@@ -16,9 +16,9 @@
 
 package io.fluxion.server.infrastructure.schedule.scheduler;
 
+import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timer;
-import io.fluxion.server.infrastructure.schedule.Executable;
 import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.common.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +35,7 @@ import java.util.function.Consumer;
  * @since 2021-05-18
  */
 @Slf4j
-public abstract class HashedWheelTimerScheduler<T extends Executable> implements Scheduler<T> {
+public abstract class HashedWheelTimerScheduler<T extends AbstractTask> implements Scheduler<T> {
 
     /**
      * 依赖netty的时间轮算法进行作业调度

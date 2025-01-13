@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.flow;
+package io.fluxion.server.core.task.handler;
 
-import java.util.Collections;
-import java.util.List;
+import io.fluxion.server.core.task.Task;
 
 /**
  * @author Devil
  */
-public interface ValidatableConfig {
+public class StartNodeHandler implements TaskHandler {
 
-    /**
-     * validate config
-     *
-     * @return un pass validate info
-     */
-    default List<ValidateSuppressInfo> validate() {
-        return Collections.emptyList();
+    @Override
+    public void handle(Task task) {
+
     }
+
 }

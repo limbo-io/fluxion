@@ -14,52 +14,26 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.tag;
+package io.fluxion.server.core.task;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.fluxion.common.constants.CommonConstants;
-import lombok.Getter;
 
-public enum TagFilterCondition {
-
-    UNKNOWN(CommonConstants.UNKNOWN, "未知"),
-
-    /**
-     * 存在指定名称的标签
-     */
-    EXISTS(1, "存在指定名称的标签"),
-
-    /**
-     * 不存在指定名称的标签
-     */
-    NOT_EXISTS(2, "不存在指定名称的标签"),
-
-    /**
-     * 存在指定名称的标签且匹配指定值
-     */
-    MUST_MATCH_VALUE(3, "存在指定名称的标签且匹配指定值"),
-
-    /**
-     * 存在指定名称的标签，且不匹配指定值
-     */
-    MUST_NOT_MATCH_VALUE(4, "存在指定名称的标签，且不匹配指定值"),
-
-    /**
-     * 存在指定名称的标签且匹配正则表达式
-     */
-    MUST_MATCH_VALUE_REGEX(5, "存在指定名称的标签且匹配正则表达式"),
+/**
+ * @author Devil
+ */
+public enum TaskRefType {
+    UNKNOWN(CommonConstants.UNKNOWN),
+    FLOW_NODE(1),
     ;
 
     @JsonValue
     public final int value;
 
-    @Getter
-    public final String desc;
 
-    TagFilterCondition(int value, String desc) {
+    TaskRefType(int value) {
         this.value = value;
-        this.desc = desc;
     }
 
     public boolean is(Number value) {
@@ -67,13 +41,12 @@ public enum TagFilterCondition {
     }
 
     @JsonCreator
-    public static TagFilterCondition parse(Number value) {
-        for (TagFilterCondition v : values()) {
+    public static TaskRefType parse(Number value) {
+        for (TaskRefType v : values()) {
             if (v.is(value)) {
                 return v;
             }
         }
         return UNKNOWN;
     }
-
 }

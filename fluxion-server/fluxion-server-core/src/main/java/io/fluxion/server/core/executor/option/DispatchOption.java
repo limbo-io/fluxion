@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.executor.data;
+package io.fluxion.server.core.executor.option;
 
 import io.fluxion.remote.core.lb.LoadBalanceType;
 import io.fluxion.server.core.tag.TagFilterOption;

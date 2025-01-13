@@ -14,21 +14,36 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.flow;
+package io.fluxion.server.core.flow.node;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import io.fluxion.server.core.output.Output;
+import io.fluxion.server.core.executor.Executor;
+import io.fluxion.server.core.flow.FlowConstants;
+import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
+ * 执行器节点
+ *
  * @author Devil
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-@JsonTypeName(FlowNode.Type.END)
-public class EndNode extends FlowNode {
+@JsonTypeName(FlowNode.Type.EXECUTOR)
+public class ExecutorNode extends FlowNode {
 
-//    private Output output;
-    
+    private Executor executor;
+
+    @Override
+    public List<ValidateSuppressInfo> validate() {
+        if (executor == null) {
+            return Collections.singletonList(new ValidateSuppressInfo(FlowConstants.EXECUTOR_IS_EMPTY));
+        }
+        return new ArrayList<>(executor.validate());
+    }
 }

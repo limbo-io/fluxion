@@ -14,21 +14,22 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.flow.dag;
+package io.fluxion.server.infrastructure.validata;
 
-import lombok.Data;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Devil
  */
-@Data
-public class Edge {
+public interface ValidatableConfig {
+
     /**
-     * Source node id
+     * validate config
+     *
+     * @return un pass validate info
      */
-    private String sourceNodeId;
-    /**
-     * Target node id
-     */
-    private String targetNodeId;
+    default List<ValidateSuppressInfo> validate() {
+        return Collections.emptyList();
+    }
 }

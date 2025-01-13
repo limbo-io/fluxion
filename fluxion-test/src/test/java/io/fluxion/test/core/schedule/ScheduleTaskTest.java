@@ -52,7 +52,7 @@ class ScheduleTaskTest {
     void testTime() {
         LocalDateTime startAt = LocalDateTime.of(2022, 12, 21, 13, 2, 58, 851);
         Duration delay = Duration.ZERO;
-        long startScheduleAt = startAt.toInstant(TimeUtils.zoneOffset()).toEpochMilli();
+        long startScheduleAt = startAt.toInstant(TimeUtils.defaultZoneOffset()).toEpochMilli();
         log.info("{}", startScheduleAt);
         log.info("{}", startAt.format(Formatters.getFormatter(Formatters.YMD_HMS_SSS)));
         long l = startScheduleAt + delay.toMillis();
@@ -78,7 +78,7 @@ class ScheduleTaskTest {
 
                 @Override
                 public LocalDateTime lastTriggerAt() {
-                    return lastTriggerAt.get() != 0 ? LocalDateTime.ofEpochSecond(lastTriggerAt.get() / 1000, 0, TimeUtils.zoneOffset()) : null;
+                    return lastTriggerAt.get() != 0 ? LocalDateTime.ofEpochSecond(lastTriggerAt.get() / 1000, 0, TimeUtils.defaultZoneOffset()) : null;
                 }
 
                 @Override
@@ -88,7 +88,7 @@ class ScheduleTaskTest {
             });
             lastTriggerAt.set(time);
             log.info("times:{} time:{}", i, lastTriggerAt.get());
-            log.info("times:{} time format:{}", i, LocalDateTime.ofEpochSecond(lastTriggerAt.get() / 1000, 0, TimeUtils.zoneOffset()).format(Formatters.getFormatter(Formatters.YMD_HMS_SSS)));
+            log.info("times:{} time format:{}", i, LocalDateTime.ofEpochSecond(lastTriggerAt.get() / 1000, 0, TimeUtils.defaultZoneOffset()).format(Formatters.getFormatter(Formatters.YMD_HMS_SSS)));
         }
     }
 

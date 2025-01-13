@@ -16,10 +16,10 @@
 
 package io.fluxion.server.infrastructure.schedule.task;
 
-import io.fluxion.server.infrastructure.schedule.Scheduled;
-import io.fluxion.server.infrastructure.schedule.ScheduleOption;
-import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculatorFactory;
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.infrastructure.schedule.ScheduleOption;
+import io.fluxion.server.infrastructure.schedule.Scheduled;
+import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculatorFactory;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
@@ -71,7 +71,7 @@ public class ScheduledTask extends AbstractTask implements Scheduled {
     }
 
     @Override
-    public void execute() {
+    public void run() {
         consumer.accept(this);
     }
 

@@ -19,12 +19,12 @@ package io.fluxion.server.core.executor;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
 import io.fluxion.common.utils.json.JacksonTypeIdResolver;
-import io.fluxion.server.core.executor.data.DispatchOption;
-import io.fluxion.server.core.executor.data.OvertimeOption;
-import io.fluxion.server.core.executor.data.RetryOption;
-import io.fluxion.server.core.flow.ValidatableConfig;
+import io.fluxion.server.core.executor.option.DispatchOption;
+import io.fluxion.server.core.executor.option.OvertimeOption;
+import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.core.output.Output;
 import io.fluxion.server.core.task.Task;
+import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -46,6 +46,7 @@ public abstract class Executor implements ValidatableConfig {
 
     /**
      * 类型
+     *
      * @see Type
      */
     private String type;
@@ -67,16 +68,17 @@ public abstract class Executor implements ValidatableConfig {
 
     /**
      * 运行业务逻辑
+     *
      * @param task 执行的任务
      * @return 输出
      */
-    public Output execute(Task task) {
+    public Output run(Task task) {
         return null;
     }
 
     public interface Type {
-        String CUSTOM_EXECUTOR = "custom_executor";
-        String PYTHON_SCRIPT_EXECUTOR = "python_script_executor";
-        String SHELL_SCRIPT_EXECUTOR = "shell_script_executor";
+        String CUSTOM = "custom";
+        String PYTHON_SCRIPT = "python_script";
+        String SHELL_SCRIPT = "shell_script";
     }
 }

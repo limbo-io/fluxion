@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.flow;
 
-import io.fluxion.server.core.flow.dag.Edge;
+import io.fluxion.server.infrastructure.dag.Edge;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

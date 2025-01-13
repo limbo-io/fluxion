@@ -17,7 +17,7 @@
 package io.fluxion.server.core.executor;
 
 import io.fluxion.remote.core.lb.LBServer;
-import io.fluxion.server.core.executor.data.DispatchOption;
+import io.fluxion.server.core.executor.option.DispatchOption;
 import io.fluxion.server.core.output.Output;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.worker.Worker;

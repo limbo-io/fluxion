@@ -14,36 +14,38 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.executor.data;
+package io.fluxion.server.core.execution.cmd;
 
-import lombok.*;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 /**
- * 重试参数
- *
- * @author KaiFengCai
- * @since 2023/2/3
+ * @author Devil
  */
-@Data
-@Setter(AccessLevel.NONE)
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder(builderClassName = "Builder", toBuilder = true)
-public class RetryOption {
+@Builder
+public class ExecutionCreateCmd implements ICmd<ExecutionCreateCmd.Response> {
 
-    /**
-     * 重试次数
-     */
-    private Integer retry = 0;
+    private String refId;
 
-    /**
-     * 重试间隔 秒
-     */
-    private Integer retryInterval = 0;
+    private String refType;
 
-    /**
-     * 重试方式
-     */
-    private String retryType = RetryType.ALL.getType();
+    private String version;
+
+    private LocalDateTime triggerAt;
+
+
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private String id;
+    }
 
 }

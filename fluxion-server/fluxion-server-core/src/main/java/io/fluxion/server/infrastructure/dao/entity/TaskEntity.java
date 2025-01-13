@@ -16,6 +16,7 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
+import io.fluxion.server.core.task.TaskRefType;
 import io.fluxion.server.infrastructure.dao.TableConstants;
 import lombok.Getter;
 import lombok.Setter;
@@ -46,7 +47,10 @@ public class TaskEntity extends BaseEntity {
 
     private String executionId;
 
-    private Integer instanceType;
+    /**
+     * @see TaskRefType
+     */
+    private String refType;
 
     /**
      * 关联的 id
@@ -57,7 +61,7 @@ public class TaskEntity extends BaseEntity {
 
 
     /**
-     * 计划时间
+     * 计划触发时间
      */
     private LocalDateTime triggerAt;
 

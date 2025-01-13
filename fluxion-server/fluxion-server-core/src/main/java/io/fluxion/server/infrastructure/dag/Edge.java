@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.flow;
+package io.fluxion.server.infrastructure.dag;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 
 /**
  * @author Devil
  */
-@Getter
-@AllArgsConstructor
-public class ValidateSuppressInfo {
-
-    private String code;
+@Data
+public class Edge {
+    /**
+     * Source node id
+     */
+    private String sourceNodeId;
+    /**
+     * Target node id
+     */
+    private String targetNodeId;
 }

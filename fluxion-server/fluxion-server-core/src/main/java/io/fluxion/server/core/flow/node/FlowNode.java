@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.flow;
+package io.fluxion.server.core.flow.node;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
-import io.fluxion.server.core.flow.dag.DAGNode;
+import io.fluxion.server.infrastructure.dag.DAGNode;
 import io.fluxion.common.utils.json.JacksonTypeIdResolver;
+import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

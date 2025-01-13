@@ -16,11 +16,23 @@
 
 package io.fluxion.server.core.flow;
 
-import io.fluxion.server.core.flow.dag.DAG;
+import io.fluxion.server.core.execution.Executable;
+import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
+import io.fluxion.server.core.flow.node.FlowNode;
+import io.fluxion.server.core.flow.node.StartNode;
+import io.fluxion.server.core.task.Task;
+import io.fluxion.server.core.task.TaskRefType;
+import io.fluxion.server.core.task.cmd.TaskBatchCreateCmd;
+import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.dag.DAG;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Flow 运行态
@@ -28,8 +40,9 @@ import java.util.List;
  * @author Devil
  */
 @AllArgsConstructor
-public class Flow {
+public class Flow implements Executable {
 
+    @Getter
     private String id;
 
     /**
@@ -38,19 +51,50 @@ public class Flow {
      * 2. 普通节点的父节点可以是触发节点/普通节点
      * 3. 触发节点的字节点不能是触发节点
      */
-    @Getter
     private DAG<FlowNode> dag;
 
-    public FlowNode findNode(String nodeId) {
-        return dag.node(nodeId);
+    /**
+     * 执行某个节点
+     */
+    public void execute(String executionId, String nodeId) {
+        // 判断是否已经创建task
+        Task task = null; // todo
+        if (task == null) {
+            // todo create
+        }
+
+        // 判断前置节点执行状态，是否能执行当前节点
+        List<FlowNode> parentNodes = dag.preNodes(nodeId);
+
+
+        FlowNode currentNode = dag.node(nodeId);
+//        Output output = currentNode.run(null);
+
+        // 保存结果和output
+
+        // 基于execution创建 task
+        List<FlowNode> subNodes = dag.subNodes(nodeId);
+        for (FlowNode subNode : subNodes) {
+//            execute(subNode.getId());
+        }
     }
 
-    public List<FlowNode> findSubNodes(String nodeId) {
-        return dag.subNodes(nodeId);
+    @Override
+    public void execute(LocalDateTime triggerAt) {
+        ExecutionCreateCmd createCmd = new ExecutionCreateCmd(id, Trigger.RefType.FLOW, id, triggerAt);
+        String executionId = Cmd.send(createCmd).getId();
+
+        for (FlowNode node : dag.origins()) {
+            execute(executionId, node.id());
+        }
+
+//        Map<String, String> refTaskIds = Cmd.send(new TaskBatchCreateCmd(
+//            executionId, triggerAt, TaskRefType.FLOW_NODE,
+//            dag.origins().stream().map(FlowNode::id).collect(Collectors.toList())
+//        )).getRefTaskIds();
     }
 
-    public List<FlowNode> findPreNodes(String nodeId) {
-        return dag.preNodes(nodeId);
+    private void executeStartNode(StartNode node, String taskId) {
+        // 目前没有业务逻辑，直接更新task为完成
     }
-
 }

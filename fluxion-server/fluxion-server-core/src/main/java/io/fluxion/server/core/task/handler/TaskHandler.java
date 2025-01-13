@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,26 +14,15 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.executor.data;
+package io.fluxion.server.core.task.handler;
 
-import lombok.*;
+import io.fluxion.server.core.task.Task;
 
 /**
- * 超时参数 单位毫秒
- *
- * @author KaiFengCai
- * @since 2023/2/3
+ * @author Devil
  */
-@Data
-@Setter(AccessLevel.NONE)
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder(builderClassName = "Builder", toBuilder = true)
-public class OvertimeOption {
+public interface TaskHandler {
 
-    /**
-     * 调度超时 负数或者为空表示不会超时
-     */
-    private Integer schedule;
+    void handle(Task task);
 
 }

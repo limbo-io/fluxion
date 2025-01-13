@@ -14,10 +14,25 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.flow.dag;
+package io.fluxion.server.infrastructure;
 
-public interface DAGNode {
+import lombok.Getter;
 
-    String id();
+import java.util.Map;
 
+/**
+ * 运行上下文
+ *
+ * @author Devil
+ */
+public class RunContext {
+
+
+    @Getter
+    public static class Cache {
+
+        private Map<?, ?> globalVars = null;
+
+        private Map<String, String> envVars = null;
+    }
 }

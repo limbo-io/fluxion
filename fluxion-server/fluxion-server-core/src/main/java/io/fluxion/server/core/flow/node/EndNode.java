@@ -14,40 +14,20 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.schedule;
+package io.fluxion.server.core.flow.node;
 
-import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
- * 待调度对象
- *
  * @author Devil
  */
-public interface Executable {
+@EqualsAndHashCode(callSuper = true)
+@Data
+@JsonTypeName(FlowNode.Type.END)
+public class EndNode extends FlowNode {
 
-    /**
-     * 获取调度对象ID
-     */
-    String id();
-
-    /**
-     * 任务执行
-     */
-    void execute();
-
-    /**
-     * 停止
-     */
-    void stop();
-
-    /**
-     * 是否已经停止
-     */
-    boolean stopped();
-
-    /**
-     * 任务应该被执行的时间
-     */
-    LocalDateTime triggerAt();
-
+//    private Output output;
+    
 }

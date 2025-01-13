@@ -16,15 +16,15 @@
 
 package io.fluxion.server.infrastructure.schedule.scheduler;
 
-import io.fluxion.server.infrastructure.schedule.Executable;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
+import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
 
 /**
  * 调度器，封装了调度流程，根据{@link ScheduleType}有不同实现。
  *
  * @author Brozen
  */
-public interface Scheduler<T extends Executable> {
+public interface Scheduler<T extends AbstractTask> {
 
     /**
      * 进行一次调度 如果任务已存在 不会重复调度

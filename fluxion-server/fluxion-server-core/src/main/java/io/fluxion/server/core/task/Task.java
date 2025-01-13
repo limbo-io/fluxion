@@ -16,8 +16,6 @@
 
 package io.fluxion.server.core.task;
 
-import io.fluxion.server.core.input.Input;
-
 /**
  * @author Devil
  */
@@ -25,6 +23,7 @@ public class Task {
 
     private String taskId;
 
-    private Input input;
+    private TaskRefType refType;
 
+    private String refId;
 }

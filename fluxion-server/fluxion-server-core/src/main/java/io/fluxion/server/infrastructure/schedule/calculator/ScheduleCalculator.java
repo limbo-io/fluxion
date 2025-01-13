@@ -16,10 +16,10 @@
 
 package io.fluxion.server.infrastructure.schedule.calculator;
 
-import io.fluxion.server.infrastructure.schedule.Scheduled;
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.infrastructure.schedule.Scheduled;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -57,7 +57,7 @@ public interface ScheduleCalculator {
     default long calculateStartScheduleTimestamp(ScheduleOption scheduleOption) {
         LocalDateTime startAt = scheduleOption.getScheduleStartAt();
         Duration delay = scheduleOption.getScheduleDelay();
-        long startScheduleAt = startAt.toInstant(TimeUtils.zoneOffset()).toEpochMilli();
+        long startScheduleAt = startAt.toInstant(TimeUtils.defaultZoneOffset()).toEpochMilli();
         return delay != null ? startScheduleAt + delay.toMillis() : startScheduleAt;
     }
 

@@ -23,7 +23,7 @@ import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.core.executor.Executor;
 import io.fluxion.server.core.flow.Flow;
 import io.fluxion.server.core.flow.FlowConfig;
-import io.fluxion.server.core.flow.FlowNode;
+import io.fluxion.server.core.flow.node.FlowNode;
 import io.fluxion.server.infrastructure.dao.entity.FlowEntity;
 import org.junit.jupiter.api.Test;
 import org.reflections.Reflections;

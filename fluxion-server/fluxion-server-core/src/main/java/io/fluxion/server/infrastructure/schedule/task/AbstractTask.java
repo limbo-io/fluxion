@@ -16,13 +16,13 @@
 
 package io.fluxion.server.infrastructure.schedule.task;
 
-import io.fluxion.server.infrastructure.schedule.Executable;
+import java.time.LocalDateTime;
 
 /**
  * @author Brozen
  * @since 2022-10-11
  */
-public abstract class AbstractTask implements Executable {
+public abstract class AbstractTask {
 
     private final String id;
 
@@ -35,17 +35,24 @@ public abstract class AbstractTask implements Executable {
         this.id = id;
     }
 
-    @Override
+    /**
+     * 任务执行
+     */
+    public abstract void run();
+
+    /**
+     * 任务应该被执行的时间
+     */
+    public abstract LocalDateTime triggerAt();
+
     public String id() {
         return id;
     }
 
-    @Override
     public void stop() {
         stopped = true;
     }
 
-    @Override
     public boolean stopped() {
         return stopped;
     }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.flow.dag;
+package io.fluxion.server.infrastructure.dag;
 
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;

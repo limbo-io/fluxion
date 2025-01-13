@@ -54,10 +54,10 @@ public class ScheduledTaskScheduler extends TaskScheduler<ScheduledTask> {
                     case FIXED_RATE:
                     case CRON:
                         reschedule(task);
-                        task.execute();
+                        task.run();
                         break;
                     case FIXED_DELAY:
-                        task.execute();
+                        task.run();
                         reschedule(task);
                         break;
                     default:

@@ -14,30 +14,22 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.flow.cmd;
+package io.fluxion.server.core.flow.node;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import io.fluxion.server.core.input.Input;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * @author Devil
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class FlowExecuteCmd implements ICmd<FlowExecuteCmd.Response> {
-    /**
-     * flow id
-     */
-    private String id;
+@EqualsAndHashCode(callSuper = true)
+@Data
+@JsonTypeName(FlowNode.Type.START)
+public class StartNode extends FlowNode {
 
-    @Getter
-    @AllArgsConstructor
-    public static class Response {
-    }
+    private Input input;
+
 
 }

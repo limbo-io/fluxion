@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.executor.data;
+package io.fluxion.server.core.executor.option;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -22,7 +22,6 @@ import io.fluxion.common.constants.CommonConstants;
 import lombok.Getter;
 
 /**
- *
  * @author Brozen
  * @since 2021-05-19
  */
@@ -32,22 +31,22 @@ public enum RetryType {
     /**
      * 对于广播/map-map/reduce任务 会重新重试
      */
-    ALL("all", "重试所有"),
+    ALL(1, "重试所有"),
     /**
      * 对于广播/map-map/reduce任务 只处理失败的任务
      */
-    ONLY_FAIL_PART("only_fail_part", "失败部分重试"),
+    ONLY_FAIL_PART(2, "失败部分重试"),
     ;
 
     @JsonValue
     @Getter
-    public final String type;
+    public final int value;
 
     @Getter
     public final String desc;
 
-    RetryType(String type, String desc) {
-        this.type = type;
+    RetryType(int value, String desc) {
+        this.value = value;
         this.desc = desc;
     }
 
@@ -63,20 +62,20 @@ public enum RetryType {
     /**
      * 校验是否是当前状态
      *
-     * @param type 待校验状态值
+     * @param value 待校验状态值
      */
-    public boolean is(String type) {
-        return this.type.equals(type);
+    public boolean is(Number value) {
+        return value != null && value.intValue() == this.value;
     }
 
     /**
      * 解析上下文状态值
      */
     @JsonCreator
-    public static RetryType parse(String type) {
-        for (RetryType retryType : values()) {
-            if (retryType.is(type)) {
-                return retryType;
+    public static RetryType parse(Number value) {
+        for (RetryType v : values()) {
+            if (v.is(value)) {
+                return v;
             }
         }
         return UNKNOWN;

@@ -14,15 +14,36 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.condition;
+package io.fluxion.server.core.executor.option;
+
+import lombok.*;
 
 /**
- * @author Devil
+ * 重试参数
+ *
+ * @author KaiFengCai
+ * @since 2023/2/3
  */
-public class TimeBetweenCondition extends Condition {
+@Data
+@Setter(AccessLevel.NONE)
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder(builderClassName = "Builder", toBuilder = true)
+public class RetryOption {
 
-    @Override
-    public boolean test(ConditionContext context) {
-        return false;
-    }
+    /**
+     * 重试次数
+     */
+    private Integer retry = 0;
+
+    /**
+     * 重试间隔 秒
+     */
+    private Integer retryInterval = 0;
+
+    /**
+     * 重试方式
+     */
+    private Integer retryType = RetryType.ALL.getValue();
+
 }

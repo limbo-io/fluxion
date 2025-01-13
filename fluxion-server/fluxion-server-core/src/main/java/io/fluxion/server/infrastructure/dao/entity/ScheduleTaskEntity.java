@@ -64,7 +64,7 @@ public class ScheduleTaskEntity extends BaseEntity {
      * 计划作业调度方式
      * @see ScheduleType
      */
-    private String scheduleType;
+    private int scheduleType;
 
     /**
      * 从何时开始调度作业

@@ -20,5 +20,5 @@ package io.fluxion.common.constants;
  * @author Devil
  */
 public interface CommonConstants {
-    String UNKNOWN = "unknown";
+    int UNKNOWN = 0;
 }

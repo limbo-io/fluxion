@@ -17,8 +17,8 @@
 package io.fluxion.server.core.trigger;
 
 import io.fluxion.server.core.flow.FlowConstants;
-import io.fluxion.server.core.flow.ValidatableConfig;
-import io.fluxion.server.core.flow.ValidateSuppressInfo;
+import io.fluxion.server.infrastructure.validata.ValidatableConfig;
+import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import lombok.Data;
 
 import java.util.ArrayList;

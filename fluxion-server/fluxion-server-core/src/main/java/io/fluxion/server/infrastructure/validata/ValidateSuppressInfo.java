@@ -14,10 +14,17 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.condition;
+package io.fluxion.server.infrastructure.validata;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * @author Devil
  */
-public class ConditionContext {
+@Getter
+@AllArgsConstructor
+public class ValidateSuppressInfo {
+
+    private String code;
 }

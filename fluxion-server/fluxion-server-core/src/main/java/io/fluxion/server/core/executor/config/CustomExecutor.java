@@ -14,36 +14,37 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.executor;
+package io.fluxion.server.core.executor.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import io.fluxion.server.core.executor.Executor;
 import io.fluxion.server.core.flow.FlowConstants;
-import io.fluxion.server.core.flow.FlowNode;
-import io.fluxion.server.core.flow.ValidateSuppressInfo;
+import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
- * 执行器节点
- *
  * @author Devil
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-@JsonTypeName(FlowNode.Type.EXECUTOR)
-public class ExecutorNode extends FlowNode {
-
-    private Executor executor;
+@JsonTypeName(Executor.Type.CUSTOM)
+public class CustomExecutor extends Executor {
+    /**
+     * 执行器名称
+     */
+    private String name;
 
     @Override
     public List<ValidateSuppressInfo> validate() {
-        if (executor == null) {
-            return Collections.singletonList(new ValidateSuppressInfo(FlowConstants.EXECUTOR_IS_EMPTY));
+        List<ValidateSuppressInfo> infos = new ArrayList<>();
+        if (StringUtils.isBlank(name)) {
+            infos.add(new ValidateSuppressInfo(FlowConstants.EXECUTOR_NAME_IS_EMPTY));
         }
-        return new ArrayList<>(executor.validate());
+        return infos;
     }
 }

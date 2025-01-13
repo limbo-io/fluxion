@@ -39,7 +39,7 @@ public class DelayTaskScheduler extends TaskScheduler<ScheduledTask> {
     protected Consumer<ScheduledTask> consumer() {
         return task -> {
             try {
-                task.execute();
+                task.run();
             } catch (Exception e) {
                 log.error("[DelayTaskScheduler] schedule fail id:{}", task.id(), e);
                 stop(task.id());

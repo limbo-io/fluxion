@@ -20,9 +20,11 @@ import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.LocalDateTimeUtils;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.cluster.ClusterContext;
-import io.fluxion.server.core.flow.cmd.FlowExecuteCmd;
+import io.fluxion.server.core.execution.Executable;
+import io.fluxion.server.core.flow.Flow;
+import io.fluxion.server.core.flow.query.FlowByIdQuery;
 import io.fluxion.server.core.trigger.Trigger;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleTaskEntity;
 import io.fluxion.server.infrastructure.dao.repository.ScheduledTaskEntityRepo;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
@@ -39,9 +41,9 @@ import javax.annotation.Resource;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.function.Consumer;
 
 /**
  * @author Devil
@@ -90,23 +92,13 @@ public class ScheduledTaskLoader implements InitializingBean {
                         entity.getLatelyTriggerAt(),
                         entity.getLatelyFeedbackAt(),
                         toOption(entity),
-                        t -> {
-                            // todo 创建execution 下发任务
-                            // todo 判断是否由当前节点触发
-                            switch (entity.getRefType()) {
-                                case Trigger.RefType.FLOW:
-                                    Cmd.send(new FlowExecuteCmd(entity.getRefId()));
-                                    break;
-                                case Trigger.RefType.EXECUTOR:
-                                    break;
-                            }
-                        }
+                        consumer(entity)
                     );
-                    if (Objects.equals(ScheduleType.FIXED_DELAY.type, entity.getScheduleType())) {
+                    if (ScheduleType.FIXED_DELAY.value == entity.getScheduleType()) {
                         // 下次触发
                         delayTaskScheduler.schedule(task);
-                    } else if (Objects.equals(ScheduleType.FIXED_RATE.type, entity.getScheduleType())
-                        || Objects.equals(ScheduleType.CRON.type, entity.getScheduleType())) {
+                    } else if (ScheduleType.FIXED_RATE.value == entity.getScheduleType()
+                        || ScheduleType.CRON.value == entity.getScheduleType()) {
                         // 调度新的
                         scheduleTaskscheduler.schedule(task);
                     }
@@ -115,22 +107,42 @@ public class ScheduledTaskLoader implements InitializingBean {
                 log.error("[{}] execute fail", this.getClass().getSimpleName(), e);
             }
         }
-    }
 
-    private String scheduleTaskId(ScheduleTaskEntity entity) {
-        // entity = trigger 所以不会变，这里使用version判断是否有版本变动
-        return entity.getRefType() + "-" + entity.getRefId() + "-" + entity.getVersion();
-    }
+        private Consumer<ScheduledTask> consumer(ScheduleTaskEntity entity) {
+            return scheduledTask -> {
+                // todo 判断是否由当前节点触发
+                Executable executable = null;
 
-    private ScheduleOption toOption(ScheduleTaskEntity entity) {
-        return new ScheduleOption(
-            ScheduleType.parse(entity.getScheduleType()),
-            entity.getScheduleStartAt(),
-            entity.getScheduleEndAt(),
-            Duration.ofMillis(entity.getScheduleDelay()),
-            Duration.ofMillis(entity.getScheduleInterval()),
-            entity.getScheduleCron(),
-            entity.getScheduleCronType()
-        );
+                switch (entity.getRefType()) {
+                    case Trigger.RefType.FLOW:
+                        Flow flow = Query.query(new FlowByIdQuery(entity.getRefId()), FlowByIdQuery.Response.class).getFlow();
+                        executable = flow;
+                        break;
+                    case Trigger.RefType.EXECUTOR:
+                        break;
+                }
+                if (executable == null) {
+                    return;
+                }
+                executable.execute(scheduledTask.lastTriggerAt());
+            };
+        }
+
+        private String scheduleTaskId(ScheduleTaskEntity entity) {
+            // entity = trigger 所以不会变，这里使用version判断是否有版本变动
+            return entity.getRefType() + "-" + entity.getRefId() + "-" + entity.getVersion();
+        }
+
+        private ScheduleOption toOption(ScheduleTaskEntity entity) {
+            return new ScheduleOption(
+                ScheduleType.parse(entity.getScheduleType()),
+                entity.getScheduleStartAt(),
+                entity.getScheduleEndAt(),
+                Duration.ofMillis(entity.getScheduleDelay()),
+                Duration.ofMillis(entity.getScheduleInterval()),
+                entity.getScheduleCron(),
+                entity.getScheduleCronType()
+            );
+        }
     }
 }

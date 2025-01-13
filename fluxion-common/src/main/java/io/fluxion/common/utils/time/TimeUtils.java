@@ -16,23 +16,18 @@
 
 package io.fluxion.common.utils.time;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.time.*;
 
 /**
  * @author Devil
  */
 public class TimeUtils {
 
-    private static ZoneOffset zoneOffset;
-
     private static final Clock CLOCK = Clock.systemDefaultZone();
 
-    public static ZoneOffset zoneOffset() {
+    private static ZoneOffset zoneOffset;
+
+    public static ZoneOffset defaultZoneOffset() {
         if (zoneOffset == null) {
             zoneOffset = ZoneId.systemDefault().getRules().getOffset(Instant.now(CLOCK));
         }
@@ -44,11 +39,11 @@ public class TimeUtils {
     }
 
     public static Instant toInstant(LocalDateTime localDateTime) {
-        return localDateTime == null ? null : localDateTime.toInstant(zoneOffset());
+        return localDateTime == null ? null : localDateTime.toInstant(defaultZoneOffset());
     }
 
     public static Long toTimestamp(LocalDateTime localDateTime) {
-        return localDateTime == null ? null : localDateTime.toInstant(TimeUtils.zoneOffset()).toEpochMilli();
+        return localDateTime == null ? null : localDateTime.toInstant(defaultZoneOffset()).toEpochMilli();
     }
 
     public static LocalDateTime currentLocalDateTime() {
@@ -56,7 +51,7 @@ public class TimeUtils {
     }
 
     public static LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, zoneOffset());
+        return instant == null ? null : LocalDateTime.ofInstant(instant, defaultZoneOffset());
     }
 
 

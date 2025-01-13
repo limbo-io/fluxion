@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.flow.cmd;
+package io.fluxion.server.core.task.cmd;
 
-import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
+import io.fluxion.server.core.task.TaskRefType;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
-import io.fluxion.server.core.flow.FlowConfig;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Devil
@@ -33,18 +34,28 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class FlowPublishCmd implements ICmd<FlowPublishCmd.Response> {
+public class TaskBatchCreateCmd implements ICmd<TaskBatchCreateCmd.Response> {
+    /**
+     * 执行记录ID
+     */
+    private String executionId;
 
-    private String id;
+    /**
+     * 计划触发时间
+     */
+    private LocalDateTime triggerAt;
 
-    private FlowConfig config;
+    private TaskRefType refType;
+
+    private List<String> refIds;
 
     @Getter
     @AllArgsConstructor
     public static class Response {
-        private String version;
-
-        private List<ValidateSuppressInfo> suppressInfos;
+        /**
+         * refId - taskId
+         */
+        private Map<String, String> refTaskIds;
     }
 
 }

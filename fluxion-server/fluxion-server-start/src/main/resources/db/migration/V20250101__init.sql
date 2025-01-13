@@ -30,7 +30,7 @@ CREATE TABLE `fluxion_version`
 (
     `id`          bigint unsigned NOT NULL AUTO_INCREMENT,
     `ref_id`      varchar(255)    NOT NULL DEFAULT '',
-    `ref_type`    varchar(255)    NOT NULL DEFAULT '',
+    `ref_type`    tinyint         NOT NULL DEFAULT 0,
     `version`     varchar(255)    NOT NULL DEFAULT '',
     `description` varchar(255)    NOT NULL DEFAULT '',
     `config`      MEDIUMTEXT,
@@ -45,7 +45,7 @@ CREATE TABLE `fluxion_tag_ref`
 (
     `id`         bigint unsigned NOT NULL AUTO_INCREMENT,
     `ref_id`     varchar(255)    NOT NULL DEFAULT '',
-    `ref_type`   varchar(255)    NOT NULL DEFAULT '',
+    `ref_type`   tinyint         NOT NULL DEFAULT 0,
     `tag_key`    varchar(255)    NOT NULL DEFAULT '',
     `tag_value`  varchar(255)    NOT NULL DEFAULT '',
     `is_deleted` bit(1)          NOT NULL DEFAULT 0,
@@ -74,9 +74,10 @@ CREATE TABLE `fluxion_trigger`
 (
     `id`          bigint unsigned NOT NULL AUTO_INCREMENT,
     `trigger_id`  varchar(255)    NOT NULL DEFAULT '',
-    `type`        varchar(255)    NOT NULL DEFAULT '',
+    `type`        tinyint         NOT NULL DEFAULT 0,
+
     `ref_id`      varchar(255)    NOT NULL DEFAULT '',
-    `ref_type`    varchar(255)    NOT NULL DEFAULT '',
+    `ref_type`    tinyint         NOT NULL DEFAULT 0,
     `description` varchar(255)    NOT NULL DEFAULT '',
     `config`      MEDIUMTEXT,
     `enabled`     bit(1)          NOT NULL DEFAULT false,

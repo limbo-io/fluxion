@@ -24,7 +24,7 @@ import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
 import io.fluxion.server.infrastructure.dao.repository.TriggerEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
-import io.fluxion.server.core.flow.ValidateSuppressInfo;
+import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
 import io.fluxion.server.core.trigger.TriggerConfig;

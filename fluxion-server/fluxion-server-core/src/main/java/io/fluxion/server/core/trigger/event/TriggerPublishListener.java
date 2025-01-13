@@ -76,7 +76,7 @@ public class TriggerPublishListener {
         ScheduleTaskEntity scheduleTaskEntity = scheduledTaskEntityRepo.findById(scheduleTaskId).orElse(new ScheduleTaskEntity());
         scheduleTaskEntity.setRefId(triggerEntity.getRefId());
         scheduleTaskEntity.setRefType(triggerEntity.getRefType());
-        scheduleTaskEntity.setScheduleType(scheduleOption.getScheduleType().type);
+        scheduleTaskEntity.setScheduleType(scheduleOption.getScheduleType().value);
         scheduleTaskEntity.setScheduleStartAt(scheduleOption.getScheduleStartAt());
         scheduleTaskEntity.setScheduleEndAt(scheduleOption.getScheduleEndAt());
         scheduleTaskEntity.setScheduleDelay(scheduleOption.getScheduleDelay().getSeconds());

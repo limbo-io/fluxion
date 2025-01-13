@@ -54,7 +54,7 @@ public class VersionService {
 
     @QueryHandler
     public VersionByIdQuery.Response handle(VersionByIdQuery query) {
-        VersionEntity entity = versionEntityRepo.findById(new VersionEntity.ID(query.getRefId(), query.getRefType().type, query.getVersion())).orElse(null);
+        VersionEntity entity = versionEntityRepo.findById(new VersionEntity.ID(query.getRefId(), query.getRefType().value, query.getVersion())).orElse(null);
         if (entity == null) {
             return null;
         }
@@ -65,7 +65,7 @@ public class VersionService {
     public VersionCreateCmd.Response handle(VersionCreateCmd cmd) {
         VersionEntity entity = new VersionEntity();
         String version = nextVersion(cmd);
-        entity.setId(new VersionEntity.ID(cmd.getRefId(), cmd.getRefType().type, version));
+        entity.setId(new VersionEntity.ID(cmd.getRefId(), cmd.getRefType().value, version));
         entity.setConfig(cmd.getConfig());
         versionEntityRepo.saveAndFlush(entity);
         return new VersionCreateCmd.Response(version);
@@ -73,7 +73,7 @@ public class VersionService {
 
     @CommandHandler
     public VersionUpdateCmd.Response handle(VersionUpdateCmd cmd) {
-        VersionEntity entity = versionEntityRepo.findById(new VersionEntity.ID(cmd.getRefId(), cmd.getRefType().type, cmd.getVersion())).orElse(null);
+        VersionEntity entity = versionEntityRepo.findById(new VersionEntity.ID(cmd.getRefId(), cmd.getRefType().value, cmd.getVersion())).orElse(null);
         if (entity == null) {
             throw new PlatformException(
                 ErrorCode.PARAM_ERROR,
