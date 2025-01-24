@@ -16,16 +16,11 @@
 
 package io.fluxion.server.infrastructure.dao.repository;
 
-import io.fluxion.server.infrastructure.schedule.task.DelayTask;
-
-import java.util.List;
-
 /**
+ * todo
  * @author Devil
  */
 public interface DelayTaskEntityRepo {
 
-    List<DelayTask> load();
 
-    void save(DelayTask delayTask);
 }

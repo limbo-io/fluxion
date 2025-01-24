@@ -19,12 +19,13 @@ package io.fluxion.test.core.schedule;
 import com.cronutils.model.CronType;
 import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.fluxion.server.infrastructure.schedule.Scheduled;
 import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculator;
 import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculatorFactory;
 import io.fluxion.server.infrastructure.schedule.scheduler.ScheduledTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
 import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
 import io.fluxion.server.infrastructure.schedule.task.ScheduledTaskFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +47,7 @@ import java.util.function.Consumer;
 @Slf4j
 class ScheduleTaskTest {
 
-    ScheduledTaskScheduler scheduler = new ScheduledTaskScheduler(100L, TimeUnit.MILLISECONDS);
+    ScheduledTaskScheduler scheduler = new ScheduledTaskScheduler(new TimingWheelTimer(100L, TimeUnit.MILLISECONDS));
 
     @Test
     void testTime() {
@@ -70,7 +71,7 @@ class ScheduleTaskTest {
         log.info("times:0 time:{}", System.currentTimeMillis());
         ScheduleCalculator calculator = ScheduleCalculatorFactory.create(ScheduleType.CRON);
         for (int i = 1; i <= 5; i++) {
-            Long time = calculator.calculate(new Scheduled() {
+            Long time = calculator.calculate(new Calculable() {
                 @Override
                 public ScheduleOption scheduleOption() {
                     return scheduleOption;

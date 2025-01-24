@@ -56,8 +56,8 @@ public class JacksonUtils {
 
         // 注册JDK8的日期API处理模块
         JavaTimeModule javaTimeModule = new JavaTimeModule();
-        // 注册LocalDateTime的类型处理，可以通过limbo.jackson.date-time-pattern环境变量指定
-        String dateTimePattern = System.getProperty("limbo.jackson.date-time-pattern", Formatters.YMD_HMS);
+        // 注册LocalDateTime的类型处理，可以通过fluxion.jackson.date-time-pattern环境变量指定
+        String dateTimePattern = System.getProperty("fluxion.jackson.date-time-pattern", Formatters.YMD_HMS);
         javaTimeModule.addSerializer(new LocalDateTimeSerializer(dateTimePattern));
         javaTimeModule.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer(dateTimePattern));
 //        javaTimeModule.addSerializer(LocalDateTime.class, new com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer(DateTimeFormatter.ofPattern(Formatters.YMD_HMS)));

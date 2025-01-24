@@ -16,20 +16,22 @@
 
 package io.fluxion.server.core.flow;
 
+import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.execution.Executable;
-import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.flow.node.FlowNode;
-import io.fluxion.server.core.flow.node.StartNode;
 import io.fluxion.server.core.task.Task;
-import io.fluxion.server.core.task.TaskRefType;
-import io.fluxion.server.core.task.cmd.TaskBatchCreateCmd;
-import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.task.TaskStatus;
+import io.fluxion.server.core.task.TaskType;
+import io.fluxion.server.core.task.cmd.TasksCreateCmd;
+import io.fluxion.server.core.task.cmd.TasksScheduleCmd;
+import io.fluxion.server.core.task.query.TaskStatusByRefQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dag.DAG;
-import lombok.AllArgsConstructor;
+import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,32 +41,43 @@ import java.util.stream.Collectors;
  *
  * @author Devil
  */
-@AllArgsConstructor
-public class Flow implements Executable {
+public class Flow implements Executable, ValidatableConfig {
 
     @Getter
     private String id;
 
     /**
-     * 所有节点
+     * 使用 dag()
      * 1. 入口必须为触发类型
      * 2. 普通节点的父节点可以是触发节点/普通节点
      * 3. 触发节点的字节点不能是触发节点
      */
     private DAG<FlowNode> dag;
 
+    private Flow() {
+    }
+
+    public static Flow of(String id, FlowConfig config) {
+        Flow flow = new Flow();
+        flow.id = id;
+        flow.dag = new DAG<>(config.getNodes(), config.getEdges());
+        return flow;
+    }
+
     /**
      * 执行某个节点
      */
     public void execute(String executionId, String nodeId) {
-        // 判断是否已经创建task
+        // 判断前置节点执行状态，是否能执行当前节点
+        List<FlowNode> parentNodes = dag.preNodes(nodeId);
+        Map<String, TaskStatus> id2Status = Query.query(new TaskStatusByRefQuery()).getId2Status();
+
+
+//        Cmd.send(new TaskRunCmd(executionId, TaskRefType.FLOW_NODE, nodeId));
         Task task = null; // todo
         if (task == null) {
             // todo create
         }
-
-        // 判断前置节点执行状态，是否能执行当前节点
-        List<FlowNode> parentNodes = dag.preNodes(nodeId);
 
 
         FlowNode currentNode = dag.node(nodeId);
@@ -80,21 +93,17 @@ public class Flow implements Executable {
     }
 
     @Override
-    public void execute(LocalDateTime triggerAt) {
-        ExecutionCreateCmd createCmd = new ExecutionCreateCmd(id, Trigger.RefType.FLOW, id, triggerAt);
-        String executionId = Cmd.send(createCmd).getId();
+    public void execute(RunContext context) {
+        List<Task> starNodeTasks = dag.origins().stream().map(n -> {
+            Task task = new Task();
+            task.setExecutionId(context.executionId());
+            task.setRefId(n.id());
+            task.setType(TaskType.INPUT_OUTPUT);
+            return task;
+        }).collect(Collectors.toList());
 
-        for (FlowNode node : dag.origins()) {
-            execute(executionId, node.id());
-        }
-
-//        Map<String, String> refTaskIds = Cmd.send(new TaskBatchCreateCmd(
-//            executionId, triggerAt, TaskRefType.FLOW_NODE,
-//            dag.origins().stream().map(FlowNode::id).collect(Collectors.toList())
-//        )).getRefTaskIds();
+        Cmd.send(new TasksCreateCmd(starNodeTasks));
+        Cmd.send(new TasksScheduleCmd(starNodeTasks, TimeUtils.currentLocalDateTime()));
     }
 
-    private void executeStartNode(StartNode node, String taskId) {
-        // 目前没有业务逻辑，直接更新task为完成
-    }
 }

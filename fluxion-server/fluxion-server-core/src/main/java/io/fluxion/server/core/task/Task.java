@@ -16,14 +16,20 @@
 
 package io.fluxion.server.core.task;
 
+import lombok.Data;
+
 /**
  * @author Devil
  */
+@Data
 public class Task {
+
+    private String executionId;
 
     private String taskId;
 
-    private TaskRefType refType;
+    private TaskType type;
 
     private String refId;
+
 }

@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.fluxion.common.utils.Lambda;
 import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.server.core.executor.Executor;
+import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.flow.Flow;
 import io.fluxion.server.core.flow.FlowConfig;
 import io.fluxion.server.core.flow.node.FlowNode;
@@ -69,7 +69,7 @@ class FlowTest {
     void testRef() {
         Reflections reflections = new Reflections();
         System.out.println(reflections.getSubTypesOf(FlowNode.class).size());
-        System.out.println(reflections.getSubTypesOf(Executor.class).size());
+        System.out.println(reflections.getSubTypesOf(ExecutorConfig.class).size());
         System.out.println(reflections.getTypesAnnotatedWith(JsonTypeName.class).size());
         System.out.println(Lambda.name(FlowEntity::getDraftVersion));
         System.out.println(Lambda.name(FlowEntity::getDraftVersion));

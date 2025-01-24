@@ -20,6 +20,7 @@ import io.fluxion.server.core.flow.FlowConfig;
 import lombok.Data;
 
 /**
+ * 变更 flow 的配置信息
  * @author Devil
  */
 @Data

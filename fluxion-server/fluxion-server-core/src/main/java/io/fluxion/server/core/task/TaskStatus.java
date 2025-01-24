@@ -28,21 +28,30 @@ public enum TaskStatus {
     /**
      * 已经创建 等待下发
      */
-    SCHEDULING(1),
+    CREATED(1),
     /**
-     * 接收到 下发worker的反馈
+     * 队列中
+     * 已下发给worker
      */
-    RECEIVED(2),
+    QUEUED(2),
     /**
-     * 接收到 worker的执行反馈
+     * 运行中
      */
-    EXECUTING(3),
+    RUNNING(3),
     SUCCEED(4),
     FAILED(5), // worker拒绝，进入容错策略 失败次数不增加 TERMINATED 作业被手动终止 不再增加一个状态 而是写入 errMsg
     /**
-     * 重试 等待下发
+     * 重试 调度中
      */
-    RE_SCHEDULING(6),
+    RESTARTED(6),
+    /**
+     * 取消
+     */
+    CANCELLED(7),
+    /**
+     * 暂停
+     */
+    PAUSED(8),
     ;
 
     @JsonValue

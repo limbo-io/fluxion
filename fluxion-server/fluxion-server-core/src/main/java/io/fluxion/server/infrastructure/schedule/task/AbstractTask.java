@@ -40,9 +40,6 @@ public abstract class AbstractTask {
      */
     public abstract void run();
 
-    /**
-     * 任务应该被执行的时间
-     */
     public abstract LocalDateTime triggerAt();
 
     public String id() {
@@ -56,5 +53,4 @@ public abstract class AbstractTask {
     public boolean stopped() {
         return stopped;
     }
-
 }

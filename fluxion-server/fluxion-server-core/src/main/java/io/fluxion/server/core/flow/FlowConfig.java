@@ -25,6 +25,7 @@ import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Flow 配置态
@@ -58,16 +59,6 @@ public class FlowConfig implements ValidatableConfig {
             infos.add(new ValidateSuppressInfo(FlowConstants.FLOW_NODE_OVER_LIMIT));
             return infos;
         }
-        // 开始节点
-        if (nodes.stream().filter(n -> FlowNode.Type.START.equals(n.getType())).count() != 1) {
-            infos.add(new ValidateSuppressInfo(FlowConstants.FLOW_NODE_START_END_LIMIT));
-            return infos;
-        }
-        // 结束节点
-        if (nodes.stream().filter(n -> FlowNode.Type.END.equals(n.getType())).count() != 1) {
-            infos.add(new ValidateSuppressInfo(FlowConstants.FLOW_NODE_START_END_LIMIT));
-            return infos;
-        }
         // 单个节点校验
         for (FlowNode node : nodes) {
             infos.addAll(node.validate());
@@ -77,14 +68,25 @@ public class FlowConfig implements ValidatableConfig {
         }
         // dag校验
         DAG<FlowNode> dag = new DAG<>(nodes, edges);
+        // 开始节点
         if (CollectionUtils.isEmpty(dag.origins())) {
-            infos.add(new ValidateSuppressInfo(FlowConstants.FLOW_ROOT_NODES_IS_EMPTY));
+            infos.add(new ValidateSuppressInfo(FlowConstants.FLOW_START_NODES_IS_EMPTY));
             return infos;
         }
+        if (dag.origins().stream().anyMatch(n -> !Objects.equals(n.getType(), FlowNode.Type.START))) {
+            infos.add(new ValidateSuppressInfo(FlowConstants.FLOW_START_NODES_HAS_ERROR_TYPE_NODE));
+            return infos;
+        }
+        // 结束节点
         if (CollectionUtils.isEmpty(dag.lasts())) {
-            infos.add(new ValidateSuppressInfo(FlowConstants.FLOW_LEAF_NODES_IS_EMPTY));
+            infos.add(new ValidateSuppressInfo(FlowConstants.FLOW_END_NODES_IS_EMPTY));
             return infos;
         }
+        if (dag.lasts().stream().anyMatch(n -> !Objects.equals(n.getType(), FlowNode.Type.END))) {
+            infos.add(new ValidateSuppressInfo(FlowConstants.FLOW_END_NODES_HAS_ERROR_TYPE_NODE));
+            return infos;
+        }
+        // 是否成环
         if (dag.hasCyclic()) {
             infos.add(new ValidateSuppressInfo(FlowConstants.FLOW_HAS_CYCLIC));
             return infos;

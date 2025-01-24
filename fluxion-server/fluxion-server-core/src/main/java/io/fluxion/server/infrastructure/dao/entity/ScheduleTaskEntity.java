@@ -16,9 +16,9 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
+import io.fluxion.server.core.trigger.TriggerRefType;
 import io.fluxion.server.infrastructure.dao.TableConstants;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.fluxion.server.core.trigger.Trigger;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
@@ -51,9 +51,9 @@ public class ScheduleTaskEntity extends BaseEntity {
     private String refId;
 
     /**
-     * @see Trigger.RefType
+     * @see TriggerRefType
      */
-    private String refType;
+    private int refType;
 
     /**
      * 分配的节点 ip:host
@@ -62,6 +62,7 @@ public class ScheduleTaskEntity extends BaseEntity {
 
     /**
      * 计划作业调度方式
+     *
      * @see ScheduleType
      */
     private int scheduleType;

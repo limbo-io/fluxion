@@ -16,8 +16,9 @@
 
 package io.fluxion.server.core.trigger.cmd;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
 import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.TriggerRefType;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -34,15 +35,17 @@ public class TriggerCreateCmd implements ICmd<TriggerCreateCmd.Response> {
 
     /**
      * 触发方式
+     *
      * @see Trigger.Type
      */
     private String type;
 
     /**
      * 关联类型
-     * @see Trigger.RefType
+     *
+     * @see TriggerRefType
      */
-    private String refType;
+    private TriggerRefType refType;
 
     private String refId;
 

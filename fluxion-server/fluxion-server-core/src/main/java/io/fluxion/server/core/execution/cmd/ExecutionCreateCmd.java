@@ -16,6 +16,8 @@
 
 package io.fluxion.server.core.execution.cmd;
 
+import io.fluxion.server.core.execution.Execution;
+import io.fluxion.server.core.trigger.TriggerRefType;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,17 +37,14 @@ public class ExecutionCreateCmd implements ICmd<ExecutionCreateCmd.Response> {
 
     private String refId;
 
-    private String refType;
-
-    private String version;
+    private TriggerRefType refType;
 
     private LocalDateTime triggerAt;
-
 
     @Getter
     @AllArgsConstructor
     public static class Response {
-        private String id;
+        private Execution execution;
     }
 
 }

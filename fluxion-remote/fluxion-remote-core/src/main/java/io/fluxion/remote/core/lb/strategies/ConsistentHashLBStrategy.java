@@ -57,7 +57,7 @@ public class ConsistentHashLBStrategy<S extends LBServer> extends AbstractLBStra
      */
     @Override
     protected Optional<S> doSelect(List<S> servers, Invocation invocation) {
-        String targetId = invocation.invokeId();
+        String targetId = invocation.targetId();
         ConsistentHashSelector<S> selector = selectors.get(targetId);
         int serversHashcode = servers.hashCode();
         if (selector == null || selector.serversHashCode != serversHashcode) {
@@ -101,7 +101,7 @@ public class ConsistentHashLBStrategy<S extends LBServer> extends AbstractLBStra
          * 选择一个服务，根据入参 Invocation 的 hashcode 计算。
          */
         public Optional<SERVER> select(Invocation invocation) {
-            Map<String, String> parameters = invocation.loadBalanceParameters();
+            Map<String, String> parameters = invocation.parameters();
             String paramName = parameters.get(HASH_PARAM_NAME);
             // 基于配置的hash 参数名称 从参数里面获取对应参数
             Object hashObj = parameters.get(paramName);

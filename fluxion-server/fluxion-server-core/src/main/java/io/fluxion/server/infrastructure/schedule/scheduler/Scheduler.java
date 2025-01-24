@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
  *
  * @author Brozen
  */
-public interface Scheduler<T extends AbstractTask> {
+public interface Scheduler<T> {
 
     /**
      * 进行一次调度 如果任务已存在 不会重复调度

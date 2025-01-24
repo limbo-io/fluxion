@@ -24,7 +24,7 @@ import io.fluxion.server.start.api.flow.request.FlowCreateRequest;
 import io.fluxion.server.start.api.flow.request.FlowPageRequest;
 import io.fluxion.server.start.api.flow.request.FlowUpdateRequest;
 import io.fluxion.server.start.api.flow.view.FlowView;
-import io.fluxion.server.start.service.FlowAppService;
+import io.fluxion.server.start.service.FlowService;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -39,7 +39,7 @@ import javax.annotation.Resource;
 public class FlowController {
 
     @Resource
-    private FlowAppService flowAppService;
+    private FlowService flowService;
 
     @RequestMapping("/api/v1/flow/create")
     public String create(@RequestBody FlowCreateRequest request) {
@@ -78,12 +78,12 @@ public class FlowController {
 
     @RequestMapping("/api/v1/flow/page")
     public PageResponse<FlowView> page(@RequestBody FlowPageRequest request) {
-        return flowAppService.page(request);
+        return flowService.page(request);
     }
 
     @RequestMapping("/api/v1/flow/get")
     public FlowView get(@RequestParam String id, @RequestParam(required = false) String version) {
-        return flowAppService.get(id, version);
+        return flowService.get(id, version);
     }
 
     @RequestMapping("/api/v1/flow/delete")

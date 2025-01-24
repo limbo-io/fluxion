@@ -60,14 +60,14 @@ public class RoundRobinLBStrategy<S extends LBServer> extends AbstractLBStrategy
 
     /**
      * {@inheritDoc}
-     * @param servers 被负载的服务列表，可以保证非空。
+     *
+     * @param servers    被负载的服务列表，可以保证非空。
      * @param invocation 本次调用的上下文信息
      * @return
      */
     @Override
     protected Optional<S> doSelect(List<S> servers, Invocation invocation) {
-
-        String targetId = invocation.invokeId();
+        String targetId = invocation.targetId();
         Map<String, RoundRobinIndexer> indexerMap = this.indexers.computeIfAbsent(targetId, k -> new ConcurrentHashMap<>());
 
         long now = System.currentTimeMillis();
@@ -103,7 +103,6 @@ public class RoundRobinLBStrategy<S extends LBServer> extends AbstractLBStrategy
 
         return Optional.of(servers.get(0));
     }
-
 
 
     static class RoundRobinIndexer {

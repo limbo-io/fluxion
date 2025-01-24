@@ -17,10 +17,12 @@
 package io.fluxion.server.infrastructure.schedule.task;
 
 import com.cronutils.model.CronType;
+import io.fluxion.server.infrastructure.schedule.BasicCalculation;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.function.Consumer;
 
 /**
@@ -33,7 +35,7 @@ public class ScheduledTaskFactory {
      * @param cronType cron表达式类型 {@link CronType}
      */
     public static ScheduledTask cron(String id, String cron, String cronType, Consumer<ScheduledTask> consumer) {
-        return cron(id, Duration.ZERO, cron, cronType, consumer);
+        return cron(id, null, null, Duration.ZERO, cron, cronType, consumer);
     }
 
     /**
@@ -41,37 +43,43 @@ public class ScheduledTaskFactory {
      * @param cron     cron表达式
      * @param cronType cron表达式类型 {@link CronType}
      */
-    public static ScheduledTask cron(String id, Duration delay, String cron, String cronType, Consumer<ScheduledTask> consumer) {
-        return task(id,
-                new ScheduleOption(ScheduleType.CRON, null, null, delay, null, cron, cronType),
-                consumer
+    public static ScheduledTask cron(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+                                     Duration delay, String cron, String cronType, Consumer<ScheduledTask> consumer) {
+        return task(id, lastTriggerAt, lastFeedbackAt,
+            new ScheduleOption(ScheduleType.CRON, null, null, delay, null, cron, cronType),
+            consumer
         );
     }
 
     public static ScheduledTask fixDelay(String id, Duration interval, Consumer<ScheduledTask> consumer) {
-        return fixDelay(id, Duration.ZERO, interval, consumer);
+        return fixDelay(id, null, null, Duration.ZERO, interval, consumer);
     }
 
-    public static ScheduledTask fixDelay(String id, Duration delay, Duration interval, Consumer<ScheduledTask> consumer) {
-        return task(id,
-                new ScheduleOption(ScheduleType.FIXED_DELAY, null, null, delay, interval, null, null),
-                consumer
+    public static ScheduledTask fixDelay(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+                                         Duration delay, Duration interval, Consumer<ScheduledTask> consumer) {
+        return task(id, lastTriggerAt, lastFeedbackAt,
+            new ScheduleOption(ScheduleType.FIXED_DELAY, null, null, delay, interval, null, null),
+            consumer
         );
     }
 
     public static ScheduledTask fixRate(String id, Duration interval, Consumer<ScheduledTask> consumer) {
-        return fixRate(id, Duration.ZERO, interval, consumer);
+        return fixRate(id, null, null, Duration.ZERO, interval, consumer);
     }
 
-    public static ScheduledTask fixRate(String id, Duration delay, Duration interval, Consumer<ScheduledTask> consumer) {
-        return task(id,
-                new ScheduleOption(ScheduleType.FIXED_RATE, null, null, delay, interval, null, null),
-                consumer
+    public static ScheduledTask fixRate(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+                                        Duration delay, Duration interval, Consumer<ScheduledTask> consumer) {
+        return task(id, lastTriggerAt, lastFeedbackAt,
+            new ScheduleOption(ScheduleType.FIXED_RATE, null, null, delay, interval, null, null),
+            consumer
         );
     }
 
-    public static ScheduledTask task(String id, ScheduleOption scheduleOption, Consumer<ScheduledTask> consumer) {
-        return new ScheduledTask(id, null, null, scheduleOption, consumer);
+    public static ScheduledTask task(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+                                     ScheduleOption scheduleOption, Consumer<ScheduledTask> consumer) {
+        return new ScheduledTask(id, new BasicCalculation(
+            lastTriggerAt, lastFeedbackAt, scheduleOption
+        ), consumer);
     }
 
 }

@@ -53,12 +53,12 @@ public class WorkerSelectInvocation implements Invocation {
     }
 
     @Override
-    public String invokeId() {
+    public String targetId() {
         return executorName;
     }
 
     @Override
-    public Map<String, String> loadBalanceParameters() {
+    public Map<String, String> parameters() {
         return Collections.unmodifiableMap(lbParameters);
     }
 }

@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.schedule.calculator;
 
-import io.fluxion.server.infrastructure.schedule.Scheduled;
+import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import io.fluxion.common.utils.time.TimeUtils;
@@ -38,28 +38,28 @@ public class FixRateScheduleCalculator implements ScheduleCalculator {
     /**
      * 通过此策略计算下一次触发调度的时间戳。如果不应该被触发，返回0或负数。
      *
-     * @param scheduled 待调度对象
+     * @param calculable 待调度对象
      * @return 下次触发调度的时间戳，当返回非正数时，表示作业不会有触发时间。
      */
     @Override
-    public Long calculate(Scheduled scheduled) {
-        ScheduleOption scheduleOption = scheduled.scheduleOption();
+    public Long calculate(Calculable calculable) {
+        ScheduleOption scheduleOption = calculable.scheduleOption();
         // 上次调度一定间隔后调度
         Duration interval = scheduleOption.getScheduleInterval();
         if (interval == null) {
-            log.error("cannot calculate next trigger timestamp of {} because interval is not assigned!", scheduled);
+            log.error("cannot calculate next trigger timestamp of {} because interval is not assigned!", calculable);
             return ScheduleCalculator.NOT_TRIGGER;
         }
 
         // 如果上次为空则根据 delay 来
-        if (scheduled.lastTriggerAt() == null) {
+        if (calculable.lastTriggerAt() == null) {
             Instant nowInstant = TimeUtils.currentInstant();
-            long startScheduleAt = calculateStartScheduleTimestamp(scheduled.scheduleOption());
+            long startScheduleAt = calculateStartScheduleTimestamp(calculable.scheduleOption());
             return Math.max(startScheduleAt, nowInstant.getEpochSecond());
         }
 
         long now = TimeUtils.currentInstant().toEpochMilli();
-        long scheduleAt = TimeUtils.toInstant(scheduled.lastTriggerAt()).toEpochMilli() + interval.toMillis();
+        long scheduleAt = TimeUtils.toInstant(calculable.lastTriggerAt()).toEpochMilli() + interval.toMillis();
         return Math.max(scheduleAt, now);
     }
 

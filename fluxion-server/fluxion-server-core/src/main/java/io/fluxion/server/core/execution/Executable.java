@@ -1,12 +1,12 @@
 package io.fluxion.server.core.execution;
 
-import java.time.LocalDateTime;
+import io.fluxion.server.core.context.RunContext;
 
 /**
  * @author Devil
  * @date 2025/1/12
  */
 public interface Executable {
-
-    void execute(LocalDateTime triggerAt);
+    // todo 上下文通过线程获取和传递
+    void execute(RunContext context);
 }

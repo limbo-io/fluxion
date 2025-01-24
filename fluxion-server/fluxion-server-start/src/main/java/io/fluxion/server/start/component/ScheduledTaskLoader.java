@@ -20,18 +20,20 @@ import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.LocalDateTimeUtils;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.cluster.ClusterContext;
-import io.fluxion.server.core.execution.Executable;
-import io.fluxion.server.core.flow.Flow;
-import io.fluxion.server.core.flow.query.FlowByIdQuery;
-import io.fluxion.server.core.trigger.Trigger;
-import io.fluxion.server.infrastructure.cqrs.Query;
+import io.fluxion.server.core.execution.Execution;
+import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
+import io.fluxion.server.core.execution.cmd.ExecutionRunCmd;
+import io.fluxion.server.core.schedule.cmd.DelayTaskSubmitCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduledTaskSubmitCmd;
+import io.fluxion.server.core.trigger.TriggerRefType;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleTaskEntity;
-import io.fluxion.server.infrastructure.dao.repository.ScheduledTaskEntityRepo;
+import io.fluxion.server.infrastructure.dao.repository.ScheduleTaskEntityRepo;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.fluxion.server.infrastructure.schedule.scheduler.DelayTaskScheduler;
-import io.fluxion.server.infrastructure.schedule.scheduler.ScheduledTaskScheduler;
-import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
+import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
+import io.fluxion.server.infrastructure.schedule.task.DelayTaskFactory;
+import io.fluxion.server.infrastructure.schedule.task.ScheduledTaskFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.InitializingBean;
@@ -47,18 +49,13 @@ import java.util.function.Consumer;
 
 /**
  * @author Devil
- * @date 2025/1/9 15:48
  */
 @Slf4j
 @Component
 public class ScheduledTaskLoader implements InitializingBean {
 
     @Resource
-    private ScheduledTaskScheduler scheduleTaskscheduler;
-    @Resource
-    private DelayTaskScheduler delayTaskScheduler;
-    @Resource
-    private ScheduledTaskEntityRepo scheduledTaskEntityRepo;
+    private ScheduleTaskEntityRepo scheduleTaskEntityRepo;
 
     /**
      * 间隔 秒
@@ -77,30 +74,45 @@ public class ScheduledTaskLoader implements InitializingBean {
         @Override
         public void run() {
             try {
-                List<ScheduleTaskEntity> entities = scheduledTaskEntityRepo.loadByUpdated(
+                LocalDateTime now = TimeUtils.currentLocalDateTime();
+                List<ScheduleTaskEntity> entities = scheduleTaskEntityRepo.loadByUpdated(
                     ClusterContext.currentNodeId(),
-                    loadTimePoint.plusSeconds(-interval) // 防止部分延迟导致变更丢失
+                    loadTimePoint.plusSeconds(-interval), // 防止部分延迟导致变更丢失
+                    now
+
                 );
-                loadTimePoint = TimeUtils.currentLocalDateTime();
+                loadTimePoint = now;
 
                 if (CollectionUtils.isEmpty(entities)) {
                     return;
                 }
                 for (ScheduleTaskEntity entity : entities) {
-                    ScheduledTask task = new ScheduledTask(
-                        scheduleTaskId(entity),
-                        entity.getLatelyTriggerAt(),
-                        entity.getLatelyFeedbackAt(),
-                        toOption(entity),
-                        consumer(entity)
-                    );
-                    if (ScheduleType.FIXED_DELAY.value == entity.getScheduleType()) {
-                        // 下次触发
-                        delayTaskScheduler.schedule(task);
-                    } else if (ScheduleType.FIXED_RATE.value == entity.getScheduleType()
-                        || ScheduleType.CRON.value == entity.getScheduleType()) {
-                        // 调度新的
-                        scheduleTaskscheduler.schedule(task);
+                    if (!needSchedule(entity)) {
+                        continue;
+                    }
+                    String scheduleId = scheduleId(entity);
+                    ScheduleOption scheduleOption = toOption(entity);
+                    // 移除老的，调度新的
+                    switch (ScheduleType.parse(entity.getScheduleType())) {
+                        case CRON:
+                        case FIXED_RATE:
+                            Cmd.send(new ScheduledTaskSubmitCmd(ScheduledTaskFactory.task(
+                                scheduleId,
+                                entity.getLatelyTriggerAt(),
+                                entity.getLatelyFeedbackAt(),
+                                scheduleOption,
+                                consumer(entity.getScheduleTaskId())
+                            )));
+                            break;
+                        case FIXED_DELAY:
+                            Cmd.send(new DelayTaskSubmitCmd(DelayTaskFactory.create(
+                                scheduleId,
+                                entity.getLatelyTriggerAt(),
+                                entity.getLatelyFeedbackAt(),
+                                scheduleOption,
+                                consumer(entity.getScheduleTaskId())
+                            )));
+                            break;
                     }
                 }
             } catch (Exception e) {
@@ -108,29 +120,39 @@ public class ScheduledTaskLoader implements InitializingBean {
             }
         }
 
-        private Consumer<ScheduledTask> consumer(ScheduleTaskEntity entity) {
-            return scheduledTask -> {
-                // todo 判断是否由当前节点触发
-                Executable executable = null;
-
-                switch (entity.getRefType()) {
-                    case Trigger.RefType.FLOW:
-                        Flow flow = Query.query(new FlowByIdQuery(entity.getRefId()), FlowByIdQuery.Response.class).getFlow();
-                        executable = flow;
-                        break;
-                    case Trigger.RefType.EXECUTOR:
-                        break;
-                }
-                if (executable == null) {
+        private <T extends AbstractTask> Consumer<T> consumer(String scheduleTaskId) {
+            return task -> {
+                // 移除不需要调度的
+                ScheduleTaskEntity entity = scheduleTaskEntityRepo.findById(scheduleTaskId).orElse(null);
+                if (!needSchedule(entity)) {
+                    task.stop();
                     return;
                 }
-                executable.execute(scheduledTask.lastTriggerAt());
+                // 版本变化了老的可以不用执行
+                if (!task.id().equals(scheduleId(entity))) {
+                    task.stop();
+                    return;
+                }
+                Execution execution = Cmd.send(new ExecutionCreateCmd(
+                    entity.getRefId(),
+                    TriggerRefType.parse(entity.getRefType()),
+                    task.triggerAt()
+                )).getExecution();
+                Cmd.send(new ExecutionRunCmd(execution));
             };
         }
 
-        private String scheduleTaskId(ScheduleTaskEntity entity) {
+        /**
+         * 是否需要调度
+         * 开始结束周期校验已经在 ScheduledTaskScheduler 统一处理
+         */
+        private boolean needSchedule(ScheduleTaskEntity entity) {
+            return entity != null && entity.isEnabled() && entity.isDeleted();
+        }
+
+        private String scheduleId(ScheduleTaskEntity entity) {
             // entity = trigger 所以不会变，这里使用version判断是否有版本变动
-            return entity.getRefType() + "-" + entity.getRefId() + "-" + entity.getVersion();
+            return "st_" + entity.getRefType() + "-" + entity.getRefId() + "-" + entity.getVersion();
         }
 
         private ScheduleOption toOption(ScheduleTaskEntity entity) {

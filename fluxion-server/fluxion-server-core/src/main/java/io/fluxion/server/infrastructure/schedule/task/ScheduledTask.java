@@ -17,9 +17,9 @@
 package io.fluxion.server.infrastructure.schedule.task;
 
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.infrastructure.schedule.BasicCalculation;
+import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
-import io.fluxion.server.infrastructure.schedule.Scheduled;
-import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculatorFactory;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
@@ -33,41 +33,19 @@ import java.util.function.Consumer;
  * @since 2022/12/19
  */
 @Slf4j
-public class ScheduledTask extends AbstractTask implements Scheduled {
+public class ScheduledTask extends AbstractTask {
 
-    /**
-     * 上次任务触发时间
-     */
-    private final LocalDateTime lastTriggerAt;
-
-    /**
-     * 下次任务触发时间
-     */
-    private final LocalDateTime nextTriggerAt;
-
-    /**
-     * 上次调度反馈的时间
-     */
-    private final LocalDateTime lastFeedbackAt;
-
-    /**
-     * 调度配置
-     */
-    private final ScheduleOption scheduleOption;
+    protected BasicCalculation calculation;
 
     /**
      * 业务逻辑
      */
     private final Consumer<ScheduledTask> consumer;
 
-    public ScheduledTask(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
-                         ScheduleOption scheduleOption, Consumer<ScheduledTask> consumer) {
+    public ScheduledTask(String id, BasicCalculation calculation, Consumer<ScheduledTask> consumer) {
         super(id);
-        this.lastTriggerAt = lastTriggerAt;
-        this.lastFeedbackAt = lastFeedbackAt;
-        this.scheduleOption = scheduleOption;
-        this.nextTriggerAt = calNextTriggerAt();
         this.consumer = consumer;
+        this.calculation = calculation;
     }
 
     @Override
@@ -75,36 +53,21 @@ public class ScheduledTask extends AbstractTask implements Scheduled {
         consumer.accept(this);
     }
 
-    public Consumer<ScheduledTask> consumer() {
-        return consumer;
-    }
-
     @Override
     public LocalDateTime triggerAt() {
-        return nextTriggerAt;
+        return calculation.triggerAt();
     }
 
-    @Override
-    public ScheduleOption scheduleOption() {
-        return scheduleOption;
+    public Calculable calculation() {
+        return calculation;
     }
 
-    @Override
-    public LocalDateTime lastTriggerAt() {
-        return lastTriggerAt;
-    }
-
-    /**
-     * 下次触发时间
-     */
-    public LocalDateTime calNextTriggerAt() {
-        Long calculate = ScheduleCalculatorFactory.create(scheduleOption.getScheduleType()).calculate(this);
-        return TimeUtils.toLocalDateTime(calculate);
-    }
-
-    @Override
-    public LocalDateTime lastFeedbackAt() {
-        return lastFeedbackAt;
+    public ScheduledTask nextTrigger() {
+        LocalDateTime lastTriggerAt = calculation.lastTriggerAt();
+        ScheduleOption scheduleOption = calculation.scheduleOption();
+        LocalDateTime now = TimeUtils.currentLocalDateTime();
+        calculation = new BasicCalculation(lastTriggerAt, now, scheduleOption);
+        return this;
     }
 
 }

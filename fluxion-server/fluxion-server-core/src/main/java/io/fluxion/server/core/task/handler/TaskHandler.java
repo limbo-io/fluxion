@@ -16,13 +16,98 @@
 
 package io.fluxion.server.core.task.handler;
 
+import io.fluxion.common.thread.CommonThreadPool;
+import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.core.schedule.cmd.DelayTaskSubmitCmd;
 import io.fluxion.server.core.task.Task;
+import io.fluxion.server.core.task.cmd.TaskRunCmd;
+import io.fluxion.server.core.task.cmd.TasksCreateCmd;
+import io.fluxion.server.core.task.cmd.TasksScheduleCmd;
+import io.fluxion.server.core.task.runner.TaskRunner;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.dao.entity.TaskEntity;
+import io.fluxion.server.infrastructure.dao.repository.TaskEntityRepo;
+import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
+import io.fluxion.server.infrastructure.id.data.IDType;
+import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
+import io.fluxion.server.infrastructure.schedule.task.DelayTaskFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
+import org.axonframework.commandhandling.CommandHandler;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.Resource;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * @author Devil
  */
-public interface TaskHandler {
+@Slf4j
+@Component
+public class TaskHandler {
 
-    void handle(Task task);
+    @Resource
+    private TaskEntityRepo taskEntityRepo;
+
+    @Resource
+    private List<TaskRunner> taskRunners;
+
+    @CommandHandler
+    public void handle(TasksCreateCmd cmd) {
+        List<Task> tasks = new ArrayList<>();
+        for (Task task : cmd.getTasks()) {
+            // 判断是否已经创建
+            TaskEntity entity = taskEntityRepo.findByExecutionIdAndRefIdAndType(task.getRefId(), task.getRefId(), task.getType().value);
+            if (entity == null) {
+                tasks.add(task);
+            }
+        }
+        if (CollectionUtils.isEmpty(tasks)) {
+            return;
+        }
+        LocalDateTime now = TimeUtils.currentLocalDateTime();
+        List<TaskEntity> entities = tasks.stream().map(task -> {
+            String id = Cmd.send(new IDGenerateCmd(IDType.TASK)).getId();
+            TaskEntity entity = new TaskEntity();
+            entity.setTaskId(id);
+            entity.setExecutionId(task.getExecutionId());
+            entity.setTriggerAt(now);
+            entity.setType(task.getType().value);
+            return entity;
+        }).collect(Collectors.toList());
+        taskEntityRepo.saveAllAndFlush(entities);
+    }
+
+    @CommandHandler
+    public void handle(TasksScheduleCmd cmd) {
+        for (Task task : cmd.getTasks()) {
+            Cmd.send(new DelayTaskSubmitCmd(DelayTaskFactory.create(scheduleId(task), cmd.getTriggerAt(), consumer(task))));
+        }
+    }
+
+    private <T extends AbstractTask> Consumer<T> consumer(Task task) {
+        return scheduleTask -> {
+            CommonThreadPool.IO.submit(() -> Cmd.send(new TaskRunCmd(task)));
+        };
+    }
+
+    private String scheduleId(Task task) {
+        return "t_" + task.getTaskId();
+    }
+
+    @CommandHandler
+    public void handle(TaskRunCmd cmd) {
+        Task task = cmd.getTask();
+        TaskRunner taskRunner = taskRunners.stream().filter(r -> r.type() == task.getType()).findFirst().orElse(null);
+        if (taskRunner == null) {
+            log.warn("[TaskRunCmd] can't find type:{}", task.getType());
+            return;
+        }
+        taskRunner.run(task);
+    }
 
 }

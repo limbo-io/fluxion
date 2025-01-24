@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.schedule.calculator;
 
-import io.fluxion.server.infrastructure.schedule.Scheduled;
+import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import io.fluxion.common.utils.time.TimeUtils;
@@ -38,19 +38,19 @@ public class FixDelayScheduleCalculator implements ScheduleCalculator {
     /**
      * 通过此策略计算下一次触发调度的时间戳。如果不应该被触发，返回0或负数。
      *
-     * @param scheduled 待调度对象
+     * @param calculable 待调度对象
      * @return 下次触发调度的时间戳，当返回非正数时，表示作业不会有触发时间。
      */
     @Override
-    public Long calculate(Scheduled scheduled) {
-        ScheduleOption scheduleOption = scheduled.scheduleOption();
-        LocalDateTime lastFeedbackAt = scheduled.lastFeedbackAt();
+    public Long calculate(Calculable calculable) {
+        ScheduleOption scheduleOption = calculable.scheduleOption();
+        LocalDateTime lastFeedbackAt = calculable.lastFeedbackAt();
         // 如果为空，表示此次上次任务还没反馈，等待反馈后重新调度
         if (lastFeedbackAt == null) {
             // 如果上次触发为空表示这是第一次
-            if (scheduled.lastTriggerAt() == null) {
+            if (calculable.lastTriggerAt() == null) {
                 Instant nowInstant = TimeUtils.currentInstant();
-                long startScheduleAt = calculateStartScheduleTimestamp(scheduled.scheduleOption());
+                long startScheduleAt = calculateStartScheduleTimestamp(calculable.scheduleOption());
                 return Math.max(startScheduleAt, nowInstant.getEpochSecond());
             } else {
                 return ScheduleCalculator.NOT_TRIGGER;
@@ -59,7 +59,7 @@ public class FixDelayScheduleCalculator implements ScheduleCalculator {
 
         Duration interval = scheduleOption.getScheduleInterval();
         if (interval == null) {
-            log.error("cannot calculate next trigger timestamp of {} because interval is not assigned!", scheduled);
+            log.error("cannot calculate next trigger timestamp of {} because interval is not assigned!", calculable);
             return ScheduleCalculator.NOT_TRIGGER;
         }
 

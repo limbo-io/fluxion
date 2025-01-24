@@ -20,7 +20,7 @@ import io.fluxion.common.utils.MD5Utils;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleTaskEntity;
 import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
-import io.fluxion.server.infrastructure.dao.repository.ScheduledTaskEntityRepo;
+import io.fluxion.server.infrastructure.dao.repository.ScheduleTaskEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.TriggerEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
@@ -45,7 +45,7 @@ public class TriggerPublishListener {
     private TriggerEntityRepo triggerEntityRepo;
 
     @Resource
-    private ScheduledTaskEntityRepo scheduledTaskEntityRepo;
+    private ScheduleTaskEntityRepo scheduleTaskEntityRepo;
 
     /**
      * 更新 task等
@@ -73,7 +73,7 @@ public class TriggerPublishListener {
     private void handleSchedule(TriggerEntity triggerEntity, ScheduleTrigger schedule) {
         ScheduleOption scheduleOption = schedule.getScheduleOption();
         String scheduleTaskId = TriggerHelper.scheduleTaskId(triggerEntity.getTriggerId());
-        ScheduleTaskEntity scheduleTaskEntity = scheduledTaskEntityRepo.findById(scheduleTaskId).orElse(new ScheduleTaskEntity());
+        ScheduleTaskEntity scheduleTaskEntity = scheduleTaskEntityRepo.findById(scheduleTaskId).orElse(new ScheduleTaskEntity());
         scheduleTaskEntity.setRefId(triggerEntity.getRefId());
         scheduleTaskEntity.setRefType(triggerEntity.getRefType());
         scheduleTaskEntity.setScheduleType(scheduleOption.getScheduleType().value);
@@ -89,10 +89,10 @@ public class TriggerPublishListener {
             scheduleTaskEntity.setScheduleTaskId(scheduleTaskId);
             scheduleTaskEntity.setEnabled(false);
             scheduleTaskEntity.setVersion(version);
-            scheduledTaskEntityRepo.saveAndFlush(scheduleTaskEntity);
+            scheduleTaskEntityRepo.saveAndFlush(scheduleTaskEntity);
         } else if (!version.equals(scheduleTaskEntity.getVersion())) {
             scheduleTaskEntity.setVersion(version);
-            scheduledTaskEntityRepo.saveAndFlush(scheduleTaskEntity);
+            scheduleTaskEntityRepo.saveAndFlush(scheduleTaskEntity);
         }
 
         // todo 如果是首次创建，立即进行调度 否则保存下次触发时间为最近一次触发时间

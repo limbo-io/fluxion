@@ -21,6 +21,7 @@ import io.fluxion.remote.core.lb.LoadBalanceType;
 import io.fluxion.remote.core.lb.strategies.*;
 import lombok.Setter;
 
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
@@ -39,7 +40,7 @@ public class WorkerSelectorFactory {
      * 如果确认不使用 LRU、LFU 算法，可以不设置此属性
      */
     @Setter
-    private LBServerStatisticsProvider lbServerStatisticsProvider = LBServerStatisticsProvider.EMPTY_PROVIDER;
+    private LBServerStatisticsProvider<WorkerLBStatistics> lbServerStatisticsProvider = (sids, interval) -> Collections.emptyList();
 
     private final Map<LoadBalanceType, Supplier<WorkerSelector>> selectors = new EnumMap<>(LoadBalanceType.class);
 
@@ -60,8 +61,8 @@ public class WorkerSelectorFactory {
      */
     public WorkerSelector newSelector(LoadBalanceType loadBalanceType) {
         return Optional.ofNullable(selectors.get(loadBalanceType))
-                .map(Supplier::get)
-                .orElseThrow(() -> new IllegalArgumentException("unknown load balance type: " + loadBalanceType));
+            .map(Supplier::get)
+            .orElseThrow(() -> new IllegalArgumentException("unknown load balance type: " + loadBalanceType));
     }
 
 }

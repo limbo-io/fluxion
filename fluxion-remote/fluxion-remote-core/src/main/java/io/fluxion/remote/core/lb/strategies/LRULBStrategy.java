@@ -85,16 +85,16 @@ public class LRULBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
 
         return statistics.stream()
                 .min((o1, o2) -> {
-                    if (o1.getLatestAccessAt() == null) {
+                    if (o1.latestAccessAt() == null) {
                         return -1;
                     }
-                    if (o2.getLatestAccessAt() == null) {
+                    if (o2.latestAccessAt() == null) {
                         return 1;
                     }
-                    return o1.getLatestAccessAt().compareTo(o2.getLatestAccessAt());
+                    return o1.latestAccessAt().compareTo(o2.latestAccessAt());
                 })
                 .flatMap(s -> servers.stream()
-                        .filter(server -> StringUtils.equals(server.serverId(), s.getServerId()))
+                        .filter(server -> StringUtils.equals(server.serverId(), s.serverId()))
                         .findFirst()
                 );
     }

@@ -19,7 +19,7 @@ package io.fluxion.server.infrastructure.schedule.calculator;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.fluxion.server.infrastructure.schedule.Scheduled;
+import io.fluxion.server.infrastructure.schedule.Calculable;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -40,10 +40,10 @@ public interface ScheduleCalculator {
 
     /**
      * 通过此策略计算下一次触发调度的时间戳。如果不应该被触发，返回负数。
-     * @param scheduled 可计算的对象
+     * @param calculable 可计算的对象
      * @return 下次触发调度的时间戳，当返回负数时，表示作业不会有触发时间。
      */
-    Long calculate(Scheduled scheduled);
+    Long calculate(Calculable calculable);
     /**
      * 此策略适用的调度类型
      */

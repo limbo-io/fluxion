@@ -18,7 +18,7 @@ package io.fluxion.server.core.trigger.event;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
-import io.fluxion.server.infrastructure.dao.repository.ScheduledTaskEntityRepo;
+import io.fluxion.server.infrastructure.dao.repository.ScheduleTaskEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.TriggerEntityRepo;
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.TriggerConfig;
@@ -40,7 +40,7 @@ public class TriggerDisableListener {
     private TriggerEntityRepo triggerEntityRepo;
 
     @Resource
-    private ScheduledTaskEntityRepo scheduledTaskEntityRepo;
+    private ScheduleTaskEntityRepo scheduleTaskEntityRepo;
 
     /**
      * 触发调度等关闭
@@ -54,7 +54,7 @@ public class TriggerDisableListener {
         TriggerConfig config = JacksonUtils.toType(triggerEntity.getConfig(), TriggerConfig.class);
         switch (config.getTrigger().getType()) {
             case Trigger.Type.SCHEDULE:
-                scheduledTaskEntityRepo.updateEnable(TriggerHelper.scheduleTaskId(triggerEntity.getTriggerId()), false);
+                scheduleTaskEntityRepo.updateEnable(TriggerHelper.scheduleTaskId(triggerEntity.getTriggerId()), false);
                 break;
         }
     }

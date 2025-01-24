@@ -18,8 +18,8 @@ package io.fluxion.server.core.flow.node;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
-import io.fluxion.server.infrastructure.dag.DAGNode;
 import io.fluxion.common.utils.json.JacksonTypeIdResolver;
+import io.fluxion.server.infrastructure.dag.DAGNode;
 import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -43,6 +43,7 @@ public abstract class FlowNode implements DAGNode, ValidatableConfig {
 
     /**
      * 类型
+     *
      * @see Type
      */
     private String type;
@@ -62,21 +63,13 @@ public abstract class FlowNode implements DAGNode, ValidatableConfig {
     private String description;
 
     /**
-     * 扩展信息
+     * 扩展信息 目前只给前端使用
      */
     private Map<String, Object> extension = new HashMap<>();
 
     @Override
     public String id() {
         return id;
-    }
-
-    public Object extend(String key) {
-        return extension.get(key);
-    }
-
-    public void extend(String key, Object value) {
-        extension.put(key, value);
     }
 
     public interface Type {

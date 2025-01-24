@@ -53,7 +53,7 @@ public class WorkerLBStatistics implements LBServerStatistics {
      * @return
      */
     @Override
-    public String getServerId() {
+    public String serverId() {
         return workerId;
     }
 
@@ -63,7 +63,7 @@ public class WorkerLBStatistics implements LBServerStatistics {
      * @return
      */
     @Override
-    public Instant getLatestAccessAt() {
+    public Instant latestAccessAt() {
         return lastDispatchTaskAt;
     }
 
@@ -73,7 +73,7 @@ public class WorkerLBStatistics implements LBServerStatistics {
      * @return
      */
     @Override
-    public int getAccessTimes() {
+    public int accessTimes() {
         return dispatchTimes;
     }
 

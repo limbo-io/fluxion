@@ -41,7 +41,7 @@ public class Formatters {
     public static final ZoneId DEFAULT_ZONE;
 
     /**
-     * 时区偏移量，可通过环境变量“limbo.time.zone-offset”初始化，默认+8东八区。
+     * 时区偏移量，可通过环境变量“fluxion.time.zone-offset”初始化，默认+8东八区。
      */
     public static final ZoneOffset DEFAULT_ZONE_OFFSET;
 
@@ -50,7 +50,7 @@ public class Formatters {
      */
     static final Map<String, DateTimeFormatter> FORMATTERS = new ConcurrentHashMap<>();
     static {
-        String configZoneOffset = System.getProperty("limbo.time.zone-offset");
+        String configZoneOffset = System.getProperty("fluxion.time.zone-offset");
         ZoneOffset zoneOffset = TimeUtils.defaultZoneOffset();
         if (StringUtils.isNotBlank(configZoneOffset)) {
             zoneOffset = ZoneOffset.of(configZoneOffset);

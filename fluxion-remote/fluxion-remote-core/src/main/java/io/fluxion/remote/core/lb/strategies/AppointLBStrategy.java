@@ -50,7 +50,7 @@ public class AppointLBStrategy<S extends LBServer> extends AbstractLBStrategy<S>
         if (server == null || server.url() == null) {
             return false;
         }
-        Map<String, String> params = invocation.loadBalanceParameters();
+        Map<String, String> params = invocation.parameters();
         String byServerId = params.get(PARAM_BY_SERVER_ID);
         if (StringUtils.isNotBlank(byServerId) && StringUtils.equals(server.serverId(), byServerId)) {
             return true;

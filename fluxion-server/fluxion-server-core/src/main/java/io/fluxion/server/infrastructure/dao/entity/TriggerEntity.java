@@ -16,6 +16,7 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
+import io.fluxion.server.core.trigger.TriggerRefType;
 import io.fluxion.server.infrastructure.dao.TableConstants;
 import io.fluxion.server.core.trigger.Trigger;
 import lombok.Getter;
@@ -52,9 +53,9 @@ public class TriggerEntity extends BaseEntity {
     private String refId;
 
     /**
-     * @see Trigger.RefType
+     * @see TriggerRefType
      */
-    private String refType;
+    private int refType;
 
     /**
      * 描述

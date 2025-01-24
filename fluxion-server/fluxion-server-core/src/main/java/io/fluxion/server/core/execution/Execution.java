@@ -16,75 +16,32 @@
 
 package io.fluxion.server.core.execution;
 
+import io.fluxion.server.core.context.RunContext;
+import lombok.Getter;
+
 /**
  * 执行记录
  *
  * @author Devil
  */
-public abstract class Execution {
+@Getter
+public class Execution {
 
-    private State state;
+    private final String executionId;
 
-    public abstract void execute();
+    private final Executable executable;
 
+    private ExecutionStatus status;
 
-    enum State {
-        /**
-         * 新创建
-         */
-        CREATED,
-        /**
-         * 运行中
-         */
-        RUNNING,
-        /**
-         * 暂停
-         */
-        PAUSED,
-        /**
-         * 重新启动
-         */
-        RESTARTED,
-        /**
-         * 关闭中
-         */
-        KILLING,
-        /**
-         * 成功
-         */
-        SUCCESS,
-        /**
-         * 失败
-         */
-        FAILED,
-        /**
-         * 手工终止
-         */
-        CANCELLED,
-        /**
-         * 队列中
-         */
-        QUEUED;
+    public Execution(String executionId, Executable executable, ExecutionStatus status) {
+        this.executionId = executionId;
+        this.executable = executable;
+        this.status = status;
+    }
 
-        public boolean isFinished() {
-            return this == FAILED || this == SUCCESS || this ==  CANCELLED;
-        }
-
-        public boolean isCreated() {
-            return this == CREATED || this == RESTARTED;
-        }
-
-        public boolean isRunning() {
-            return this == RUNNING || this == KILLING;
-        }
-
-        public boolean isFailed() {
-            return this == FAILED;
-        }
-
-        public boolean isPaused() {
-            return this == PAUSED;
-        }
+    public void execute() {
+        RunContext runContext = RunContext.of(executionId);
+        executable.execute(runContext);
     }
 
 }

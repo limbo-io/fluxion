@@ -32,6 +32,13 @@
             <groupId>io.github.fluxion-io</groupId>
             <artifactId>fluxion-common</artifactId>
         </dependency>
+
+        <!-- http client -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version>
+        </dependency>
     </dependencies>
 
 </project>

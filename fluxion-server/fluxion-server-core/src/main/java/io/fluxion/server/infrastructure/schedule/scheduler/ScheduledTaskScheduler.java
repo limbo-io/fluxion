@@ -16,15 +16,14 @@
 
 package io.fluxion.server.infrastructure.schedule.scheduler;
 
+import io.fluxion.common.utils.time.Formatters;
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
-import io.fluxion.common.utils.time.Formatters;
-import io.fluxion.common.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import java.time.LocalDateTime;
 
 /**
  * 可循环调度的task调度器
@@ -35,18 +34,29 @@ import java.util.function.Consumer;
 @Slf4j
 public class ScheduledTaskScheduler extends TaskScheduler<ScheduledTask> {
 
-    public ScheduledTaskScheduler(long tickDuration, TimeUnit unit) {
-        super(tickDuration, unit);
+    public ScheduledTaskScheduler(Timer timer) {
+        super(timer);
     }
 
     @Override
-    protected Consumer<ScheduledTask> consumer() {
-        return task -> {
+    protected Runnable run(ScheduledTask task) {
+        return () -> {
             try {
                 String scheduleId = task.id();
-                ScheduleOption scheduleOption = task.scheduleOption();
+
+                ScheduleOption scheduleOption = task.calculation().scheduleOption();
                 if (scheduleOption == null || scheduleOption.getScheduleType() == null || ScheduleType.UNKNOWN == scheduleOption.getScheduleType()) {
                     log.error("{} scheduleType is {} scheduleOption={}", scheduleId, ScheduleType.UNKNOWN.name(), scheduleOption);
+                    return;
+                }
+
+                // 超过时间的不需要调度
+                LocalDateTime scheduleStartAt = scheduleOption.getScheduleStartAt();
+                LocalDateTime scheduleEndAt = scheduleOption.getScheduleEndAt();
+                LocalDateTime now = TimeUtils.currentLocalDateTime();
+                if ((scheduleStartAt != null && scheduleStartAt.isAfter(now))
+                    || (scheduleEndAt != null && scheduleEndAt.isBefore(now))) {
+                    stop(task.id());
                     return;
                 }
 
@@ -69,15 +79,18 @@ public class ScheduledTaskScheduler extends TaskScheduler<ScheduledTask> {
         };
     }
 
+    @Override
+    protected void afterExecute(ScheduledTask task, Throwable thrown) {
+        if (task.stopped()) {
+            stop(task.id());
+        }
+    }
+
     public void reschedule(ScheduledTask task) {
         String scheduleId = task.id();
         try {
-            log.error("reschedule task at:{}", task.triggerAt().format(Formatters.getFormatter(Formatters.YMD_HMS_SSS)));
-            calAndSchedule(new ScheduledTask(
-                    task.id(),
-                    task.triggerAt(), TimeUtils.currentLocalDateTime(), task.scheduleOption(),
-                    task.consumer()
-            ), consumer());
+            log.info("reschedule task at:{}", task.triggerAt().format(Formatters.getFormatter(Formatters.YMD_HMS_SSS)));
+            doSchedule(task.nextTrigger());
         } catch (Exception e) {
             log.error("ScheduledTask [{}] reschedule failed", scheduleId, e);
         }

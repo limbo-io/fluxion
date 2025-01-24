@@ -17,7 +17,7 @@
 package io.fluxion.server.core.flow.node;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import io.fluxion.server.core.executor.Executor;
+import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.flow.FlowConstants;
 import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import lombok.Data;
@@ -37,7 +37,7 @@ import java.util.List;
 @JsonTypeName(FlowNode.Type.EXECUTOR)
 public class ExecutorNode extends FlowNode {
 
-    private Executor executor;
+    private ExecutorConfig executor;
 
     @Override
     public List<ValidateSuppressInfo> validate() {

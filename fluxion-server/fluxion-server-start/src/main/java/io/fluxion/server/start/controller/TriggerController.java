@@ -18,6 +18,7 @@ package io.fluxion.server.start.controller;
 
 import io.fluxion.common.utils.ValidatorUtils;
 import io.fluxion.remote.core.api.PageResponse;
+import io.fluxion.server.core.trigger.TriggerRefType;
 import io.fluxion.server.core.trigger.cmd.*;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.exception.PlatformException;
@@ -26,7 +27,7 @@ import io.fluxion.server.start.api.trigger.request.TriggerCreateRequest;
 import io.fluxion.server.start.api.trigger.request.TriggerPageRequest;
 import io.fluxion.server.start.api.trigger.request.TriggerUpdateRequest;
 import io.fluxion.server.start.api.trigger.view.TriggerView;
-import io.fluxion.server.start.service.TriggerAppService;
+import io.fluxion.server.start.service.TriggerService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,7 +48,7 @@ import static io.fluxion.server.infrastructure.exception.ErrorCode.PARAM_ERROR;
 public class TriggerController {
 
     @Resource
-    private TriggerAppService triggerAppService;
+    private TriggerService triggerService;
 
     @RequestMapping("/api/v1/trigger/create")
     public String create(@RequestBody TriggerCreateRequest request) {
@@ -57,7 +58,7 @@ public class TriggerController {
         }
         TriggerCreateCmd cmd = new TriggerCreateCmd(
             request.getType(),
-            request.getRefType(), request.getRefId(),
+            TriggerRefType.parse(request.getRefType()), request.getRefId(),
             request.getDescription()
         );
         TriggerCreateCmd.Response response = Cmd.send(cmd);
@@ -94,12 +95,12 @@ public class TriggerController {
 
     @RequestMapping("/api/v1/trigger/page")
     public PageResponse<TriggerView> page(TriggerPageRequest request) {
-        return triggerAppService.page(request);
+        return triggerService.page(request);
     }
 
     @RequestMapping("/api/v1/trigger/get")
     public TriggerView get(@RequestParam String id) {
-        return triggerAppService.get(id);
+        return triggerService.get(id);
     }
 
     @RequestMapping("/api/v1/trigger/delete")

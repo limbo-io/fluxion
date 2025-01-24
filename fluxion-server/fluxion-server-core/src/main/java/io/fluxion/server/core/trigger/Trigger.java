@@ -18,8 +18,8 @@ package io.fluxion.server.core.trigger;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
-import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import io.fluxion.common.utils.json.JacksonTypeIdResolver;
+import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Data;
 
 /**
@@ -45,11 +45,6 @@ public abstract class Trigger implements ValidatableConfig {
     public interface Type {
         String SCHEDULE = "schedule";
         String WEBHOOK = "webhook"; // event ?? todo
-    }
-
-    public interface RefType {
-        String FLOW = "flow";
-        String EXECUTOR = "executor";
     }
 
 }

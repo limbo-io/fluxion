@@ -18,6 +18,7 @@ package io.fluxion.server.start.api.trigger.view;
 
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.TriggerConfig;
+import io.fluxion.server.core.trigger.TriggerRefType;
 import lombok.Data;
 
 
@@ -38,9 +39,9 @@ public class TriggerView {
     private String refId;
 
     /**
-     * @see Trigger.RefType
+     * @see TriggerRefType
      */
-    private String refType;
+    private int refType;
 
     /**
      * 描述

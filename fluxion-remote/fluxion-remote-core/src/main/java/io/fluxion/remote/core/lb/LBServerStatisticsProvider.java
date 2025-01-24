@@ -16,8 +16,6 @@
 
 package io.fluxion.remote.core.lb;
 
-import com.google.common.collect.Lists;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Set;
@@ -28,15 +26,10 @@ import java.util.Set;
 public interface LBServerStatisticsProvider<T extends LBServerStatistics> {
 
     /**
-     * 不返回任何统计数据
-     */
-    LBServerStatisticsProvider EMPTY_PROVIDER = (sids, interval) -> Lists.newArrayList();
-
-
-    /**
      * 查询 {@link LBServer} 的统计信息。
+     *
      * @param serverIds 服务 ID 结合
-     * @param interval 查询的统计信息时长
+     * @param interval  查询的统计信息时长
      */
     List<T> getStatistics(Set<String> serverIds, Duration interval);
 

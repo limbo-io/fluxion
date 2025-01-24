@@ -82,9 +82,9 @@ public class LFULBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
         }
 
         return statistics.stream()
-                .min(Comparator.comparing(LBServerStatistics::getAccessTimes))
+                .min(Comparator.comparing(LBServerStatistics::accessTimes))
                 .flatMap(s -> servers.stream()
-                        .filter(server -> StringUtils.equals(server.serverId(), s.getServerId()))
+                        .filter(server -> StringUtils.equals(server.serverId(), s.serverId()))
                         .findFirst()
                 );
     }

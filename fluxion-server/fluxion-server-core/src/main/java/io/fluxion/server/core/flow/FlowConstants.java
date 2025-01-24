@@ -28,9 +28,13 @@ public interface FlowConstants {
 
     String FLOW_NODE_OVER_LIMIT = "flow_node_over_limit";
 
-    String FLOW_ROOT_NODES_IS_EMPTY = "flow_root_nodes_is_empty";
+    String FLOW_START_NODES_IS_EMPTY = "flow_start_nodes_is_empty";
 
-    String FLOW_LEAF_NODES_IS_EMPTY = "flow_leaf_nodes_is_empty";
+    String FLOW_START_NODES_HAS_ERROR_TYPE_NODE = "flow_start_nodes_has_error_type_node";
+
+    String FLOW_END_NODES_IS_EMPTY = "flow_end_nodes_is_empty";
+
+    String FLOW_END_NODES_HAS_ERROR_TYPE_NODE = "flow_end_nodes_has_error_type_node";
 
     String FLOW_HAS_CYCLIC = "flow_has_cyclic";
 

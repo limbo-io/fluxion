@@ -27,4 +27,16 @@
 
     <artifactId>fluxion-remote-netty</artifactId>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.github.fluxion-io</groupId>
+            <artifactId>fluxion-remote-core</artifactId>
+        </dependency>
+
+        <!-- netty -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+        </dependency>
+    </dependencies>
 </project>

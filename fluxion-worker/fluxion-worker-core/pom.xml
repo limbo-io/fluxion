@@ -33,6 +33,12 @@
             <groupId>io.github.fluxion-io</groupId>
             <artifactId>fluxion-remote-core</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.github.oshi</groupId>
+            <artifactId>oshi-core</artifactId>
+            <version>3.12.2</version>
+        </dependency>
     </dependencies>
 
 </project>

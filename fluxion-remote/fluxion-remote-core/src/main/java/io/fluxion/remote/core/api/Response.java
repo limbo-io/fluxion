@@ -27,17 +27,17 @@ public class Response<T> {
     /**
      * 响应状态码，参考{@link HttpStatus}中状态码的定义
      */
-    private int code;
+    private final int code;
 
     /**
      * 错误提示信息，可选项
      */
-    private String message;
+    private final String message;
 
     /**
      * 响应数据
      */
-    private T data;
+    private final T data;
 
     Response(int code, String message, T data) {
         this.code = code;

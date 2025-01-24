@@ -31,6 +31,10 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>io.github.fluxion-io</groupId>
+            <artifactId>fluxion-remote-core</artifactId>
+        </dependency>
         <!-- vertx -->
         <dependency>
             <groupId>io.vertx</groupId>

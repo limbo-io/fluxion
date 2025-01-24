@@ -16,11 +16,8 @@
 
 package io.fluxion.server.infrastructure.schedule.scheduler;
 
-import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
+import io.fluxion.server.infrastructure.schedule.task.DelayTask;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 /**
  * 延迟执行一次
@@ -29,22 +26,20 @@ import java.util.function.Consumer;
  * @since 2022-10-11
  */
 @Slf4j
-public class DelayTaskScheduler extends TaskScheduler<ScheduledTask> {
+public class DelayTaskScheduler extends TaskScheduler<DelayTask> {
 
-    public DelayTaskScheduler(long tickDuration, TimeUnit unit) {
-        super(tickDuration, unit);
+    public DelayTaskScheduler(Timer timer) {
+        super(timer);
     }
 
     @Override
-    protected Consumer<ScheduledTask> consumer() {
-        return task -> {
-            try {
-                task.run();
-            } catch (Exception e) {
-                log.error("[DelayTaskScheduler] schedule fail id:{}", task.id(), e);
-                stop(task.id());
-            }
-        };
+    protected Runnable run(DelayTask task) {
+        return task::run;
     }
 
+    @Override
+    protected void afterExecute(DelayTask task, Throwable thrown) {
+        // 执行后移除 之后相同ID的可以再次执行
+        stop(task.id());
+    }
 }

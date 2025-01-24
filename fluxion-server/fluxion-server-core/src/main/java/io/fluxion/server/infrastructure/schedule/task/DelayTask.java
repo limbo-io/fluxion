@@ -16,19 +16,22 @@
 
 package io.fluxion.server.infrastructure.schedule.task;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.time.LocalDateTime;
 import java.util.function.Consumer;
 
 /**
- * 延时任务
- * 先创建实例，特定时间触发
- *
+ * 延迟一定时间的任务，执行一次
  *
  * @author Devil
+ * @since 2022/12/19
  */
+@Slf4j
 public class DelayTask extends AbstractTask {
 
     private final LocalDateTime triggerAt;
+
     /**
      * 业务逻辑
      */
@@ -49,4 +52,5 @@ public class DelayTask extends AbstractTask {
     public LocalDateTime triggerAt() {
         return triggerAt;
     }
+
 }

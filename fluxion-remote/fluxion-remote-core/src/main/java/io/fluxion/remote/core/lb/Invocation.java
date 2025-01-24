@@ -25,12 +25,12 @@ public interface Invocation {
     /**
      * 调用目标的 ID
      */
-    String invokeId();
+    String targetId();
 
 
     /**
      * 获取用于负载均衡的参数。
      */
-    Map<String, String> loadBalanceParameters();
+    Map<String, String> parameters();
 
 }

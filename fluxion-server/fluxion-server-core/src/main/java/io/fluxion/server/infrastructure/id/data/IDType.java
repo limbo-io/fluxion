@@ -23,5 +23,7 @@ public enum IDType {
     FLOW,
     TRIGGER,
     BROKER,
+    EXECUTION,
+    TASK,
     ;
 }

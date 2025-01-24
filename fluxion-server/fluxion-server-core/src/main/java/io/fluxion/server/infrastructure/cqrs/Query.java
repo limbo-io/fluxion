@@ -16,6 +16,7 @@
 
 package io.fluxion.server.infrastructure.cqrs;
 
+import io.fluxion.common.utils.ReflectionUtils;
 import io.fluxion.common.utils.json.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.queryhandling.QueryGateway;
@@ -36,8 +37,10 @@ public class Query implements ApplicationContextAware {
 
     private static QueryGateway GATEWAY;
 
-    public static <R, Q extends IQuery<R>> R query(Q query, Class<R> responseType) {
-        // todo 直接从 IQuery 中获取返回值类型
+    @SuppressWarnings("unchecked")
+    public static <R, Q extends IQuery<R>> R query(Q query) {
+        // 通过 query 的泛型类型推断 R
+        Class<R> responseType = ReflectionUtils.refType(query);
         CompletableFuture<R> future = GATEWAY.query(query, responseType);
         try {
             return future.get();

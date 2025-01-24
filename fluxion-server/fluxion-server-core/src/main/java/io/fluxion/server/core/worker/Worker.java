@@ -16,8 +16,10 @@
 
 package io.fluxion.server.core.worker;
 
+import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.server.core.tag.Tagged;
+import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
 import lombok.Getter;
@@ -48,6 +50,11 @@ public class Worker implements LBServer, Tagged {
     private WorkerMetric metric;
 
     /**
+     * 通信
+     */
+    private Client client;
+
+    /**
      * 是否启用 不启用则无法下发任务
      */
     private boolean enabled;
@@ -71,4 +78,14 @@ public class Worker implements LBServer, Tagged {
     public Map<String, List<String>> tags() {
         return tags;
     }
+
+    /**
+     * 发送一个作业到worker执行。当worker接受此task后，将触发返回
+     *
+     * @param task 任务
+     */
+    public void dispatch(Task task) {
+
+    }
+
 }

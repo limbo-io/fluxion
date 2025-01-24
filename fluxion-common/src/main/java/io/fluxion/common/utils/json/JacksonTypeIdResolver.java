@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.DatabindContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.jsontype.TypeIdResolver;
-import io.fluxion.common.utils.ReflectionsUtils;
+import io.fluxion.common.utils.ReflectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Set;
@@ -64,7 +64,7 @@ public class JacksonTypeIdResolver implements TypeIdResolver {
     }
 
     public Class<?> getSubType(String type) {
-        Set<Class<?>> subTypes = ReflectionsUtils.get().getSubTypesOf((Class<Object>) baseType.getRawClass());
+        Set<Class<?>> subTypes = ReflectionUtils.subTypesOf((Class<Object>) baseType.getRawClass());
         for (Class<?> subType : subTypes) {
             JsonTypeName annotation = subType.getAnnotation(JsonTypeName.class);
             if ((annotation != null && annotation.value().equals(type))

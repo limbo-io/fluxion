@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.schedule.calculator;
 
-import io.fluxion.server.infrastructure.schedule.Scheduled;
+import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 
 /**
@@ -27,11 +27,11 @@ public class NeverScheduleCalculator implements ScheduleCalculator {
 
     /**
      * {@inheritDoc}
-     * @param scheduled
+     * @param calculable
      * @return
      */
     @Override
-    public Long calculate(Scheduled scheduled) {
+    public Long calculate(Calculable calculable) {
         return Long.MAX_VALUE;
     }
 

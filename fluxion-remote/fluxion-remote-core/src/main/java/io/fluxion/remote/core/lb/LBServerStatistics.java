@@ -28,16 +28,16 @@ public interface LBServerStatistics {
     /**
      * 当前服务的唯一 ID
      */
-    String getServerId();
+    String serverId();
 
     /**
      * 获取最近一次使用时间。如没有被使用过，则应返回 {@link Instant#EPOCH}
      */
-    Instant getLatestAccessAt();
+    Instant latestAccessAt();
 
     /**
      * 获取访问次数
      */
-    int getAccessTimes();
+    int accessTimes();
 
 }
