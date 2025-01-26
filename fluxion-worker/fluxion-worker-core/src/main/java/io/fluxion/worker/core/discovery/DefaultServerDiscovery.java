@@ -52,12 +52,12 @@ public class DefaultServerDiscovery implements ServerDiscovery {
 
     @Override
     public void start() {
-        // 注册 todo
+        // 注册 todo @pq
         BrokerSender.register(client, API_WORKER_REGISTER, new WorkerRegisterRequest());
         // 心跳管理
         this.heartbeatPacemaker = new HeartbeatPacemaker(() -> {
             try {
-                // todo
+                // todo @pq
                 BrokerSender.heartbeat(client, API_WORKER_HEARTBEAT, new WorkerHeartbeatRequest());
             } catch (RpcException e) {
                 log.warn("Agent send heartbeat failed");

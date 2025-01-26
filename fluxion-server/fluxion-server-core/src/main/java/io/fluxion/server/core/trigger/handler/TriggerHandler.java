@@ -138,7 +138,7 @@ public class TriggerHandler {
 
         entityManager.createQuery(update).executeUpdate();
 
-        // todo 发送事件 触发器删除时候要继续删除对应数据
+        // todo 发送事件 触发器删除时候要继续删除对应数据 @d
     }
 
 }

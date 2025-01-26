@@ -107,7 +107,7 @@ public class ExecutionHandler {
 
     @CommandHandler
     public ExecutionRunCmd.Response handle(ExecutionRunCmd cmd) {
-        // todo 校验是否由当前节点触发
+        // todo @d 校验是否由当前节点触发
         Execution execution = cmd.getExecution();
         CommonThreadPool.IO.submit(execution::execute);
         return new ExecutionRunCmd.Response();

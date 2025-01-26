@@ -21,7 +21,7 @@ package io.fluxion.server.core.flow;
  */
 public interface FlowConstants {
 
-    int FLOW_NODE_MAX_SIZE = 100; // todo 配置化
+    int FLOW_NODE_MAX_SIZE = 100; // todo @d 配置化
 
     // ========== 校验code ==========
     String FLOW_NODE_EMPTY = "flow_node_empty";

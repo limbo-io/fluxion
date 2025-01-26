@@ -44,7 +44,7 @@ public abstract class Trigger implements ValidatableConfig {
 
     public interface Type {
         String SCHEDULE = "schedule";
-        String WEBHOOK = "webhook"; // event ?? todo
+        String WEBHOOK = "webhook"; // event ?? todo @d
     }
 
 }

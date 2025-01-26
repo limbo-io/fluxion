@@ -56,13 +56,13 @@ public class ExecutorTaskRunner extends TaskRunner {
             .filter(Worker::isEnabled)
             .collect(Collectors.toList());
         DispatchOption dispatchOption = null;
-        // 广播的应该不关心资源大小 在配置的时候直接处理 todo 过滤worker任务队列已满的
+        // 广播的应该不关心资源大小 在配置的时候直接处理 todo @pq 过滤worker任务队列已满的
         WorkerFilter workerFilter = new WorkerFilter(workers)
-//                .filterExecutor(getName()) // todo 本来是根据执行器名称的，需要根据类型处理
+//                .filterExecutor(getName()) // todo @pq 本来是根据执行器名称的，需要根据类型处理
             .filterTags(dispatchOption.getTagFilters())
             .filterResources(dispatchOption.getCpuRequirement(), dispatchOption.getRamRequirement());
 
-        WorkerSelectInvocation invocation = null; // new WorkerSelectInvocation(getName(), attributes); // todo 本来是根据执行器名称的，需要根据类型处理
+        WorkerSelectInvocation invocation = null; // new WorkerSelectInvocation(getName(), attributes); // todo @pq 本来是根据执行器名称的，需要根据类型处理
         WorkerSelector workerSelector = workerSelectorFactory.newSelector(dispatchOption.getLoadBalanceType());
         Worker worker = workerSelector.select(invocation, workerFilter.get());
 

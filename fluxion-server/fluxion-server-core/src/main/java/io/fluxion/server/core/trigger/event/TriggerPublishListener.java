@@ -95,7 +95,7 @@ public class TriggerPublishListener {
             scheduleTaskEntityRepo.saveAndFlush(scheduleTaskEntity);
         }
 
-        // todo 如果是首次创建，立即进行调度 否则保存下次触发时间为最近一次触发时间
+        // todo @d 如果是首次创建，立即进行调度 否则保存下次触发时间为最近一次触发时间
     }
 
 }

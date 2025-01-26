@@ -61,7 +61,7 @@ public class DBBrokerRegistry implements NodeRegistry {
      */
     private Duration heartbeatInterval;
 
-    // todo
+    // todo @d
     public DBBrokerRegistry(long heartbeatInterval, long heartbeatTimeout,
                             BrokerEntityRepo brokerEntityRepo) {
         this.heartbeatInterval = Duration.ofMillis(heartbeatInterval);
