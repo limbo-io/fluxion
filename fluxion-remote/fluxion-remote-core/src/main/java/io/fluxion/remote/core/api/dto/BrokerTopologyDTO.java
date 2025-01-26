@@ -14,47 +14,19 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.lb;
+package io.fluxion.remote.core.api.dto;
 
-import java.net.URL;
+import java.util.Collections;
+import java.util.List;
 
 /**
- * @author Brozen
+ * @author PengQ
+ * @since 0.0.1
  */
-public class URLLBServer implements LBServer {
+public class BrokerTopologyDTO {
 
     /**
-     * 节点访问的 URL
+     * broker节点列表，主从模式下，列表中仅包括一个主节点
      */
-    private final URL baseUrl;
-
-    public URLLBServer(URL baseUrl) {
-        this.baseUrl = baseUrl;
-    }
-
-
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public String serverId() {
-        return baseUrl.toString();
-    }
-
-
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public boolean isAlive() {
-        return true;
-    }
-
-    @Override
-    public URL url() {
-        return baseUrl;
-    }
-
+    private List<BrokerDTO> brokers = Collections.emptyList();
 }

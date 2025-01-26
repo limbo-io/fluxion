@@ -14,47 +14,36 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.lb;
-
-import java.net.URL;
+package io.fluxion.remote.core.api.dto;
 
 /**
- * @author Brozen
+ * @author PengQ
+ * @since 0.0.1
  */
-public class URLLBServer implements LBServer {
+public class WorkerTagDTO {
+    /**
+     * 标签 key
+     */
+    private String key;
 
     /**
-     * 节点访问的 URL
+     * 标签 value
      */
-    private final URL baseUrl;
+    private String value;
 
-    public URLLBServer(URL baseUrl) {
-        this.baseUrl = baseUrl;
+    public String getKey() {
+        return key;
     }
 
-
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public String serverId() {
-        return baseUrl.toString();
+    public void setKey(String key) {
+        this.key = key;
     }
 
-
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public boolean isAlive() {
-        return true;
+    public String getValue() {
+        return value;
     }
 
-    @Override
-    public URL url() {
-        return baseUrl;
+    public void setValue(String value) {
+        this.value = value;
     }
-
 }

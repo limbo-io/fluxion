@@ -18,42 +18,25 @@ package io.fluxion.remote.core.client;
 
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.lb.LBServer;
-import io.fluxion.remote.core.lb.LBStrategy;
 import io.fluxion.remote.core.lb.repository.LBServerRepository;
-import io.fluxion.remote.core.lb.strategies.RoundRobinLBStrategy;
+import io.fluxion.remote.core.lb.strategies.LBStrategy;
 import org.apache.commons.collections4.CollectionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * @author Devil
  */
-public class RetryableClient<S extends LBServer> implements Client {
-
-    private static final Logger log = LoggerFactory.getLogger(RetryableClient.class);
+public class RetryableClient<S extends LBServer> extends AbstractLBClient<S> implements Client {
 
     /**
      * 重试次数
      */
     private int retryTimes;
-
-    /**
-     * 被负载的服务列表
-     */
-    private final LBServerRepository<S> repository;
-
-    /**
-     * 负载均衡策略
-     */
-    private LBStrategy<S> strategy;
 
     private final Client client;
 
@@ -70,16 +53,15 @@ public class RetryableClient<S extends LBServer> implements Client {
     }
 
     public RetryableClient(Client client, int retryTimes, LBServerRepository<S> repository, LBStrategy<S> strategy) {
+        super(repository, strategy);
         this.client = client;
         this.retryTimes = retryTimes;
-        this.repository = repository;
-        updateLBStrategy(strategy);
     }
 
 
     @Override
-    public <R, T extends Request<T>> R call(URL url, T request) {
-        List<S> servers = repository.listAliveServers();
+    public <R, T extends Request<R>> R call(URL url, T request) {
+        List<S> servers = servers();
         if (CollectionUtils.isEmpty(servers)) {
             throw new IllegalStateException("No alive servers!");
         }
@@ -91,19 +73,18 @@ public class RetryableClient<S extends LBServer> implements Client {
         }
         String path = url.getPath();
         for (int i = 1; i <= retryTimes; i++) {
-            Optional<S> optional = strategy.select(servers, new PathInvocation(path, new HashMap<>()));
-            if (!optional.isPresent()) {
+            S server = select(servers, path);
+            if (server == null) {
                 log.warn("No available alive servers after {} tries from load balancer", i);
                 throw new IllegalStateException("Can't get alive server by path=" + path);
             }
-            S select = optional.get();
             URL newUrl = null;
             try {
                 newUrl = new URI(
                     uri.getScheme(),
                     uri.getUserInfo(),
-                    select.url().getHost(),
-                    select.url().getPort(),
+                    server.url().getHost(),
+                    server.url().getPort(),
                     uri.getPath(),
                     uri.getQuery(),
                     uri.getFragment()
@@ -111,26 +92,20 @@ public class RetryableClient<S extends LBServer> implements Client {
                 return client.call(newUrl, request);
             } catch (Exception e) {
                 log.warn("try {} times... address {} connect fail, try connect new node", i, newUrl, e);
-                servers = servers.stream().filter(s -> !s.serverId().equals(select.serverId())).collect(Collectors.toList());
+                servers = servers.stream().filter(s -> !s.serverId().equals(server.serverId())).collect(Collectors.toList());
             }
 
         }
         throw new IllegalStateException("try " + retryTimes + " times... but also fail, throw to out");
     }
 
+    @Override
+    public <R, T extends Request<R>> R call(String path, T request) {
+        return null;
+    }
+
     public void updateRetryTimes(int retryTimes) {
         this.retryTimes = retryTimes;
     }
 
-    /**
-     * 更新负载均衡策略
-     */
-    public void updateLBStrategy(LBStrategy<S> strategy) {
-        // 默认使用轮询
-        if (strategy == null) {
-            strategy = new RoundRobinLBStrategy<>();
-        }
-
-        this.strategy = strategy;
-    }
 }

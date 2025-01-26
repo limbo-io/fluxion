@@ -14,47 +14,21 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.lb;
-
-import java.net.URL;
+package io.fluxion.worker.core.discovery;
 
 /**
- * @author Brozen
+ * @author PengQ
+ * @since 0.0.1
  */
-public class URLLBServer implements LBServer {
+public interface ServerDiscovery {
 
     /**
-     * 节点访问的 URL
+     * start component to discovery server
      */
-    private final URL baseUrl;
-
-    public URLLBServer(URL baseUrl) {
-        this.baseUrl = baseUrl;
-    }
-
+    void start();
 
     /**
-     * {@inheritDoc}
-     * @return
+     * stop component comp for releasing resources
      */
-    @Override
-    public String serverId() {
-        return baseUrl.toString();
-    }
-
-
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public boolean isAlive() {
-        return true;
-    }
-
-    @Override
-    public URL url() {
-        return baseUrl;
-    }
-
+    void stop();
 }

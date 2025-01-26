@@ -25,10 +25,10 @@ import java.net.URL;
  */
 public interface Client {
     /**
-     * send request and get response
+     * send request and get response by url
      *
      * @param url     url
      * @param request request
      */
-    <R, T extends Request<T>> R call(URL url, T request);
+    <R, T extends Request<R>> R call(URL url, T request);
 }

@@ -14,47 +14,20 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.lb;
+package io.fluxion.remote.core.client;
 
-import java.net.URL;
+import io.fluxion.remote.core.api.Request;
 
 /**
- * @author Brozen
+ * @author Devil
  */
-public class URLLBServer implements LBServer {
+public interface LBClient {
 
     /**
-     * 节点访问的 URL
+     * send request and get response by path
+     *
+     * @param path    path
+     * @param request request
      */
-    private final URL baseUrl;
-
-    public URLLBServer(URL baseUrl) {
-        this.baseUrl = baseUrl;
-    }
-
-
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public String serverId() {
-        return baseUrl.toString();
-    }
-
-
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public boolean isAlive() {
-        return true;
-    }
-
-    @Override
-    public URL url() {
-        return baseUrl;
-    }
-
+    <R, T extends Request<R>> R call(String path, T request);
 }

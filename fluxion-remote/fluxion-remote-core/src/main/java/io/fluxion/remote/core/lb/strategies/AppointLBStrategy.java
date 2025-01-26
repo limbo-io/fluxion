@@ -16,7 +16,6 @@
 
 package io.fluxion.remote.core.lb.strategies;
 
-import io.fluxion.remote.core.lb.AbstractLBStrategy;
 import io.fluxion.remote.core.lb.Invocation;
 import io.fluxion.remote.core.lb.LBServer;
 import org.apache.commons.collections4.CollectionUtils;
@@ -24,10 +23,10 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * todo
+ *
  * @author Brozen
  */
 public class AppointLBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
@@ -73,14 +72,14 @@ public class AppointLBStrategy<S extends LBServer> extends AbstractLBStrategy<S>
      * @return
      */
     @Override
-    protected Optional<S> doSelect(List<S> servers, Invocation invocation) {
+    protected S doSelect(List<S> servers, Invocation invocation) {
         if (CollectionUtils.isEmpty(servers)) {
-            return Optional.empty();
+            return null;
         }
 
         return servers.stream()
-                .filter(server -> filter(server, invocation))
-                .findFirst();
+            .filter(server -> filter(server, invocation))
+            .findFirst().orElse(null);
     }
 
 }

@@ -17,7 +17,7 @@
 package io.fluxion.server.core.worker.selector;
 
 import io.fluxion.remote.core.lb.Invocation;
-import io.fluxion.remote.core.lb.LBStrategy;
+import io.fluxion.remote.core.lb.strategies.LBStrategy;
 import io.fluxion.server.core.worker.Worker;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -41,7 +41,7 @@ public class LBStrategyWorkerSelector implements WorkerSelector {
      * PS：单独抽取一个方法，方便扩展。
      *
      * @param invocation 选择内容
-     * @param workers 待下发上下文可用的worker
+     * @param workers    待下发上下文可用的worker
      * @return
      */
     @Override
@@ -49,7 +49,7 @@ public class LBStrategyWorkerSelector implements WorkerSelector {
         if (CollectionUtils.isEmpty(workers)) {
             return null;
         }
-        return strategy.select(workers, invocation).orElse(null);
+        return strategy.select(workers, invocation);
     }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,26 +14,24 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.lb;
-
-import java.util.List;
-import java.util.Optional;
+package io.fluxion.remote.core.api.dto;
 
 /**
- * 负载均衡策略
- *
- * @author Brozen
+ * @author PengQ
+ * @since 0.0.1
  */
-public interface LBStrategy<S extends LBServer> {
-
+public class WorkerExecutorDTO {
 
     /**
-     * 选择一个服务。
-     *
-     * @param servers 被负载的服务列表
-     * @param invocation 本次调用的上下文信息
-     * @return 选择的服务，可能为 null。当无可用服务时，返回 null。
+     * 名称唯一
      */
-    Optional<S> select(List<S> servers, Invocation invocation);
+    private String name;
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 }

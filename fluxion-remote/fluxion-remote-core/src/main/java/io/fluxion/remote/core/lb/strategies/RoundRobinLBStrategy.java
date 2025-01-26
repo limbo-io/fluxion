@@ -17,13 +17,11 @@
 package io.fluxion.remote.core.lb.strategies;
 
 
-import io.fluxion.remote.core.lb.AbstractLBStrategy;
 import io.fluxion.remote.core.lb.Invocation;
 import io.fluxion.remote.core.lb.LBServer;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -66,7 +64,7 @@ public class RoundRobinLBStrategy<S extends LBServer> extends AbstractLBStrategy
      * @return
      */
     @Override
-    protected Optional<S> doSelect(List<S> servers, Invocation invocation) {
+    protected S doSelect(List<S> servers, Invocation invocation) {
         String targetId = invocation.targetId();
         Map<String, RoundRobinIndexer> indexerMap = this.indexers.computeIfAbsent(targetId, k -> new ConcurrentHashMap<>());
 
@@ -98,10 +96,10 @@ public class RoundRobinLBStrategy<S extends LBServer> extends AbstractLBStrategy
 
         if (selected != null) {
             selectedIndexer.reset(allWeight);
-            return Optional.of(selected);
+            return selected;
         }
 
-        return Optional.of(servers.get(0));
+        return servers.get(0);
     }
 
 

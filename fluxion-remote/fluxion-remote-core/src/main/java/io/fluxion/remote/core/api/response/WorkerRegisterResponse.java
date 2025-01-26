@@ -14,47 +14,39 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.lb;
+package io.fluxion.remote.core.api.response;
 
-import java.net.URL;
+import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 
 /**
- * @author Brozen
+ * @author PengQ
+ * @since 0.0.1
  */
-public class URLLBServer implements LBServer {
+public class WorkerRegisterResponse {
 
     /**
-     * 节点访问的 URL
+     * 工作节点 ID
      */
-    private final URL baseUrl;
-
-    public URLLBServer(URL baseUrl) {
-        this.baseUrl = baseUrl;
-    }
-
+    private String workerId;
 
     /**
-     * {@inheritDoc}
-     * @return
+     * Broker 的拓扑结构
      */
-    @Override
-    public String serverId() {
-        return baseUrl.toString();
+    private BrokerTopologyDTO brokerTopology;
+
+    public String getWorkerId() {
+        return workerId;
     }
 
-
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public boolean isAlive() {
-        return true;
+    public void setWorkerId(String workerId) {
+        this.workerId = workerId;
     }
 
-    @Override
-    public URL url() {
-        return baseUrl;
+    public BrokerTopologyDTO getBrokerTopology() {
+        return brokerTopology;
     }
 
+    public void setBrokerTopology(BrokerTopologyDTO brokerTopology) {
+        this.brokerTopology = brokerTopology;
+    }
 }

@@ -48,21 +48,20 @@ public class OKHttpClient implements Client {
     }
 
     @Override
-    public <R, T extends Request<T>> R call(URL url, T request) {
-        String urlStr = url.toString();
+    public <R, T extends Request<R>> R call(URL url, T request) {
         try {
-            ResponseBody responseBody = executePost(urlStr, request);
+            ResponseBody responseBody = executePost(url, request);
             Class<R> responseType = ReflectionUtils.refType(request);
             return JacksonUtils.toType(responseBody.string(), responseType);
         } catch (IOException e) {
-            throw new RpcException("Api access failed " + logRequest(urlStr, JacksonUtils.toJSONString(request)), e);
+            throw new RpcException("Api access failed " + logRequest(url, JacksonUtils.toJSONString(request)), e);
         }
     }
 
     /**
      * 通过 OkHttp 执行请求，并获取响应
      */
-    protected ResponseBody executePost(String url, Object param) {
+    protected ResponseBody executePost(URL url, Object param) {
         String json = "";
         if (param != null) {
             json = JacksonUtils.toJSONString(param);
@@ -97,8 +96,8 @@ public class OKHttpClient implements Client {
         }
     }
 
-    private String logRequest(String url, String param) {
-        return String.format("request[url=%s, param=%s]", url, param);
+    private String logRequest(URL url, String param) {
+        return String.format("request[url=%s, param=%s]", url.toString(), param);
     }
 
 }

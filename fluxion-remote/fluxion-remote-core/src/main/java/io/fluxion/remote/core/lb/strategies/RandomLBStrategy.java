@@ -17,12 +17,10 @@
 package io.fluxion.remote.core.lb.strategies;
 
 
-import io.fluxion.remote.core.lb.AbstractLBStrategy;
 import io.fluxion.remote.core.lb.Invocation;
 import io.fluxion.remote.core.lb.LBServer;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -31,7 +29,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class RandomLBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
 
     @Override
-    protected Optional<S> doSelect(List<S> servers, Invocation invocation) {
-        return Optional.of(servers.get(ThreadLocalRandom.current().nextInt(servers.size())));
+    protected S doSelect(List<S> servers, Invocation invocation) {
+        return servers.get(ThreadLocalRandom.current().nextInt(servers.size()));
     }
 }

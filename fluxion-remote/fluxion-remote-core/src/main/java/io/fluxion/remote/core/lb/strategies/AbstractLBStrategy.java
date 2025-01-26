@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.lb;
+package io.fluxion.remote.core.lb.strategies;
 
+import io.fluxion.remote.core.lb.Invocation;
+import io.fluxion.remote.core.lb.LBServer;
+import io.fluxion.remote.core.lb.LoadBalanceException;
 import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author Brozen
@@ -37,10 +39,10 @@ public abstract class AbstractLBStrategy<S extends LBServer> implements LBStrate
      * @return
      */
     @Override
-    public Optional<S> select(List<S> servers, Invocation invocation) {
+    public S select(List<S> servers, Invocation invocation) {
         // 有服务存在，但是如果所有服务都挂了的话，也返回空
         if (CollectionUtils.isEmpty(servers)) {
-            return Optional.empty();
+            return null;
         }
 
         try {
@@ -57,6 +59,6 @@ public abstract class AbstractLBStrategy<S extends LBServer> implements LBStrate
      * @param servers 被负载的服务列表，可以保证非空。
      * @param invocation 本次调用的上下文信息
      */
-    protected abstract Optional<S> doSelect(List<S> servers, Invocation invocation);
+    protected abstract S doSelect(List<S> servers, Invocation invocation);
 
 }

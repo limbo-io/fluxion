@@ -14,47 +14,16 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.lb;
-
-import java.net.URL;
+package io.fluxion.remote.core.constants;
 
 /**
- * @author Brozen
+ * @author PengQ
+ * @since 0.0.1
  */
-public class URLLBServer implements LBServer {
+public interface BrokerConstant {
+    // ========== API ==========
+    String API_WORKER_REGISTER = "/api/v1/worker/register";
 
-    /**
-     * 节点访问的 URL
-     */
-    private final URL baseUrl;
-
-    public URLLBServer(URL baseUrl) {
-        this.baseUrl = baseUrl;
-    }
-
-
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public String serverId() {
-        return baseUrl.toString();
-    }
-
-
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public boolean isAlive() {
-        return true;
-    }
-
-    @Override
-    public URL url() {
-        return baseUrl;
-    }
-
+    String API_WORKER_HEARTBEAT = "/api/v1/worker/heartbeat";
+    // ========== API ==========
 }

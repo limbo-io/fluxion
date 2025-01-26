@@ -17,13 +17,11 @@
 package io.fluxion.remote.core.lb.strategies;
 
 import io.fluxion.common.utils.MD5Utils;
-import io.fluxion.remote.core.lb.AbstractLBStrategy;
 import io.fluxion.remote.core.lb.Invocation;
 import io.fluxion.remote.core.lb.LBServer;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -56,7 +54,7 @@ public class ConsistentHashLBStrategy<S extends LBServer> extends AbstractLBStra
      * @return
      */
     @Override
-    protected Optional<S> doSelect(List<S> servers, Invocation invocation) {
+    protected S doSelect(List<S> servers, Invocation invocation) {
         String targetId = invocation.targetId();
         ConsistentHashSelector<S> selector = selectors.get(targetId);
         int serversHashcode = servers.hashCode();
@@ -100,7 +98,7 @@ public class ConsistentHashLBStrategy<S extends LBServer> extends AbstractLBStra
         /**
          * 选择一个服务，根据入参 Invocation 的 hashcode 计算。
          */
-        public Optional<SERVER> select(Invocation invocation) {
+        public SERVER select(Invocation invocation) {
             Map<String, String> parameters = invocation.parameters();
             String paramName = parameters.get(HASH_PARAM_NAME);
             // 基于配置的hash 参数名称 从参数里面获取对应参数
@@ -113,7 +111,7 @@ public class ConsistentHashLBStrategy<S extends LBServer> extends AbstractLBStra
                 entry = virtualServers.firstEntry();
             }
 
-            return Optional.ofNullable(entry.getValue());
+            return entry.getValue();
         }
 
 

@@ -14,47 +14,21 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.lb;
+package io.fluxion.remote.core.api.request;
 
-import java.net.URL;
+import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.dto.WorkerResourceDTO;
+import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
+import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
 
 /**
- * @author Brozen
+ * @author Devil
+ * @since 2023/8/3
  */
-public class URLLBServer implements LBServer {
+public class WorkerHeartbeatRequest implements Request<WorkerHeartbeatResponse> {
 
     /**
-     * 节点访问的 URL
+     * 可用资源
      */
-    private final URL baseUrl;
-
-    public URLLBServer(URL baseUrl) {
-        this.baseUrl = baseUrl;
-    }
-
-
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public String serverId() {
-        return baseUrl.toString();
-    }
-
-
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public boolean isAlive() {
-        return true;
-    }
-
-    @Override
-    public URL url() {
-        return baseUrl;
-    }
-
+    private WorkerResourceDTO availableResource;
 }
