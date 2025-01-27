@@ -18,6 +18,7 @@
 
 package io.fluxion.remote.netty;
 
+import io.fluxion.remote.core.server.IHandlerProcessor;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -35,11 +36,11 @@ public class EmbedHttpServerHandler extends SimpleChannelInboundHandler<FullHttp
 
     private final ThreadPoolExecutor serverThreadPool;
 
-    private final IHttpHandlerProcessor bizProcess;
+    private final IHandlerProcessor handlerProcessor;
 
-    public EmbedHttpServerHandler(ThreadPoolExecutor serverThreadPool, IHttpHandlerProcessor bizProcess) {
+    public EmbedHttpServerHandler(ThreadPoolExecutor serverThreadPool, IHandlerProcessor handlerProcessor) {
         this.serverThreadPool = serverThreadPool;
-        this.bizProcess = bizProcess;
+        this.handlerProcessor = handlerProcessor;
     }
 
     @Override
@@ -52,7 +53,7 @@ public class EmbedHttpServerHandler extends SimpleChannelInboundHandler<FullHttp
 
         serverThreadPool.execute(() -> {
             try {
-                String response = bizProcess.process(httpMethod, uri, requestData);
+                String response = handlerProcessor.process(uri, requestData);
                 returnResponse(ctx, keepAlive, response);
             } catch (Exception e) {
                 log.error("Get Request Error method={} url={} param={}", httpMethod, uri, requestData, e);
@@ -78,7 +79,7 @@ public class EmbedHttpServerHandler extends SimpleChannelInboundHandler<FullHttp
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        log.error("Flowjob Rpc server caught exception", cause);
+        log.error("server caught exception", cause);
         ctx.close();
     }
 
@@ -86,7 +87,7 @@ public class EmbedHttpServerHandler extends SimpleChannelInboundHandler<FullHttp
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof IdleStateEvent) {
             ctx.channel().close();
-            log.debug("Flowjob Rpc server close an idle channel.");
+            log.debug("server close an idle channel.");
         } else {
             super.userEventTriggered(ctx, evt);
         }

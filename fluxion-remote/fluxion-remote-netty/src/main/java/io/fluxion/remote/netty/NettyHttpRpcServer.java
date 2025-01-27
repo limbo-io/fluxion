@@ -19,7 +19,8 @@
 package io.fluxion.remote.netty;
 
 
-import io.fluxion.remote.core.server.EmbedRpcServer;
+import io.fluxion.remote.core.server.RpcServer;
+import io.fluxion.remote.core.server.RpcServerConfig;
 import io.fluxion.remote.core.server.RpcServerStatus;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -44,7 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Devil
  * @since 2023/8/10
  */
-public class NettyHttpRpcServer implements EmbedRpcServer {
+public class NettyHttpRpcServer implements RpcServer {
 
     private static final Logger log = LoggerFactory.getLogger(NettyHttpRpcServer.class);
 
@@ -54,24 +55,14 @@ public class NettyHttpRpcServer implements EmbedRpcServer {
 
     private static final int QUEUE_SIZE = 2000;
 
-    private int port;
-
-    private IHttpHandlerProcessor bizProcess;
-
-    private AtomicReference<RpcServerStatus> status;
-
-    public NettyHttpRpcServer(int port, IHttpHandlerProcessor bizProcess) {
-        this.port = port;
-        this.bizProcess = bizProcess;
-        this.status = new AtomicReference<>(RpcServerStatus.IDLE);
-    }
+    private final AtomicReference<RpcServerStatus> status = new AtomicReference<>(RpcServerStatus.IDLE);
 
     @Override
-    public boolean initialize() {
-        return status.compareAndSet(RpcServerStatus.IDLE, RpcServerStatus.INITIALIZING);
-    }
-
-    public boolean start() {
+    public boolean start(RpcServerConfig config) {
+        if (!status.compareAndSet(RpcServerStatus.IDLE, RpcServerStatus.INITIALIZING)) {
+            return false;
+        }
+        int port = config.getPort();
         thread = new Thread(() -> {
             EventLoopGroup bossGroup = new NioEventLoopGroup();
             EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -98,7 +89,7 @@ public class NettyHttpRpcServer implements EmbedRpcServer {
                                 .addLast(new IdleStateHandler(0, 0, 60, TimeUnit.SECONDS))
                                 .addLast(new HttpServerCodec())
                                 .addLast(new HttpObjectAggregator(MAX_CONTENT_LENGTH))
-                                .addLast(new EmbedHttpServerHandler(serverThreadPool, bizProcess));
+                                .addLast(new EmbedHttpServerHandler(serverThreadPool, config.getHandlerProcessor()));
                         }
                     })
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
@@ -106,13 +97,13 @@ public class NettyHttpRpcServer implements EmbedRpcServer {
                 ChannelFuture future = bootstrap.bind(port).sync();
 
                 status.compareAndSet(RpcServerStatus.INITIALIZING, RpcServerStatus.RUNNING);
-                log.info("Flowjob EmbedRpcServer start success, port = {}", port);
+                log.info("Fluxion-RpcServer start success, port = {}", port);
 
                 // 绑定监听关闭状态 -- 阻塞
                 future.channel().closeFuture().sync();
 
             } catch (Exception e) {
-                log.error("EmbedHttpRpcServer error", e);
+                log.error("Fluxion-RpcServer start error", e);
                 throw new RuntimeException(e);
             } finally {
                 status.compareAndSet(RpcServerStatus.RUNNING, RpcServerStatus.TERMINATING);
@@ -121,7 +112,7 @@ public class NettyHttpRpcServer implements EmbedRpcServer {
                     workerGroup.shutdownGracefully();
                     bossGroup.shutdownGracefully();
                 } catch (Exception e) {
-                    log.error("EmbedHttpRpcServer stop fail", e);
+                    log.error("Fluxion-RpcServer stop fail", e);
                 }
                 status.compareAndSet(RpcServerStatus.RUNNING, RpcServerStatus.TERMINATED);
             }
@@ -146,7 +137,7 @@ public class NettyHttpRpcServer implements EmbedRpcServer {
 
     @Override
     public RpcServerStatus status() {
-        return null;
+        return status.get();
     }
 
 }

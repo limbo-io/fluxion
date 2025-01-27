@@ -1,6 +1,6 @@
 /*
  *
- *  * Copyright 2020-2024 fluxion Team (https://github.com/fluxion-io).
+ *  * Copyright 2020-2024 Limbo Team (https://github.com/limbo-world).
  *  *
  *  * Licensed under the Apache License, Version 2.0 (the "License");
  *  * you may not use this file except in compliance with the License.
@@ -18,18 +18,12 @@
 
 package io.fluxion.remote.core.server;
 
+
 /**
  * @author Devil
  * @since 2023/8/10
  */
-public interface EmbedRpcServer {
+public interface IHandlerProcessor {
 
-    boolean initialize();
-
-    boolean start();
-
-    boolean stop();
-
-    RpcServerStatus status();
-
+    String process(String path, String data);
 }

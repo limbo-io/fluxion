@@ -21,7 +21,7 @@ import io.fluxion.common.utils.SHAUtils;
 import io.fluxion.remote.core.constants.WorkerConstant;
 import io.fluxion.remote.core.exception.RegisterFailException;
 import io.fluxion.remote.core.exception.RpcException;
-import io.fluxion.remote.core.server.EmbedRpcServer;
+import io.fluxion.remote.core.server.RpcServer;
 import io.fluxion.remote.core.server.RpcServerStatus;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.resource.WorkerResources;
@@ -90,7 +90,7 @@ public class FluxionWorker implements Worker {
     /**
      * RPC服务
      */
-    private EmbedRpcServer embedRpcServer;
+    private RpcServer rpcServer;
 
     /**
      * 创建一个 Worker 实例
@@ -99,9 +99,9 @@ public class FluxionWorker implements Worker {
      * @param url            worker 启动的 RPC 服务的 baseUrl
      * @param resource       worker 资源描述对象
      * @param brokerRpc      broker RPC 通信模块
-     * @param embedRpcServer 内置服务
+     * @param rpcServer 内置服务
      */
-    public FluxionWorker(String name, URL url, WorkerResources resource, BrokerRpc brokerRpc, EmbedRpcServer embedRpcServer) {
+    public FluxionWorker(String name, URL url, WorkerResources resource, BrokerRpc brokerRpc, RpcServer rpcServer) {
         Objects.requireNonNull(url, "URL can't be null");
         Objects.requireNonNull(brokerRpc, "broker client can't be null");
 
@@ -109,7 +109,7 @@ public class FluxionWorker implements Worker {
         this.url = url;
         this.resource = resource;
         this.brokerRpc = brokerRpc;
-        this.embedRpcServer = embedRpcServer;
+        this.rpcServer = rpcServer;
 
         this.tags = new HashSetValuedHashMap<>();
         this.executors = new ConcurrentHashMap<>();
@@ -160,10 +160,10 @@ public class FluxionWorker implements Worker {
     public void start(Duration heartbeatPeriod) {
         Objects.requireNonNull(heartbeatPeriod);
 
-        // 重复检测
-        if (!embedRpcServer.initialize()) {
-            return;
-        }
+        // 重复检测 todo @d worker自己有状态维护
+//        if (!rpcServer.initialize()) {
+//            return;
+//        }
 
         Worker worker = this;
 
@@ -186,8 +186,8 @@ public class FluxionWorker implements Worker {
             }
         );
 
-        // 启动RPC服务
-        this.embedRpcServer.start(); // 目前由于服务在线程中异步处理，如果启动失败，应该终止broker的心跳启动
+        // 启动RPC服务 todo @d
+//        this.rpcServer.start(); // 目前由于服务在线程中异步处理，如果启动失败，应该终止broker的心跳启动
 
         // 心跳
         if (pacemaker == null) {
@@ -252,14 +252,14 @@ public class FluxionWorker implements Worker {
 
     @Override
     public void stop() {
-        embedRpcServer.stop();
+        rpcServer.stop();
     }
 
     /**
      * 验证 worker 正在运行中
      */
     private void assertWorkerRunning() {
-        RpcServerStatus status = embedRpcServer.status();
+        RpcServerStatus status = rpcServer.status();
         if (status != RpcServerStatus.RUNNING) {
             throw new IllegalStateException("Worker is not running: " + status);
         }
