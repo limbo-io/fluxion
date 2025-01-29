@@ -14,22 +14,14 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.dao;
+package io.fluxion.server.infrastructure.dao.repository;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import io.fluxion.server.infrastructure.dao.entity.TagEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-import javax.persistence.Embeddable;
-import java.io.Serializable;
-
-@Getter
-@AllArgsConstructor
-@NoArgsConstructor
-@Embeddable
-public class RefID implements Serializable {
-
-    private String refId;
-
-    private String refType;
+/**
+ * @author Devil
+ * @since 2022/7/18
+ */
+public interface TagEntityRepo extends JpaRepository<TagEntity, TagEntity.ID> {
 }

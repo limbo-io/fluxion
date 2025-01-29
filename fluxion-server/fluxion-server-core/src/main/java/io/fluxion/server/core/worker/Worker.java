@@ -16,23 +16,35 @@
 
 package io.fluxion.server.core.worker;
 
+import io.fluxion.common.utils.MD5Utils;
 import io.fluxion.remote.core.client.Client;
+import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.server.core.tag.Tagged;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
 import lombok.Getter;
+import lombok.Setter;
 
-import java.net.URL;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Devil
  */
 @Getter
+@Setter
 public class Worker implements LBServer, Tagged {
+
+    private String appId;
+
+    private Protocol protocol;
+
+    private String host;
+
+    private int port;
 
     /**
      * 执行器
@@ -42,7 +54,7 @@ public class Worker implements LBServer, Tagged {
     /**
      * 标签
      */
-    private Map<String, List<String>> tags;
+    private Map<String, Set<String>> tags;
 
     /**
      * Worker 状态指标
@@ -54,28 +66,40 @@ public class Worker implements LBServer, Tagged {
      */
     private Client client;
 
+    private WorkerStatus status;
+
     /**
      * 是否启用 不启用则无法下发任务
      */
     private boolean enabled;
 
+    public String id() {
+        // todo @d 优化性能，不需要每次都重新生成
+        return MD5Utils.md5(appId + ":" + host + ":" + port);
+    }
+
     @Override
     public String serverId() {
-        return null;
+        return id();
     }
 
     @Override
     public boolean isAlive() {
-        return false;
+        return WorkerStatus.RUNNING == status;
     }
 
     @Override
-    public URL url() {
-        return null;
+    public String host() {
+        return host;
     }
 
     @Override
-    public Map<String, List<String>> tags() {
+    public int port() {
+        return port;
+    }
+
+    @Override
+    public Map<String, Set<String>> tags() {
         return tags;
     }
 

@@ -36,9 +36,4 @@ public class WorkerExecutor {
      */
     private String name;
 
-    /**
-     * 执行器描述信息
-     */
-    private String description;
-
 }

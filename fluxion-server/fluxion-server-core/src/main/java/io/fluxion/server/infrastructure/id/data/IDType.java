@@ -25,5 +25,6 @@ public enum IDType {
     BROKER,
     EXECUTION,
     TASK,
+    APP,
     ;
 }

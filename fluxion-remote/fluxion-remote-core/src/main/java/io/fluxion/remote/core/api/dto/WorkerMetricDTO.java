@@ -17,17 +17,19 @@
 package io.fluxion.remote.core.api.dto;
 
 /**
- * 节点上可用的资源
+ * 节点监控数据
  *
  * @author PengQ
  * @since 0.0.1
  */
-public class WorkerResourceDTO {
+public class WorkerMetricDTO {
 
     /**
-     * 可用的CPU核心数。
+     * cpu 核心数
      */
-    private float availableCpu;
+    private int cpuProcessors;
+
+    private double cpuLoad;
 
     /**
      * 可用的内存空间，单位MB。
@@ -39,12 +41,20 @@ public class WorkerResourceDTO {
      */
     private int availableQueueLimit;
 
-    public float getAvailableCpu() {
-        return availableCpu;
+    public int getCpuProcessors() {
+        return cpuProcessors;
     }
 
-    public void setAvailableCpu(float availableCpu) {
-        this.availableCpu = availableCpu;
+    public void setCpuProcessors(int cpuProcessors) {
+        this.cpuProcessors = cpuProcessors;
+    }
+
+    public double getCpuLoad() {
+        return cpuLoad;
+    }
+
+    public void setCpuLoad(double cpuLoad) {
+        this.cpuLoad = cpuLoad;
     }
 
     public long getAvailableRAM() {

@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.tag;
+package io.fluxion.server.infrastructure.dao.repository;
 
-import java.util.Map;
-import java.util.Set;
+import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
 
 /**
  * @author Devil
+ * @since 2022/7/18
  */
-public interface Tagged {
-    /**
-     * key - tags
-     */
-    Map<String, Set<String>> tags();
+public interface WorkerEntityRepo extends JpaRepository<WorkerEntity, String> {
+
+    Optional<WorkerEntity> findByAppIdAndHostAndPortAndDeleted(String appId, String host, int port, boolean deleted);
 }

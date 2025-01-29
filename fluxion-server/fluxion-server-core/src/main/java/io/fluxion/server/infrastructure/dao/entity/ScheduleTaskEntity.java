@@ -24,6 +24,7 @@ import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
@@ -115,6 +116,7 @@ public class ScheduleTaskEntity extends BaseEntity {
     /**
      * 是否启动
      */
+    @Column(name = "is_enabled")
     private boolean enabled;
 
     @Override

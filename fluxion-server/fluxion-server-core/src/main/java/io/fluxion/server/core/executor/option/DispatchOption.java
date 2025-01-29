@@ -42,9 +42,9 @@ public class DispatchOption {
     private LoadBalanceType loadBalanceType = LoadBalanceType.RANDOM;
 
     /**
-     * 所需的CPU核心数，小于等于0表示此作业未定义CPU需求。在分发作业时，会根据此方法返回的CPU核心需求数量来检测一个worker是否有能力执行此作业。
+     * 所需的CPU 小于等于0表示此作业未定义CPU需求。在分发作业时，会根据此方法返回的CPU核心需求数量来检测一个worker是否有能力执行此作业。
      */
-    private Float cpuRequirement;
+    private Double cpuRequirement;
 
     /**
      * 所需的内存MB数，小于等于0表示此作业未定义内存需求。在分发作业时，会根据此方法返回的内存需求数量来检测一个worker是否有能力执行此作业。

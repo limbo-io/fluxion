@@ -19,11 +19,13 @@
 package io.fluxion.remote.core.server;
 
 
+import io.fluxion.remote.core.api.Response;
+
 /**
  * @author Devil
  * @since 2023/8/10
  */
-public interface IHandlerProcessor {
+public interface IHandleProcessor {
 
-    String process(String path, String data);
+    Response<?> process(String path, String data);
 }

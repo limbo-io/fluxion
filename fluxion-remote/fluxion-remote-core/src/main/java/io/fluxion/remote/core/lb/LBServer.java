@@ -16,8 +16,6 @@
 
 package io.fluxion.remote.core.lb;
 
-import java.net.URL;
-
 /**
  * 被负载均衡的服务
  *
@@ -36,8 +34,13 @@ public interface LBServer {
     boolean isAlive();
 
     /**
-     * 当前服务的资源路径
+     * 服务地址
      */
-    URL url();
+    String host();
+
+    /**
+     * 端口号
+     */
+    int port();
 
 }

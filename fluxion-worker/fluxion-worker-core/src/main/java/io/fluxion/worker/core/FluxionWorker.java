@@ -36,9 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
@@ -70,7 +68,7 @@ public class FluxionWorker implements Worker {
     /**
      * Worker 标签
      */
-    private MultiValuedMap<String, String> tags;
+    private Map<String, Set<String>> tags;
 
     /**
      * 执行器名称 - 执行器 映射关系
@@ -95,10 +93,10 @@ public class FluxionWorker implements Worker {
     /**
      * 创建一个 Worker 实例
      *
-     * @param name           worker 实例 名称，如未指定则会随机生成一个
-     * @param url            worker 启动的 RPC 服务的 baseUrl
-     * @param resource       worker 资源描述对象
-     * @param brokerRpc      broker RPC 通信模块
+     * @param name      worker 实例 名称，如未指定则会随机生成一个
+     * @param url       worker 启动的 RPC 服务的 baseUrl
+     * @param resource  worker 资源描述对象
+     * @param brokerRpc broker RPC 通信模块
      * @param rpcServer 内置服务
      */
     public FluxionWorker(String name, URL url, WorkerResources resource, BrokerRpc brokerRpc, RpcServer rpcServer) {
@@ -111,7 +109,7 @@ public class FluxionWorker implements Worker {
         this.brokerRpc = brokerRpc;
         this.rpcServer = rpcServer;
 
-        this.tags = new HashSetValuedHashMap<>();
+        this.tags = new HashMap<>();
         this.executors = new ConcurrentHashMap<>();
     }
 

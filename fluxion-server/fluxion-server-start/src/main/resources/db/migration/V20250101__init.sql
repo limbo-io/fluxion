@@ -41,18 +41,18 @@ CREATE TABLE `fluxion_version`
     UNIQUE KEY `uk_version` (`ref_id`, `ref_type`, `version`)
 );
 
-CREATE TABLE `fluxion_tag_ref`
+CREATE TABLE `fluxion_tag`
 (
     `id`         bigint unsigned NOT NULL AUTO_INCREMENT,
     `ref_id`     varchar(255)    NOT NULL DEFAULT '',
     `ref_type`   tinyint         NOT NULL DEFAULT 0,
-    `tag_key`    varchar(255)    NOT NULL DEFAULT '',
+    `tag_name`    varchar(255)    NOT NULL DEFAULT '',
     `tag_value`  varchar(255)    NOT NULL DEFAULT '',
     `is_deleted` bit(1)          NOT NULL DEFAULT 0,
     `created_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_tag_ref` (`ref_id`, `ref_type`, `tag_key`, `tag_value`)
+    UNIQUE KEY `uk_tag` (`ref_id`, `ref_type`, `tag_name`, `tag_value`)
 );
 
 CREATE TABLE `fluxion_flow`

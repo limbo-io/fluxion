@@ -18,7 +18,9 @@
 
 package io.fluxion.remote.netty;
 
-import io.fluxion.remote.core.server.IHandlerProcessor;
+import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.remote.core.api.Response;
+import io.fluxion.remote.core.server.IHandleProcessor;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -36,11 +38,11 @@ public class EmbedHttpServerHandler extends SimpleChannelInboundHandler<FullHttp
 
     private final ThreadPoolExecutor serverThreadPool;
 
-    private final IHandlerProcessor handlerProcessor;
+    private final IHandleProcessor handleProcessor;
 
-    public EmbedHttpServerHandler(ThreadPoolExecutor serverThreadPool, IHandlerProcessor handlerProcessor) {
+    public EmbedHttpServerHandler(ThreadPoolExecutor serverThreadPool, IHandleProcessor handleProcessor) {
         this.serverThreadPool = serverThreadPool;
-        this.handlerProcessor = handlerProcessor;
+        this.handleProcessor = handleProcessor;
     }
 
     @Override
@@ -53,8 +55,8 @@ public class EmbedHttpServerHandler extends SimpleChannelInboundHandler<FullHttp
 
         serverThreadPool.execute(() -> {
             try {
-                String response = handlerProcessor.process(uri, requestData);
-                returnResponse(ctx, keepAlive, response);
+                Response<?> response = handleProcessor.process(uri, requestData);
+                returnResponse(ctx, keepAlive, JacksonUtils.toJSONString(response));
             } catch (Exception e) {
                 log.error("Get Request Error method={} url={} param={}", httpMethod, uri, requestData, e);
                 throw new RuntimeException(e);

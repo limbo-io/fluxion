@@ -16,16 +16,20 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
-import io.fluxion.server.infrastructure.dao.RefID;
 import io.fluxion.server.infrastructure.dao.TableConstants;
+import io.fluxion.server.infrastructure.tag.TagRefType;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
+import javax.persistence.Embeddable;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import java.io.Serializable;
 
 /**
  * @author Brozen
@@ -33,24 +37,14 @@ import javax.persistence.Table;
  */
 @Setter
 @Getter
-@Table(name = TableConstants.FLUXION_TAG_REF)
+@Table(name = TableConstants.FLUXION_TAG)
 @Entity
 @DynamicInsert
 @DynamicUpdate
-public class TagRefEntity extends BaseEntity {
+public class TagEntity extends BaseEntity {
 
     @EmbeddedId
-    private RefID id;
-
-    /**
-     * worker tag key
-     */
-    private String tagKey;
-
-    /**
-     * worker tag value
-     */
-    private String tagValue;
+    private ID id;
 
 
     @Override
@@ -58,4 +52,28 @@ public class TagRefEntity extends BaseEntity {
         return id;
     }
 
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Embeddable
+    public static class ID implements Serializable {
+
+        private String refId;
+
+        /**
+         * @see TagRefType
+         */
+        private Integer refType;
+
+        /**
+         * tag name
+         */
+        private String tagName;
+
+        /**
+         * tag value
+         */
+        private String tagValue;
+    }
 }

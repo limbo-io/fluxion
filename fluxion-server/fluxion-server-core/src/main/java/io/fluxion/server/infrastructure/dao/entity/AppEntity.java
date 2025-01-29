@@ -14,17 +14,41 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.tag;
+package io.fluxion.server.infrastructure.dao.entity;
 
-import java.util.Map;
-import java.util.Set;
+import io.fluxion.server.infrastructure.dao.TableConstants;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
+
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
 
 /**
+ * 应用
+ *
  * @author Devil
  */
-public interface Tagged {
+@Setter
+@Getter
+@Table(name = TableConstants.FLUXION_APP)
+@Entity
+@DynamicInsert
+@DynamicUpdate
+public class AppEntity extends BaseEntity {
+
+    @Id
+    private String appId;
+
     /**
-     * key - tags
+     * 应用名
      */
-    Map<String, Set<String>> tags();
+    private String appName;
+
+    @Override
+    public Object getUid() {
+        return appId;
+    }
 }

@@ -23,7 +23,7 @@ public interface TableConstants {
     String FLUXION_FLOW = "fluxion_flow";
     String FLUXION_SCHEDULE_TASK = "fluxion_schedule_task";
     String FLUXION_ID = "fluxion_id";
-    String FLUXION_TAG_REF = "fluxion_tag_ref";
+    String FLUXION_TAG = "fluxion_tag";
     String FLUXION_VERSION = "fluxion_version";
     String FLUXION_TRIGGER = "fluxion_trigger";
     String FLUXION_EXECUTOR = "fluxion_executor";
@@ -31,4 +31,6 @@ public interface TableConstants {
     String FLUXION_LOCK = "fluxion_lock";
     String FLUXION_EXECUTION = "fluxion_execution";
     String FLUXION_TASK = "fluxion_task";
+    String FLUXION_WORKER = "fluxion_worker";
+    String FLUXION_APP = "fluxion_app";
 }

@@ -33,9 +33,18 @@ import java.time.LocalDateTime;
 public class WorkerMetric {
 
     /**
-     * worker可用的资源
+     * cpu 核心数
      */
-    private WorkerAvailableResource availableResource;
+    private int cpuProcessors;
+
+    private double cpuLoad;
+
+    private long availableRAM;
+
+    /**
+     * 任务队列剩余可排队数
+     */
+    private int availableQueueLimit;
 
     /**
      * 上次心跳上报时间戳，毫秒

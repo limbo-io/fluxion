@@ -89,7 +89,7 @@ public class NettyHttpRpcServer implements RpcServer {
                                 .addLast(new IdleStateHandler(0, 0, 60, TimeUnit.SECONDS))
                                 .addLast(new HttpServerCodec())
                                 .addLast(new HttpObjectAggregator(MAX_CONTENT_LENGTH))
-                                .addLast(new EmbedHttpServerHandler(serverThreadPool, config.getHandlerProcessor()));
+                                .addLast(new EmbedHttpServerHandler(serverThreadPool, config.getHandleProcessor()));
                         }
                     })
                     .childOption(ChannelOption.SO_KEEPALIVE, true);

@@ -33,11 +33,6 @@ public enum Protocol {
      */
     HTTP("http", 80),
 
-    /**
-     * HTTPS协议
-     */
-    HTTPS("https", 443),
-
     ;
 
     /**

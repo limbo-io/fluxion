@@ -17,9 +17,8 @@
 package io.fluxion.remote.core.api.request;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.api.dto.WorkerResourceDTO;
+import io.fluxion.remote.core.api.dto.WorkerMetricDTO;
 import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
-import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
 
 /**
  * @author Devil
@@ -30,5 +29,5 @@ public class WorkerHeartbeatRequest implements Request<WorkerHeartbeatResponse> 
     /**
      * 可用资源
      */
-    private WorkerResourceDTO availableResource;
+    private WorkerMetricDTO availableResource;
 }

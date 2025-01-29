@@ -14,36 +14,52 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.dto;
+package io.fluxion.remote.core.lb;
 
 /**
- * @author PengQ
- * @since 0.0.1
+ * @author Brozen
  */
-public class WorkerTagDTO {
+public class BaseLBServer implements LBServer {
+
+    private final String host;
+
+    private final int port;
+
+    public BaseLBServer(String host, int port) {
+        this.host = host;
+        this.port = port;
+    }
+
+
     /**
-     * 标签 name
+     * {@inheritDoc}
+     *
+     * @return
      */
-    private String name;
+    @Override
+    public String serverId() {
+        return host + ":" + port;
+    }
+
 
     /**
-     * 标签 value
+     * {@inheritDoc}
+     *
+     * @return
      */
-    private String value;
-
-    public String getName() {
-        return name;
+    @Override
+    public boolean isAlive() {
+        return true;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    @Override
+    public String host() {
+        return host;
     }
 
-    public String getValue() {
-        return value;
+    @Override
+    public int port() {
+        return port;
     }
 
-    public void setValue(String value) {
-        this.value = value;
-    }
 }

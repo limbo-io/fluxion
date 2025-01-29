@@ -14,47 +14,25 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.lb;
+package io.fluxion.server.infrastructure.tag;
 
-import java.net.URL;
+import lombok.Data;
 
 /**
- * @author Brozen
+ * @author Devil
  */
-public class URLLBServer implements LBServer {
-
+@Data
+public class Tag {
     /**
-     * 节点访问的 URL
+     * 关联的数据ID
      */
-    private final URL baseUrl;
-
-    public URLLBServer(URL baseUrl) {
-        this.baseUrl = baseUrl;
-    }
-
-
+    private String refId;
     /**
-     * {@inheritDoc}
-     * @return
+     * 关联的数据类型
      */
-    @Override
-    public String serverId() {
-        return baseUrl.toString();
-    }
+    private TagRefType refType;
 
+    private String key;
 
-    /**
-     * {@inheritDoc}
-     * @return
-     */
-    @Override
-    public boolean isAlive() {
-        return true;
-    }
-
-    @Override
-    public URL url() {
-        return baseUrl;
-    }
-
+    private String value;
 }

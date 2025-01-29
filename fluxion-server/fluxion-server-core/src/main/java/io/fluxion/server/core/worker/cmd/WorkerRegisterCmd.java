@@ -14,17 +14,32 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.tag;
+package io.fluxion.server.core.worker.cmd;
 
-import java.util.Map;
-import java.util.Set;
+import io.fluxion.server.core.worker.Worker;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * @author Devil
  */
-public interface Tagged {
-    /**
-     * key - tags
-     */
-    Map<String, Set<String>> tags();
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class WorkerRegisterCmd implements ICmd<WorkerRegisterCmd.Response> {
+
+    private String appName;
+
+    private Worker worker;
+
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private String id;
+    }
+
 }

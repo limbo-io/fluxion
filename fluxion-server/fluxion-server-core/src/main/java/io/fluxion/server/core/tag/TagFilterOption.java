@@ -20,6 +20,7 @@ import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -57,9 +58,9 @@ public class TagFilterOption {
      */
     public Predicate<Tagged> asPredicate() {
         return tagged -> {
-            Map<String, List<String>> tags = tagged.tags();
+            Map<String, Set<String>> tags = tagged.tags();
 
-            List<String> values = tags.get(this.tagName);
+            Set<String> values = tags.get(this.tagName);
             switch (this.condition) {
                 case EXISTS:
                     return CollectionUtils.isNotEmpty(values);

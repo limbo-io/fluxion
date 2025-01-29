@@ -23,13 +23,13 @@ public class RpcServerConfig {
 
     private int port;
 
-    private IHandlerProcessor handlerProcessor;
+    private IHandleProcessor handleProcessor;
 
     public int getPort() {
         return port;
     }
 
-    public IHandlerProcessor getHandlerProcessor() {
-        return handlerProcessor;
+    public IHandleProcessor getHandleProcessor() {
+        return handleProcessor;
     }
 }

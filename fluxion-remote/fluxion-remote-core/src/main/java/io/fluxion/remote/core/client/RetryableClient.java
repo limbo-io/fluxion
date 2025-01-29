@@ -83,8 +83,8 @@ public class RetryableClient<S extends LBServer> extends AbstractLBClient<S> imp
                 newUrl = new URI(
                     uri.getScheme(),
                     uri.getUserInfo(),
-                    server.url().getHost(),
-                    server.url().getPort(),
+                    server.host(),
+                    server.port(),
                     uri.getPath(),
                     uri.getQuery(),
                     uri.getFragment()
