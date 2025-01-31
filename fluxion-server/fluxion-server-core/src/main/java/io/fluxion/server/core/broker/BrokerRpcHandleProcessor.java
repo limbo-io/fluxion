@@ -22,8 +22,9 @@ import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
 import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
-import io.fluxion.remote.core.constants.BrokerConstant;
 import io.fluxion.remote.core.client.server.IHandleProcessor;
+import io.fluxion.remote.core.constants.BrokerConstant;
+import io.fluxion.server.core.app.cmd.AppRegisterCmd;
 import io.fluxion.server.core.broker.converter.BrokerRpcConverter;
 import io.fluxion.server.core.cluster.NodeManger;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
@@ -49,9 +50,11 @@ public class BrokerRpcHandleProcessor implements IHandleProcessor {
         switch (path) {
             case BrokerConstant.API_WORKER_REGISTER: {
                 WorkerRegisterRequest request = JacksonUtils.toType(data, WorkerRegisterRequest.class);
+                // 注册app
+                String appId = Cmd.send(new AppRegisterCmd(request.getAppName())).getId();
+                // 注册worker
                 String workerId = Cmd.send(new WorkerRegisterCmd(
-                    request.getAppName(),
-                    BrokerRpcConverter.toWorker(request)
+                    BrokerRpcConverter.toWorker(appId, request)
                 )).getId();
                 WorkerRegisterResponse response = new WorkerRegisterResponse();
                 response.setWorkerId(workerId);

@@ -17,13 +17,11 @@
 package io.fluxion.server.core.worker.handler;
 
 import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.server.core.app.cmd.AppRegisterCmd;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.WorkerStatus;
 import io.fluxion.server.core.worker.cmd.WorkerRegisterCmd;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.TagEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import io.fluxion.server.infrastructure.dao.repository.TagEntityRepo;
@@ -58,20 +56,18 @@ public class WorkerHandler {
             return new WorkerRegisterCmd.Response(worker.id());
         }
 
-        String appId = Cmd.send(new AppRegisterCmd(cmd.getAppName())).getId();
-
         WorkerEntity workerEntity = workerEntityRepo.findByAppIdAndHostAndPortAndDeleted(worker.getAppId(), worker.getHost(), worker.getPort(), false)
-            .orElse(newEntity(worker, appId));
+            .orElse(newEntity(worker));
         workerEntityRepo.saveAndFlush(workerEntity);
 
         tagEntityRepo.saveAllAndFlush(tagEntities(worker));
         return new WorkerRegisterCmd.Response(worker.id());
     }
 
-    private WorkerEntity newEntity(Worker worker, String appId) {
+    private WorkerEntity newEntity(Worker worker) {
         WorkerEntity entity = new WorkerEntity();
         entity.setId(new WorkerEntity.ID(
-            appId, worker.getHost(), worker.getPort()
+            worker.getAppId(), worker.getHost(), worker.getPort()
         ));
         entity.setProtocol(worker.getProtocol().value);
         entity.setStatus(WorkerStatus.RUNNING.status);

@@ -35,37 +35,46 @@ import java.util.Set;
  * @author Devil
  */
 @Getter
-@Setter
 public class Worker implements LBServer, Tagged {
+    /**
+     * worker id
+     */
+    private String id;
 
     private String appId;
-
-    private Protocol protocol;
 
     private String host;
 
     private int port;
 
+    @Setter
+    private Protocol protocol;
+
     /**
      * 执行器
      */
+    @Setter
     private List<WorkerExecutor> executors;
 
     /**
      * 标签
      */
+    @Setter
     private Map<String, Set<String>> tags;
 
     /**
      * Worker 状态指标
      */
+    @Setter
     private WorkerMetric metric;
 
     /**
      * 通信
      */
+    @Setter
     private Client client;
 
+    @Setter
     private WorkerStatus status;
 
     /**
@@ -73,9 +82,15 @@ public class Worker implements LBServer, Tagged {
      */
     private boolean enabled;
 
+    public Worker(String appId, String host, int port) {
+        this.appId = appId;
+        this.host = host;
+        this.port = port;
+        this.id = MD5Utils.md5(appId + ":" + host + ":" + port);
+    }
+
     public String id() {
-        // todo @pq 优化性能，不需要每次都重新生成
-        return MD5Utils.md5(appId + ":" + host + ":" + port);
+        return id;
     }
 
     @Override

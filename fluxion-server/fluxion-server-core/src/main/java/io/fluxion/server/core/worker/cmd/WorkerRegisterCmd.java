@@ -32,8 +32,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class WorkerRegisterCmd implements ICmd<WorkerRegisterCmd.Response> {
 
-    private String appName;
-
     private Worker worker;
 
     @Getter
