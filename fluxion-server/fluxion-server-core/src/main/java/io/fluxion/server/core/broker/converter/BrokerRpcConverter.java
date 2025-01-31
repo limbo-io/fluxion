@@ -17,18 +17,20 @@
 package io.fluxion.server.core.broker.converter;
 
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.remote.core.api.dto.BrokerDTO;
+import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
+import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerTagDTO;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.constants.Protocol;
+import io.fluxion.server.core.cluster.Node;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.net.URL;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.mapping;
@@ -45,13 +47,7 @@ public class BrokerRpcConverter {
         worker.setPort(request.getPort());
         worker.setProtocol(Protocol.parse(request.getProtocol()));
 
-        WorkerMetric metric = new WorkerMetric(
-            request.getSystemInfo().getCpuProcessors(),
-            request.getSystemInfo().getCpuLoad(),
-            request.getSystemInfo().getFreeMemory(),
-            request.getAvailableQueueNum(),
-            TimeUtils.currentLocalDateTime()
-        );
+        WorkerMetric metric = toMetric(request.getSystemInfo(), request.getAvailableQueueNum());
         worker.setMetric(metric);
 
         Map<String, Set<String>> tags = CollectionUtils.isEmpty(request.getTags()) ? Collections.emptyMap() : request.getTags().stream()
@@ -66,5 +62,30 @@ public class BrokerRpcConverter {
         worker.setExecutors(executors);
 
         return worker;
+    }
+
+    public static WorkerMetric toMetric(SystemInfoDTO systemInfoDTO, int availableQueueNum) {
+        return new WorkerMetric(
+            systemInfoDTO.getCpuProcessors(),
+            systemInfoDTO.getCpuLoad(),
+            systemInfoDTO.getFreeMemory(),
+            availableQueueNum,
+            TimeUtils.currentLocalDateTime()
+        );
+    }
+
+    public static BrokerTopologyDTO toBrokerTopologyDTO(Collection<Node> nodes) {
+        BrokerTopologyDTO brokerTopologyDTO = new BrokerTopologyDTO();
+        if (CollectionUtils.isNotEmpty(nodes)) {
+            for (Node node : nodes) {
+                URL url = node.getUrl();
+                BrokerDTO dto = new BrokerDTO();
+                dto.setProtocol(url.getProtocol());
+                dto.setHost(url.getHost());
+                dto.setPort(url.getPort());
+                brokerTopologyDTO.getBrokers().add(dto);
+            }
+        }
+        return brokerTopologyDTO;
     }
 }

@@ -18,11 +18,9 @@ package io.fluxion.worker.core;
 
 import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.common.utils.SHAUtils;
-import io.fluxion.remote.core.constants.WorkerConstant;
+import io.fluxion.remote.core.client.server.ClientServer;
 import io.fluxion.remote.core.exception.RegisterFailException;
-import io.fluxion.remote.core.exception.RpcException;
-import io.fluxion.remote.core.server.RpcServer;
-import io.fluxion.remote.core.server.RpcServerStatus;
+import io.fluxion.worker.core.discovery.ServerDiscovery;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.rpc.BrokerRpc;
 import io.fluxion.worker.core.task.Task;
@@ -37,6 +35,7 @@ import java.net.URL;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Devil
@@ -75,14 +74,14 @@ public class FluxionWorker implements Worker {
     private BrokerRpc brokerRpc;
 
     /**
-     * 心跳起搏器
+     * 服务发现
      */
-    private WorkerHeartbeat pacemaker;
+    private ServerDiscovery discovery;
 
     /**
-     * RPC服务
+     * Client服务
      */
-    private RpcServer rpcServer;
+    private ClientServer clientServer;
     /**
      * 并发执行任务数量
      */
@@ -90,35 +89,39 @@ public class FluxionWorker implements Worker {
 
     private TaskQueue taskQueue;
 
+    private final AtomicReference<Status> status;
+
     /**
      * 创建一个 Worker 实例
      *
-     * @param name           worker 实例 名称，如未指定则会随机生成一个
-     * @param url            worker 启动的 RPC 服务的 baseUrl
-     * @param brokerRpc      broker RPC 通信模块
-     * @param rpcServer 内置服务
+     * @param name         worker 实例 名称，如未指定则会随机生成一个
+     * @param url          worker 启动的 RPC 服务的 baseUrl
+     * @param brokerRpc    broker RPC 通信模块
+     * @param clientServer 远程请求服务
      */
-    public FluxionWorker(String name, URL url, BrokerRpc brokerRpc, RpcServer rpcServer) {
+    public FluxionWorker(String name, URL url, BrokerRpc brokerRpc, ClientServer clientServer, ServerDiscovery discovery) {
         Objects.requireNonNull(url, "URL can't be null");
         Objects.requireNonNull(brokerRpc, "broker client can't be null");
 
         this.name = StringUtils.isBlank(name) ? SHAUtils.sha1AndHex(url.toString()).toUpperCase() : name;
         this.url = url;
         this.brokerRpc = brokerRpc;
-        this.rpcServer = rpcServer;
+        this.clientServer = clientServer;
+        this.discovery = discovery;
 
         this.tags = new HashMap<>();
         this.executors = new ConcurrentHashMap<>();
+        this.status = new AtomicReference<>(Status.IDLE);
     }
 
 
     @Override
-    public String getId() {
+    public String id() {
         return "";
     }
 
     @Override
-    public String getName() {
+    public String name() {
         return "";
     }
 
@@ -150,23 +153,14 @@ public class FluxionWorker implements Worker {
     @Override
     public void start(Duration heartbeatPeriod) {
         Objects.requireNonNull(heartbeatPeriod);
-
-        // 重复检测 todo @d worker自己有状态维护
-//        if (!rpcServer.initialize()) {
-//            return;
-//        }
-
-        Worker worker = this;
-
-        // 注册
-        try {
-            registerSelfToBroker();
-        } catch (Exception e) {
-            log.error("Register to broker has error", e);
-            throw new RuntimeException(e);
+        if (!status.compareAndSet(Status.IDLE, Status.INITIALIZING)) {
+            return;
         }
 
-        // 初始化线程池
+        // 启动服务注册发现
+        this.discovery.start();
+
+        // 初始化工作线程池
         BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(taskQueue.queueSize() <= 0 ? concurrency : taskQueue.queueSize());
         threadPool = new ThreadPoolExecutor(
             concurrency, concurrency,
@@ -177,28 +171,12 @@ public class FluxionWorker implements Worker {
             }
         );
 
-        // 启动RPC服务 todo @d
-//        this.rpcServer.start(); // 目前由于服务在线程中异步处理，如果启动失败，应该终止broker的心跳启动
+        // 启动RPC服务
+        this.clientServer.start(); // 目前由于服务在线程中异步处理，如果启动失败，应该终止broker的心跳启动
 
-        // 心跳
-        if (pacemaker == null) {
-            pacemaker = new WorkerHeartbeat(worker, Duration.ofSeconds(WorkerConstant.HEARTBEAT_TIMEOUT_SECOND));
-        }
-        pacemaker.start();
-
+        // 更新为运行中
+        status.compareAndSet(Status.INITIALIZING, Status.RUNNING);
         log.info("worker start!");
-    }
-
-    @Override
-    public void heartbeat() {
-        assertWorkerRunning();
-
-        try {
-            brokerRpc.heartbeat();
-        } catch (RpcException e) {
-            log.warn("Worker send heartbeat failed");
-            throw new IllegalStateException("Worker send heartbeat failed", e);
-        }
     }
 
     @Override
@@ -243,15 +221,20 @@ public class FluxionWorker implements Worker {
 
     @Override
     public void stop() {
-        rpcServer.stop();
+        if (!status.compareAndSet(Status.RUNNING, Status.TERMINATING)) {
+            return;
+        }
+        this.clientServer.stop();
+        this.discovery.stop();
+        // 修改状态
+        status.compareAndSet(Status.TERMINATING, Status.TERMINATED);
     }
 
     /**
      * 验证 worker 正在运行中
      */
     private void assertWorkerRunning() {
-        RpcServerStatus status = rpcServer.status();
-        if (status != RpcServerStatus.RUNNING) {
+        if (status.get() != Status.RUNNING) {
             throw new IllegalStateException("Worker is not running: " + status);
         }
     }
@@ -269,6 +252,30 @@ public class FluxionWorker implements Worker {
         }
 
         log.info("register success!");
+    }
+
+    public enum Status {
+
+        /**
+         * 闲置
+         */
+        IDLE,
+        /**
+         * 初始化中
+         */
+        INITIALIZING,
+        /**
+         * 运行中
+         */
+        RUNNING,
+        /**
+         * 关闭中
+         */
+        TERMINATING,
+        /**
+         * 已经关闭
+         */
+        TERMINATED,
     }
 
 }

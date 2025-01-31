@@ -35,12 +35,12 @@ public interface Worker {
     /**
      * 获取 Worker ID
      */
-    String getId();
+    String id();
 
     /**
      * 获取 Worker 名称
      */
-    String getName();
+    String name();
 
     /**
      * 获取 Worker RPC 通信用到的 URL
@@ -76,12 +76,6 @@ public interface Worker {
      * @param heartbeatPeriod 心跳间隔
      */
     void start(Duration heartbeatPeriod);
-
-    /**
-     * Just beat it
-     * 发送心跳
-     */
-    void heartbeat();
 
     /**
      * 接收 Broker 发送来的任务

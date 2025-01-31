@@ -14,27 +14,22 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.dto;
+package io.fluxion.remote.core.client.server;
 
-import java.util.Collections;
-import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author PengQ
  * @since 0.0.1
  */
-public class BrokerTopologyDTO {
+public abstract class AbstractClientServer implements ClientServer {
 
-    /**
-     * broker节点列表，主从模式下，列表中仅包括一个主节点
-     */
-    private List<BrokerDTO> brokers = Collections.emptyList();
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 
-    public List<BrokerDTO> getBrokers() {
-        return brokers;
-    }
+    protected ClientServerConfig config;
 
-    public void setBrokers(List<BrokerDTO> brokers) {
-        this.brokers = brokers;
+    public AbstractClientServer(ClientServerConfig config) {
+        this.config = config;
     }
 }

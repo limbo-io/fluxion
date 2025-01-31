@@ -14,27 +14,22 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.dto;
-
-import java.util.Collections;
-import java.util.List;
+package io.fluxion.remote.core.client.server;
 
 /**
- * @author PengQ
- * @since 0.0.1
+ * @author Devil
  */
-public class BrokerTopologyDTO {
+public class ClientServerConfig {
 
-    /**
-     * broker节点列表，主从模式下，列表中仅包括一个主节点
-     */
-    private List<BrokerDTO> brokers = Collections.emptyList();
+    private int port;
 
-    public List<BrokerDTO> getBrokers() {
-        return brokers;
+    private IHandleProcessor handleProcessor;
+
+    public int getPort() {
+        return port;
     }
 
-    public void setBrokers(List<BrokerDTO> brokers) {
-        this.brokers = brokers;
+    public IHandleProcessor getHandleProcessor() {
+        return handleProcessor;
     }
 }

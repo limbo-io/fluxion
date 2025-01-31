@@ -74,7 +74,7 @@ public class Worker implements LBServer, Tagged {
     private boolean enabled;
 
     public String id() {
-        // todo @d 优化性能，不需要每次都重新生成
+        // todo @pq 优化性能，不需要每次都重新生成
         return MD5Utils.md5(appId + ":" + host + ":" + port);
     }
 

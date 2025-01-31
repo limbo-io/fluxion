@@ -30,6 +30,8 @@ public class WorkerHeartbeatRequest implements Request<WorkerHeartbeatResponse> 
 
     private SystemInfoDTO systemInfo;
 
+    private int availableQueueNum;
+
     public String getWorkerId() {
         return workerId;
     }
@@ -44,5 +46,13 @@ public class WorkerHeartbeatRequest implements Request<WorkerHeartbeatResponse> 
 
     public void setSystemInfo(SystemInfoDTO systemInfo) {
         this.systemInfo = systemInfo;
+    }
+
+    public int getAvailableQueueNum() {
+        return availableQueueNum;
+    }
+
+    public void setAvailableQueueNum(int availableQueueNum) {
+        this.availableQueueNum = availableQueueNum;
     }
 }

@@ -18,40 +18,60 @@ package io.fluxion.server.core.broker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
+import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
+import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
+import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
 import io.fluxion.remote.core.constants.BrokerConstant;
-import io.fluxion.remote.core.server.IHandleProcessor;
+import io.fluxion.remote.core.client.server.IHandleProcessor;
 import io.fluxion.server.core.broker.converter.BrokerRpcConverter;
+import io.fluxion.server.core.cluster.NodeManger;
+import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerRegisterCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.Resource;
 
 /**
  * @author Devil
  */
 @Slf4j
+@Component
 public class BrokerRpcHandleProcessor implements IHandleProcessor {
+
+    @Resource
+    private NodeManger nodeManger;
 
     @Override
     public Response<?> process(String path, String data) {
         switch (path) {
             case BrokerConstant.API_WORKER_REGISTER: {
                 WorkerRegisterRequest request = JacksonUtils.toType(data, WorkerRegisterRequest.class);
-                Cmd.send(new WorkerRegisterCmd(
+                String workerId = Cmd.send(new WorkerRegisterCmd(
                     request.getAppName(),
                     BrokerRpcConverter.toWorker(request)
-                ));
-                break;
+                )).getId();
+                WorkerRegisterResponse response = new WorkerRegisterResponse();
+                response.setWorkerId(workerId);
+                response.setBrokerTopology(BrokerRpcConverter.toBrokerTopologyDTO(nodeManger.allAlive()));
+                return Response.ok(response);
             }
             case BrokerConstant.API_WORKER_HEARTBEAT: {
-                break;
+                WorkerHeartbeatRequest request = JacksonUtils.toType(data, WorkerHeartbeatRequest.class);
+                Cmd.send(new WorkerHeartbeatCmd(
+                    request.getWorkerId(),
+                    BrokerRpcConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum())
+                ));
+                WorkerHeartbeatResponse response = new WorkerHeartbeatResponse();
+                response.setBrokerTopology(BrokerRpcConverter.toBrokerTopologyDTO(nodeManger.allAlive()));
+                return Response.ok(response);
             }
         }
         String msg = "Invalid request, Path NotFound.";
         log.info("{} path={}", msg, path);
         return Response.builder().notFound(msg).build();
     }
-
-
 
 }
