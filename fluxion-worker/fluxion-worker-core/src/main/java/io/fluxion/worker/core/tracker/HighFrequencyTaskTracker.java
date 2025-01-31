@@ -14,44 +14,13 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.core.resource;
-
-import io.fluxion.worker.core.task.TaskQueue;
+package io.fluxion.worker.core.tracker;
 
 /**
- * @author Brozen
- * @since 2022-09-05
+ * 高频率、先只支持standalone类型
+ *
+ * @author PengQ
+ * @since 0.0.1
  */
-public interface WorkerResources {
-
-    /**
-     * 并发执行任务数量
-     */
-    int concurrency();
-
-    /**
-     * 任务积压队列大小
-     */
-    int queueSize();
-
-    /**
-     * 剩余可分配任务数
-     */
-    int availableQueueSize();
-
-    /**
-     * 可用 CPU 核数
-     */
-    float availableCpu();
-
-    /**
-     * 可用的 RAM 内存数量
-     */
-    long availableRam();
-
-    /**
-     * 任务队列
-     */
-    TaskQueue queue();
-
+public class HighFrequencyTaskTracker {
 }

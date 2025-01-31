@@ -42,12 +42,4 @@ public interface Executor {
         return this.getClass().getName();
     }
 
-
-    /**
-     * 执行器描述，默认为执行器类的类全名
-     */
-    default String getDescription() {
-        return this.getClass().getName();
-    }
-
 }

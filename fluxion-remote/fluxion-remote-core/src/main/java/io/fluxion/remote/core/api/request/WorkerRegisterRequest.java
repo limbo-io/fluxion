@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.api.request;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerExecutorDTO;
 import io.fluxion.remote.core.api.dto.WorkerMetricDTO;
 import io.fluxion.remote.core.api.dto.WorkerTagDTO;
@@ -61,60 +62,4 @@ public class WorkerRegisterRequest implements Request<WorkerRegisterResponse> {
      */
     @NotEmpty(message = "worker executor can't be empty")
     private List<WorkerExecutorDTO> executors;
-
-    public String getAppName() {
-        return appName;
-    }
-
-    public void setAppName(String appName) {
-        this.appName = appName;
-    }
-
-    public String getProtocol() {
-        return protocol;
-    }
-
-    public void setProtocol(String protocol) {
-        this.protocol = protocol;
-    }
-
-    public String getHost() {
-        return host;
-    }
-
-    public void setHost(String host) {
-        this.host = host;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public WorkerMetricDTO getMetric() {
-        return metric;
-    }
-
-    public void setMetric(WorkerMetricDTO metric) {
-        this.metric = metric;
-    }
-
-    public List<WorkerTagDTO> getTags() {
-        return tags;
-    }
-
-    public void setTags(List<WorkerTagDTO> tags) {
-        this.tags = tags;
-    }
-
-    public List<WorkerExecutorDTO> getExecutors() {
-        return executors;
-    }
-
-    public void setExecutors(List<WorkerExecutorDTO> executors) {
-        this.executors = executors;
-    }
 }

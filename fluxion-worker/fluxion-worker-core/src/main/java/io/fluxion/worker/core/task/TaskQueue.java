@@ -44,6 +44,20 @@ public class TaskQueue {
         this.queueSize = queueSize;
     }
 
+    /**
+     * 任务积压队列大小
+     */
+    public int queueSize() {
+        return queueSize;
+    }
+
+    /**
+     * 剩余可分配任务数
+     */
+    public int availableQueueSize() {
+        return queueSize - tasks.size();
+    }
+
 
     /**
      * 尝试新增任务到仓库中：如果已存在相同 taskId 的任务，则不添加新的任务，返回 false；如不存在，则添加成功，返回 true。
@@ -51,7 +65,7 @@ public class TaskQueue {
      * @param context 任务执行上下文
      */
     public boolean save(TrackerBak context) {
-        if (capacity() - size() <= 0) {
+        if (availableQueueSize() <= 0) {
             return false;
         }
         return tasks.putIfAbsent(context.task().taskId(), context) == null;
@@ -63,21 +77,6 @@ public class TaskQueue {
      */
     public void delete(String uid) {
         tasks.remove(uid);
-    }
-
-
-    /**
-     * 统计运行中的任务数量
-     */
-    public int size() {
-        return tasks.size();
-    }
-
-    /**
-     * 总容量
-     */
-    public int capacity() {
-        return queueSize;
     }
 
 }

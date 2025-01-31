@@ -14,44 +14,40 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.dto;
+package io.fluxion.worker.core;
+
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 
 /**
  * @author PengQ
  * @since 0.0.1
  */
-public class WorkerTagDTO {
-    /**
-     * 标签 name
-     */
-    private String name;
+public class SystemInfo {
+
+    private static final Runtime runtime = Runtime.getRuntime();
+
+    private static final OperatingSystemMXBean osMXBean = ManagementFactory.getOperatingSystemMXBean();
 
     /**
-     * 标签 value
+     * CPU processor num
      */
-    private String value;
-
-    public WorkerTagDTO() {
+    public static int cpuProcessors() {
+        return runtime.availableProcessors();
     }
 
-    public WorkerTagDTO(String name, String value) {
-        this.name = name;
-        this.value = value;
+    /**
+     * CPU Load
+     */
+    public static double cpuLoad() {
+        return osMXBean.getSystemLoadAverage();
     }
 
-    public String getName() {
-        return name;
+    /**
+     * free memory
+     */
+    public static long freeMemory() {
+        return runtime.freeMemory();
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getValue() {
-        return value;
-    }
-
-    public void setValue(String value) {
-        this.value = value;
-    }
 }
