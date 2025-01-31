@@ -39,12 +39,12 @@ public class WorkerMetric {
 
     private double cpuLoad;
 
-    private long availableRAM;
+    private long freeMemory;
 
     /**
      * 任务队列剩余可排队数
      */
-    private int availableQueueLimit;
+    private int availableQueueNum;
 
     /**
      * 上次心跳上报时间戳，毫秒

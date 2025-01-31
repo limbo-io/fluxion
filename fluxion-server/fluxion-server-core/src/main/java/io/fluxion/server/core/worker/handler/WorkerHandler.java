@@ -78,7 +78,7 @@ public class WorkerHandler {
         entity.setEnabled(true);
 
         WorkerMetric metric = worker.getMetric();
-        entity.setAvailableQueueLimit(metric.getAvailableQueueLimit());
+        entity.setAvailableQueueNum(metric.getAvailableQueueNum());
         entity.setLastHeartbeatAt(metric.getLastHeartbeatAt());
 
         List<WorkerExecutor> executors = worker.getExecutors();

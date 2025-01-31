@@ -46,10 +46,10 @@ public class BrokerRpcConverter {
         worker.setProtocol(Protocol.parse(request.getProtocol()));
 
         WorkerMetric metric = new WorkerMetric(
-            request.getMetric().getCpuProcessors(),
-            request.getMetric().getCpuLoad(),
-            request.getMetric().getAvailableRAM(),
-            request.getMetric().getAvailableQueueLimit(),
+            request.getSystemInfo().getCpuProcessors(),
+            request.getSystemInfo().getCpuLoad(),
+            request.getSystemInfo().getFreeMemory(),
+            request.getAvailableQueueNum(),
             TimeUtils.currentLocalDateTime()
         );
         worker.setMetric(metric);

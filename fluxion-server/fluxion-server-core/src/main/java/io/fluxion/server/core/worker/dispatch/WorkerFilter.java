@@ -79,13 +79,13 @@ public class WorkerFilter {
     public WorkerFilter filterResources(Double cpuRequirement, Long ramRequirement) {
         List<Worker> filterWorkers = workers.stream().filter(worker -> {
             WorkerMetric metric = worker.getMetric();
-            if (metric.getAvailableQueueLimit() <= 0) {
+            if (metric.getAvailableQueueNum() <= 0) {
                 return false;
             }
             if (cpuRequirement != null && metric.getCpuLoad() < cpuRequirement) {
                 return false;
             }
-            if (ramRequirement != null && metric.getAvailableRAM() < ramRequirement) {
+            if (ramRequirement != null && metric.getFreeMemory() < ramRequirement) {
                 return false;
             }
             return true;

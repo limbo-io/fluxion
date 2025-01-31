@@ -19,7 +19,6 @@ package io.fluxion.remote.core.api.request;
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerExecutorDTO;
-import io.fluxion.remote.core.api.dto.WorkerMetricDTO;
 import io.fluxion.remote.core.api.dto.WorkerTagDTO;
 import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
 import io.fluxion.remote.core.constants.Protocol;
@@ -48,11 +47,6 @@ public class WorkerRegisterRequest implements Request<WorkerRegisterResponse> {
     private int port;
 
     /**
-     * 可用资源
-     */
-    private WorkerMetricDTO metric;
-
-    /**
      * worker 的标签
      */
     private List<WorkerTagDTO> tags;
@@ -62,4 +56,72 @@ public class WorkerRegisterRequest implements Request<WorkerRegisterResponse> {
      */
     @NotEmpty(message = "worker executor can't be empty")
     private List<WorkerExecutorDTO> executors;
+
+    private SystemInfoDTO systemInfo;
+
+    private int availableQueueNum;
+
+    public String getAppName() {
+        return appName;
+    }
+
+    public void setAppName(String appName) {
+        this.appName = appName;
+    }
+
+    public String getProtocol() {
+        return protocol;
+    }
+
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public SystemInfoDTO getSystemInfo() {
+        return systemInfo;
+    }
+
+    public void setSystemInfo(SystemInfoDTO systemInfo) {
+        this.systemInfo = systemInfo;
+    }
+
+    public List<WorkerTagDTO> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<WorkerTagDTO> tags) {
+        this.tags = tags;
+    }
+
+    public List<WorkerExecutorDTO> getExecutors() {
+        return executors;
+    }
+
+    public void setExecutors(List<WorkerExecutorDTO> executors) {
+        this.executors = executors;
+    }
+
+    public int getAvailableQueueNum() {
+        return availableQueueNum;
+    }
+
+    public void setAvailableQueueNum(int availableQueueNum) {
+        this.availableQueueNum = availableQueueNum;
+    }
 }

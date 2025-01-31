@@ -59,7 +59,7 @@ public class WorkerEntity extends BaseEntity {
     /**
      * 可用队列
      */
-    private Integer availableQueueLimit;
+    private Integer availableQueueNum;
 
     /**
      * 上次心跳上报时间戳，毫秒

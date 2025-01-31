@@ -98,7 +98,7 @@ public class FluxionWorker implements Worker {
      * @param brokerRpc      broker RPC 通信模块
      * @param rpcServer 内置服务
      */
-    public FluxionWorker(String name, URL url, BrokerRpc brokerRpc, EmbedRpcServer embedRpcServer) {
+    public FluxionWorker(String name, URL url, BrokerRpc brokerRpc, RpcServer rpcServer) {
         Objects.requireNonNull(url, "URL can't be null");
         Objects.requireNonNull(brokerRpc, "broker client can't be null");
 
