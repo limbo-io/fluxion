@@ -16,16 +16,24 @@
 
 package io.fluxion.worker.core.discovery;
 
+import io.fluxion.remote.core.api.dto.SystemInfoDTO;
+import io.fluxion.remote.core.api.dto.WorkerExecutorDTO;
+import io.fluxion.remote.core.api.dto.WorkerTagDTO;
 import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.client.LBClient;
 import io.fluxion.remote.core.exception.RpcException;
 import io.fluxion.remote.core.heartbeat.HeartbeatPacemaker;
+import io.fluxion.worker.core.SystemInfo;
+import io.fluxion.worker.core.WorkerInfo;
 import io.fluxion.worker.core.rpc.BrokerSender;
+import org.apache.commons.collections4.MultiValuedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static io.fluxion.remote.core.constants.BrokerConstant.API_WORKER_HEARTBEAT;
 import static io.fluxion.remote.core.constants.BrokerConstant.API_WORKER_REGISTER;
@@ -41,29 +49,73 @@ public class DefaultServerDiscovery implements ServerDiscovery {
 
     private final LBClient client;
 
+    private final WorkerInfo workerInfo;
+
     /**
      * manage heartbeat
      */
     private HeartbeatPacemaker heartbeatPacemaker;
 
-    public DefaultServerDiscovery(LBClient client) {
+    public DefaultServerDiscovery(WorkerInfo workerInfo, LBClient client) {
         this.client = client;
+        this.workerInfo = workerInfo;
     }
 
     @Override
     public void start() {
-        // 注册 todo @pq
-        BrokerSender.register(client, API_WORKER_REGISTER, new WorkerRegisterRequest());
+        // 注册
+        BrokerSender.register(client, API_WORKER_REGISTER, registerRequest(workerInfo));
         // 心跳管理
         this.heartbeatPacemaker = new HeartbeatPacemaker(() -> {
             try {
-                // todo @pq
-                BrokerSender.heartbeat(client, API_WORKER_HEARTBEAT, new WorkerHeartbeatRequest());
+                BrokerSender.heartbeat(client, API_WORKER_HEARTBEAT, heartbeatRequest(workerInfo));
             } catch (RpcException e) {
-                log.warn("Agent send heartbeat failed");
-                throw new IllegalStateException("Agent send heartbeat failed", e);
+                log.warn("[DefaultServerDiscovery] send heartbeat failed");
+                throw new IllegalStateException("[DefaultServerDiscovery] send heartbeat failed", e);
             }
         }, Duration.ofSeconds(HEARTBEAT_TIMEOUT_SECOND));
+    }
+
+    private WorkerRegisterRequest registerRequest(WorkerInfo workerInfo) {
+        WorkerRegisterRequest request = new WorkerRegisterRequest();
+        request.setAppName(workerInfo.getAppName());
+        request.setSystemInfo(systemInfoDTO());
+        request.setTags(tagDTOS(workerInfo.getTags()));
+        request.setExecutors(executorDTOS(workerInfo));
+        return request;
+    }
+
+    private WorkerHeartbeatRequest heartbeatRequest(WorkerInfo workerInfo) {
+        WorkerHeartbeatRequest request = new WorkerHeartbeatRequest();
+        request.setWorkerId(workerInfo.getWorkerId());
+        request.setSystemInfo(systemInfoDTO());
+        return request;
+    }
+
+    private List<WorkerExecutorDTO> executorDTOS(WorkerInfo workerInfo) {
+        return workerInfo.getExecutors().stream().map(
+            e -> {
+                WorkerExecutorDTO dto = new WorkerExecutorDTO();
+                dto.setName(e.getName());
+                return dto;
+            }
+        ).collect(Collectors.toList());
+    }
+
+    private SystemInfoDTO systemInfoDTO() {
+        SystemInfoDTO dto = new SystemInfoDTO();
+        dto.setCpuLoad(SystemInfo.cpuLoad());
+        dto.setFreeMemory(SystemInfo.freeMemory());
+        dto.setCpuProcessors(SystemInfo.cpuProcessors());
+        return dto;
+    }
+
+    private List<WorkerTagDTO> tagDTOS(MultiValuedMap<String, String> tags) {
+        return tags.keySet().stream()
+            .flatMap(key -> tags.get(key)
+                .stream().map(value -> new WorkerTagDTO(key, value))
+            )
+            .collect(Collectors.toList());
     }
 
     @Override

@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.api.request;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerResourceDTO;
 import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
 import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
@@ -27,8 +28,23 @@ import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
  */
 public class WorkerHeartbeatRequest implements Request<WorkerHeartbeatResponse> {
 
-    /**
-     * 可用资源
-     */
-    private WorkerResourceDTO availableResource;
+    private String workerId;
+
+    private SystemInfoDTO systemInfo;
+
+    public String getWorkerId() {
+        return workerId;
+    }
+
+    public void setWorkerId(String workerId) {
+        this.workerId = workerId;
+    }
+
+    public SystemInfoDTO getSystemInfo() {
+        return systemInfo;
+    }
+
+    public void setSystemInfo(SystemInfoDTO systemInfo) {
+        this.systemInfo = systemInfo;
+    }
 }

@@ -17,8 +17,8 @@
 package io.fluxion.remote.core.api.request;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerExecutorDTO;
-import io.fluxion.remote.core.api.dto.WorkerResourceDTO;
 import io.fluxion.remote.core.api.dto.WorkerTagDTO;
 import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
 import io.fluxion.remote.core.constants.Protocol;
@@ -34,10 +34,7 @@ import java.util.List;
  */
 public class WorkerRegisterRequest implements Request<WorkerRegisterResponse> {
 
-    /**
-     * 注册时指定的 worker name
-     */
-    private String name;
+    private String appName;
 
     /**
      * 通信使用的 URL。
@@ -46,11 +43,6 @@ public class WorkerRegisterRequest implements Request<WorkerRegisterResponse> {
      */
     @NotNull(message = "Worker URL can't be null")
     private URL url;
-
-    /**
-     * 可用资源
-     */
-    private WorkerResourceDTO availableResource;
 
     /**
      * worker 的标签
@@ -62,4 +54,46 @@ public class WorkerRegisterRequest implements Request<WorkerRegisterResponse> {
      */
     @NotEmpty(message = "worker executor can't be empty")
     private List<WorkerExecutorDTO> executors;
+
+    private SystemInfoDTO systemInfo;
+
+    public String getAppName() {
+        return appName;
+    }
+
+    public void setAppName(String appName) {
+        this.appName = appName;
+    }
+
+    public URL getUrl() {
+        return url;
+    }
+
+    public void setUrl(URL url) {
+        this.url = url;
+    }
+
+    public SystemInfoDTO getSystemInfo() {
+        return systemInfo;
+    }
+
+    public void setSystemInfo(SystemInfoDTO systemInfo) {
+        this.systemInfo = systemInfo;
+    }
+
+    public List<WorkerTagDTO> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<WorkerTagDTO> tags) {
+        this.tags = tags;
+    }
+
+    public List<WorkerExecutorDTO> getExecutors() {
+        return executors;
+    }
+
+    public void setExecutors(List<WorkerExecutorDTO> executors) {
+        this.executors = executors;
+    }
 }

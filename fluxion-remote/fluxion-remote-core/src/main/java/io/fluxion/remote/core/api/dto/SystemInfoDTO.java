@@ -17,41 +17,49 @@
 package io.fluxion.remote.core.api.dto;
 
 /**
+ * 系统信息
+ *
  * @author PengQ
  * @since 0.0.1
  */
-public class WorkerTagDTO {
-    /**
-     * 标签 key
-     */
-    private String key;
+public class SystemInfoDTO {
 
     /**
-     * 标签 value
+     * CPU processor num
      */
-    private String value;
+    private int cpuProcessors;
 
-    public WorkerTagDTO() {
+    /**
+     * CPU Load
+     */
+    private double cpuLoad;
+
+    /**
+     * free memory
+     */
+    private long freeMemory;
+
+    public int getCpuProcessors() {
+        return cpuProcessors;
     }
 
-    public WorkerTagDTO(String key, String value) {
-        this.key = key;
-        this.value = value;
+    public void setCpuProcessors(int cpuProcessors) {
+        this.cpuProcessors = cpuProcessors;
     }
 
-    public String getKey() {
-        return key;
+    public double getCpuLoad() {
+        return cpuLoad;
     }
 
-    public void setKey(String key) {
-        this.key = key;
+    public void setCpuLoad(double cpuLoad) {
+        this.cpuLoad = cpuLoad;
     }
 
-    public String getValue() {
-        return value;
+    public long getFreeMemory() {
+        return freeMemory;
     }
 
-    public void setValue(String value) {
-        this.value = value;
+    public void setFreeMemory(long freeMemory) {
+        this.freeMemory = freeMemory;
     }
 }

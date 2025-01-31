@@ -17,7 +17,6 @@
 package io.fluxion.worker.core;
 
 import io.fluxion.worker.core.executor.Executor;
-import io.fluxion.worker.core.resource.WorkerResources;
 import io.fluxion.worker.core.task.Task;
 import org.apache.commons.collections4.MultiValuedMap;
 
@@ -42,11 +41,6 @@ public interface Worker {
      * 获取 Worker 名称
      */
     String getName();
-
-    /**
-     * 获取为 Worker 分配的资源
-     */
-    WorkerResources getResource();
 
     /**
      * 获取 Worker RPC 通信用到的 URL

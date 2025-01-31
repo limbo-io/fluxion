@@ -24,12 +24,11 @@ import io.fluxion.remote.core.exception.RpcException;
 import io.fluxion.remote.core.server.EmbedRpcServer;
 import io.fluxion.remote.core.server.RpcServerStatus;
 import io.fluxion.worker.core.executor.Executor;
-import io.fluxion.worker.core.resource.WorkerResources;
 import io.fluxion.worker.core.rpc.BrokerRpc;
 import io.fluxion.worker.core.task.Task;
+import io.fluxion.worker.core.task.TaskQueue;
 import io.fluxion.worker.core.tracker.TrackerBak;
 import org.apache.commons.collections4.MultiValuedMap;
-import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,19 +57,9 @@ public class FluxionWorker implements Worker {
     private URL url;
 
     /**
-     * 工作节点资源
-     */
-    private WorkerResources resource;
-
-    /**
      * 任务执行线程池
      */
     private ExecutorService threadPool;
-
-    /**
-     * Worker 标签
-     */
-    private MultiValuedMap<String, String> tags;
 
     /**
      * 执行器名称 - 执行器 映射关系
@@ -91,27 +80,30 @@ public class FluxionWorker implements Worker {
      * RPC服务
      */
     private EmbedRpcServer embedRpcServer;
+    /**
+     * 并发执行任务数量
+     */
+    private int concurrency;
+
+    private TaskQueue taskQueue;
 
     /**
      * 创建一个 Worker 实例
      *
      * @param name           worker 实例 名称，如未指定则会随机生成一个
      * @param url            worker 启动的 RPC 服务的 baseUrl
-     * @param resource       worker 资源描述对象
      * @param brokerRpc      broker RPC 通信模块
      * @param embedRpcServer 内置服务
      */
-    public FluxionWorker(String name, URL url, WorkerResources resource, BrokerRpc brokerRpc, EmbedRpcServer embedRpcServer) {
+    public FluxionWorker(String name, URL url, BrokerRpc brokerRpc, EmbedRpcServer embedRpcServer) {
         Objects.requireNonNull(url, "URL can't be null");
         Objects.requireNonNull(brokerRpc, "broker client can't be null");
 
         this.name = StringUtils.isBlank(name) ? SHAUtils.sha1AndHex(url.toString()).toUpperCase() : name;
         this.url = url;
-        this.resource = resource;
         this.brokerRpc = brokerRpc;
         this.embedRpcServer = embedRpcServer;
 
-        this.tags = new HashSetValuedHashMap<>();
         this.executors = new ConcurrentHashMap<>();
     }
 
@@ -124,11 +116,6 @@ public class FluxionWorker implements Worker {
     @Override
     public String getName() {
         return "";
-    }
-
-    @Override
-    public WorkerResources getResource() {
-        return null;
     }
 
     @Override
@@ -176,9 +163,9 @@ public class FluxionWorker implements Worker {
         }
 
         // 初始化线程池
-        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(resource.queueSize() <= 0 ? resource.concurrency() : resource.queueSize());
+        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(taskQueue.queueSize() <= 0 ? concurrency : taskQueue.queueSize());
         threadPool = new ThreadPoolExecutor(
-            resource.concurrency(), resource.concurrency(),
+            concurrency, concurrency,
             5, TimeUnit.SECONDS, queue,
             NamedThreadFactory.newInstance("FluxionWorkerExecutor"),
             (r, e) -> {
@@ -218,14 +205,14 @@ public class FluxionWorker implements Worker {
         Executor executor = executors.get(task.executorName());
         Objects.requireNonNull(executor, "Unsupported executor: " + task.executorName());
 
-        int availableQueueSize = resource.availableQueueSize();
+        int availableQueueSize = taskQueue.availableQueueSize();
         if (availableQueueSize <= 0) {
             throw new IllegalArgumentException("Worker's queue is full, limit: " + availableQueueSize);
         }
 
         // 存储任务，并判断是否重复接收任务
         TrackerBak context = new TrackerBak(null, executor, task);
-        if (!resource.queue().save(context)) {
+        if (!taskQueue.save(context)) {
             log.warn("Receive task [{}], but already in repository", task.taskId());
             return;
         }
@@ -240,7 +227,7 @@ public class FluxionWorker implements Worker {
                     } catch (Exception e) {
                         log.error("[ExecuteContext] run error", e);
                     } finally {
-                        resource.queue().delete(task.taskId());
+                        taskQueue.delete(task.taskId());
                     }
                 }
             });
