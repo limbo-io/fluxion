@@ -17,6 +17,7 @@
 package io.fluxion.server.core.task.runner;
 
 import io.fluxion.server.core.executor.option.DispatchOption;
+import io.fluxion.server.core.task.ExecutorTask;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskType;
 import io.fluxion.server.core.worker.Worker;
@@ -28,6 +29,7 @@ import io.fluxion.server.core.worker.selector.WorkerSelectorFactory;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -51,18 +53,19 @@ public class ExecutorTaskRunner extends TaskRunner {
 
     @Override
     public void run(Task task) {
-        Map<String, Object> attributes = null;
+        ExecutorTask executorTask = (ExecutorTask) task;
+        Map<String, Object> attributes = new HashMap<>();
         List<Worker> workers = workerRegistry.all().stream()
             .filter(Worker::isEnabled)
             .collect(Collectors.toList());
-        DispatchOption dispatchOption = null;
-        // 广播的应该不关心资源大小 在配置的时候直接处理 todo @pq 过滤worker任务队列已满的
+        DispatchOption dispatchOption = executorTask.getDispatchOption();
+        // 广播的应该不关心资源大小 在配置的时候直接处理
         WorkerFilter workerFilter = new WorkerFilter(workers)
-//                .filterExecutor(getName()) // todo @pq 本来是根据执行器名称的，需要根据类型处理
+            .filterExecutor(executorTask.getExecutorName())
             .filterTags(dispatchOption.getTagFilters())
             .filterResources(dispatchOption.getCpuRequirement(), dispatchOption.getRamRequirement());
 
-        WorkerSelectInvocation invocation = null; // new WorkerSelectInvocation(getName(), attributes); // todo @pq 本来是根据执行器名称的，需要根据类型处理
+        WorkerSelectInvocation invocation = new WorkerSelectInvocation(executorTask.getExecutorName(), attributes);
         WorkerSelector workerSelector = workerSelectorFactory.newSelector(dispatchOption.getLoadBalanceType());
         Worker worker = workerSelector.select(invocation, workerFilter.get());
 
