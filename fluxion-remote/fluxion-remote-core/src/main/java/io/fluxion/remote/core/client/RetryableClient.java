@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 /**
  * @author Devil
  */
-public class RetryableClient<S extends LBServer> extends AbstractLBClient<S> implements Client {
+public class RetryableClient<S extends LBServer> extends AbstractLBClient implements Client {
 
     /**
      * 重试次数
@@ -40,19 +40,7 @@ public class RetryableClient<S extends LBServer> extends AbstractLBClient<S> imp
 
     private final Client client;
 
-    public RetryableClient(Client client, LBServerRepository<S> repository) {
-        this(client, repository, null);
-    }
-
-    public RetryableClient(Client client, int retryTimes, LBServerRepository<S> repository) {
-        this(client, retryTimes, repository, null);
-    }
-
-    public RetryableClient(Client client, LBServerRepository<S> repository, LBStrategy<S> strategy) {
-        this(client, 3, repository, strategy);
-    }
-
-    public RetryableClient(Client client, int retryTimes, LBServerRepository<S> repository, LBStrategy<S> strategy) {
+    private RetryableClient(Client client, int retryTimes, LBServerRepository repository, LBStrategy<S> strategy) {
         super(repository, strategy);
         this.client = client;
         this.retryTimes = retryTimes;
@@ -61,7 +49,7 @@ public class RetryableClient<S extends LBServer> extends AbstractLBClient<S> imp
 
     @Override
     public <R, T extends Request<R>> R call(URL url, T request) {
-        List<S> servers = servers();
+        List<LBServer> servers = servers();
         if (CollectionUtils.isEmpty(servers)) {
             throw new IllegalStateException("No alive servers!");
         }
@@ -73,7 +61,7 @@ public class RetryableClient<S extends LBServer> extends AbstractLBClient<S> imp
         }
         String path = url.getPath();
         for (int i = 1; i <= retryTimes; i++) {
-            S server = select(servers, path);
+            LBServer server = select(servers, path);
             if (server == null) {
                 log.warn("No available alive servers after {} tries from load balancer", i);
                 throw new IllegalStateException("Can't get alive server by path=" + path);
@@ -106,6 +94,42 @@ public class RetryableClient<S extends LBServer> extends AbstractLBClient<S> imp
 
     public void updateRetryTimes(int retryTimes) {
         this.retryTimes = retryTimes;
+    }
+
+    public static <S extends LBServer> Builder<S> builder() {
+        return new Builder<>();
+    }
+
+    public static class Builder<S extends LBServer> {
+        private Client client;
+        private int retryTimes = 3;
+        private LBServerRepository repository;
+        private LBStrategy<S> strategy;
+
+        public Builder<S> client(Client client) {
+            this.client = client;
+            return this;
+        }
+
+        public Builder<S> retryTimes(int retryTimes) {
+            this.retryTimes = retryTimes;
+            return this;
+        }
+
+        public Builder<S> repository(LBServerRepository repository) {
+            this.repository = repository;
+            return this;
+        }
+
+        public Builder<S> strategy(LBStrategy<S> strategy) {
+            this.strategy = strategy;
+            return this;
+        }
+
+        public RetryableClient<S> build() {
+            return new RetryableClient<>(client, retryTimes, repository, strategy);
+        }
+
     }
 
 }

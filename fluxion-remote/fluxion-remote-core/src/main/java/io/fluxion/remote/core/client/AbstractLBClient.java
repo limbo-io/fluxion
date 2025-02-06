@@ -30,21 +30,21 @@ import java.util.List;
  * @author PengQ
  * @since 0.0.1
  */
-public abstract class AbstractLBClient<S extends LBServer> implements LBClient {
+public abstract class AbstractLBClient implements LBClient {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     /**
      * 被负载的服务列表
      */
-    private final LBServerRepository<S> repository;
+    private final LBServerRepository repository;
 
     /**
      * 负载均衡策略
      */
-    private LBStrategy<S> strategy;
+    private LBStrategy strategy;
 
-    public AbstractLBClient(LBServerRepository<S> repository, LBStrategy<S> strategy) {
+    public AbstractLBClient(LBServerRepository repository, LBStrategy strategy) {
         this.repository = repository;
         updateLBStrategy(strategy);
     }
@@ -52,20 +52,20 @@ public abstract class AbstractLBClient<S extends LBServer> implements LBClient {
     /**
      * 更新负载均衡策略
      */
-    public void updateLBStrategy(LBStrategy<S> strategy) {
+    public void updateLBStrategy(LBStrategy strategy) {
         // 默认使用轮询
         if (strategy == null) {
-            strategy = new RoundRobinLBStrategy<>();
+            strategy = new RoundRobinLBStrategy();
         }
 
         this.strategy = strategy;
     }
 
-    protected S select(List<S> servers, String path) {
+    protected LBServer select(List<LBServer> servers, String path) {
         return strategy.select(servers, new PathInvocation(path, new HashMap<>()));
     }
 
-    protected List<S> servers() {
+    protected List<LBServer> servers() {
         return repository.listAliveServers();
     }
 

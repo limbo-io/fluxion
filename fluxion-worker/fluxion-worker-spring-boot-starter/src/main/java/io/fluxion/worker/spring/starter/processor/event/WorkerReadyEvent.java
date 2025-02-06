@@ -1,11 +1,11 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2020-2024 Limbo Team (https://github.com/limbo-world).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * 	http://www.apache.org/licenses/LICENSE-2.0
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,32 +14,23 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.core.executor;
+package io.fluxion.worker.spring.starter.processor.event;
 
+import org.springframework.context.ApplicationEvent;
 
-import io.fluxion.worker.core.task.Task;
+import java.time.Instant;
 
 /**
- * 任务执行器
- *
- * @author Devil
- * @since 2021/7/24
+ * @author Brozen
+ * @since 2022-09-22
  */
-public interface Executor {
+public class WorkerReadyEvent extends ApplicationEvent {
 
     /**
-     * 运行执行器
-     *
-     * @param task 任务执行上下文
+     * 生成 Worker ready 事件
      */
-    void run(Task task);
-
-
-    /**
-     * 执行器名称，默认为执行器类的类全名
-     */
-    default String name() {
-        return this.getClass().getName();
+    public WorkerReadyEvent() {
+        super(Instant.now());
     }
 
 }

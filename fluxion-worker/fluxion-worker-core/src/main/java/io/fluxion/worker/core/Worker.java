@@ -16,13 +16,7 @@
 
 package io.fluxion.worker.core;
 
-import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.Task;
-import org.apache.commons.collections4.MultiValuedMap;
-
-import java.net.URL;
-import java.time.Duration;
-import java.util.Map;
 
 /**
  * Worker 行为方法定义
@@ -33,49 +27,9 @@ import java.util.Map;
 public interface Worker {
 
     /**
-     * 获取 Worker ID
-     */
-    String id();
-
-    /**
-     * 获取 Worker 名称
-     */
-    String name();
-
-    /**
-     * 获取 Worker RPC 通信用到的 URL
-     */
-    URL remoteUrl();
-
-    /**
-     * 获取此 Worker 标记的标签，返回的标签不可修改。
-     */
-    MultiValuedMap<String, String> getTags();
-
-    /**
-     * 为此 Worker 添加标签
-     *
-     * @param key   标签 key
-     * @param value 标签 value
-     */
-    void addTag(String key, String value);
-
-    /**
-     * 添加任务执行器
-     */
-    void addExecutor(Executor executor);
-
-    /**
-     * 获取当前 Worker 中的执行器
-     */
-    Map<String, Executor> executors();
-
-    /**
      * 启动当前 Worker
-     *
-     * @param heartbeatPeriod 心跳间隔
      */
-    void start(Duration heartbeatPeriod);
+    void start();
 
     /**
      * 接收 Broker 发送来的任务

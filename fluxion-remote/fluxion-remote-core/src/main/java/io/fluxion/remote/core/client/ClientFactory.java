@@ -14,32 +14,21 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.core.executor;
+package io.fluxion.remote.core.client;
 
-
-import io.fluxion.worker.core.task.Task;
+import io.fluxion.remote.core.constants.Protocol;
 
 /**
- * 任务执行器
- *
- * @author Devil
- * @since 2021/7/24
+ * @author PengQ
+ * @since 0.0.1
  */
-public interface Executor {
+public class ClientFactory {
 
-    /**
-     * 运行执行器
-     *
-     * @param task 任务执行上下文
-     */
-    void run(Task task);
-
-
-    /**
-     * 执行器名称，默认为执行器类的类全名
-     */
-    default String name() {
-        return this.getClass().getName();
+    public static Client create(Protocol protocol) {
+        switch (protocol) {
+            case HTTP:
+                return new OKHttpClient();
+        }
+        return null;
     }
-
 }

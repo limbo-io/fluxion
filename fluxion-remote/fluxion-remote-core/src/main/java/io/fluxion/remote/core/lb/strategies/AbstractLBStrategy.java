@@ -34,7 +34,8 @@ public abstract class AbstractLBStrategy<S extends LBServer> implements LBStrate
 
     /**
      * {@inheritDoc}
-     * @param servers 被负载的服务列表
+     *
+     * @param servers    被负载的服务列表
      * @param invocation 本次调用的上下文信息
      * @return
      */
@@ -56,7 +57,8 @@ public abstract class AbstractLBStrategy<S extends LBServer> implements LBStrate
 
     /**
      * 从非空列表选取对象。
-     * @param servers 被负载的服务列表，可以保证非空。
+     *
+     * @param servers    被负载的服务列表，可以保证非空。
      * @param invocation 本次调用的上下文信息
      */
     protected abstract S doSelect(List<S> servers, Invocation invocation);

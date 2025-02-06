@@ -42,8 +42,7 @@ import static java.util.stream.Collectors.toSet;
 public class BrokerRpcConverter {
 
     public static Worker toWorker(String appId, WorkerRegisterRequest request) {
-        Worker worker = new Worker(appId, request.getHost(), request.getPort());
-        worker.setProtocol(Protocol.parse(request.getProtocol()));
+        Worker worker = new Worker(appId, request.getHost(), request.getPort(), Protocol.parse(request.getProtocol()));
 
         WorkerMetric metric = toMetric(request.getSystemInfo(), request.getAvailableQueueNum());
         worker.setMetric(metric);

@@ -20,7 +20,6 @@ import io.fluxion.remote.core.lb.Invocation;
 import io.fluxion.remote.core.lb.LBServer;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * 负载均衡策略
@@ -33,7 +32,7 @@ public interface LBStrategy<S extends LBServer> {
     /**
      * 选择一个服务。
      *
-     * @param servers 被负载的服务列表
+     * @param servers    被负载的服务列表
      * @param invocation 本次调用的上下文信息
      * @return 选择的服务，可能为 null。当无可用服务时，返回 null。
      */

@@ -1,45 +1,48 @@
 package io.fluxion.worker.core;
 
 import io.fluxion.worker.core.executor.Executor;
-import org.apache.commons.collections4.MultiMapUtils;
-import org.apache.commons.collections4.MultiValuedMap;
 
-import java.util.Collections;
-import java.util.List;
+import java.net.URL;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
-* @author PengQ 
-* @since 0.0.1
-*/public class WorkerInfo {
-
-    private String appName;
+ * @author PengQ
+ * @since 0.0.1
+ */
+public class WorkerInfo {
 
     private String workerId;
+
+    private String appName;
+    /**
+     * 连接 worker 的 url
+     */
+    private URL url;
 
     /**
      * 执行器
      */
-    private List<Executor> executors;
+    private Map<String, Executor> executors;
 
     /**
      * Worker 标签
      */
-    private MultiValuedMap<String, String> tags;
+    private Map<String, Set<String>> tags;
 
-    public MultiValuedMap<String, String> getTags() {
-        return tags == null ? MultiMapUtils.emptyMultiValuedMap() : tags;
+    public WorkerInfo(String appName, URL url, List<Executor> executors, Map<String, Set<String>> tags) {
+        this.appName = appName;
+        this.url = url;
+        this.executors = executors == null ? Collections.emptyMap() : executors.stream().collect(Collectors.toMap(Executor::name, executor -> executor));
+        this.tags = tags == null ? Collections.emptyMap() : tags;
     }
 
-    public void setTags(MultiValuedMap<String, String> tags) {
-        this.tags = tags;
+    public Map<String, Set<String>> getTags() {
+        return tags == null ? Collections.emptyMap() : tags;
     }
 
     public String getAppName() {
         return appName;
-    }
-
-    public void setAppName(String appName) {
-        this.appName = appName;
     }
 
     public String getWorkerId() {
@@ -51,10 +54,11 @@ import java.util.List;
     }
 
     public List<Executor> getExecutors() {
-        return executors == null ? Collections.emptyList() : executors;
+        return new ArrayList<>(executors.values());
     }
 
-    public void setExecutors(List<Executor> executors) {
-        this.executors = executors;
+    public Executor getExecutor(String name) {
+        return executors.get(name);
     }
+
 }

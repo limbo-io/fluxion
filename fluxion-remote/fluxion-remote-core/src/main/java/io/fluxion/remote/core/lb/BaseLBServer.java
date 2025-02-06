@@ -16,18 +16,19 @@
 
 package io.fluxion.remote.core.lb;
 
+import io.fluxion.remote.core.constants.Protocol;
+
+import java.net.URL;
+
 /**
  * @author Brozen
  */
 public class BaseLBServer implements LBServer {
 
-    private final String host;
+    private final URL url;
 
-    private final int port;
-
-    public BaseLBServer(String host, int port) {
-        this.host = host;
-        this.port = port;
+    public BaseLBServer(URL baseUrl) {
+        this.url = baseUrl;
     }
 
 
@@ -38,7 +39,7 @@ public class BaseLBServer implements LBServer {
      */
     @Override
     public String serverId() {
-        return host + ":" + port;
+        return url.toString();
     }
 
 
@@ -53,13 +54,18 @@ public class BaseLBServer implements LBServer {
     }
 
     @Override
+    public Protocol protocol() {
+        return Protocol.parse(url.getProtocol());
+    }
+
+    @Override
     public String host() {
-        return host;
+        return url.getHost();
     }
 
     @Override
     public int port() {
-        return port;
+        return url.getPort();
     }
 
 }

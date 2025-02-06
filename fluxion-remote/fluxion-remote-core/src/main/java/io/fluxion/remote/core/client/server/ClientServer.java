@@ -17,6 +17,8 @@
 package io.fluxion.remote.core.client.server;
 
 /**
+ * Server for Remote Client
+ *
  * @author PengQ
  * @since 0.0.1
  */

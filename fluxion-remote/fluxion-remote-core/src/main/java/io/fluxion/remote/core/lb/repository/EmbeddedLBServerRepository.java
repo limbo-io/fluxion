@@ -26,15 +26,15 @@ import java.util.stream.Collectors;
 /**
  * @author Brozen
  */
-public class EmbeddedLBServerRepository<S extends LBServer> implements LBServerRepository<S> {
+public class EmbeddedLBServerRepository implements LBServerRepository {
 
     /**
      * 被负载的服务列表
      */
-    private volatile List<S> servers;
+    private volatile List<LBServer> servers;
 
 
-    public EmbeddedLBServerRepository(List<S> servers) {
+    public EmbeddedLBServerRepository(List<LBServer> servers) {
         updateServers(servers);
     }
 
@@ -44,7 +44,7 @@ public class EmbeddedLBServerRepository<S extends LBServer> implements LBServerR
      * @param servers 服务列表
      */
     @Override
-    public void updateServers(List<S> servers) {
+    public void updateServers(List<LBServer> servers) {
         this.servers = Collections.unmodifiableList(new ArrayList<>(servers));
     }
 
@@ -53,7 +53,7 @@ public class EmbeddedLBServerRepository<S extends LBServer> implements LBServerR
      * @return
      */
     @Override
-    public List<S> listAliveServers() {
+    public List<LBServer> listAliveServers() {
         return this.servers.stream()
                 .filter(LBServer::isAlive)
                 .collect(Collectors.toList());
@@ -65,7 +65,7 @@ public class EmbeddedLBServerRepository<S extends LBServer> implements LBServerR
      * @return
      */
     @Override
-    public List<S> listAllServers() {
+    public List<LBServer> listAllServers() {
         return this.servers;
     }
 

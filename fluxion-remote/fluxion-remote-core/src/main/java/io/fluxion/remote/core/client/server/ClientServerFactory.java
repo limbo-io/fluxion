@@ -22,18 +22,38 @@ import java.util.ServiceLoader;
  * @author Brozen
  * @since 2022-09-21
  */
-class ClientServerFactory {
+public interface ClientServerFactory {
 
-    public AbstractClientServer create() {
-        ServiceLoader<AbstractClientServer> loader = ServiceLoader.load(AbstractClientServer.class);
-        for (AbstractClientServer found : loader) {
-            return found;
+    /**
+     * 获取 RPC 协议工厂，使用 SPI 加载。
+     */
+    static ClientServerFactory instance() {
+        return Holder.INSTANCE;
+    }
+
+    AbstractClientServer create(ClientServerConfig config);
+
+    class Holder {
+
+        static final ClientServerFactory INSTANCE;
+
+        static {
+            ClientServerFactory factory = null;
+            ServiceLoader<ClientServerFactory> loader = ServiceLoader.load(ClientServerFactory.class);
+            for (ClientServerFactory found : loader) {
+                factory = found;
+                break;
+            }
+
+            if (factory == null) {
+                throw new IllegalStateException("No available [" + ClientServerFactory.class.getSimpleName() + "] class, " +
+                    "please declare a class implements ["
+                    + ClientServerFactory.class.getSimpleName() + "]，and declare the fully qualified path " +
+                    "of the implementation class in classpath:META-INF/services/" + ClientServerFactory.class.getName());
+            }
+
+            INSTANCE = factory;
         }
-
-        throw new IllegalStateException("No available [" + AbstractClientServer.class.getSimpleName() + "] class, " +
-            "please declare a class implements ["
-            + AbstractClientServer.class.getSimpleName() + "]，and declare the fully qualified path " +
-            "of the implementation class in classpath:META-INF/services/" + AbstractClientServer.class.getName());
     }
 
 }

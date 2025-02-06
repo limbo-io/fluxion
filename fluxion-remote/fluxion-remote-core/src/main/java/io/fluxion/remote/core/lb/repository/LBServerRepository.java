@@ -25,24 +25,24 @@ import java.util.List;
  *
  * @author Brozen
  */
-public interface LBServerRepository<S extends LBServer> {
+public interface LBServerRepository {
 
     /**
      * 更新被的服务列表
      * @param servers 服务列表
      */
-    void updateServers(List<S> servers);
+    void updateServers(List<LBServer> servers);
 
 
     /**
      * 列出所有存活的服务
      */
-    List<S> listAliveServers();
+    List<LBServer> listAliveServers();
 
 
     /**
      * 列出所有服务
      */
-    List<S> listAllServers();
+    List<LBServer> listAllServers();
 
 }

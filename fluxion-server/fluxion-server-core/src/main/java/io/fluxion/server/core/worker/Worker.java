@@ -47,7 +47,6 @@ public class Worker implements LBServer, Tagged {
 
     private int port;
 
-    @Setter
     private Protocol protocol;
 
     /**
@@ -82,10 +81,11 @@ public class Worker implements LBServer, Tagged {
      */
     private boolean enabled;
 
-    public Worker(String appId, String host, int port) {
+    public Worker(String appId, String host, int port, Protocol protocol) {
         this.appId = appId;
         this.host = host;
         this.port = port;
+        this.protocol = protocol;
         this.id = MD5Utils.md5(appId + ":" + host + ":" + port);
     }
 
@@ -101,6 +101,11 @@ public class Worker implements LBServer, Tagged {
     @Override
     public boolean isAlive() {
         return WorkerStatus.RUNNING == status;
+    }
+
+    @Override
+    public Protocol protocol() {
+        return protocol;
     }
 
     @Override

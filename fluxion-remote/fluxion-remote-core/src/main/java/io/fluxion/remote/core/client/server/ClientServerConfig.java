@@ -21,9 +21,14 @@ package io.fluxion.remote.core.client.server;
  */
 public class ClientServerConfig {
 
-    private int port;
+    private final int port;
 
-    private IHandleProcessor handleProcessor;
+    private final IHandleProcessor handleProcessor;
+
+    public ClientServerConfig(int port, IHandleProcessor handleProcessor) {
+        this.port = port;
+        this.handleProcessor = handleProcessor;
+    }
 
     public int getPort() {
         return port;

@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 /**
  * @author Devil
  */
-public abstract class StandaloneStatisticsRepository<T extends LBServerStatistics> extends Lockable<List<StandaloneStatisticsRepository.StatisticsRecord>> implements LBServerStatisticsProvider<T> {
+public abstract class StandaloneStatisticsRepository<T extends LBServerStatistics> extends Lockable<List<StandaloneStatisticsRepository.StatisticsRecord>> implements LBServerStatisticsProvider {
 
     /**
      * 最久统计多长时间的数据，默认 12H。
@@ -75,7 +75,7 @@ public abstract class StandaloneStatisticsRepository<T extends LBServerStatistic
      * @return
      */
     @Override
-    public List<T> getStatistics(Set<String> serverIds, Duration interval) {
+    public List<LBServerStatistics> getStatistics(Set<String> serverIds, Duration interval) {
         Instant limit = Instant.now().plusSeconds(-interval.getSeconds());
         // 读取所有统计数据
         Map<String, MutableLBStatistics> statistics = new HashMap<>();
@@ -95,8 +95,8 @@ public abstract class StandaloneStatisticsRepository<T extends LBServerStatistic
         });
 
         return statistics.values().stream()
-                .map(this::map)
-                .collect(Collectors.toList());
+            .map(this::map)
+            .collect(Collectors.toList());
     }
 
     public abstract T map(MutableLBStatistics mutableLBStatistics);

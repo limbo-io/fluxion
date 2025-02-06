@@ -23,7 +23,7 @@ import java.util.Set;
 /**
  * @author Brozen
  */
-public interface LBServerStatisticsProvider<T extends LBServerStatistics> {
+public interface LBServerStatisticsProvider {
 
     /**
      * 查询 {@link LBServer} 的统计信息。
@@ -31,7 +31,7 @@ public interface LBServerStatisticsProvider<T extends LBServerStatistics> {
      * @param serverIds 服务 ID 结合
      * @param interval  查询的统计信息时长
      */
-    List<T> getStatistics(Set<String> serverIds, Duration interval);
+    List<LBServerStatistics> getStatistics(Set<String> serverIds, Duration interval);
 
 
 }

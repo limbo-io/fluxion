@@ -27,12 +27,13 @@ import io.fluxion.remote.core.heartbeat.HeartbeatPacemaker;
 import io.fluxion.worker.core.SystemInfo;
 import io.fluxion.worker.core.WorkerInfo;
 import io.fluxion.worker.core.rpc.BrokerSender;
-import org.apache.commons.collections4.MultiValuedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.fluxion.remote.core.constants.BrokerConstant.API_WORKER_HEARTBEAT;
@@ -96,7 +97,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
         return workerInfo.getExecutors().stream().map(
             e -> {
                 WorkerExecutorDTO dto = new WorkerExecutorDTO();
-                dto.setName(e.getName());
+                dto.setName(e.name());
                 return dto;
             }
         ).collect(Collectors.toList());
@@ -110,7 +111,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
         return dto;
     }
 
-    private List<WorkerTagDTO> tagDTOS(MultiValuedMap<String, String> tags) {
+    private List<WorkerTagDTO> tagDTOS(Map<String, Set<String>> tags) {
         return tags.keySet().stream()
             .flatMap(key -> tags.get(key)
                 .stream().map(value -> new WorkerTagDTO(key, value))
