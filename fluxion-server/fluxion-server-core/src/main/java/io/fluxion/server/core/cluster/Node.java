@@ -17,20 +17,26 @@
 package io.fluxion.server.core.cluster;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 
-import java.net.URL;
+import java.util.List;
 
 /**
  * @author Devil
  * @since 2022/8/23
  */
-@Getter
 @AllArgsConstructor
 public class Node {
 
-    private final String name;
+    private final String id;
 
-    private final URL url;
+    private List<NodeProtocol> protocols;
+
+    public String id() {
+        return id;
+    }
+
+    public List<NodeProtocol> protocols() {
+        return protocols;
+    }
 
 }

@@ -17,63 +17,73 @@
 package io.fluxion.server.core.broker;
 
 import io.fluxion.common.constants.CommonConstants;
-import io.fluxion.common.utils.SHAUtils;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.core.cluster.Node;
 import io.fluxion.server.core.cluster.NodeManger;
+import io.fluxion.server.core.cluster.NodeProtocol;
 import io.fluxion.server.core.cluster.NodeRegistry;
-import lombok.Getter;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
+import io.fluxion.server.infrastructure.id.data.IDType;
+import io.fluxion.server.infrastructure.schedule.scheduler.ScheduledTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.scheduler.TaskScheduler;
+import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
+import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.collections4.CollectionUtils;
 
-import java.net.URL;
-import java.util.Objects;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Devil
  * @since 2022/7/20
  */
 @Slf4j
-public abstract class Broker {
+public class Broker {
 
-    @Getter
-    protected String name;
+    private final String id;
 
-    @Getter
-    protected URL rpcBaseURL;
+    private final Node node;
 
-    protected final NodeRegistry registry;
+    private final NodeRegistry registry;
 
-    protected final NodeManger manger;
+    private final NodeManger manger;
 
-    public Broker(String name, URL baseURL, NodeRegistry registry, NodeManger manger) {
-        Objects.requireNonNull(baseURL, "URL can't be null");
+    private final TaskScheduler<ScheduledTask> taskScheduler;
 
-        this.name = StringUtils.isBlank(name) ? SHAUtils.sha1AndHex(baseURL.toString()).toUpperCase() : name;
-        this.rpcBaseURL = baseURL;
+    public Broker(List<NodeProtocol> protocols, NodeRegistry registry, NodeManger manger) {
+        if (CollectionUtils.isEmpty(protocols)) {
+            throw new IllegalArgumentException("protocols can't be empty");
+        }
+
+        String id = Cmd.send(new IDGenerateCmd(IDType.BROKER)).getId();
+        this.id = id;
+        this.node = new Node(id, protocols);
         this.registry = registry;
         this.manger = manger;
+        this.taskScheduler = new ScheduledTaskScheduler(new TimingWheelTimer(100L, TimeUnit.MILLISECONDS));
     }
 
     /**
      * 启动节点
      */
     public void start() {
-        // 将自己先注册上去
-        manger.online(new Node(name, rpcBaseURL));
+        // 将自己上线管理
+        manger.online(node);
         // 节点注册 用于集群感知
-        registry.register(name, rpcBaseURL);
+        registry.register(node);
         // 节点变更通知
         registry.subscribe(event -> {
             switch (event.getType()) {
                 case ONLINE:
-                    manger.online(new Node(event.getName(), event.getUrl()));
+                    manger.online(event.getNode());
                     if (log.isDebugEnabled()) {
                         log.debug("[BrokerNodeListener] receive online evnet {}", JacksonUtils.toJSONString(event));
                     }
                     break;
                 case OFFLINE:
-                    manger.offline(new Node(event.getName(), event.getUrl()));
+                    manger.offline(event.getNode());
                     if (log.isDebugEnabled()) {
                         log.debug("[BrokerNodeListener] receive offline evnet {}", JacksonUtils.toJSONString(event));
                     }
@@ -83,30 +93,21 @@ public abstract class Broker {
                     break;
             }
         });
-        log.info("broker start!!!~~~");
 
-        afterStart();
+        //
+
+        log.info("FluxionBroker start!!!~~~");
     }
-
-    /**
-     * Broker启动的主要事件执行后，后置处理
-     */
-    protected abstract void afterStart();
 
     /**
      * 停止
      */
-    public abstract void stop();
+    public void stop() {
+        registry.stop();
+    }
 
-    /**
-     * @return 是否正在运行
-     */
-    public abstract boolean isRunning();
-
-    /**
-     * @return 是否已停止
-     */
-    public abstract boolean isStopped();
-
+    public String id() {
+        return id;
+    }
 
 }

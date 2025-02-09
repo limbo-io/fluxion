@@ -19,19 +19,13 @@ package io.fluxion.server.start.component;
 import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.LocalTimeUtils;
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.server.core.cluster.NodeEvent;
-import io.fluxion.server.core.cluster.NodeListener;
-import io.fluxion.server.core.cluster.NodeRegistry;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.core.cluster.*;
 import io.fluxion.server.infrastructure.dao.entity.BrokerEntity;
 import io.fluxion.server.infrastructure.dao.repository.BrokerEntityRepo;
-import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
-import io.fluxion.server.infrastructure.id.data.IDType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
 
-import java.net.URL;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -72,9 +66,17 @@ public class DBBrokerRegistry implements NodeRegistry {
     private final List<NodeListener> listeners = new ArrayList<>();
 
     @Override
-    public void register(String name, URL url) {
+    public void register(Node node) {
+        // 新建
+        String protocols = protocols(node.protocols());
+        BrokerEntity broker = new BrokerEntity();
+        broker.setBrokerId(node.id());
+        broker.setProtocols(protocols);
+        broker.setLastHeartbeat(TimeUtils.currentLocalDateTime());
+        brokerEntityRepo.saveAndFlush(broker);
+
         // 开启定时任务 维持心跳
-        new Timer().schedule(new HeartbeatTask(name, url), 0, heartbeatInterval.toMillis());
+        new Timer().schedule(new HeartbeatTask(node.id(), protocols), 0, heartbeatInterval.toMillis());
 
         // 开启定时任务，监听broker心跳情况
         new Timer().schedule(new NodeOnlineCheckTask(), 0, heartbeatTimeout.toMillis());
@@ -89,40 +91,44 @@ public class DBBrokerRegistry implements NodeRegistry {
         listeners.add(listener);
     }
 
+    @Override
+    public void stop() {
+        // todo @d
+    }
+
+    private Node node(BrokerEntity entity) {
+        return new Node(entity.getBrokerId(), protocols(entity.getProtocols()));
+    }
+
+    private String protocols(List<NodeProtocol> protocols) {
+        return null; // todo @d
+    }
+
+    private List<NodeProtocol> protocols(String protocols) {
+        return null; // todo @d
+    }
+
     private class HeartbeatTask extends TimerTask {
         private static final String TASK_NAME = "[HeartbeatTask]";
-        private final String name;
-        private final URL url;
+        private final String id;
+        private final String protocols;
 
-        public HeartbeatTask(String name, URL url) {
-            this.name = name;
-            this.url = url;
+        public HeartbeatTask(String id, String protocols) {
+            this.id = id;
+            this.protocols = protocols;
         }
 
         @Override
         public void run() {
             try {
-                String protocol = url.getProtocol();
-                String host = url.getHost();
-                Integer port = url.getPort();
-                BrokerEntity broker = brokerEntityRepo.findByProtocolAndHostAndPort(protocol, host, port);
                 LocalDateTime now = TimeUtils.currentLocalDateTime();
-                if (broker == null) {
-                    String id = Cmd.send(new IDGenerateCmd(IDType.BROKER)).getId();
-                    broker = new BrokerEntity();
-                    broker.setBrokerId(id);
-                    broker.setOnlineTime(now);
-                } else if (broker.getLastHeartbeat().plusSeconds(heartbeatTimeout.getSeconds()).isBefore(now)) { // 断线重连
-                    broker.setOnlineTime(now);
-                }
-                broker.setName(name);
-                broker.setProtocol(protocol);
-                broker.setHost(host);
-                broker.setPort(port);
+                BrokerEntity broker = new BrokerEntity();
+                broker.setBrokerId(id);
+                broker.setProtocols(protocols);
                 broker.setLastHeartbeat(now);
                 brokerEntityRepo.saveAndFlush(broker);
                 if (log.isDebugEnabled()) {
-                    log.debug("{} send heartbeat name: {}, host: {}, port: {} time:{}", TASK_NAME, name, host, port, LocalTimeUtils.format(TimeUtils.currentLocalDateTime(), Formatters.YMD_HMS));
+                    log.debug("{} send heartbeat id: {} protocols:{} time:{}", TASK_NAME, id, protocols, LocalTimeUtils.format(now, Formatters.YMD_HMS));
                 }
             } catch (Exception e) {
                 log.error("{} send heartbeat fail", TASK_NAME, e);
@@ -145,14 +151,14 @@ public class DBBrokerRegistry implements NodeRegistry {
                 if (log.isDebugEnabled()) {
                     log.info("{} checkOnline start:{} end:{}", TASK_NAME, LocalTimeUtils.format(startTime, Formatters.YMD_HMS), LocalTimeUtils.format(endTime, Formatters.YMD_HMS));
                 }
-                List<BrokerEntity> onlineBrokers = brokerEntityRepo.findByOnlineTimeBetween(startTime, endTime);
+                List<BrokerEntity> onlineBrokers = brokerEntityRepo.findByCreatedAtBetween(startTime, endTime);
                 if (CollectionUtils.isNotEmpty(onlineBrokers)) {
-                    for (BrokerEntity broker : onlineBrokers) {
+                    for (BrokerEntity entity : onlineBrokers) {
                         if (log.isDebugEnabled()) {
-                            log.debug("{} find online broker name: {}, host: {}, port: {} lastHeartbeat:{}", TASK_NAME, broker.getName(), broker.getHost(), broker.getPort(), LocalTimeUtils.format(broker.getLastHeartbeat(), Formatters.YMD_HMS));
+                            log.debug("{} find online broker id: {}, protocols: {} lastHeartbeat:{}", TASK_NAME, entity.getBrokerId(), entity.getProtocols(), LocalTimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
                         }
                         for (NodeListener listener : listeners) {
-                            listener.event(new NodeEvent(NodeEvent.Type.ONLINE, broker.getName(), url(broker)));
+                            listener.event(new NodeEvent(node(entity), NodeEvent.Type.ONLINE));
                         }
                     }
                 }
@@ -162,14 +168,6 @@ public class DBBrokerRegistry implements NodeRegistry {
             }
         }
 
-    }
-
-    public static URL url(BrokerEntity po) {
-        try {
-            return new URL(po.getProtocol(), po.getHost(), po.getPort(), "");
-        } catch (Exception e) {
-            throw new IllegalStateException("parse worker rpc info error", e);
-        }
     }
 
     private class NodeOfflineCheckTask extends TimerTask {
@@ -188,12 +186,12 @@ public class DBBrokerRegistry implements NodeRegistry {
                 }
                 List<BrokerEntity> offlineBrokers = brokerEntityRepo.findByLastHeartbeatBetween(startTime, endTime);
                 if (CollectionUtils.isNotEmpty(offlineBrokers)) {
-                    for (BrokerEntity broker : offlineBrokers) {
+                    for (BrokerEntity entity : offlineBrokers) {
                         if (log.isDebugEnabled()) {
-                            log.debug("{} find offline broker name: {}, host: {}, port: {} lastHeartbeat:{}", TASK_NAME, broker.getName(), broker.getHost(), broker.getPort(), LocalTimeUtils.format(broker.getLastHeartbeat(), Formatters.YMD_HMS));
+                            log.debug("{} find offline broker id: {}, protocols: {} lastHeartbeat:{}", TASK_NAME, entity.getBrokerId(), entity.getProtocols(), LocalTimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
                         }
                         for (NodeListener listener : listeners) {
-                            listener.event(new NodeEvent(NodeEvent.Type.OFFLINE, broker.getName(), url(broker)));
+                            listener.event(new NodeEvent(node(entity), NodeEvent.Type.OFFLINE));
                         }
                     }
                 }

@@ -22,7 +22,7 @@ import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
 import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
-import io.fluxion.remote.core.client.server.IHandleProcessor;
+import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.BrokerConstant;
 import io.fluxion.server.core.app.cmd.AppRegisterCmd;
 import io.fluxion.server.core.broker.converter.BrokerRpcConverter;
@@ -40,7 +40,7 @@ import javax.annotation.Resource;
  */
 @Slf4j
 @Component
-public class BrokerRpcHandleProcessor implements IHandleProcessor {
+public class BrokerClientHandler implements ClientHandler {
 
     @Resource
     private NodeManger nodeManger;

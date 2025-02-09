@@ -17,19 +17,16 @@
 package io.fluxion.server.core.broker.converter;
 
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.remote.core.api.dto.BrokerDTO;
-import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
-import io.fluxion.remote.core.api.dto.SystemInfoDTO;
-import io.fluxion.remote.core.api.dto.WorkerTagDTO;
+import io.fluxion.remote.core.api.dto.*;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.cluster.Node;
+import io.fluxion.server.core.cluster.NodeProtocol;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -76,14 +73,21 @@ public class BrokerRpcConverter {
         BrokerTopologyDTO brokerTopologyDTO = new BrokerTopologyDTO();
         if (CollectionUtils.isNotEmpty(nodes)) {
             for (Node node : nodes) {
-                URL url = node.getUrl();
                 BrokerDTO dto = new BrokerDTO();
-                dto.setProtocol(url.getProtocol());
-                dto.setHost(url.getHost());
-                dto.setPort(url.getPort());
+                dto.setId(node.id());
+                dto.setProtocols(node.protocols().stream().map(BrokerRpcConverter::toProtocolDTO).collect(Collectors.toList()));
                 brokerTopologyDTO.getBrokers().add(dto);
             }
         }
         return brokerTopologyDTO;
     }
+
+    public static ProtocolDTO toProtocolDTO(NodeProtocol protocol) {
+        ProtocolDTO dto = new ProtocolDTO();
+        dto.setProtocol(protocol.getProtocol().value);
+        dto.setHost(protocol.getHost());
+        dto.setPort(protocol.getPort());
+        return dto;
+    }
+
 }

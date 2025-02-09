@@ -23,13 +23,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
 
-import java.net.URL;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -48,8 +46,7 @@ public class LocalNodeManger implements NodeManger {
      * 节点上线
      */
     public void online(Node node) {
-        URL url = node.getUrl();
-        nodes.putIfAbsent(url.toString(), node);
+        nodes.putIfAbsent(node.id(), node);
         if (log.isDebugEnabled()) {
             log.debug("[LocalNodeManger] online {}", JacksonUtils.toJSONString(nodes));
         }
@@ -59,8 +56,7 @@ public class LocalNodeManger implements NodeManger {
      * 节点下线
      */
     public void offline(Node node) {
-        URL url = node.getUrl();
-        nodes.remove(url.toString());
+        nodes.remove(node.id());
         if (log.isDebugEnabled()) {
             log.debug("[LocalNodeManger] offline {}", JacksonUtils.toJSONString(nodes));
         }
@@ -90,11 +86,9 @@ public class LocalNodeManger implements NodeManger {
      * @return broker信息
      */
     public Node elect(String id) {
-        List<Node> sortedNodes = nodes.values().stream().sorted(Comparator
-                .comparing((Function<Node, String>) node -> node.getUrl().getHost())
-                .thenComparingInt(node -> node.getUrl().getPort())
-        ).collect(Collectors.toList());
-
+        List<Node> sortedNodes = nodes.values().stream()
+            .sorted(Comparator.comparing(Node::id))
+            .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(sortedNodes)) {
             return null;
         }

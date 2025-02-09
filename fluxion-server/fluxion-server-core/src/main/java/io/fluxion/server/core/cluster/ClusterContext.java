@@ -38,6 +38,6 @@ public class ClusterContext implements ApplicationContextAware {
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         Broker broker = applicationContext.getBean(Broker.class);
-        currentNodeId = broker.getRpcBaseURL().toString();
+        currentNodeId = broker.id();
     }
 }

@@ -14,22 +14,26 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.client.server;
+package io.fluxion.server.start.config;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
+import javax.annotation.Resource;
 
 /**
  * @author Devil
  */
-public class ClientServerConfig {
+@Slf4j
+@Configuration
+@EnableConfigurationProperties({BrokerProperties.class})
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.ANY)
+public class BrokerConfiguration {
 
-    private int port;
+    @Resource
+    private BrokerProperties brokerProperties;
 
-    private ClientHandler handleProcessor;
 
-    public int getPort() {
-        return port;
-    }
-
-    public ClientHandler getHandleProcessor() {
-        return handleProcessor;
-    }
 }

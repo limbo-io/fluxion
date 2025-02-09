@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,26 +16,20 @@
 
 package io.fluxion.server.core.cluster;
 
+import io.fluxion.remote.core.constants.Protocol;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
  * @author Devil
- * @since 2022/7/18
  */
 @Getter
-public class NodeEvent {
+@AllArgsConstructor
+public class NodeProtocol {
 
-    private final Node node;
+    private Protocol protocol;
 
-    private final Type type;
+    private String host;
 
-    public enum Type {
-        ONLINE,
-        OFFLINE
-    }
-
-    public NodeEvent(Node node, Type type) {
-        this.node = node;
-        this.type = type;
-    }
+    private int port;
 }
