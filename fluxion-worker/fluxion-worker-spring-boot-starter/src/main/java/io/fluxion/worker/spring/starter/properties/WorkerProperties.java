@@ -37,6 +37,11 @@ public class WorkerProperties {
     private boolean enabled = true;
 
     /**
+     * 应用名
+     */
+    private String appName;
+
+    /**
      * broker 节点连接列表
      */
     private List<URL> brokers;
@@ -149,5 +154,13 @@ public class WorkerProperties {
 
     public void setTags(List<String> tags) {
         this.tags = tags;
+    }
+
+    public String getAppName() {
+        return appName;
+    }
+
+    public void setAppName(String appName) {
+        this.appName = appName;
     }
 }

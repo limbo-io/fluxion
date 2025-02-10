@@ -30,11 +30,14 @@ public class WorkerInfo {
      */
     private Map<String, Set<String>> tags;
 
-    public WorkerInfo(String appName, URL url, List<Executor> executors, Map<String, Set<String>> tags) {
+    private final WorkerStatus status;
+
+    public WorkerInfo(String appName, WorkerStatus status, URL url, List<Executor> executors, Map<String, Set<String>> tags) {
         this.appName = appName;
         this.url = url;
         this.executors = executors == null ? Collections.emptyMap() : executors.stream().collect(Collectors.toMap(Executor::name, executor -> executor));
         this.tags = tags == null ? Collections.emptyMap() : tags;
+        this.status = status;
     }
 
     public Map<String, Set<String>> getTags() {
@@ -61,4 +64,7 @@ public class WorkerInfo {
         return executors.get(name);
     }
 
+    public WorkerStatus status() {
+        return status;
+    }
 }

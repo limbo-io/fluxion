@@ -27,4 +27,8 @@ public interface WorkerConstant {
      * worker 心跳间隔
      */
     int HEARTBEAT_TIMEOUT_SECOND = 3;
+
+    // ========== API ==========
+    String API_TASK_DISPATCH = "/api/v1/task/dispatch";
+    // ========== API ==========
 }

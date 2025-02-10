@@ -17,13 +17,12 @@
 package io.fluxion.remote.core.api.request;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.lb.LoadBalanceType;
 
 /**
  * @author Devil
  * @since 2023/8/3
  */
-public class TaskDispatchRequest implements Request<Void> {
+public class TaskDispatchRequest implements Request<Boolean> {
 
     private String taskId;
 
@@ -37,11 +36,27 @@ public class TaskDispatchRequest implements Request<Void> {
      */
     private String executorName;
 
-    /**
-     * 负载策略
-     *
-     * @see LoadBalanceType
-     */
-    private Integer loadBalanceType;
+    public String getTaskId() {
+        return taskId;
+    }
 
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
+    }
+
+    public Integer getExecuteType() {
+        return executeType;
+    }
+
+    public void setExecuteType(Integer executeType) {
+        this.executeType = executeType;
+    }
+
+    public String getExecutorName() {
+        return executorName;
+    }
+
+    public void setExecutorName(String executorName) {
+        this.executorName = executorName;
+    }
 }

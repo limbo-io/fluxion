@@ -16,19 +16,13 @@
 
 package io.fluxion.worker.core;
 
-import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.remote.core.client.server.ClientServer;
 import io.fluxion.worker.core.discovery.ServerDiscovery;
-import io.fluxion.worker.core.executor.Executor;
-import io.fluxion.worker.core.task.Task;
-import io.fluxion.worker.core.task.TaskQueue;
-import io.fluxion.worker.core.tracker.TrackerBak;
+import io.fluxion.worker.core.task.TaskManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Devil
@@ -37,153 +31,74 @@ public class FluxionWorker implements Worker {
 
     private static final Logger log = LoggerFactory.getLogger(FluxionWorker.class);
 
-    /**
-     * 任务执行线程池
-     */
-    private ExecutorService threadPool;
-
-    private WorkerInfo workerInfo;
+    private final WorkerInfo workerInfo;
 
     /**
      * 服务发现
      */
-    private ServerDiscovery discovery;
+    private final ServerDiscovery discovery;
 
     /**
      * Client服务
      */
-    private ClientServer clientServer;
+    private final ClientServer clientServer;
+
     /**
-     * 并发执行任务数量
+     * 任务管理
      */
-    private int concurrency;
+    private final TaskManager taskManager;
 
-    private TaskQueue taskQueue;
-
-    private final AtomicReference<Status> status;
 
     /**
      * 创建一个 Worker 实例
-     *
-     * @param clientServer 远程请求服务
      */
-    public FluxionWorker(WorkerInfo workerInfo, ClientServer clientServer, ServerDiscovery discovery) {
-        Objects.requireNonNull(clientServer, "client server can't be null");
+    public FluxionWorker(WorkerInfo workerInfo, ClientServer clientServer, ServerDiscovery discovery, TaskManager taskManager) {
+        Objects.requireNonNull(workerInfo, "WorkerInfo can't be null");
+        Objects.requireNonNull(clientServer, "ClientServer can't be null");
+        Objects.requireNonNull(discovery, "ServerDiscovery can't be null");
+        Objects.requireNonNull(taskManager, "TaskManager can't be null");
 
         this.workerInfo = workerInfo;
         this.clientServer = clientServer;
         this.discovery = discovery;
-
-        this.status = new AtomicReference<>(Status.IDLE);
-    }
-
-    @Override
-    public void receive(Task task) {
-        assertWorkerRunning();
-
-        // 找到执行器，校验是否存在
-        Executor executor = workerInfo.getExecutor(task.executorName());
-        Objects.requireNonNull(executor, "Unsupported executor: " + task.executorName());
-
-        int availableQueueSize = taskQueue.availableQueueSize();
-        if (availableQueueSize <= 0) {
-            throw new IllegalArgumentException("Worker's queue is full, limit: " + availableQueueSize);
-        }
-
-        // 存储任务，并判断是否重复接收任务
-        TrackerBak context = new TrackerBak(null, executor, task);
-        if (!taskQueue.save(context)) {
-            log.warn("Receive task [{}], but already in repository", task.taskId());
-            return;
-        }
-
-        try {
-            // 提交执行
-            Future<?> future = threadPool.submit(() -> {
-                try {
-                    context.run();
-                } catch (Exception e) {
-                    log.error("[ExecuteContext] run error", e);
-                } finally {
-                    taskQueue.delete(task.taskId());
-                }
-            });
-            context.scheduleFuture(future);
-        } catch (RejectedExecutionException e) {
-            throw new IllegalStateException("Schedule task in worker failed, maybe work thread exhausted");
-        }
+        this.taskManager = taskManager;
     }
 
     @Override
     public void start() {
-        if (!status.compareAndSet(Status.IDLE, Status.INITIALIZING)) {
+        if (!status().change(WorkerStatus.S.IDLE, WorkerStatus.S.INITIALIZING)) {
             return;
         }
-
-        // 启动服务注册发现
-        this.discovery.start();
+        // Launch the program in order
 
         // 初始化工作线程池
-        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(taskQueue.queueSize() <= 0 ? concurrency : taskQueue.queueSize());
-        threadPool = new ThreadPoolExecutor(
-            concurrency, concurrency,
-            5, TimeUnit.SECONDS, queue,
-            NamedThreadFactory.newInstance("FluxionWorkerExecutor"),
-            (r, e) -> {
-                throw new RejectedExecutionException();
-            }
-        );
+        this.taskManager.start();
 
         // 启动RPC服务
         this.clientServer.start(); // 目前由于服务在线程中异步处理，如果启动失败，应该终止broker的心跳启动
 
+        // 启动服务注册发现
+        this.discovery.start();
+
         // 更新为运行中
-        status.compareAndSet(Status.INITIALIZING, Status.RUNNING);
-        log.info("worker start!");
+        status().change(WorkerStatus.S.INITIALIZING, WorkerStatus.S.RUNNING);
+        log.info("FluxionWorker Start!!!");
     }
 
     @Override
     public void stop() {
-        if (!status.compareAndSet(Status.RUNNING, Status.TERMINATING)) {
+        if (!status().change(WorkerStatus.S.RUNNING, WorkerStatus.S.TERMINATING)) {
             return;
         }
-        this.clientServer.stop();
         this.discovery.stop();
+        this.clientServer.stop();
+        this.taskManager.destroy();
         // 修改状态
-        status.compareAndSet(Status.TERMINATING, Status.TERMINATED);
+        status().change(WorkerStatus.S.TERMINATING, WorkerStatus.S.TERMINATED);
     }
 
-    /**
-     * 验证 worker 正在运行中
-     */
-    private void assertWorkerRunning() {
-        if (status.get() != Status.RUNNING) {
-            throw new IllegalStateException("Worker is not running: " + status);
-        }
-    }
-
-    public enum Status {
-
-        /**
-         * 闲置
-         */
-        IDLE,
-        /**
-         * 初始化中
-         */
-        INITIALIZING,
-        /**
-         * 运行中
-         */
-        RUNNING,
-        /**
-         * 关闭中
-         */
-        TERMINATING,
-        /**
-         * 已经关闭
-         */
-        TERMINATED,
+    private WorkerStatus status() {
+        return workerInfo.status();
     }
 
 }

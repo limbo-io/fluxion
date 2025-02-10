@@ -17,14 +17,19 @@
 package io.fluxion.worker.spring.starter;
 
 import io.fluxion.remote.core.client.AbstractLBClient;
-import io.fluxion.remote.core.client.server.ClientServer;
+import io.fluxion.remote.core.client.server.AbstractClientServer;
+import io.fluxion.remote.core.client.server.ClientServerConfig;
+import io.fluxion.remote.core.client.server.ClientServerFactory;
+import io.fluxion.remote.core.client.server.IHandleProcessor;
 import io.fluxion.worker.core.FluxionWorker;
 import io.fluxion.worker.core.Worker;
 import io.fluxion.worker.core.WorkerInfo;
+import io.fluxion.worker.core.WorkerStatus;
 import io.fluxion.worker.core.discovery.DefaultServerDiscovery;
 import io.fluxion.worker.core.discovery.ServerDiscovery;
 import io.fluxion.worker.core.executor.Executor;
-import io.fluxion.worker.core.task.Task;
+import io.fluxion.worker.core.processor.WorkerRpcHandleProcessor;
+import io.fluxion.worker.core.task.TaskManager;
 import io.fluxion.worker.spring.starter.processor.event.ExecutorScannedEvent;
 import io.fluxion.worker.spring.starter.processor.event.WorkerReadyEvent;
 import org.springframework.beans.factory.DisposableBean;
@@ -44,15 +49,18 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
     private Worker delegated;
     private List<Executor> executors;
 
+    private final String appName;
     private final URL url;
-    private final ClientServer clientServer;
+    private final int queueSize;
+    private final int concurrency;
     private final AbstractLBClient lbClient;
     private final Map<String, Set<String>> tags;
 
-    public SpringDelegatedWorker(URL url, ClientServer clientServer, AbstractLBClient lbClient,
-                                 Map<String, Set<String>> tags) {
+    public SpringDelegatedWorker(String appName, URL url, int queueSize, int concurrency, AbstractLBClient lbClient, Map<String, Set<String>> tags) {
+        this.appName = appName;
         this.url = url;
-        this.clientServer = clientServer;
+        this.queueSize = queueSize;
+        this.concurrency = concurrency;
         this.lbClient = lbClient;
         this.tags = tags;
     }
@@ -72,10 +80,21 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
      */
     @EventListener(WorkerReadyEvent.class)
     public void onWorkerReady(WorkerReadyEvent event) {
-        WorkerInfo workerInfo = new WorkerInfo(null, url, executors, tags); // todo @d
+        // WorkerInfo
+        WorkerInfo workerInfo = new WorkerInfo(appName, new WorkerStatus(), url, executors, tags);
+        // Discovery
         ServerDiscovery discovery = new DefaultServerDiscovery(workerInfo, lbClient);
-        Worker worker = new FluxionWorker(workerInfo, clientServer, discovery);
+        // TaskManager
+        TaskManager taskManager = new TaskManager(queueSize, concurrency, workerInfo);
+        // ClientServer
+        ClientServerFactory factory = ClientServerFactory.instance();
+        IHandleProcessor handleProcessor = new WorkerRpcHandleProcessor(taskManager);
+        ClientServerConfig clientServerConfig = new ClientServerConfig(url.getPort(), handleProcessor);
+        AbstractClientServer clientServer = factory.create(clientServerConfig);
+        // Worker
+        Worker worker = new FluxionWorker(workerInfo, clientServer, discovery, taskManager);
         this.delegated = worker;
+        // Start
         worker.start();
     }
 
@@ -90,11 +109,6 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
     @Override
     public void start() {
         delegated.start();
-    }
-
-    @Override
-    public void receive(Task task) {
-        delegated.receive(task);
     }
 
     @Override

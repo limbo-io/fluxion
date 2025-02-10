@@ -18,9 +18,6 @@ package io.fluxion.worker.spring.starter.configuration;
 
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.RetryableClient;
-import io.fluxion.remote.core.client.server.AbstractClientServer;
-import io.fluxion.remote.core.client.server.ClientServerConfig;
-import io.fluxion.remote.core.client.server.ClientServerFactory;
 import io.fluxion.remote.core.lb.BaseLBServer;
 import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.remote.core.lb.repository.EmbeddedLBServerRepository;
@@ -33,6 +30,7 @@ import io.fluxion.worker.spring.starter.properties.WorkerProperties;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -57,6 +55,9 @@ public class FluxionWorkerAutoConfiguration {
 
     private static final Integer DEFAULT_HTTP_SERVER_PORT = 9787;
 
+    @Value("${spring.application.name}")
+    private String springAppName;
+
     private final WorkerProperties workerProps;
 
     public FluxionWorkerAutoConfiguration(WorkerProperties workerProps) {
@@ -73,15 +74,19 @@ public class FluxionWorkerAutoConfiguration {
      */
     @Bean
     public Worker worker() throws MalformedURLException {
+        // AppName 优先使用worker配置，否则使用spring配置
+        String appName = StringUtils.isBlank(workerProps.getAppName()) ? springAppName : workerProps.getAppName();
+        Assert.isTrue(StringUtils.isNotBlank(appName), "Worker appName must not blank");
+
+        // port
         Integer port = workerProps.getPort() != null ? workerProps.getPort() : DEFAULT_HTTP_SERVER_PORT;
+        Assert.isTrue(port > 0, "Worker port must be a positive integer in range 1 ~ 65534");
 
         // 优先使用指定的 host，如未指定则自动寻找本机 IP
         String host = workerProps.getHost();
         if (StringUtils.isEmpty(host)) {
             host = NetUtils.getLocalIp();
         }
-
-        Assert.isTrue(port > 0, "Worker port must be a positive integer in range 1 ~ 65534");
         URL workerClientUrl = new URL(workerProps.getProtocol().getValue(), host, port, "");
 
         // brokers
@@ -96,12 +101,8 @@ public class FluxionWorkerAutoConfiguration {
         // tags
         Map<String, Set<String>> tags = tags(workerProps);
 
-        ClientServerFactory factory = ClientServerFactory.instance();
-        ClientServerConfig clientServerConfig = new ClientServerConfig(port, null);
-        AbstractClientServer clientServer = factory.create(clientServerConfig); // todo @pq
-
         // worker
-        return new SpringDelegatedWorker(workerClientUrl, clientServer, client, tags);
+        return new SpringDelegatedWorker(appName, workerClientUrl, workerProps.getQueueSize(), workerProps.getConcurrency(), client, tags);
     }
 
     private Map<String, Set<String>> tags(WorkerProperties workerProps) {

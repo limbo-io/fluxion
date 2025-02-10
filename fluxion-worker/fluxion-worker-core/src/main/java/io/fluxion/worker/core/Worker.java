@@ -16,8 +16,6 @@
 
 package io.fluxion.worker.core;
 
-import io.fluxion.worker.core.task.Task;
-
 /**
  * Worker 行为方法定义
  *
@@ -30,13 +28,6 @@ public interface Worker {
      * 启动当前 Worker
      */
     void start();
-
-    /**
-     * 接收 Broker 发送来的任务
-     *
-     * @param task 任务数据
-     */
-    void receive(Task task);
 
     /**
      * 停止当前 Worker
