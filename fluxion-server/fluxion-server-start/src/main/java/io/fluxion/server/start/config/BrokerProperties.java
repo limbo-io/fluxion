@@ -18,23 +18,15 @@ package io.fluxion.server.start.config;
 
 import io.fluxion.remote.core.constants.Protocol;
 import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * @author Devil
  * @since 2022/7/21
  */
 @Data
-public class BrokerConfig {
-
-    /**
-     * 是否启动 broker
-     */
-    private boolean enabled = true;
-
-    /**
-     * broker的唯一标识，建议不配置
-     */
-    protected String name;
+@ConfigurationProperties(prefix = "fluxion.broker")
+public class BrokerProperties {
 
     /**
      * 提供给worker的服务的 host。可以是域名或 IP 地址，如不填写则自动发现本机非 127.0.0.1 的地址。

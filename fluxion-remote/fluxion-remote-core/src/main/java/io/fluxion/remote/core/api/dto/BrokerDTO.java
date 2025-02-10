@@ -19,7 +19,7 @@
 package io.fluxion.remote.core.api.dto;
 
 
-import io.fluxion.remote.core.constants.Protocol;
+import java.util.List;
 
 /**
  * broker节点描述
@@ -29,44 +29,26 @@ import io.fluxion.remote.core.constants.Protocol;
  */
 public class BrokerDTO {
 
+    private String id;
+
     /**
      * broker节点协议
-     *
-     * @see Protocol
      */
-    private String protocol;
+    private List<ProtocolDTO> protocols;
 
-    /**
-     * broker节点主机名
-     */
-    private String host;
-
-    /**
-     * broker节点服务端口
-     */
-    private Integer port;
-
-    public String getProtocol() {
-        return protocol;
+    public String getId() {
+        return id;
     }
 
-    public void setProtocol(String protocol) {
-        this.protocol = protocol;
+    public void setId(String id) {
+        this.id = id;
     }
 
-    public String getHost() {
-        return host;
+    public List<ProtocolDTO> getProtocols() {
+        return protocols;
     }
 
-    public void setHost(String host) {
-        this.host = host;
-    }
-
-    public Integer getPort() {
-        return port;
-    }
-
-    public void setPort(Integer port) {
-        this.port = port;
+    public void setProtocols(List<ProtocolDTO> protocols) {
+        this.protocols = protocols;
     }
 }

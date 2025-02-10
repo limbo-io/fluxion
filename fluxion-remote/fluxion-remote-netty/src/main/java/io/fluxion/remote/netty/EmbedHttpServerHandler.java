@@ -20,7 +20,7 @@ package io.fluxion.remote.netty;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
-import io.fluxion.remote.core.client.server.IHandleProcessor;
+import io.fluxion.remote.core.client.server.ClientHandler;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -38,9 +38,9 @@ public class EmbedHttpServerHandler extends SimpleChannelInboundHandler<FullHttp
 
     private final ThreadPoolExecutor serverThreadPool;
 
-    private final IHandleProcessor handleProcessor;
+    private final ClientHandler handleProcessor;
 
-    public EmbedHttpServerHandler(ThreadPoolExecutor serverThreadPool, IHandleProcessor handleProcessor) {
+    public EmbedHttpServerHandler(ThreadPoolExecutor serverThreadPool, ClientHandler handleProcessor) {
         this.serverThreadPool = serverThreadPool;
         this.handleProcessor = handleProcessor;
     }

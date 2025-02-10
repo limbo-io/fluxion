@@ -14,27 +14,53 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.client.server;
+package io.fluxion.remote.core.api.dto;
+
+import io.fluxion.remote.core.constants.Protocol;
 
 /**
  * @author Devil
  */
-public class ClientServerConfig {
+public class ProtocolDTO {
 
-    private final int port;
+    /**
+     * 协议
+     *
+     * @see Protocol
+     */
+    private String protocol;
 
-    private final ClientHandler clientHandler;
+    /**
+     * 主机名
+     */
+    private String host;
 
-    public ClientServerConfig(int port, ClientHandler clientHandler) {
-        this.port = port;
-        this.clientHandler = clientHandler;
+    /**
+     * 服务端口
+     */
+    private int port;
+
+    public String getProtocol() {
+        return protocol;
     }
 
-    public int port() {
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public int getPort() {
         return port;
     }
 
-    public ClientHandler clientHandler() {
-        return clientHandler;
+    public void setPort(int port) {
+        this.port = port;
     }
 }

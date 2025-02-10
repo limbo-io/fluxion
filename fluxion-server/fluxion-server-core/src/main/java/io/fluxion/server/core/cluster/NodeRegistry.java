@@ -16,8 +16,6 @@
 
 package io.fluxion.server.core.cluster;
 
-import java.net.URL;
-
 /**
  * @author Devil
  * @since 2022/7/15
@@ -25,13 +23,18 @@ import java.net.URL;
 public interface NodeRegistry {
 
     /**
-     * 注册broker
+     * 注册node
      */
-    void register(String name, URL url);
+    void register(Node node);
 
     /**
      * 订阅监听
      */
     void subscribe(NodeListener listener);
+
+    /**
+     * 停止
+     */
+    void stop();
 
 }
