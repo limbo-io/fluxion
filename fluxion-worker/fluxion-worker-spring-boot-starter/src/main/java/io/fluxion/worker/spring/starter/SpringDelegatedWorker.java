@@ -18,9 +18,9 @@ package io.fluxion.worker.spring.starter;
 
 import io.fluxion.remote.core.client.AbstractLBClient;
 import io.fluxion.remote.core.client.server.AbstractClientServer;
+import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.client.server.ClientServerConfig;
 import io.fluxion.remote.core.client.server.ClientServerFactory;
-import io.fluxion.remote.core.client.server.IHandleProcessor;
 import io.fluxion.worker.core.FluxionWorker;
 import io.fluxion.worker.core.Worker;
 import io.fluxion.worker.core.WorkerInfo;
@@ -28,7 +28,7 @@ import io.fluxion.worker.core.WorkerStatus;
 import io.fluxion.worker.core.discovery.DefaultServerDiscovery;
 import io.fluxion.worker.core.discovery.ServerDiscovery;
 import io.fluxion.worker.core.executor.Executor;
-import io.fluxion.worker.core.processor.WorkerRpcHandleProcessor;
+import io.fluxion.worker.core.remote.WorkerClientHandler;
 import io.fluxion.worker.core.task.TaskManager;
 import io.fluxion.worker.spring.starter.processor.event.ExecutorScannedEvent;
 import io.fluxion.worker.spring.starter.processor.event.WorkerReadyEvent;
@@ -88,8 +88,8 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
         TaskManager taskManager = new TaskManager(queueSize, concurrency, workerInfo);
         // ClientServer
         ClientServerFactory factory = ClientServerFactory.instance();
-        IHandleProcessor handleProcessor = new WorkerRpcHandleProcessor(taskManager);
-        ClientServerConfig clientServerConfig = new ClientServerConfig(url.getPort(), handleProcessor);
+        ClientHandler clientHandler = new WorkerClientHandler(taskManager);
+        ClientServerConfig clientServerConfig = new ClientServerConfig(url.getPort(), clientHandler);
         AbstractClientServer clientServer = factory.create(clientServerConfig);
         // Worker
         Worker worker = new FluxionWorker(workerInfo, clientServer, discovery, taskManager);

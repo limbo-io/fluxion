@@ -55,7 +55,7 @@ public class NettyHttpClientServer extends AbstractClientServer {
 
     @Override
     public void start() {
-        int port = config.getPort();
+        int port = config.port();
         thread = new Thread(() -> {
             EventLoopGroup bossGroup = new NioEventLoopGroup();
             EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -82,7 +82,7 @@ public class NettyHttpClientServer extends AbstractClientServer {
                                 .addLast(new IdleStateHandler(0, 0, 60, TimeUnit.SECONDS))
                                 .addLast(new HttpServerCodec())
                                 .addLast(new HttpObjectAggregator(MAX_CONTENT_LENGTH))
-                                .addLast(new EmbedHttpServerHandler(serverThreadPool, config.getHandleProcessor()));
+                                .addLast(new EmbedHttpServerHandler(serverThreadPool, config.clientHandler()));
                         }
                     })
                     .childOption(ChannelOption.SO_KEEPALIVE, true);

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.core.processor;
+package io.fluxion.worker.core.remote;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.TaskDispatchRequest;
-import io.fluxion.remote.core.client.server.IHandleProcessor;
+import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.WorkerConstant;
 import io.fluxion.worker.core.task.TaskManager;
 import org.slf4j.Logger;
@@ -29,13 +29,13 @@ import org.slf4j.LoggerFactory;
  * @author PengQ
  * @since 0.0.1
  */
-public class WorkerRpcHandleProcessor implements IHandleProcessor {
+public class WorkerClientHandler implements ClientHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(WorkerRpcHandleProcessor.class);
+    private static final Logger log = LoggerFactory.getLogger(WorkerClientHandler.class);
 
     private final TaskManager taskManager;
 
-    public WorkerRpcHandleProcessor(TaskManager taskManager) {
+    public WorkerClientHandler(TaskManager taskManager) {
         this.taskManager = taskManager;
     }
 

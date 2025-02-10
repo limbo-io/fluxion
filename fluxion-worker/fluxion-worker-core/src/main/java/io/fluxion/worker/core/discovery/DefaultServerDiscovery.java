@@ -26,7 +26,7 @@ import io.fluxion.remote.core.exception.RpcException;
 import io.fluxion.remote.core.heartbeat.HeartbeatPacemaker;
 import io.fluxion.worker.core.SystemInfo;
 import io.fluxion.worker.core.WorkerInfo;
-import io.fluxion.worker.core.rpc.BrokerSender;
+import io.fluxion.worker.core.remote.BrokerSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

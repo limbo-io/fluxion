@@ -16,7 +16,7 @@
 
 package io.fluxion.worker.core.tracker;
 
-import io.fluxion.worker.core.rpc.TaskRpc;
+import io.fluxion.worker.core.remote.TaskRpc;
 import io.fluxion.worker.core.task.Task;
 
 /**

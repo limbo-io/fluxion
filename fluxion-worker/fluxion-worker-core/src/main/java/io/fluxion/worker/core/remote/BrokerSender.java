@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.core.rpc;
+package io.fluxion.worker.core.remote;
 
 import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;

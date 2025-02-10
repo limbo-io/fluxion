@@ -38,11 +38,11 @@ public class EmbedHttpServerHandler extends SimpleChannelInboundHandler<FullHttp
 
     private final ThreadPoolExecutor serverThreadPool;
 
-    private final ClientHandler handleProcessor;
+    private final ClientHandler clientHandler;
 
-    public EmbedHttpServerHandler(ThreadPoolExecutor serverThreadPool, ClientHandler handleProcessor) {
+    public EmbedHttpServerHandler(ThreadPoolExecutor serverThreadPool, ClientHandler clientHandler) {
         this.serverThreadPool = serverThreadPool;
-        this.handleProcessor = handleProcessor;
+        this.clientHandler = clientHandler;
     }
 
     @Override
@@ -55,7 +55,7 @@ public class EmbedHttpServerHandler extends SimpleChannelInboundHandler<FullHttp
 
         serverThreadPool.execute(() -> {
             try {
-                Response<?> response = handleProcessor.process(uri, requestData);
+                Response<?> response = clientHandler.process(uri, requestData);
                 returnResponse(ctx, keepAlive, JacksonUtils.toJSONString(response));
             } catch (Exception e) {
                 log.error("Get Request Error method={} url={} param={}", httpMethod, uri, requestData, e);
