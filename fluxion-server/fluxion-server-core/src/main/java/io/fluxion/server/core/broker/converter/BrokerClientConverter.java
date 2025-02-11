@@ -77,7 +77,7 @@ public class BrokerClientConverter {
             for (Node node : nodes) {
                 BrokerDTO dto = new BrokerDTO();
                 dto.setId(node.id());
-                dto.setProtocols(node.protocols().stream().map(BrokerClientConverter::toProtocolDTO).collect(Collectors.toList()));
+                dto.setProtocols(toProtocolsDTO(node.protocols()));
                 brokerTopologyDTO.getBrokers().add(dto);
             }
         }
