@@ -17,15 +17,18 @@
 package io.fluxion.server.core.broker.converter;
 
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.remote.core.api.dto.*;
+import io.fluxion.remote.core.api.dto.BrokerDTO;
+import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
+import io.fluxion.remote.core.api.dto.SystemInfoDTO;
+import io.fluxion.remote.core.api.dto.WorkerTagDTO;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.cluster.Node;
-import io.fluxion.server.core.cluster.NodeProtocol;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -75,19 +78,29 @@ public class BrokerRpcConverter {
             for (Node node : nodes) {
                 BrokerDTO dto = new BrokerDTO();
                 dto.setId(node.id());
-                dto.setProtocols(node.protocols().stream().map(BrokerRpcConverter::toProtocolDTO).collect(Collectors.toList()));
+                dto.setProtocols(toProtocolsDTO(node.protocols()));
                 brokerTopologyDTO.getBrokers().add(dto);
             }
         }
         return brokerTopologyDTO;
     }
 
-    public static ProtocolDTO toProtocolDTO(NodeProtocol protocol) {
-        ProtocolDTO dto = new ProtocolDTO();
-        dto.setProtocol(protocol.getProtocol().value);
-        dto.setHost(protocol.getHost());
-        dto.setPort(protocol.getPort());
-        return dto;
+    public static Map<String, List<BrokerDTO.Address>> toProtocolsDTO(Map<Protocol, List<Node.Address>> protocols) {
+        if (MapUtils.isEmpty(protocols)) {
+            return Collections.emptyMap();
+        }
+        Map<String, List<BrokerDTO.Address>> result = new HashMap<>();
+        for (Map.Entry<Protocol, List<Node.Address>> entry : protocols.entrySet()) {
+            String protocol = entry.getKey().getValue();
+            List<Node.Address> addresses = entry.getValue();
+            result.put(protocol, addresses.stream().map(add -> {
+                BrokerDTO.Address dto = new BrokerDTO.Address();
+                dto.setHost(add.getHost());
+                dto.setPort(add.getPort());
+                return dto;
+            }).collect(Collectors.toList()));
+        }
+        return result;
     }
 
 }

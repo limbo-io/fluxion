@@ -18,9 +18,9 @@ package io.fluxion.server.core.broker;
 
 import io.fluxion.common.constants.CommonConstants;
 import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.cluster.Node;
 import io.fluxion.server.core.cluster.NodeManger;
-import io.fluxion.server.core.cluster.NodeProtocol;
 import io.fluxion.server.core.cluster.NodeRegistry;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
@@ -30,9 +30,10 @@ import io.fluxion.server.infrastructure.schedule.scheduler.TaskScheduler;
 import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
 import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -52,8 +53,8 @@ public class Broker {
 
     private final TaskScheduler<ScheduledTask> taskScheduler;
 
-    public Broker(List<NodeProtocol> protocols, NodeRegistry registry, NodeManger manger) {
-        if (CollectionUtils.isEmpty(protocols)) {
+    public Broker(Map<Protocol, List<Node.Address>> protocols, NodeRegistry registry, NodeManger manger) {
+        if (MapUtils.isEmpty(protocols)) {
             throw new IllegalArgumentException("protocols can't be empty");
         }
 

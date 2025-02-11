@@ -19,7 +19,11 @@ package io.fluxion.server.start.component;
 import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.LocalTimeUtils;
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.server.core.cluster.*;
+import io.fluxion.remote.core.constants.Protocol;
+import io.fluxion.server.core.cluster.Node;
+import io.fluxion.server.core.cluster.NodeEvent;
+import io.fluxion.server.core.cluster.NodeListener;
+import io.fluxion.server.core.cluster.NodeRegistry;
 import io.fluxion.server.infrastructure.dao.entity.BrokerEntity;
 import io.fluxion.server.infrastructure.dao.repository.BrokerEntityRepo;
 import lombok.extern.slf4j.Slf4j;
@@ -28,10 +32,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 基于db的发布订阅
@@ -100,12 +102,25 @@ public class DBBrokerRegistry implements NodeRegistry {
         return new Node(entity.getBrokerId(), protocols(entity.getProtocols()));
     }
 
-    private String protocols(List<NodeProtocol> protocols) {
-        return null; // todo @d
+    private String protocols(Map<Protocol, List<Node.Address>> protocols) {
+        return protocols.entrySet().stream().map(entry -> {
+            String protocol = entry.getKey().getValue();
+            return entry.getValue().stream()
+                .map(address -> protocol + "://" + address.getHost() + ":" + address.getPort())
+                .collect(Collectors.joining(","));
+        }).collect(Collectors.joining(","));
     }
 
-    private List<NodeProtocol> protocols(String protocols) {
-        return null; // todo @d
+    private Map<Protocol, List<Node.Address>> protocols(String protocols) {
+        String[] strings = protocols.split(",");
+        Map<Protocol, List<Node.Address>> result = new HashMap<>();
+        for (String s : strings) {
+            String[] ps = s.split("://");
+            String[] add = ps[1].split(":");
+            List<Node.Address> addresses = result.putIfAbsent(Protocol.parse(ps[0]), new ArrayList<>());
+            addresses.add(new Node.Address(add[0], Integer.parseInt(add[1])));
+        }
+        return result;
     }
 
     private class HeartbeatTask extends TimerTask {
