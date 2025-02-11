@@ -16,9 +16,12 @@
 
 package io.fluxion.server.core.cluster;
 
+import io.fluxion.remote.core.constants.Protocol;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Devil
@@ -29,14 +32,22 @@ public class Node {
 
     private final String id;
 
-    private List<NodeProtocol> protocols;
+    private Map<Protocol, List<Address>> protocols;
 
     public String id() {
         return id;
     }
 
-    public List<NodeProtocol> protocols() {
+    public Map<Protocol, List<Address>> protocols() {
         return protocols;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class Address {
+        private String host;
+
+        private int port;
     }
 
 }
