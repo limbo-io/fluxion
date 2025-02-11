@@ -18,7 +18,6 @@ package io.fluxion.worker.core;
 
 import io.fluxion.remote.core.client.server.ClientServer;
 import io.fluxion.worker.core.discovery.ServerDiscovery;
-import io.fluxion.worker.core.task.TaskManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +30,7 @@ public class FluxionWorker implements Worker {
 
     private static final Logger log = LoggerFactory.getLogger(FluxionWorker.class);
 
-    private final WorkerInfo workerInfo;
+    private final WorkerContext workerContext;
 
     /**
      * 服务发现
@@ -43,25 +42,18 @@ public class FluxionWorker implements Worker {
      */
     private final ClientServer clientServer;
 
-    /**
-     * 任务管理
-     */
-    private final TaskManager taskManager;
-
 
     /**
      * 创建一个 Worker 实例
      */
-    public FluxionWorker(WorkerInfo workerInfo, ClientServer clientServer, ServerDiscovery discovery, TaskManager taskManager) {
-        Objects.requireNonNull(workerInfo, "WorkerInfo can't be null");
+    public FluxionWorker(WorkerContext workerContext, ClientServer clientServer, ServerDiscovery discovery) {
+        Objects.requireNonNull(workerContext, "WorkerContext can't be null");
         Objects.requireNonNull(clientServer, "ClientServer can't be null");
         Objects.requireNonNull(discovery, "ServerDiscovery can't be null");
-        Objects.requireNonNull(taskManager, "TaskManager can't be null");
 
-        this.workerInfo = workerInfo;
+        this.workerContext = workerContext;
         this.clientServer = clientServer;
         this.discovery = discovery;
-        this.taskManager = taskManager;
     }
 
     @Override
@@ -71,8 +63,8 @@ public class FluxionWorker implements Worker {
         }
         // Launch the program in order
 
-        // 初始化工作线程池
-        this.taskManager.start();
+        // 初始化工作线程池等
+        this.workerContext.initialize();
 
         // 启动RPC服务
         this.clientServer.start(); // 目前由于服务在线程中异步处理，如果启动失败，应该终止broker的心跳启动
@@ -92,13 +84,13 @@ public class FluxionWorker implements Worker {
         }
         this.discovery.stop();
         this.clientServer.stop();
-        this.taskManager.destroy();
+        this.workerContext.destroy();
         // 修改状态
         status().change(WorkerStatus.S.TERMINATING, WorkerStatus.S.TERMINATED);
     }
 
     private WorkerStatus status() {
-        return workerInfo.status();
+        return workerContext.status();
     }
 
 }

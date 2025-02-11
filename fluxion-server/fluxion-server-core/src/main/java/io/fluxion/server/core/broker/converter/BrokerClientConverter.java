@@ -36,7 +36,7 @@ import static java.util.stream.Collectors.toSet;
 /**
  * @author Devil
  */
-public class BrokerRpcConverter {
+public class BrokerClientConverter {
 
     public static Worker toWorker(String appId, WorkerRegisterRequest request) {
         Worker worker = new Worker(appId, request.getHost(), request.getPort(), Protocol.parse(request.getProtocol()));
@@ -74,7 +74,7 @@ public class BrokerRpcConverter {
             for (Node node : nodes) {
                 BrokerDTO dto = new BrokerDTO();
                 dto.setId(node.id());
-                dto.setProtocols(node.protocols().stream().map(BrokerRpcConverter::toProtocolDTO).collect(Collectors.toList()));
+                dto.setProtocols(node.protocols().stream().map(BrokerClientConverter::toProtocolDTO).collect(Collectors.toList()));
                 brokerTopologyDTO.getBrokers().add(dto);
             }
         }

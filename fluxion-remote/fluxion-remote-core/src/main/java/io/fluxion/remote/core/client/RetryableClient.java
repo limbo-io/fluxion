@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 /**
  * @author Devil
  */
-public class RetryableClient<S extends LBServer> extends AbstractLBClient implements Client {
+public class RetryableClient extends AbstractLBClient implements Client {
 
     /**
      * 重试次数
@@ -40,7 +40,7 @@ public class RetryableClient<S extends LBServer> extends AbstractLBClient implem
 
     private final Client client;
 
-    private RetryableClient(Client client, int retryTimes, LBServerRepository repository, LBStrategy<S> strategy) {
+    private RetryableClient(Client client, int retryTimes, LBServerRepository repository, LBStrategy<LBServer> strategy) {
         super(repository, strategy);
         this.client = client;
         this.retryTimes = retryTimes;
@@ -96,38 +96,38 @@ public class RetryableClient<S extends LBServer> extends AbstractLBClient implem
         this.retryTimes = retryTimes;
     }
 
-    public static <S extends LBServer> Builder<S> builder() {
-        return new Builder<>();
+    public static Builder builder() {
+        return new Builder();
     }
 
-    public static class Builder<S extends LBServer> {
+    public static class Builder {
         private Client client;
         private int retryTimes = 3;
         private LBServerRepository repository;
-        private LBStrategy<S> strategy;
+        private LBStrategy<LBServer> strategy;
 
-        public Builder<S> client(Client client) {
+        public Builder client(Client client) {
             this.client = client;
             return this;
         }
 
-        public Builder<S> retryTimes(int retryTimes) {
+        public Builder retryTimes(int retryTimes) {
             this.retryTimes = retryTimes;
             return this;
         }
 
-        public Builder<S> repository(LBServerRepository repository) {
+        public Builder repository(LBServerRepository repository) {
             this.repository = repository;
             return this;
         }
 
-        public Builder<S> strategy(LBStrategy<S> strategy) {
+        public Builder strategy(LBStrategy<LBServer> strategy) {
             this.strategy = strategy;
             return this;
         }
 
-        public RetryableClient<S> build() {
-            return new RetryableClient<>(client, retryTimes, repository, strategy);
+        public RetryableClient build() {
+            return new RetryableClient(client, retryTimes, repository, strategy);
         }
 
     }

@@ -14,13 +14,25 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.core.tracker;
+package io.fluxion.worker.core.task.tracker;
+
+import io.fluxion.worker.core.WorkerContext;
+import io.fluxion.worker.core.task.Task;
 
 /**
- * 高频率、先只支持standalone类型
+ * 执行一个任务
  *
- * @author PengQ
- * @since 0.0.1
+ * @author Devil
  */
-public class HighFrequencyTaskTracker {
+public class BasicTaskTracker extends TaskTracker {
+
+    public BasicTaskTracker(Task task, WorkerContext workerContext) {
+        super(task, workerContext);
+    }
+
+    @Override
+    public void run() {
+
+    }
+
 }

@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.core.tracker;
+package io.fluxion.worker.core.task.tracker;
 
-import io.fluxion.worker.core.remote.TaskRpc;
+import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.task.Task;
 
 /**
@@ -26,8 +26,13 @@ import io.fluxion.worker.core.task.Task;
  */
 public class SubTaskTracker extends TaskTracker {
 
-    public SubTaskTracker(Task task, TaskRpc rpc) {
-        super(task, rpc);
+    public SubTaskTracker(Task task, WorkerContext workerContext) {
+        super(task, workerContext);
+    }
+
+    @Override
+    public void run() {
+
     }
 
 }

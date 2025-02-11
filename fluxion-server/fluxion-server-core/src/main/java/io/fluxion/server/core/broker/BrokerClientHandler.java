@@ -25,7 +25,7 @@ import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.BrokerConstant;
 import io.fluxion.server.core.app.cmd.AppRegisterCmd;
-import io.fluxion.server.core.broker.converter.BrokerRpcConverter;
+import io.fluxion.server.core.broker.converter.BrokerClientConverter;
 import io.fluxion.server.core.cluster.NodeManger;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerRegisterCmd;
@@ -47,34 +47,39 @@ public class BrokerClientHandler implements ClientHandler {
 
     @Override
     public Response<?> process(String path, String data) {
-        switch (path) {
-            case BrokerConstant.API_WORKER_REGISTER: {
-                WorkerRegisterRequest request = JacksonUtils.toType(data, WorkerRegisterRequest.class);
-                // 注册app
-                String appId = Cmd.send(new AppRegisterCmd(request.getAppName())).getId();
-                // 注册worker
-                String workerId = Cmd.send(new WorkerRegisterCmd(
-                    BrokerRpcConverter.toWorker(appId, request)
-                )).getId();
-                WorkerRegisterResponse response = new WorkerRegisterResponse();
-                response.setWorkerId(workerId);
-                response.setBrokerTopology(BrokerRpcConverter.toBrokerTopologyDTO(nodeManger.allAlive()));
-                return Response.ok(response);
+        try {
+            switch (path) {
+                case BrokerConstant.API_WORKER_REGISTER: {
+                    WorkerRegisterRequest request = JacksonUtils.toType(data, WorkerRegisterRequest.class);
+                    // 注册app
+                    String appId = Cmd.send(new AppRegisterCmd(request.getAppName())).getId();
+                    // 注册worker
+                    String workerId = Cmd.send(new WorkerRegisterCmd(
+                        BrokerClientConverter.toWorker(appId, request)
+                    )).getId();
+                    WorkerRegisterResponse response = new WorkerRegisterResponse();
+                    response.setWorkerId(workerId);
+                    response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(nodeManger.allAlive()));
+                    return Response.ok(response);
+                }
+                case BrokerConstant.API_WORKER_HEARTBEAT: {
+                    WorkerHeartbeatRequest request = JacksonUtils.toType(data, WorkerHeartbeatRequest.class);
+                    Cmd.send(new WorkerHeartbeatCmd(
+                        request.getWorkerId(),
+                        BrokerClientConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum())
+                    ));
+                    WorkerHeartbeatResponse response = new WorkerHeartbeatResponse();
+                    response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(nodeManger.allAlive()));
+                    return Response.ok(response);
+                }
             }
-            case BrokerConstant.API_WORKER_HEARTBEAT: {
-                WorkerHeartbeatRequest request = JacksonUtils.toType(data, WorkerHeartbeatRequest.class);
-                Cmd.send(new WorkerHeartbeatCmd(
-                    request.getWorkerId(),
-                    BrokerRpcConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum())
-                ));
-                WorkerHeartbeatResponse response = new WorkerHeartbeatResponse();
-                response.setBrokerTopology(BrokerRpcConverter.toBrokerTopologyDTO(nodeManger.allAlive()));
-                return Response.ok(response);
-            }
+            String msg = "Invalid request, Path NotFound.";
+            log.info("{} path={}", msg, path);
+            return Response.builder().notFound(msg).build();
+        } catch (Exception e) {
+            log.error("Request process error path={} data={}", path, data, e);
+            return Response.builder().error(e.getMessage()).build();
         }
-        String msg = "Invalid request, Path NotFound.";
-        log.info("{} path={}", msg, path);
-        return Response.builder().notFound(msg).build();
     }
 
 }

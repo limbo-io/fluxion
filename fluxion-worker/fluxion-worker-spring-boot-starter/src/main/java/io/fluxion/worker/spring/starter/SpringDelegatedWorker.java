@@ -23,13 +23,12 @@ import io.fluxion.remote.core.client.server.ClientServerConfig;
 import io.fluxion.remote.core.client.server.ClientServerFactory;
 import io.fluxion.worker.core.FluxionWorker;
 import io.fluxion.worker.core.Worker;
+import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.WorkerInfo;
-import io.fluxion.worker.core.WorkerStatus;
 import io.fluxion.worker.core.discovery.DefaultServerDiscovery;
 import io.fluxion.worker.core.discovery.ServerDiscovery;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.remote.WorkerClientHandler;
-import io.fluxion.worker.core.task.TaskManager;
 import io.fluxion.worker.spring.starter.processor.event.ExecutorScannedEvent;
 import io.fluxion.worker.spring.starter.processor.event.WorkerReadyEvent;
 import org.springframework.beans.factory.DisposableBean;
@@ -81,18 +80,18 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
     @EventListener(WorkerReadyEvent.class)
     public void onWorkerReady(WorkerReadyEvent event) {
         // WorkerInfo
-        WorkerInfo workerInfo = new WorkerInfo(appName, new WorkerStatus(), url, executors, tags);
+        WorkerInfo workerInfo = new WorkerInfo(appName, url, queueSize, concurrency, executors, tags);
+        // WorkerContext
+        WorkerContext workerContext = new WorkerContext(workerInfo);
         // Discovery
         ServerDiscovery discovery = new DefaultServerDiscovery(workerInfo, lbClient);
-        // TaskManager
-        TaskManager taskManager = new TaskManager(queueSize, concurrency, workerInfo);
         // ClientServer
         ClientServerFactory factory = ClientServerFactory.instance();
-        ClientHandler clientHandler = new WorkerClientHandler(taskManager);
+        ClientHandler clientHandler = new WorkerClientHandler(workerContext);
         ClientServerConfig clientServerConfig = new ClientServerConfig(url.getPort(), clientHandler);
         AbstractClientServer clientServer = factory.create(clientServerConfig);
         // Worker
-        Worker worker = new FluxionWorker(workerInfo, clientServer, discovery, taskManager);
+        Worker worker = new FluxionWorker(workerContext, clientServer, discovery);
         this.delegated = worker;
         // Start
         worker.start();

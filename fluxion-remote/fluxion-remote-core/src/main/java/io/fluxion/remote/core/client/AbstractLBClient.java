@@ -42,9 +42,9 @@ public abstract class AbstractLBClient implements LBClient {
     /**
      * 负载均衡策略
      */
-    private LBStrategy strategy;
+    private LBStrategy<LBServer> strategy;
 
-    public AbstractLBClient(LBServerRepository repository, LBStrategy strategy) {
+    public AbstractLBClient(LBServerRepository repository, LBStrategy<LBServer> strategy) {
         this.repository = repository;
         updateLBStrategy(strategy);
     }
@@ -52,10 +52,10 @@ public abstract class AbstractLBClient implements LBClient {
     /**
      * 更新负载均衡策略
      */
-    public void updateLBStrategy(LBStrategy strategy) {
+    public void updateLBStrategy(LBStrategy<LBServer> strategy) {
         // 默认使用轮询
         if (strategy == null) {
-            strategy = new RoundRobinLBStrategy();
+            strategy = new RoundRobinLBStrategy<>();
         }
 
         this.strategy = strategy;

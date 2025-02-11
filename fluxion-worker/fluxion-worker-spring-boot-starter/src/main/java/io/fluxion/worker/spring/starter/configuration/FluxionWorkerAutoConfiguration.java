@@ -93,7 +93,7 @@ public class FluxionWorkerAutoConfiguration {
         LBServerRepository repository = new EmbeddedLBServerRepository(brokerNodes());
 
         // client
-        RetryableClient<LBServer> client = RetryableClient.builder()
+        RetryableClient client = RetryableClient.builder()
             .client(ClientFactory.create(workerProps.getProtocol()))
             .repository(repository)
             .build();

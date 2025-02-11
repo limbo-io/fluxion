@@ -26,6 +26,8 @@ public class TaskDispatchRequest implements Request<Boolean> {
 
     private String taskId;
 
+    private String brokerId;
+
     /**
      * 执行方式
      */
@@ -58,5 +60,13 @@ public class TaskDispatchRequest implements Request<Boolean> {
 
     public void setExecutorName(String executorName) {
         this.executorName = executorName;
+    }
+
+    public String getBrokerId() {
+        return brokerId;
+    }
+
+    public void setBrokerId(String brokerId) {
+        this.brokerId = brokerId;
     }
 }

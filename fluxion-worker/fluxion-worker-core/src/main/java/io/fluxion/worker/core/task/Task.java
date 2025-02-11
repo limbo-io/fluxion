@@ -16,7 +16,7 @@
 
 package io.fluxion.worker.core.task;
 
-import java.net.URL;
+import io.fluxion.remote.core.api.constants.ExecuteType;
 
 /**
  * @author Devil
@@ -24,25 +24,46 @@ import java.net.URL;
  */
 public class Task {
 
-    private String jobId;
-
     private String taskId;
 
-    private URL rpcUrl;
+    private String brokerId;
 
-    private String executeType;
+    private ExecuteType executeType;
 
     /**
      * 执行器的名称
      */
     private String executorName;
 
-    public String taskId() {
+    public String getTaskId() {
         return taskId;
     }
 
-    public String executorName() {
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
+    }
+
+    public String getBrokerId() {
+        return brokerId;
+    }
+
+    public void setBrokerId(String brokerId) {
+        this.brokerId = brokerId;
+    }
+
+    public String getExecutorName() {
         return executorName;
     }
 
+    public void setExecutorName(String executorName) {
+        this.executorName = executorName;
+    }
+
+    public ExecuteType getExecuteType() {
+        return executeType;
+    }
+
+    public void setExecuteType(ExecuteType executeType) {
+        this.executeType = executeType;
+    }
 }

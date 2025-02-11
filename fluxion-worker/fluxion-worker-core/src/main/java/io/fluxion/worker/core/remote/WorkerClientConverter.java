@@ -16,34 +16,22 @@
 
 package io.fluxion.worker.core.remote;
 
+import io.fluxion.remote.core.api.constants.ExecuteType;
+import io.fluxion.remote.core.api.request.TaskDispatchRequest;
 import io.fluxion.worker.core.task.Task;
 
-import javax.annotation.Nullable;
-
 /**
- * @author Devil
+ * @author PengQ
+ * @since 0.0.1
  */
-public interface TaskRpc {
+public class WorkerClientConverter {
 
-    /**
-     * 反馈任务开始执行
-     */
-    Boolean reportTaskExecuting(Task task);
-
-    /**
-     * 反馈任务执行状态
-     */
-    Boolean reportTask(Task task);
-
-    /**
-     * 反馈任务执行成功
-     */
-    Boolean feedbackTaskSucceed(Task task);
-
-
-    /**
-     * 反馈任务执行失败
-     * @param ex 导致任务失败的异常信息，可以为 null
-     */
-    Boolean feedbackTaskFailed(Task task, @Nullable Throwable ex);
+    public static Task toTask(TaskDispatchRequest request) {
+        Task task = new Task();
+        task.setTaskId(request.getTaskId());
+        task.setBrokerId(request.getBrokerId());
+        task.setExecuteType(ExecuteType.parse(request.getExecuteType()));
+        task.setExecutorName(request.getExecutorName());
+        return task;
+    }
 }

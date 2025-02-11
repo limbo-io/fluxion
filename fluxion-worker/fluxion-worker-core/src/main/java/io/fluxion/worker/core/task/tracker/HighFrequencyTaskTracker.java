@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.core.tracker;
-
-import io.fluxion.worker.core.remote.TaskRpc;
-import io.fluxion.worker.core.task.Task;
+package io.fluxion.worker.core.task.tracker;
 
 /**
- * 执行一个任务
+ * 高频率、先只支持standalone类型
  *
- * @author Devil
+ * @author PengQ
+ * @since 0.0.1
  */
-public class BasicTaskTracker extends TaskTracker {
-
-    public BasicTaskTracker(Task task, TaskRpc rpc) {
-        super(task, rpc);
-    }
-
+public class HighFrequencyTaskTracker {
 }

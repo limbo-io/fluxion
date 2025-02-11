@@ -21,7 +21,12 @@ import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.TaskDispatchRequest;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.WorkerConstant;
-import io.fluxion.worker.core.task.TaskManager;
+import io.fluxion.worker.core.WorkerContext;
+import io.fluxion.worker.core.executor.Executor;
+import io.fluxion.worker.core.task.Task;
+import io.fluxion.worker.core.task.tracker.BasicTaskTracker;
+import io.fluxion.worker.core.task.tracker.SubTaskTracker;
+import io.fluxion.worker.core.task.tracker.TaskTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,24 +38,49 @@ public class WorkerClientHandler implements ClientHandler {
 
     private static final Logger log = LoggerFactory.getLogger(WorkerClientHandler.class);
 
-    private final TaskManager taskManager;
+    private final WorkerContext workerContext;
 
-    public WorkerClientHandler(TaskManager taskManager) {
-        this.taskManager = taskManager;
+    public WorkerClientHandler(WorkerContext workerContext) {
+        this.workerContext = workerContext;
     }
 
     @Override
     public Response<?> process(String path, String data) {
-        switch (path) {
-            case WorkerConstant.API_TASK_DISPATCH: {
-                TaskDispatchRequest request = JacksonUtils.toType(data, TaskDispatchRequest.class);
-                boolean success = taskManager.receive(null); // todo @pq
-                return Response.ok(success);
+        try {
+            switch (path) {
+                case WorkerConstant.API_TASK_DISPATCH: {
+                    TaskDispatchRequest request = JacksonUtils.toType(data, TaskDispatchRequest.class);
+                    Task task = WorkerClientConverter.toTask(request);
+                    TaskTracker tracker = createTaskTracker(task);
+                    boolean success = tracker.start();
+                    return Response.ok(success);
+                }
             }
+            String msg = "Invalid request, Path NotFound.";
+            log.info("{} path={}", msg, path);
+            return Response.builder().notFound(msg).build();
+        } catch (Exception e) {
+            log.error("Request process error path={} data={}", path, data, e);
+            return Response.builder().error(e.getMessage()).build();
         }
-        String msg = "Invalid request, Path NotFound.";
-        log.info("{} path={}", msg, path);
-        return Response.builder().notFound(msg).build();
+    }
+
+    private TaskTracker createTaskTracker(Task task) {
+        Executor executor = workerContext.workerInfo().getExecutor(task.getExecutorName());
+        if (executor == null) {
+            throw new IllegalArgumentException("unknown executor name:" + task.getExecutorName());
+        }
+        switch (task.getExecuteType()) {
+            // todo @pq 如果执行器类型不匹配则需要抛异常
+            case STANDALONE:
+                return new BasicTaskTracker(task, workerContext);
+            case BROADCAST:
+            case MAP:
+            case MAP_REDUCE:
+                return new SubTaskTracker(task, workerContext);
+            default:
+                throw new IllegalArgumentException("unknown execute type:" + task.getExecuteType().name());
+        }
     }
 
 }
