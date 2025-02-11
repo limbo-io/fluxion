@@ -17,12 +17,15 @@
 package io.fluxion.worker.core;
 
 import io.fluxion.common.thread.NamedThreadFactory;
+import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.tracker.TaskTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
+import java.net.URL;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 /**
  * @author PengQ
@@ -32,10 +35,33 @@ public class WorkerContext {
 
     private static final Logger log = LoggerFactory.getLogger(WorkerContext.class);
 
+    private String workerId;
+
+    private String appName;
+    /**
+     * 连接 worker 的 url
+     */
+    private URL url;
+
+    /**
+     * 执行器
+     */
+    private Map<String, Executor> executors;
+
+    /**
+     * Worker 标签
+     */
+    private Map<String, Set<String>> tags;
+
+    /**
+     * 可分配任务总数
+     */
+    private int queueSize;
+
+    private int concurrency;
+
+    // ========== Runtime ==========
     private final WorkerStatus status;
-
-
-    private final WorkerInfo workerInfo;
 
     /**
      * 当前 Worker 的所有任务存储在此 Map 中
@@ -52,15 +78,20 @@ public class WorkerContext {
      */
     private ScheduledExecutorService taskStatusReportExecutor;
 
-    public WorkerContext(WorkerInfo workerInfo) {
-        this.workerInfo = workerInfo;
+    public WorkerContext(String appName, URL url,
+                         int queueSize, int concurrency,
+                         List<Executor> executors, Map<String, Set<String>> tags) {
+        this.appName = appName;
+        this.url = url;
+        this.executors = executors == null ? Collections.emptyMap() : executors.stream().collect(Collectors.toMap(Executor::name, executor -> executor));
+        this.tags = tags == null ? Collections.emptyMap() : tags;
+        this.queueSize = queueSize;
+        this.concurrency = concurrency;
         this.status = new WorkerStatus();
     }
 
     public void initialize() {
         this.tasks = new ConcurrentHashMap<>();
-        int queueSize = workerInfo.getQueueSize();
-        int concurrency = workerInfo.getConcurrency();
         // 初始化工作线程池
         BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(queueSize <= 0 ? concurrency : queueSize);
         this.taskProcessExecutor = new ThreadPoolExecutor(
@@ -87,10 +118,6 @@ public class WorkerContext {
         return status;
     }
 
-    public WorkerInfo workerInfo() {
-        return workerInfo;
-    }
-
     public Map<String, TaskTracker> tasks() {
         return tasks;
     }
@@ -102,4 +129,29 @@ public class WorkerContext {
     public ScheduledExecutorService taskStatusReportExecutor() {
         return taskStatusReportExecutor;
     }
+
+    public String appName() {
+        return appName;
+    }
+
+    public List<Executor> executors() {
+        return new ArrayList<>(executors.values());
+    }
+
+    public Executor executor(String name) {
+        return executors.get(name);
+    }
+
+    public Map<String, Set<String>> tags() {
+        return tags;
+    }
+
+    public String workerId() {
+        return workerId;
+    }
+
+    public int queueSize() {
+        return queueSize;
+    }
+
 }

@@ -18,7 +18,6 @@ package io.fluxion.worker.core.task.tracker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.worker.core.WorkerContext;
-import io.fluxion.worker.core.WorkerInfo;
 import io.fluxion.worker.core.task.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,10 +104,9 @@ public abstract class TaskTracker {
      * @param tracker 任务执行上下文
      */
     public boolean save(TaskTracker tracker) {
-        WorkerInfo workerInfo = workerContext.workerInfo();
         Map<String, TaskTracker> tasks = workerContext.tasks();
         // 剩余可分配任务数
-        int availableQueueSize = workerInfo.getQueueSize() - tasks.size();
+        int availableQueueSize = workerContext.queueSize() - tasks.size();
         if (availableQueueSize <= 0) {
             log.info("Worker's queue is full, limit: {}", availableQueueSize);
             return false;

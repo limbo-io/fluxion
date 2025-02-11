@@ -66,7 +66,7 @@ public class WorkerClientHandler implements ClientHandler {
     }
 
     private TaskTracker createTaskTracker(Task task) {
-        Executor executor = workerContext.workerInfo().getExecutor(task.getExecutorName());
+        Executor executor = workerContext.executor(task.getExecutorName());
         if (executor == null) {
             throw new IllegalArgumentException("unknown executor name:" + task.getExecutorName());
         }

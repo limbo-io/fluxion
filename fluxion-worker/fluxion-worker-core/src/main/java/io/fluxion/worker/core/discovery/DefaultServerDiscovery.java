@@ -25,7 +25,7 @@ import io.fluxion.remote.core.client.LBClient;
 import io.fluxion.remote.core.exception.RpcException;
 import io.fluxion.remote.core.heartbeat.HeartbeatPacemaker;
 import io.fluxion.worker.core.SystemInfo;
-import io.fluxion.worker.core.WorkerInfo;
+import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.remote.BrokerSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,26 +50,26 @@ public class DefaultServerDiscovery implements ServerDiscovery {
 
     private final LBClient client;
 
-    private final WorkerInfo workerInfo;
+    private final WorkerContext workerContext;
 
     /**
      * manage heartbeat
      */
     private HeartbeatPacemaker heartbeatPacemaker;
 
-    public DefaultServerDiscovery(WorkerInfo workerInfo, LBClient client) {
+    public DefaultServerDiscovery(WorkerContext workerContext, LBClient client) {
         this.client = client;
-        this.workerInfo = workerInfo;
+        this.workerContext = workerContext;
     }
 
     @Override
     public void start() {
         // 注册
-        BrokerSender.register(client, API_WORKER_REGISTER, registerRequest(workerInfo));
+        BrokerSender.register(client, API_WORKER_REGISTER, registerRequest(workerContext));
         // 心跳管理
         this.heartbeatPacemaker = new HeartbeatPacemaker(() -> {
             try {
-                BrokerSender.heartbeat(client, API_WORKER_HEARTBEAT, heartbeatRequest(workerInfo));
+                BrokerSender.heartbeat(client, API_WORKER_HEARTBEAT, heartbeatRequest(workerContext));
             } catch (RpcException e) {
                 log.warn("[DefaultServerDiscovery] send heartbeat failed");
                 throw new IllegalStateException("[DefaultServerDiscovery] send heartbeat failed", e);
@@ -77,24 +77,24 @@ public class DefaultServerDiscovery implements ServerDiscovery {
         }, Duration.ofSeconds(HEARTBEAT_TIMEOUT_SECOND));
     }
 
-    private WorkerRegisterRequest registerRequest(WorkerInfo workerInfo) {
+    private WorkerRegisterRequest registerRequest(WorkerContext workerContext) {
         WorkerRegisterRequest request = new WorkerRegisterRequest();
-        request.setAppName(workerInfo.getAppName());
+        request.setAppName(workerContext.appName());
         request.setSystemInfo(systemInfoDTO());
-        request.setTags(tagDTOS(workerInfo.getTags()));
-        request.setExecutors(executorDTOS(workerInfo));
+        request.setTags(tagDTOS(workerContext.tags()));
+        request.setExecutors(executorDTOS(workerContext));
         return request;
     }
 
-    private WorkerHeartbeatRequest heartbeatRequest(WorkerInfo workerInfo) {
+    private WorkerHeartbeatRequest heartbeatRequest(WorkerContext workerContext) {
         WorkerHeartbeatRequest request = new WorkerHeartbeatRequest();
-        request.setWorkerId(workerInfo.getWorkerId());
+        request.setWorkerId(workerContext.workerId());
         request.setSystemInfo(systemInfoDTO());
         return request;
     }
 
-    private List<WorkerExecutorDTO> executorDTOS(WorkerInfo workerInfo) {
-        return workerInfo.getExecutors().stream().map(
+    private List<WorkerExecutorDTO> executorDTOS(WorkerContext workerContext) {
+        return workerContext.executors().stream().map(
             e -> {
                 WorkerExecutorDTO dto = new WorkerExecutorDTO();
                 dto.setName(e.name());

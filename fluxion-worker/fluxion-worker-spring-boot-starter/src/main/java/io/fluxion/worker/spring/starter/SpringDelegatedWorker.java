@@ -24,7 +24,6 @@ import io.fluxion.remote.core.client.server.ClientServerFactory;
 import io.fluxion.worker.core.FluxionWorker;
 import io.fluxion.worker.core.Worker;
 import io.fluxion.worker.core.WorkerContext;
-import io.fluxion.worker.core.WorkerInfo;
 import io.fluxion.worker.core.discovery.DefaultServerDiscovery;
 import io.fluxion.worker.core.discovery.ServerDiscovery;
 import io.fluxion.worker.core.executor.Executor;
@@ -79,12 +78,10 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
      */
     @EventListener(WorkerReadyEvent.class)
     public void onWorkerReady(WorkerReadyEvent event) {
-        // WorkerInfo
-        WorkerInfo workerInfo = new WorkerInfo(appName, url, queueSize, concurrency, executors, tags);
         // WorkerContext
-        WorkerContext workerContext = new WorkerContext(workerInfo);
+        WorkerContext workerContext = new WorkerContext(appName, url, queueSize, concurrency, executors, tags);
         // Discovery
-        ServerDiscovery discovery = new DefaultServerDiscovery(workerInfo, lbClient);
+        ServerDiscovery discovery = new DefaultServerDiscovery(workerContext, lbClient);
         // ClientServer
         ClientServerFactory factory = ClientServerFactory.instance();
         ClientHandler clientHandler = new WorkerClientHandler(workerContext);
