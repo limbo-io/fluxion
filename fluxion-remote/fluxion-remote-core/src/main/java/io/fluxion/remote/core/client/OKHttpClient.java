@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import com.google.common.net.HttpHeaders;
 import io.fluxion.common.utils.ReflectionUtils;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.exception.RpcException;
 import okhttp3.*;
 import org.slf4j.Logger;
@@ -48,7 +49,7 @@ public class OKHttpClient implements Client {
     }
 
     @Override
-    public <R, T extends Request<R>> R call(URL url, T request) {
+    public <R> R call(URL url, Request<R> request) {
         try {
             ResponseBody responseBody = executePost(url, request);
             Class<R> responseType = ReflectionUtils.refType(request);
@@ -56,6 +57,11 @@ public class OKHttpClient implements Client {
         } catch (IOException e) {
             throw new RpcException("Api access failed " + logRequest(url, JacksonUtils.toJSONString(request)), e);
         }
+    }
+
+    @Override
+    public Protocol protocol() {
+        return Protocol.HTTP;
     }
 
     /**

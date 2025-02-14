@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,15 @@
 
 package io.fluxion.worker.core.remote;
 
+import io.fluxion.remote.core.api.cluster.Node;
 import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
 import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
-import io.fluxion.remote.core.client.LBClient;
+import io.fluxion.remote.core.client.Client;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 
 /**
  * @author PengQ
@@ -28,12 +32,20 @@ import io.fluxion.remote.core.client.LBClient;
  */
 public class BrokerSender {
 
-    public static WorkerRegisterResponse register(LBClient client, String path, WorkerRegisterRequest request) {
-        return client.call(path, request);
+    public static WorkerRegisterResponse register(Client client, Node node, String path, WorkerRegisterRequest request) {
+        return client.call(url(node, path), request);
     }
 
-    public static WorkerHeartbeatResponse heartbeat(LBClient client, String path, WorkerHeartbeatRequest request) {
-        return client.call(path, request);
+    public static WorkerHeartbeatResponse heartbeat(Client client, Node node, String path, WorkerHeartbeatRequest request) {
+        return client.call(url(node, path), request);
+    }
+
+    private static URL url(Node node, String path) {
+        try {
+            return new URL(node.getProtocol().getValue(), node.getHost(), node.getPort(), path);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

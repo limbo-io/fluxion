@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.fluxion.remote.core.api.response;
 
+import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 
 /**
@@ -29,10 +30,7 @@ public class WorkerRegisterResponse {
      */
     private String workerId;
 
-    /**
-     * Broker 的拓扑结构
-     */
-    private BrokerTopologyDTO brokerTopology;
+    private NodeDTO broker;
 
     public String getWorkerId() {
         return workerId;
@@ -42,11 +40,11 @@ public class WorkerRegisterResponse {
         this.workerId = workerId;
     }
 
-    public BrokerTopologyDTO getBrokerTopology() {
-        return brokerTopology;
+    public NodeDTO getBroker() {
+        return broker;
     }
 
-    public void setBrokerTopology(BrokerTopologyDTO brokerTopology) {
-        this.brokerTopology = brokerTopology;
+    public void setBroker(NodeDTO broker) {
+        this.broker = broker;
     }
 }

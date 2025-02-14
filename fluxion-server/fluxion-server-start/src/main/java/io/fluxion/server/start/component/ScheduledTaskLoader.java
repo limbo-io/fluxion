@@ -23,8 +23,8 @@ import io.fluxion.server.core.cluster.ClusterContext;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionRunCmd;
-import io.fluxion.server.core.schedule.cmd.DelayTaskSubmitCmd;
-import io.fluxion.server.core.schedule.cmd.ScheduledTaskSubmitCmd;
+import io.fluxion.server.infrastructure.schedule.cmd.DelayTaskSubmitCmd;
+import io.fluxion.server.infrastructure.schedule.cmd.ScheduledTaskSubmitCmd;
 import io.fluxion.server.core.trigger.TriggerRefType;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleTaskEntity;
@@ -76,7 +76,7 @@ public class ScheduledTaskLoader implements InitializingBean {
             try {
                 LocalDateTime now = TimeUtils.currentLocalDateTime();
                 List<ScheduleTaskEntity> entities = scheduleTaskEntityRepo.loadByUpdated(
-                    ClusterContext.currentNodeId(),
+                    ClusterContext.nodeId(),
                     loadTimePoint.plusSeconds(-interval), // 防止部分延迟导致变更丢失
                     now
 

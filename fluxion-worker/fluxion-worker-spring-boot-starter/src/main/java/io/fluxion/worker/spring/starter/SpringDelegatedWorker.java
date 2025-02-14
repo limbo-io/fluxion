@@ -16,7 +16,7 @@
 
 package io.fluxion.worker.spring.starter;
 
-import io.fluxion.remote.core.client.AbstractLBClient;
+import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.server.AbstractClientServer;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.client.server.ClientServerConfig;
@@ -51,15 +51,15 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
     private final URL url;
     private final int queueSize;
     private final int concurrency;
-    private final AbstractLBClient lbClient;
+    private final Client client;
     private final Map<String, Set<String>> tags;
 
-    public SpringDelegatedWorker(String appName, URL url, int queueSize, int concurrency, AbstractLBClient lbClient, Map<String, Set<String>> tags) {
+    public SpringDelegatedWorker(String appName, URL url, int queueSize, int concurrency, Client client, Map<String, Set<String>> tags) {
         this.appName = appName;
         this.url = url;
         this.queueSize = queueSize;
         this.concurrency = concurrency;
-        this.lbClient = lbClient;
+        this.client = client;
         this.tags = tags;
     }
 
@@ -81,7 +81,7 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
         // WorkerContext
         WorkerContext workerContext = new WorkerContext(appName, url, queueSize, concurrency, executors, tags);
         // Discovery
-        ServerDiscovery discovery = new DefaultServerDiscovery(workerContext, lbClient);
+        ServerDiscovery discovery = new DefaultServerDiscovery(workerContext, client);
         // ClientServer
         ClientServerFactory factory = ClientServerFactory.instance();
         ClientHandler clientHandler = new WorkerClientHandler(workerContext);

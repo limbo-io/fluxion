@@ -16,6 +16,8 @@
 
 package io.fluxion.server.core.cluster;
 
+import io.fluxion.remote.core.api.cluster.Node;
+
 import java.util.Collection;
 
 /**
@@ -40,6 +42,8 @@ public interface NodeManger {
      * 检查节点是否存活
      */
     boolean alive(String url);
+
+    Node get(String id);
 
     /**
      * 所有存活节点

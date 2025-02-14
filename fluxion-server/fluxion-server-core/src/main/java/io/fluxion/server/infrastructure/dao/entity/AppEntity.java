@@ -47,6 +47,11 @@ public class AppEntity extends BaseEntity {
      */
     private String appName;
 
+    /**
+     * 监管应用的节点
+     */
+    private String brokerId;
+
     @Override
     public Object getUid() {
         return appId;

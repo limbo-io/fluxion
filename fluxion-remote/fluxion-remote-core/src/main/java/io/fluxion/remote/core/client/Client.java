@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.client;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.constants.Protocol;
 
 import java.net.URL;
 
@@ -30,5 +31,11 @@ public interface Client {
      * @param url     url
      * @param request request
      */
-    <R, T extends Request<R>> R call(URL url, T request);
+    <R> R call(URL url, Request<R> request);
+
+    /**
+     * Protocol used by the client
+     */
+    Protocol protocol();
+
 }

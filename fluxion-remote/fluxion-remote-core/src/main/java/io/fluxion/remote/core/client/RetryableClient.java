@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,21 +17,20 @@
 package io.fluxion.remote.core.client;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.lb.LBServer;
-import io.fluxion.remote.core.lb.repository.LBServerRepository;
-import io.fluxion.remote.core.lb.strategies.LBStrategy;
-import org.apache.commons.collections4.CollectionUtils;
+import io.fluxion.remote.core.constants.Protocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
+ * Call url with retry
+ *
  * @author Devil
  */
-public class RetryableClient extends AbstractLBClient implements Client {
+public class RetryableClient implements Client {
+
+    private static final Logger log = LoggerFactory.getLogger(RetryableClient.class);
 
     /**
      * 重试次数
@@ -40,47 +39,18 @@ public class RetryableClient extends AbstractLBClient implements Client {
 
     private final Client client;
 
-    private RetryableClient(Client client, int retryTimes, LBServerRepository repository, LBStrategy<LBServer> strategy) {
-        super(repository, strategy);
+    private RetryableClient(Client client, int retryTimes) {
         this.client = client;
         this.retryTimes = retryTimes;
     }
 
-
     @Override
-    public <R, T extends Request<R>> R call(URL url, T request) {
-        List<LBServer> servers = servers();
-        if (CollectionUtils.isEmpty(servers)) {
-            throw new IllegalStateException("No alive servers!");
-        }
-        URI uri;
-        try {
-            uri = url.toURI();
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("url could not be parsed as a URI url:" + url);
-        }
-        String path = url.getPath();
+    public <R> R call(URL url, Request<R> request) {
         for (int i = 1; i <= retryTimes; i++) {
-            LBServer server = select(servers, path);
-            if (server == null) {
-                log.warn("No available alive servers after {} tries from load balancer", i);
-                throw new IllegalStateException("Can't get alive server by path=" + path);
-            }
-            URL newUrl = null;
             try {
-                newUrl = new URI(
-                    uri.getScheme(),
-                    uri.getUserInfo(),
-                    server.host(),
-                    server.port(),
-                    uri.getPath(),
-                    uri.getQuery(),
-                    uri.getFragment()
-                ).toURL();
-                return client.call(newUrl, request);
+                return client.call(url, request);
             } catch (Exception e) {
-                log.warn("try {} times... address {} connect fail, try connect new node", i, newUrl, e);
-                servers = servers.stream().filter(s -> !s.serverId().equals(server.serverId())).collect(Collectors.toList());
+                log.warn("try {} times... address {} connect fail, try connect new node", i, url, e);
             }
 
         }
@@ -88,8 +58,8 @@ public class RetryableClient extends AbstractLBClient implements Client {
     }
 
     @Override
-    public <R, T extends Request<R>> R call(String path, T request) {
-        return null;
+    public Protocol protocol() {
+        return client.protocol();
     }
 
     public void updateRetryTimes(int retryTimes) {
@@ -103,8 +73,6 @@ public class RetryableClient extends AbstractLBClient implements Client {
     public static class Builder {
         private Client client;
         private int retryTimes = 3;
-        private LBServerRepository repository;
-        private LBStrategy<LBServer> strategy;
 
         public Builder client(Client client) {
             this.client = client;
@@ -116,18 +84,8 @@ public class RetryableClient extends AbstractLBClient implements Client {
             return this;
         }
 
-        public Builder repository(LBServerRepository repository) {
-            this.repository = repository;
-            return this;
-        }
-
-        public Builder strategy(LBStrategy<LBServer> strategy) {
-            this.strategy = strategy;
-            return this;
-        }
-
         public RetryableClient build() {
-            return new RetryableClient(client, retryTimes, repository, strategy);
+            return new RetryableClient(client, retryTimes);
         }
 
     }

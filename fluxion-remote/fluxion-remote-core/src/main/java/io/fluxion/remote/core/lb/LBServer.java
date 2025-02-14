@@ -16,8 +16,6 @@
 
 package io.fluxion.remote.core.lb;
 
-import io.fluxion.remote.core.constants.Protocol;
-
 /**
  * 被负载均衡的服务
  *
@@ -34,20 +32,5 @@ public interface LBServer {
      * 当前服务是否存活可用
      */
     boolean isAlive();
-
-    /**
-     * 协议
-     */
-    Protocol protocol();
-
-    /**
-     * 服务地址
-     */
-    String host();
-
-    /**
-     * 端口号
-     */
-    int port();
 
 }

@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.worker.cmd;
 
+import io.fluxion.remote.core.api.cluster.Node;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
@@ -30,10 +31,15 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class WorkerHeartbeatCmd implements ICmd<Void> {
+public class WorkerHeartbeatCmd implements ICmd<WorkerHeartbeatCmd.Response> {
 
     private String workerId;
 
     private WorkerMetric metric;
 
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private Node broker;
+    }
 }

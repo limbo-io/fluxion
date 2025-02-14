@@ -17,7 +17,7 @@
 package io.fluxion.server.core.executor.option;
 
 import io.fluxion.remote.core.lb.LoadBalanceType;
-import io.fluxion.server.core.tag.TagFilterOption;
+import io.fluxion.server.infrastructure.tag.TagFilterOption;
 import lombok.*;
 
 import java.util.List;

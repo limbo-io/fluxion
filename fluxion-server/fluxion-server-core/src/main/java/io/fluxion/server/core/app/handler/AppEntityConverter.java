@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,22 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.dao.repository;
+package io.fluxion.server.core.app.handler;
 
-import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.Optional;
+import io.fluxion.server.core.app.App;
+import io.fluxion.remote.core.api.cluster.Node;
+import io.fluxion.server.infrastructure.dao.entity.AppEntity;
 
 /**
  * @author Devil
- * @since 2022/7/18
  */
-public interface WorkerEntityRepo extends JpaRepository<WorkerEntity, String> {
+public class AppEntityConverter {
 
-    Optional<WorkerEntity> findByAppIdAndHostAndPortAndDeleted(String appId, String host, int port, boolean deleted);
+    public static App convert(AppEntity entity, Node node) {
+        App app = new App();
+        app.setId(entity.getAppId());
+        app.setBroker(node);
+        return app;
+    }
+
 }

@@ -16,10 +16,6 @@
 
 package io.fluxion.server.core.cluster;
 
-import io.fluxion.server.core.broker.Broker;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,17 +23,16 @@ import org.springframework.stereotype.Component;
  * @date 2025/1/10
  */
 @Component
-public class ClusterContext implements ApplicationContextAware {
+public class ClusterContext {
 
-    private static String currentNodeId;
+    private static String nodeId;
 
-    public static String currentNodeId() {
-        return currentNodeId;
+    public static String nodeId() {
+        return nodeId;
     }
 
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        Broker broker = applicationContext.getBean(Broker.class);
-        currentNodeId = broker.id();
+    public static void initialize(String id) {
+        nodeId = id;
     }
+
 }

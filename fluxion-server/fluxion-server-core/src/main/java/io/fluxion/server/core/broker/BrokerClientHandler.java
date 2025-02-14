@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,14 @@ package io.fluxion.server.core.broker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
+import io.fluxion.remote.core.api.cluster.Node;
 import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
 import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.BrokerConstant;
+import io.fluxion.server.core.app.App;
 import io.fluxion.server.core.app.cmd.AppRegisterCmd;
 import io.fluxion.server.core.broker.converter.BrokerClientConverter;
 import io.fluxion.server.core.cluster.NodeManger;
@@ -52,24 +54,24 @@ public class BrokerClientHandler implements ClientHandler {
                 case BrokerConstant.API_WORKER_REGISTER: {
                     WorkerRegisterRequest request = JacksonUtils.toType(data, WorkerRegisterRequest.class);
                     // 注册app
-                    String appId = Cmd.send(new AppRegisterCmd(request.getAppName())).getId();
+                    App app = Cmd.send(new AppRegisterCmd(request.getAppName())).getApp();
                     // 注册worker
                     String workerId = Cmd.send(new WorkerRegisterCmd(
-                        BrokerClientConverter.toWorker(appId, request)
+                        BrokerClientConverter.toWorker(app.getId(), request)
                     )).getId();
                     WorkerRegisterResponse response = new WorkerRegisterResponse();
                     response.setWorkerId(workerId);
-                    response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(nodeManger.allAlive()));
+                    response.setBroker(BrokerClientConverter.toDTO(app.getBroker()));
                     return Response.ok(response);
                 }
                 case BrokerConstant.API_WORKER_HEARTBEAT: {
                     WorkerHeartbeatRequest request = JacksonUtils.toType(data, WorkerHeartbeatRequest.class);
-                    Cmd.send(new WorkerHeartbeatCmd(
+                    Node node = Cmd.send(new WorkerHeartbeatCmd(
                         request.getWorkerId(),
                         BrokerClientConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum())
-                    ));
+                    )).getBroker();
                     WorkerHeartbeatResponse response = new WorkerHeartbeatResponse();
-                    response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(nodeManger.allAlive()));
+                    response.setBroker(BrokerClientConverter.toDTO(node));
                     return Response.ok(response);
                 }
             }

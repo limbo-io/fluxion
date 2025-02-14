@@ -42,7 +42,14 @@ public class BrokerEntity extends BaseEntity {
     @Id
     private String brokerId;
 
-    private String protocols;
+    /**
+     * 服务使用的通信协议
+     */
+    private String protocol;
+
+    private String host;
+
+    private Integer port;
 
     /**
      * 上次心跳时间

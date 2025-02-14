@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.worker.dispatch;
 
-import io.fluxion.server.core.tag.TagFilterOption;
+import io.fluxion.server.infrastructure.tag.TagFilterOption;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;

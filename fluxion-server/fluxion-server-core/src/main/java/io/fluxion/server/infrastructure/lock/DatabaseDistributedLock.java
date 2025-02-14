@@ -45,7 +45,7 @@ public class DatabaseDistributedLock implements DistributedLock {
 
         LockEntity lock = lockEntityRepo.findByName(name);
 
-        String current = ClusterContext.currentNodeId();
+        String current = ClusterContext.nodeId();
 
         // 如果锁未过期且当前节点非加锁节点，加锁失败
         if (lock != null && lock.getExpireAt().isBefore(TimeUtils.currentLocalDateTime()) && !lock.getOwner().equals(current)) {

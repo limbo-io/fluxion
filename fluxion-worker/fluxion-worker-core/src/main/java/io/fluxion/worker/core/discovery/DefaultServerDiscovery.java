@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import io.fluxion.remote.core.api.dto.WorkerExecutorDTO;
 import io.fluxion.remote.core.api.dto.WorkerTagDTO;
 import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
-import io.fluxion.remote.core.client.LBClient;
+import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.exception.RpcException;
 import io.fluxion.remote.core.heartbeat.HeartbeatPacemaker;
 import io.fluxion.worker.core.SystemInfo;
@@ -48,7 +48,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final LBClient client;
+    private final Client client;
 
     private final WorkerContext workerContext;
 
@@ -57,7 +57,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
      */
     private HeartbeatPacemaker heartbeatPacemaker;
 
-    public DefaultServerDiscovery(WorkerContext workerContext, LBClient client) {
+    public DefaultServerDiscovery(WorkerContext workerContext, Client client) {
         this.client = client;
         this.workerContext = workerContext;
     }
@@ -65,11 +65,11 @@ public class DefaultServerDiscovery implements ServerDiscovery {
     @Override
     public void start() {
         // 注册
-        BrokerSender.register(client, API_WORKER_REGISTER, registerRequest(workerContext));
+        BrokerSender.register(client, workerContext.broker(), API_WORKER_REGISTER, registerRequest(workerContext));
         // 心跳管理
         this.heartbeatPacemaker = new HeartbeatPacemaker(() -> {
             try {
-                BrokerSender.heartbeat(client, API_WORKER_HEARTBEAT, heartbeatRequest(workerContext));
+                BrokerSender.heartbeat(client, workerContext.broker(), API_WORKER_HEARTBEAT, heartbeatRequest(workerContext));
             } catch (RpcException e) {
                 log.warn("[DefaultServerDiscovery] send heartbeat failed");
                 throw new IllegalStateException("[DefaultServerDiscovery] send heartbeat failed", e);

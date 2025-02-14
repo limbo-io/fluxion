@@ -24,4 +24,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * @since 2022/7/18
  */
 public interface TagEntityRepo extends JpaRepository<TagEntity, TagEntity.ID> {
+
+    int deleteById_RefIdAndId_RefType(String refId, int refType);
 }

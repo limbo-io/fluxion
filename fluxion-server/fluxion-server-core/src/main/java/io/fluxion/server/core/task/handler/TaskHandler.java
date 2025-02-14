@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package io.fluxion.server.core.task.handler;
 
 import io.fluxion.common.thread.CommonThreadPool;
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.server.core.schedule.cmd.DelayTaskSubmitCmd;
+import io.fluxion.server.infrastructure.schedule.cmd.DelayTaskSubmitCmd;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.cmd.TaskRunCmd;
 import io.fluxion.server.core.task.cmd.TasksCreateCmd;

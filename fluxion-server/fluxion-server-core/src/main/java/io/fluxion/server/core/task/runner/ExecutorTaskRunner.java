@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import io.fluxion.server.core.task.ExecutorTask;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskType;
 import io.fluxion.server.core.worker.Worker;
-import io.fluxion.server.core.worker.WorkerRegistry;
+import io.fluxion.server.core.worker.WorkerRepository;
 import io.fluxion.server.core.worker.dispatch.WorkerFilter;
 import io.fluxion.server.core.worker.selector.WorkerSelectInvocation;
 import io.fluxion.server.core.worker.selector.WorkerSelector;
@@ -44,7 +44,7 @@ public class ExecutorTaskRunner extends TaskRunner {
     private WorkerSelectorFactory workerSelectorFactory;
 
     @Resource
-    private WorkerRegistry workerRegistry;
+    private WorkerRepository workerRepository;
 
     @Override
     public TaskType type() {
@@ -55,7 +55,7 @@ public class ExecutorTaskRunner extends TaskRunner {
     public void run(Task task) {
         ExecutorTask executorTask = (ExecutorTask) task;
         Map<String, Object> attributes = new HashMap<>();
-        List<Worker> workers = workerRegistry.all().stream()
+        List<Worker> workers = workerRepository.allByApp(task.getAppId()).stream()
             .filter(Worker::isEnabled)
             .collect(Collectors.toList());
         DispatchOption dispatchOption = executorTask.getDispatchOption();

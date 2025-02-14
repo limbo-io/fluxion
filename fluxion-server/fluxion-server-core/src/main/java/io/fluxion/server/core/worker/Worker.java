@@ -17,13 +17,14 @@
 package io.fluxion.server.core.worker;
 
 import io.fluxion.common.utils.MD5Utils;
+import io.fluxion.remote.core.api.cluster.Node;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.lb.LBServer;
-import io.fluxion.server.core.tag.Tagged;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
+import io.fluxion.server.infrastructure.tag.Tagged;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -41,7 +42,10 @@ public class Worker implements LBServer, Tagged {
      */
     private String id;
 
+    private Node node;
+
     private String appId;
+
 
     private String host;
 
@@ -79,7 +83,7 @@ public class Worker implements LBServer, Tagged {
     /**
      * 是否启用 不启用则无法下发任务
      */
-    private boolean enabled;
+    private boolean enabled = true;
 
     public Worker(String appId, String host, int port, Protocol protocol) {
         this.appId = appId;
@@ -94,31 +98,6 @@ public class Worker implements LBServer, Tagged {
     }
 
     @Override
-    public String serverId() {
-        return id();
-    }
-
-    @Override
-    public boolean isAlive() {
-        return WorkerStatus.RUNNING == status;
-    }
-
-    @Override
-    public Protocol protocol() {
-        return protocol;
-    }
-
-    @Override
-    public String host() {
-        return host;
-    }
-
-    @Override
-    public int port() {
-        return port;
-    }
-
-    @Override
     public Map<String, Set<String>> tags() {
         return tags;
     }
@@ -130,6 +109,16 @@ public class Worker implements LBServer, Tagged {
      */
     public void dispatch(Task task) {
 
+    }
+
+    @Override
+    public String serverId() {
+        return id();
+    }
+
+    @Override
+    public boolean isAlive() {
+        return WorkerStatus.RUNNING == status;
     }
 
 }

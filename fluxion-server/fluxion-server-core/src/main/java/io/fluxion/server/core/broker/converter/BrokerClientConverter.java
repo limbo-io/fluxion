@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,20 +17,21 @@
 package io.fluxion.server.core.broker.converter;
 
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.remote.core.api.dto.BrokerDTO;
-import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
+import io.fluxion.remote.core.api.cluster.Node;
+import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerTagDTO;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.constants.Protocol;
-import io.fluxion.server.core.cluster.Node;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.mapping;
@@ -71,35 +72,12 @@ public class BrokerClientConverter {
         );
     }
 
-    public static BrokerTopologyDTO toBrokerTopologyDTO(Collection<Node> nodes) {
-        BrokerTopologyDTO brokerTopologyDTO = new BrokerTopologyDTO();
-        if (CollectionUtils.isNotEmpty(nodes)) {
-            for (Node node : nodes) {
-                BrokerDTO dto = new BrokerDTO();
-                dto.setId(node.id());
-                dto.setProtocols(toProtocolsDTO(node.protocols()));
-                brokerTopologyDTO.getBrokers().add(dto);
-            }
-        }
-        return brokerTopologyDTO;
-    }
-
-    public static Map<String, List<BrokerDTO.Address>> toProtocolsDTO(Map<Protocol, List<Node.Address>> protocols) {
-        if (MapUtils.isEmpty(protocols)) {
-            return Collections.emptyMap();
-        }
-        Map<String, List<BrokerDTO.Address>> result = new HashMap<>();
-        for (Map.Entry<Protocol, List<Node.Address>> entry : protocols.entrySet()) {
-            String protocol = entry.getKey().getValue();
-            List<Node.Address> addresses = entry.getValue();
-            result.put(protocol, addresses.stream().map(add -> {
-                BrokerDTO.Address dto = new BrokerDTO.Address();
-                dto.setHost(add.getHost());
-                dto.setPort(add.getPort());
-                return dto;
-            }).collect(Collectors.toList()));
-        }
-        return result;
+    public static NodeDTO toDTO(Node node) {
+        NodeDTO dto = new NodeDTO();
+        dto.setProtocol(node.getProtocol().getValue());
+        dto.setHost(node.getHost());
+        dto.setPort(node.getPort());
+        return dto;
     }
 
 }

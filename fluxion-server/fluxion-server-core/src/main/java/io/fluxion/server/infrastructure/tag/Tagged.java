@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,17 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.schedule.cmd;
+package io.fluxion.server.infrastructure.tag;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
-import io.fluxion.server.infrastructure.schedule.task.DelayTask;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Devil
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class DelayTaskSubmitCmd implements ICmd<Void> {
-
-    private DelayTask task;
-
+public interface Tagged {
+    /**
+     * key - tags
+     */
+    Map<String, Set<String>> tags();
 }

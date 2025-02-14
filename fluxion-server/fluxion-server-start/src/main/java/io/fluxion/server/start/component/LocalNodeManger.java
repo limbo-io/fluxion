@@ -17,7 +17,7 @@
 package io.fluxion.server.start.component;
 
 import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.server.core.cluster.Node;
+import io.fluxion.remote.core.api.cluster.Node;
 import io.fluxion.server.core.cluster.NodeManger;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -67,6 +67,11 @@ public class LocalNodeManger implements NodeManger {
      */
     public boolean alive(String url) {
         return nodes.containsKey(url);
+    }
+
+    @Override
+    public Node get(String id) {
+        return nodes.get(id);
     }
 
     /**

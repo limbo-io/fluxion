@@ -16,6 +16,8 @@
 
 package io.fluxion.server.core.cluster;
 
+import io.fluxion.remote.core.api.cluster.Node;
+
 /**
  * @author Devil
  * @since 2022/7/15

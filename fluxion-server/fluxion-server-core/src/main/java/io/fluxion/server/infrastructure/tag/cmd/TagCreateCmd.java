@@ -14,24 +14,30 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.schedule.cmd;
+package io.fluxion.server.infrastructure.tag.cmd;
 
 import io.fluxion.server.infrastructure.cqrs.ICmd;
-import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
+import io.fluxion.server.infrastructure.tag.Tag;
+import io.fluxion.server.infrastructure.tag.TagRefType;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 /**
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class ScheduledTaskSubmitCmd implements ICmd<Void> {
+public class TagCreateCmd implements ICmd<Void> {
 
-    private ScheduledTask task;
+    /**
+     * 关联的数据ID
+     */
+    private final String refId;
+    /**
+     * 关联的数据类型
+     */
+    private final TagRefType refType;
+
+    private final Tag tag;
 
 }

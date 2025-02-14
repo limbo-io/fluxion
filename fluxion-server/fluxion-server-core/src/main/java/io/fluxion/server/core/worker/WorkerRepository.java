@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,54 +16,36 @@
 
 package io.fluxion.server.core.worker;
 
-import javax.annotation.Nullable;
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * @author Brozen
- * @since 2021-05-19
+ * @author Devil
  */
 public interface WorkerRepository {
 
     /**
      * 新增一个worker
+     *
      * @param worker worker节点
      */
     void save(Worker worker);
 
-
-    /**
-     * 仅更新worker指标相关数据
-     * @param worker worker节点
-     */
-    void saveMetric(Worker worker);
-
-
     /**
      * 根据id查询worker
+     *
      * @param id workerId
      * @return worker节点
      */
-    @Nullable
     Worker get(String id);
-
-    /**
-     * 根据名称查询worker
-     * @param name 名称
-     * @return worker节点
-     */
-    Worker getByName(String name);
 
 
     /**
      * 删除一个worker，软删除
+     *
      * @param id 需要被移除的workerId
      */
     void delete(String id);
 
-    List<Worker> findByLastHeartbeatAtBetween(LocalDateTime startTime, LocalDateTime endTime);
-
-    boolean updateStatus(String workerId, Integer oldStatus, Integer newStatus);
+    List<Worker> allByApp(String appId);
 
 }

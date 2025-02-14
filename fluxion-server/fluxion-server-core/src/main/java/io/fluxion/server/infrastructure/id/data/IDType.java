@@ -22,7 +22,6 @@ package io.fluxion.server.infrastructure.id.data;
 public enum IDType {
     FLOW,
     TRIGGER,
-    BROKER,
     EXECUTION,
     TASK,
     APP,

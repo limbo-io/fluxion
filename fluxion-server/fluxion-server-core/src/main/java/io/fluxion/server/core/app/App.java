@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.client;
+package io.fluxion.server.core.app;
 
-import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.cluster.Node;
+import lombok.Data;
 
 /**
  * @author Devil
  */
-public interface LBClient {
+@Data
+public class App {
 
-    /**
-     * send request and get response by path
-     *
-     * @param path    path
-     * @param request request
-     */
-    <R, T extends Request<R>> R call(String path, T request);
+    private String id;
+
+    private Node broker;
+
 }

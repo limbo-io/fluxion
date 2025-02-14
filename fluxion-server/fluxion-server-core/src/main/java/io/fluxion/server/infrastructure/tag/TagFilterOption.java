@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.fluxion.server.core.tag;
+package io.fluxion.server.infrastructure.tag;
 
 import lombok.*;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;

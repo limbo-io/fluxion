@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,17 @@
 
 package io.fluxion.server.infrastructure.tag;
 
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * @author Devil
  */
-@Data
+@Getter
+@AllArgsConstructor
 public class Tag {
-    /**
-     * 关联的数据ID
-     */
-    private String refId;
-    /**
-     * 关联的数据类型
-     */
-    private TagRefType refType;
 
-    private String key;
+    private final String name;
 
-    private String value;
+    private final String value;
 }

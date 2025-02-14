@@ -26,7 +26,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
  */
 public enum Protocol {
 
-    UNKNOWN("", 0),
+    UNKNOWN("unknown", 0),
 
     /**
      * HTTP协议通信

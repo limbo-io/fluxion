@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,6 @@
  */
 
 package io.fluxion.remote.core.lb;
-
-import io.fluxion.remote.core.constants.Protocol;
 
 import java.net.URL;
 
@@ -51,21 +49,6 @@ public class BaseLBServer implements LBServer {
     @Override
     public boolean isAlive() {
         return true;
-    }
-
-    @Override
-    public Protocol protocol() {
-        return Protocol.parse(url.getProtocol());
-    }
-
-    @Override
-    public String host() {
-        return url.getHost();
-    }
-
-    @Override
-    public int port() {
-        return url.getPort();
     }
 
 }

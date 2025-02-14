@@ -26,6 +26,8 @@ public class Task {
 
     private String executionId;
 
+    private String appId;
+
     private String taskId;
 
     private TaskType type;

@@ -18,22 +18,19 @@ package io.fluxion.server.core.broker;
 
 import io.fluxion.common.constants.CommonConstants;
 import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.remote.core.api.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
-import io.fluxion.server.core.cluster.Node;
+import io.fluxion.server.core.cluster.ClusterContext;
 import io.fluxion.server.core.cluster.NodeManger;
 import io.fluxion.server.core.cluster.NodeRegistry;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
-import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
-import io.fluxion.server.infrastructure.id.data.IDType;
 import io.fluxion.server.infrastructure.schedule.scheduler.ScheduledTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.scheduler.TaskScheduler;
 import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
 import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.Assert;
 
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -43,24 +40,23 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class Broker {
 
-    private final String id;
-
-    private final Node node;
+    private final Protocol protocol;
+    private final String host;
+    private final int port;
 
     private final NodeRegistry registry;
 
     private final NodeManger manger;
 
-    private final TaskScheduler<ScheduledTask> taskScheduler;
+    private final TaskScheduler<ScheduledTask> taskScheduler; // todo @d
 
-    public Broker(Map<Protocol, List<Node.Address>> protocols, NodeRegistry registry, NodeManger manger) {
-        if (MapUtils.isEmpty(protocols)) {
-            throw new IllegalArgumentException("protocols can't be empty");
-        }
+    public Broker(Protocol protocol, String host, int port, NodeRegistry registry, NodeManger manger) {
+        Assert.isTrue(Protocol.UNKNOWN != protocol, "protocol is unknown");
+        Assert.isTrue(StringUtils.isNotBlank(host), "host is null");
 
-        String id = Cmd.send(new IDGenerateCmd(IDType.BROKER)).getId();
-        this.id = id;
-        this.node = new Node(id, protocols);
+        this.protocol = protocol;
+        this.host = host;
+        this.port = port;
         this.registry = registry;
         this.manger = manger;
         this.taskScheduler = new ScheduledTaskScheduler(new TimingWheelTimer(100L, TimeUnit.MILLISECONDS));
@@ -70,6 +66,7 @@ public class Broker {
      * 启动节点
      */
     public void start() {
+        Node node = new Node(protocol, host, port);
         // 将自己上线管理
         manger.online(node);
         // 节点注册 用于集群感知
@@ -95,7 +92,7 @@ public class Broker {
             }
         });
 
-        //
+        ClusterContext.initialize(node.id());
 
         log.info("FluxionBroker start!!!~~~");
     }
@@ -105,10 +102,6 @@ public class Broker {
      */
     public void stop() {
         registry.stop();
-    }
-
-    public String id() {
-        return id;
     }
 
 }

@@ -16,12 +16,11 @@
 
 package io.fluxion.worker.spring.starter.configuration;
 
+import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.RetryableClient;
 import io.fluxion.remote.core.lb.BaseLBServer;
 import io.fluxion.remote.core.lb.LBServer;
-import io.fluxion.remote.core.lb.repository.EmbeddedLBServerRepository;
-import io.fluxion.remote.core.lb.repository.LBServerRepository;
 import io.fluxion.remote.core.utils.NetUtils;
 import io.fluxion.worker.core.Worker;
 import io.fluxion.worker.spring.starter.SpringDelegatedWorker;
@@ -89,13 +88,9 @@ public class FluxionWorkerAutoConfiguration {
         }
         URL workerClientUrl = new URL(workerProps.getProtocol().getValue(), host, port, "");
 
-        // brokers
-        LBServerRepository repository = new EmbeddedLBServerRepository(brokerNodes());
-
         // client
-        RetryableClient client = RetryableClient.builder()
+        Client client = RetryableClient.builder()
             .client(ClientFactory.create(workerProps.getProtocol()))
-            .repository(repository)
             .build();
 
         // tags

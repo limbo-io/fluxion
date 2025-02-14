@@ -14,40 +14,34 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.cluster;
+package io.fluxion.server.infrastructure.tag.cmd;
 
-import io.fluxion.remote.core.constants.Protocol;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.fluxion.server.infrastructure.tag.Tag;
+import io.fluxion.server.infrastructure.tag.TagRefType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.List;
-import java.util.Map;
 
 /**
+ * 使用新的 tag 列表替换Ref的tag
+ *
  * @author Devil
- * @since 2022/8/23
  */
+@Getter
 @AllArgsConstructor
-public class Node {
+public class TagBatchSaveCmd implements ICmd<Void> {
 
-    private final String id;
+    /**
+     * 关联的数据ID
+     */
+    private final String refId;
+    /**
+     * 关联的数据类型
+     */
+    private final TagRefType refType;
 
-    private Map<Protocol, List<Address>> protocols;
-
-    public String id() {
-        return id;
-    }
-
-    public Map<Protocol, List<Address>> protocols() {
-        return protocols;
-    }
-
-    @Getter
-    @AllArgsConstructor
-    public static class Address {
-        private String host;
-
-        private int port;
-    }
+    private final List<Tag> tags;
 
 }

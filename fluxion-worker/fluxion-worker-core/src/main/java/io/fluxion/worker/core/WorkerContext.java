@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package io.fluxion.worker.core;
 
 import io.fluxion.common.thread.NamedThreadFactory;
+import io.fluxion.remote.core.api.cluster.Node;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.tracker.TaskTracker;
 import org.slf4j.Logger;
@@ -61,6 +62,8 @@ public class WorkerContext {
     private int concurrency;
 
     // ========== Runtime ==========
+    private Node broker;
+
     private final WorkerStatus status;
 
     /**
@@ -152,6 +155,10 @@ public class WorkerContext {
 
     public int queueSize() {
         return queueSize;
+    }
+
+    public Node broker() {
+        return broker;
     }
 
 }

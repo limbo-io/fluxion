@@ -30,35 +30,21 @@ import java.util.Map;
 public class AppointLBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
 
     /**
-     * 通过节点RPC通信地址指定负载均衡节点
+     * 节点ID
      */
-    public static final String PARAM_BY_SERVER_ADDRESS = "appoint.byServerAddress";
-
-    /**
-     * 通过节点 ID 指定负载均衡节点
-     */
-    public static final String PARAM_BY_SERVER_ID = "appoint.byServerId";
+    public static final String PARAM_BY_SERVER_ID = "appoint.serverId";
 
 
     /**
      * 从调用参数中解析指定节点的类型。
      */
     private boolean filter(S server, Invocation invocation) {
-        if (server == null || StringUtils.isBlank(server.host())) {
+        if (server == null || StringUtils.isBlank(server.serverId())) {
             return false;
         }
         Map<String, String> params = invocation.parameters();
         String byServerId = params.get(PARAM_BY_SERVER_ID);
-        if (StringUtils.isNotBlank(byServerId) && StringUtils.equals(server.serverId(), byServerId)) {
-            return true;
-        }
-
-        String byServerAddress = params.get(PARAM_BY_SERVER_ADDRESS);
-        if (StringUtils.isNotBlank(byServerAddress) && byServerAddress.equals(server.host() + ":" + server.port())) {
-            return true;
-        }
-
-        return false;
+        return StringUtils.isNotBlank(byServerId) && StringUtils.equals(server.serverId(), byServerId);
     }
 
 

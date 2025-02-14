@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,13 +28,13 @@ public class BrokerTopologyDTO {
     /**
      * broker节点列表，主从模式下，列表中仅包括一个主节点
      */
-    private List<BrokerDTO> brokers = Collections.emptyList();
+    private List<NodeDTO> brokers = Collections.emptyList();
 
-    public List<BrokerDTO> getBrokers() {
+    public List<NodeDTO> getBrokers() {
         return brokers;
     }
 
-    public void setBrokers(List<BrokerDTO> brokers) {
+    public void setBrokers(List<NodeDTO> brokers) {
         this.brokers = brokers;
     }
 }

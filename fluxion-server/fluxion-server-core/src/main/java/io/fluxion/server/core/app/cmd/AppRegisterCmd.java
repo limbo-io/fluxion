@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.app.cmd;
 
+import io.fluxion.server.core.app.App;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -36,7 +37,7 @@ public class AppRegisterCmd implements ICmd<AppRegisterCmd.Response> {
     @Getter
     @AllArgsConstructor
     public static class Response {
-        private String id;
+        private App app;
     }
 
 }

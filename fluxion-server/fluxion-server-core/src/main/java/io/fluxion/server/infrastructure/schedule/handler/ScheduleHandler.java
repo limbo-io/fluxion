@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.schedule.handler;
+package io.fluxion.server.infrastructure.schedule.handler;
 
-import io.fluxion.server.core.schedule.cmd.DelayTaskSubmitCmd;
-import io.fluxion.server.core.schedule.cmd.ScheduledTaskSubmitCmd;
+import io.fluxion.server.infrastructure.schedule.cmd.DelayTaskSubmitCmd;
+import io.fluxion.server.infrastructure.schedule.cmd.ScheduledTaskSubmitCmd;
 import io.fluxion.server.infrastructure.schedule.scheduler.DelayTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.scheduler.ScheduledTaskScheduler;
 import org.axonframework.commandhandling.CommandHandler;
