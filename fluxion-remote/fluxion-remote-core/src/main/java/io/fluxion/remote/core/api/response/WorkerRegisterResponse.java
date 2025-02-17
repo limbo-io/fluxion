@@ -17,7 +17,6 @@
 package io.fluxion.remote.core.api.response;
 
 import io.fluxion.remote.core.api.dto.NodeDTO;
-import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 
 /**
  * @author PengQ

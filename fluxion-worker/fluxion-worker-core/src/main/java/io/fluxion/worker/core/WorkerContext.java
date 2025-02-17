@@ -163,6 +163,10 @@ public class WorkerContext {
         return queueSize;
     }
 
+    public void broker(Node broker) {
+        this.broker = broker;
+    }
+
     public Node broker() {
         return broker;
     }

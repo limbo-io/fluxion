@@ -16,12 +16,17 @@
 
 package io.fluxion.worker.core.discovery;
 
+import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerExecutorDTO;
 import io.fluxion.remote.core.api.dto.WorkerTagDTO;
 import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
+import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
+import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.Client;
+import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.exception.RpcException;
 import io.fluxion.remote.core.heartbeat.HeartbeatPacemaker;
 import io.fluxion.worker.core.SystemInfo;
@@ -64,11 +69,13 @@ public class DefaultServerDiscovery implements ServerDiscovery {
     @Override
     public void start() {
         // 注册
-        client.call(API_WORKER_REGISTER, workerContext.broker(), registerRequest(workerContext));
+        WorkerRegisterResponse registerResponse = client.call(API_WORKER_REGISTER, workerContext.broker(), registerRequest(workerContext));
+        workerContext.broker(node(registerResponse.getBroker()));
         // 心跳管理
         this.heartbeatPacemaker = new HeartbeatPacemaker(() -> {
             try {
-                client.call(API_WORKER_HEARTBEAT, workerContext.broker(), heartbeatRequest(workerContext));
+                WorkerHeartbeatResponse heartbeatResponse = client.call(API_WORKER_HEARTBEAT, workerContext.broker(), heartbeatRequest(workerContext));
+                workerContext.broker(node(heartbeatResponse.getBroker()));
             } catch (RpcException e) {
                 log.warn("[DefaultServerDiscovery] send heartbeat failed");
                 throw new IllegalStateException("[DefaultServerDiscovery] send heartbeat failed", e);
@@ -100,6 +107,10 @@ public class DefaultServerDiscovery implements ServerDiscovery {
                 return dto;
             }
         ).collect(Collectors.toList());
+    }
+
+    private Node node(NodeDTO dto) {
+        return new Node(Protocol.parse(dto.getProtocol()), dto.getHost(), dto.getPort());
     }
 
     private SystemInfoDTO systemInfoDTO() {
