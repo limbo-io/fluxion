@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.cluster;
+package io.fluxion.remote.core.cluster;
 
 import io.fluxion.remote.core.constants.Protocol;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 
 /**
  * @author Devil
@@ -54,4 +57,13 @@ public class Node {
     public int getPort() {
         return port;
     }
+
+    public URL url(String path) {
+        try {
+            return new URL(protocol.getValue(), host, port, path);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

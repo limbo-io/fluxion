@@ -26,7 +26,6 @@ import io.fluxion.remote.core.exception.RpcException;
 import io.fluxion.remote.core.heartbeat.HeartbeatPacemaker;
 import io.fluxion.worker.core.SystemInfo;
 import io.fluxion.worker.core.WorkerContext;
-import io.fluxion.worker.core.remote.BrokerSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,11 +64,11 @@ public class DefaultServerDiscovery implements ServerDiscovery {
     @Override
     public void start() {
         // 注册
-        BrokerSender.register(client, workerContext.broker(), API_WORKER_REGISTER, registerRequest(workerContext));
+        client.call(API_WORKER_REGISTER, workerContext.broker(), registerRequest(workerContext));
         // 心跳管理
         this.heartbeatPacemaker = new HeartbeatPacemaker(() -> {
             try {
-                BrokerSender.heartbeat(client, workerContext.broker(), API_WORKER_HEARTBEAT, heartbeatRequest(workerContext));
+                client.call(API_WORKER_HEARTBEAT, workerContext.broker(), heartbeatRequest(workerContext));
             } catch (RpcException e) {
                 log.warn("[DefaultServerDiscovery] send heartbeat failed");
                 throw new IllegalStateException("[DefaultServerDiscovery] send heartbeat failed", e);

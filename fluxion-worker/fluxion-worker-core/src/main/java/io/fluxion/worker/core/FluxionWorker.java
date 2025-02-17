@@ -16,6 +16,7 @@
 
 package io.fluxion.worker.core;
 
+import io.fluxion.remote.core.api.constants.WorkerStatus;
 import io.fluxion.remote.core.client.server.ClientServer;
 import io.fluxion.worker.core.discovery.ServerDiscovery;
 import org.slf4j.Logger;
@@ -58,7 +59,7 @@ public class FluxionWorker implements Worker {
 
     @Override
     public void start() {
-        if (!status().change(WorkerStatus.S.IDLE, WorkerStatus.S.INITIALIZING)) {
+        if (!workerContext.changeStatus(WorkerStatus.IDLE, WorkerStatus.INITIALIZING)) {
             return;
         }
         // Launch the program in order
@@ -73,24 +74,20 @@ public class FluxionWorker implements Worker {
         this.discovery.start();
 
         // 更新为运行中
-        status().change(WorkerStatus.S.INITIALIZING, WorkerStatus.S.RUNNING);
+        workerContext.changeStatus(WorkerStatus.INITIALIZING, WorkerStatus.RUNNING);
         log.info("FluxionWorker Start!!!");
     }
 
     @Override
     public void stop() {
-        if (!status().change(WorkerStatus.S.RUNNING, WorkerStatus.S.TERMINATING)) {
+        if (!workerContext.changeStatus(WorkerStatus.RUNNING, WorkerStatus.TERMINATING)) {
             return;
         }
         this.discovery.stop();
         this.clientServer.stop();
         this.workerContext.destroy();
         // 修改状态
-        status().change(WorkerStatus.S.TERMINATING, WorkerStatus.S.TERMINATED);
-    }
-
-    private WorkerStatus status() {
-        return workerContext.status();
+        workerContext.changeStatus(WorkerStatus.TERMINATING, WorkerStatus.TERMINATED);
     }
 
 }

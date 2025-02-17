@@ -32,6 +32,8 @@ public class WorkerHeartbeatRequest implements Request<WorkerHeartbeatResponse> 
 
     private int availableQueueNum;
 
+    private long heartbeatTime;
+
     public String getWorkerId() {
         return workerId;
     }
@@ -54,5 +56,13 @@ public class WorkerHeartbeatRequest implements Request<WorkerHeartbeatResponse> 
 
     public void setAvailableQueueNum(int availableQueueNum) {
         this.availableQueueNum = availableQueueNum;
+    }
+
+    public long getHeartbeatTime() {
+        return heartbeatTime;
+    }
+
+    public void setHeartbeatTime(long heartbeatTime) {
+        this.heartbeatTime = heartbeatTime;
     }
 }

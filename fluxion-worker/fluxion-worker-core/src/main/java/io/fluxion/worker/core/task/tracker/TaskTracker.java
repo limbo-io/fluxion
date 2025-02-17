@@ -61,7 +61,7 @@ public abstract class TaskTracker {
 
     public boolean start() {
         if (!workerContext.status().isRunning()) {
-            log.info("Worker is not running: {}", workerContext.status().status());
+            log.info("Worker is not running: {}", workerContext.status());
             return false;
         }
 

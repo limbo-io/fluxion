@@ -16,17 +16,17 @@
 
 package io.fluxion.remote.core.lb;
 
-import java.net.URL;
+import io.fluxion.remote.core.cluster.Node;
 
 /**
  * @author Brozen
  */
 public class BaseLBServer implements LBServer {
 
-    private final URL url;
+    private final Node node;
 
-    public BaseLBServer(URL baseUrl) {
-        this.url = baseUrl;
+    public BaseLBServer(Node node) {
+        this.node = node;
     }
 
 
@@ -37,7 +37,7 @@ public class BaseLBServer implements LBServer {
      */
     @Override
     public String serverId() {
-        return url.toString();
+        return node.id();
     }
 
 
@@ -49,6 +49,16 @@ public class BaseLBServer implements LBServer {
     @Override
     public boolean isAlive() {
         return true;
+    }
+
+    @Override
+    public String host() {
+        return node.getHost();
+    }
+
+    @Override
+    public int port() {
+        return node.getPort();
     }
 
 }

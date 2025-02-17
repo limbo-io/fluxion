@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.cluster;
 
+import io.fluxion.remote.core.client.Client;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,12 +28,19 @@ public class ClusterContext {
 
     private static String nodeId;
 
+    private static Client client;
+
     public static String nodeId() {
         return nodeId;
     }
 
-    public static void initialize(String id) {
-        nodeId = id;
+    public static Client client() {
+        return client;
+    }
+
+    public static void initialize(String id, Client client) {
+        ClusterContext.nodeId = id;
+        ClusterContext.client = client;
     }
 
 }

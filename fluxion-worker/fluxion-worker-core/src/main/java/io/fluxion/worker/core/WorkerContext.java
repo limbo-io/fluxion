@@ -17,7 +17,8 @@
 package io.fluxion.worker.core;
 
 import io.fluxion.common.thread.NamedThreadFactory;
-import io.fluxion.remote.core.api.cluster.Node;
+import io.fluxion.remote.core.api.constants.WorkerStatus;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.tracker.TaskTracker;
 import org.slf4j.Logger;
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -64,7 +66,7 @@ public class WorkerContext {
     // ========== Runtime ==========
     private Node broker;
 
-    private final WorkerStatus status;
+    private final AtomicReference<WorkerStatus> status;
 
     /**
      * 当前 Worker 的所有任务存储在此 Map 中
@@ -90,7 +92,7 @@ public class WorkerContext {
         this.tags = tags == null ? Collections.emptyMap() : tags;
         this.queueSize = queueSize;
         this.concurrency = concurrency;
-        this.status = new WorkerStatus();
+        this.status = new AtomicReference<>();
     }
 
     public void initialize() {
@@ -118,7 +120,11 @@ public class WorkerContext {
     }
 
     public WorkerStatus status() {
-        return status;
+        return status.get();
+    }
+
+    public boolean changeStatus(WorkerStatus expect, WorkerStatus update) {
+        return status.compareAndSet(expect, update);
     }
 
     public Map<String, TaskTracker> tasks() {

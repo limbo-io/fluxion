@@ -19,8 +19,6 @@ package io.fluxion.worker.spring.starter.configuration;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.RetryableClient;
-import io.fluxion.remote.core.lb.BaseLBServer;
-import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.remote.core.utils.NetUtils;
 import io.fluxion.worker.core.Worker;
 import io.fluxion.worker.spring.starter.SpringDelegatedWorker;
@@ -38,7 +36,10 @@ import org.springframework.util.Assert;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.mapping;
@@ -114,10 +115,4 @@ public class FluxionWorkerAutoConfiguration {
         }).filter(Objects::nonNull).collect(Collectors.groupingBy(Pair::getKey, mapping(Pair::getValue, toSet())));
     }
 
-    private List<LBServer> brokerNodes() {
-        List<URL> brokerUrls = workerProps.getBrokers() == null ? Collections.emptyList() : workerProps.getBrokers();
-        return brokerUrls.stream()
-            .map(BaseLBServer::new)
-            .collect(Collectors.toList());
-    }
 }

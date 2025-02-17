@@ -18,7 +18,9 @@ package io.fluxion.server.core.broker;
 
 import io.fluxion.common.constants.CommonConstants;
 import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.remote.core.api.cluster.Node;
+import io.fluxion.remote.core.client.Client;
+import io.fluxion.remote.core.client.ClientFactory;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.cluster.ClusterContext;
 import io.fluxion.server.core.cluster.NodeManger;
@@ -48,6 +50,8 @@ public class Broker {
 
     private final NodeManger manger;
 
+    private final Client client;
+
     private final TaskScheduler<ScheduledTask> taskScheduler; // todo @d
 
     public Broker(Protocol protocol, String host, int port, NodeRegistry registry, NodeManger manger) {
@@ -59,6 +63,7 @@ public class Broker {
         this.port = port;
         this.registry = registry;
         this.manger = manger;
+        this.client = ClientFactory.create(protocol);
         this.taskScheduler = new ScheduledTaskScheduler(new TimingWheelTimer(100L, TimeUnit.MILLISECONDS));
     }
 
@@ -92,7 +97,7 @@ public class Broker {
             }
         });
 
-        ClusterContext.initialize(node.id());
+        ClusterContext.initialize(node.id(), client);
 
         log.info("FluxionBroker start!!!~~~");
     }

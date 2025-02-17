@@ -16,26 +16,45 @@
 
 package io.fluxion.server.core.app.handler;
 
+import io.fluxion.remote.core.api.request.BrokerPingRequest;
+import io.fluxion.remote.core.api.response.BrokerPingResponse;
+import io.fluxion.remote.core.client.Client;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.server.core.app.App;
+import io.fluxion.server.core.app.cmd.AppBrokerElectCmd;
 import io.fluxion.server.core.app.cmd.AppRegisterCmd;
 import io.fluxion.server.core.cluster.ClusterContext;
-import io.fluxion.remote.core.api.cluster.Node;
 import io.fluxion.server.core.cluster.NodeManger;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.AppEntity;
 import io.fluxion.server.infrastructure.dao.repository.AppEntityRepo;
+import io.fluxion.server.infrastructure.exception.ErrorCode;
+import io.fluxion.server.infrastructure.exception.PlatformException;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
+import io.fluxion.server.infrastructure.lock.DistributedLock;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import static io.fluxion.remote.core.constants.BrokerConstant.API_BROKER_PING;
 
 /**
  * @author Devil
  */
+@Slf4j
 @Component
 public class AppCommandHandler {
+
+    private static final int ELECT_RETRY_TIMES = 5;
+
+    private static final String ELECT_LOCK = "app_broker_elect_%s";
 
     @Resource
     private AppEntityRepo appEntityRepo;
@@ -43,20 +62,75 @@ public class AppCommandHandler {
     @Resource
     private NodeManger nodeManger;
 
+    @Resource
+    private DistributedLock distributedLock;
+
     @CommandHandler
     public AppRegisterCmd.Response handle(AppRegisterCmd cmd) {
         AppEntity entity = appEntityRepo.findByAppName(cmd.getAppName()).orElse(null);
         if (entity == null) {
             String appId = Cmd.send(new IDGenerateCmd(IDType.APP)).getId();
             entity = new AppEntity();
-            entity.setBrokerId(ClusterContext.nodeId());
+            entity.setBrokerId(StringUtils.EMPTY);
             entity.setAppName(cmd.getAppName());
             entity.setAppId(appId);
             appEntityRepo.saveAndFlush(entity);
         }
-        Node node = nodeManger.get(entity.getBrokerId());
+        Node node = Cmd.send(new AppBrokerElectCmd(entity.getAppId())).getBroker();
         App app = AppEntityConverter.convert(entity, node);
         return new AppRegisterCmd.Response(app);
+    }
+
+    @CommandHandler
+    public AppBrokerElectCmd.Response handle(AppBrokerElectCmd cmd) {
+        String appId = cmd.getAppId();
+        List<Node> nodes = nodeManger.allAlive();
+        Client client = ClusterContext.client();
+        String lockName = String.format(ELECT_LOCK, appId);
+        for (int i = 0; i < ELECT_RETRY_TIMES; i++) {
+            boolean locked = distributedLock.tryLock(lockName, 10000);
+            if (!locked) {
+                try {
+                    Thread.sleep(1000);
+                } catch (Exception ignored) {
+                }
+                continue;
+            }
+            try {
+                AppEntity entity = appEntityRepo.findById(appId)
+                    .orElseThrow(() -> new IllegalArgumentException("can't find app by id:" + appId));
+                // 如果app当前绑定节点和worker请求的broker节点为同个节点则直接返回，说明连接正常无需重新选举
+                Node node = nodeManger.get(ClusterContext.nodeId());
+                if (entity.getBrokerId().equals(ClusterContext.nodeId())) {
+                    return new AppBrokerElectCmd.Response(node);
+                }
+
+                // 判断app对应broker是否存活
+                BrokerPingResponse pingResponse = client.call(API_BROKER_PING, node, new BrokerPingRequest());
+                if (pingResponse.isSuccess()) {
+                    return new AppBrokerElectCmd.Response(node);
+                }
+                nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), node.id())).collect(Collectors.toList());
+                // 节点非存活状态，重新进行选举
+                Node elect = nodeManger.elect(appId);
+                if (!ClusterContext.nodeId().equals(elect.id())) {
+                    pingResponse = client.call(API_BROKER_PING, elect, new BrokerPingRequest());
+                    if (!pingResponse.isSuccess()) {
+                        nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), elect.id())).collect(Collectors.toList());
+                        continue;
+                    }
+                }
+                // 选举成功
+                entity.setBrokerId(elect.id());
+                appEntityRepo.saveAndFlush(entity);
+                return new AppBrokerElectCmd.Response(elect);
+            } catch (Exception e) {
+                log.error("App broker elect fail appId:{}", appId, e);
+            } finally {
+                distributedLock.unlock(lockName);
+            }
+        }
+        throw new PlatformException(ErrorCode.SYSTEM_ERROR, "broker elect failed appId: " + appId);
     }
 
 

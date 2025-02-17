@@ -49,6 +49,6 @@ public class WorkerMetric {
     /**
      * 上次心跳上报时间戳，毫秒
      */
-    private LocalDateTime lastHeartbeatAt;
+    private long lastHeartbeatAt;
 
 }

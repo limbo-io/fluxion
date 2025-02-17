@@ -17,7 +17,7 @@
 package io.fluxion.server.core.worker;
 
 import io.fluxion.common.utils.MD5Utils;
-import io.fluxion.remote.core.api.cluster.Node;
+import io.fluxion.remote.core.api.constants.WorkerStatus;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.lb.LBServer;
@@ -42,16 +42,13 @@ public class Worker implements LBServer, Tagged {
      */
     private String id;
 
-    private Node node;
-
     private String appId;
 
+    private Protocol protocol;
 
     private String host;
 
     private int port;
-
-    private Protocol protocol;
 
     /**
      * 执行器
@@ -121,4 +118,17 @@ public class Worker implements LBServer, Tagged {
         return WorkerStatus.RUNNING == status;
     }
 
+    @Override
+    public String host() {
+        return host;
+    }
+
+    @Override
+    public int port() {
+        return port;
+    }
+
+    public void setAppId(String appId) {
+        this.appId = appId;
+    }
 }

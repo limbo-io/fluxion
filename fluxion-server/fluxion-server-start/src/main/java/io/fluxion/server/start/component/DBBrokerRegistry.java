@@ -17,10 +17,11 @@
 package io.fluxion.server.start.component;
 
 import io.fluxion.common.thread.NamedThreadFactory;
+import io.fluxion.common.utils.MD5Utils;
 import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.LocalTimeUtils;
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.remote.core.api.cluster.Node;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.cluster.NodeEvent;
 import io.fluxion.server.core.cluster.NodeListener;
@@ -117,7 +118,7 @@ public class DBBrokerRegistry implements NodeRegistry {
 
     private BrokerEntity entity(Node node) {
         BrokerEntity entity = new BrokerEntity();
-        entity.setBrokerId(node.id());
+        entity.setBrokerId(MD5Utils.md5(node.id()));
         entity.setProtocol(node.getProtocol().getValue());
         entity.setHost(node.getHost());
         entity.setPort(node.getPort());

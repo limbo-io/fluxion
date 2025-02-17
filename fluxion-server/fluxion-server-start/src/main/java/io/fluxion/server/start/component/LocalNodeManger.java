@@ -17,16 +17,13 @@
 package io.fluxion.server.start.component;
 
 import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.remote.core.api.cluster.Node;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.server.core.cluster.NodeManger;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -77,11 +74,11 @@ public class LocalNodeManger implements NodeManger {
     /**
      * 所有存活节点
      */
-    public Collection<Node> allAlive() {
+    public List<Node> allAlive() {
         if (nodes.isEmpty() && log.isDebugEnabled()) {
             log.debug("[LocalNodeManger] allAlive {}", JacksonUtils.toJSONString(nodes));
         }
-        return nodes.values();
+        return new ArrayList<>(nodes.values());
     }
 
     /**

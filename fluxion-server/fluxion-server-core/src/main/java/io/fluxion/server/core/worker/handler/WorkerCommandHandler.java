@@ -16,11 +16,16 @@
 
 package io.fluxion.server.core.worker.handler;
 
+import io.fluxion.remote.core.api.constants.WorkerStatus;
+import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.server.core.app.App;
+import io.fluxion.server.core.app.query.AppByIdQuery;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.WorkerRepository;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerRegisterCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.tag.Tag;
 import io.fluxion.server.infrastructure.tag.TagRefType;
 import io.fluxion.server.infrastructure.tag.cmd.TagBatchSaveCmd;
@@ -57,8 +62,20 @@ public class WorkerCommandHandler {
     }
 
     @CommandHandler
-    public void handle(WorkerHeartbeatCmd cmd) {
-        // todo @d
+    public WorkerHeartbeatCmd.Response handle(WorkerHeartbeatCmd cmd) {
+        Worker worker = workerRepository.get(cmd.getWorkerId());
+        if (worker == null) {
+            return new WorkerHeartbeatCmd.Response();
+        }
+        App app = Query.query(new AppByIdQuery(worker.getAppId())).getApp();
+        if (app == null || app.getBroker() == null) {
+            return new WorkerHeartbeatCmd.Response();
+        }
+        worker.setAppId(app.getId());
+        worker.setMetric(cmd.getMetric());
+        worker.setStatus(WorkerStatus.RUNNING);
+        workerRepository.save(worker);
+        return new WorkerHeartbeatCmd.Response(app);
     }
 
     private List<Tag> tags(Worker worker) {

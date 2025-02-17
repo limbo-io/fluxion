@@ -34,17 +34,26 @@ public class AppointLBStrategy<S extends LBServer> extends AbstractLBStrategy<S>
      */
     public static final String PARAM_BY_SERVER_ID = "appoint.serverId";
 
+    /**
+     * 通过节点RPC通信地址指定负载均衡节点
+     */
+    public static final String PARAM_BY_SERVER_ADDRESS = "appoint.serverAddress";
+
 
     /**
      * 从调用参数中解析指定节点的类型。
      */
     private boolean filter(S server, Invocation invocation) {
-        if (server == null || StringUtils.isBlank(server.serverId())) {
+        if (server == null) {
             return false;
         }
         Map<String, String> params = invocation.parameters();
-        String byServerId = params.get(PARAM_BY_SERVER_ID);
-        return StringUtils.isNotBlank(byServerId) && StringUtils.equals(server.serverId(), byServerId);
+        String serverId = params.get(PARAM_BY_SERVER_ID);
+        if (StringUtils.isNotBlank(serverId) && StringUtils.equals(server.serverId(), serverId)) {
+            return true;
+        }
+        String address = params.get(PARAM_BY_SERVER_ADDRESS);
+        return StringUtils.isNotBlank(address) && StringUtils.equals(address, server.host() + ":" + server.port());
     }
 
 

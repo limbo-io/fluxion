@@ -14,22 +14,14 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.app.handler;
+package io.fluxion.remote.core.api.request;
 
-import io.fluxion.server.core.app.App;
-import io.fluxion.remote.core.cluster.Node;
-import io.fluxion.server.infrastructure.dao.entity.AppEntity;
+import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.response.BrokerPingResponse;
 
 /**
  * @author Devil
+ * @since 2023/8/3
  */
-public class AppEntityConverter {
-
-    public static App convert(AppEntity entity, Node node) {
-        App app = new App();
-        app.setId(entity.getAppId());
-        app.setBroker(node);
-        return app;
-    }
-
+public class BrokerPingRequest implements Request<BrokerPingResponse> {
 }

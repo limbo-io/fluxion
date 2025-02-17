@@ -33,4 +33,8 @@ public interface LBServer {
      */
     boolean isAlive();
 
+    String host();
+
+    int port();
+
 }

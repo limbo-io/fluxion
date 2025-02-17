@@ -16,9 +16,10 @@
 
 package io.fluxion.server.core.cluster;
 
-import io.fluxion.remote.core.api.cluster.Node;
+import io.fluxion.remote.core.cluster.Node;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * 节点管理器
@@ -48,7 +49,7 @@ public interface NodeManger {
     /**
      * 所有存活节点
      */
-    Collection<Node> allAlive();
+    List<Node> allAlive();
 
     /**
      * 为某个资源选择一个节点

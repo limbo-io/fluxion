@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.client;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 
 import java.net.URL;
@@ -37,5 +38,16 @@ public interface Client {
      * Protocol used by the client
      */
     Protocol protocol();
+
+    /**
+     * send request by path and node
+     *
+     * @param path    path
+     * @param node    node to send
+     * @param request request
+     */
+    default <R> R call(String path, Node node, Request<R> request) {
+        return call(node.url(path), request);
+    }
 
 }

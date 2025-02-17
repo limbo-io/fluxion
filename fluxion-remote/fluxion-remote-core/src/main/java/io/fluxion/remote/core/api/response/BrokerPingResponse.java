@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.app.handler;
-
-import io.fluxion.server.core.app.App;
-import io.fluxion.remote.core.cluster.Node;
-import io.fluxion.server.infrastructure.dao.entity.AppEntity;
+package io.fluxion.remote.core.api.response;
 
 /**
- * @author Devil
+ * @author PengQ
+ * @since 0.0.1
  */
-public class AppEntityConverter {
+public class BrokerPingResponse {
 
-    public static App convert(AppEntity entity, Node node) {
-        App app = new App();
-        app.setId(entity.getAppId());
-        app.setBroker(node);
-        return app;
+    private boolean success;
+
+    public boolean isSuccess() {
+        return success;
     }
 
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
 }

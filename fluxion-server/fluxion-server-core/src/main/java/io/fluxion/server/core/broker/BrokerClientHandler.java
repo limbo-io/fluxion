@@ -18,7 +18,6 @@ package io.fluxion.server.core.broker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
-import io.fluxion.remote.core.api.cluster.Node;
 import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
@@ -28,14 +27,11 @@ import io.fluxion.remote.core.constants.BrokerConstant;
 import io.fluxion.server.core.app.App;
 import io.fluxion.server.core.app.cmd.AppRegisterCmd;
 import io.fluxion.server.core.broker.converter.BrokerClientConverter;
-import io.fluxion.server.core.cluster.NodeManger;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerRegisterCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.Resource;
 
 /**
  * @author Devil
@@ -43,9 +39,6 @@ import javax.annotation.Resource;
 @Slf4j
 @Component
 public class BrokerClientHandler implements ClientHandler {
-
-    @Resource
-    private NodeManger nodeManger;
 
     @Override
     public Response<?> process(String path, String data) {
@@ -66,12 +59,12 @@ public class BrokerClientHandler implements ClientHandler {
                 }
                 case BrokerConstant.API_WORKER_HEARTBEAT: {
                     WorkerHeartbeatRequest request = JacksonUtils.toType(data, WorkerHeartbeatRequest.class);
-                    Node node = Cmd.send(new WorkerHeartbeatCmd(
+                    App app = Cmd.send(new WorkerHeartbeatCmd(
                         request.getWorkerId(),
-                        BrokerClientConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum())
-                    )).getBroker();
+                        BrokerClientConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), request.getHeartbeatTime())
+                    )).getApp();
                     WorkerHeartbeatResponse response = new WorkerHeartbeatResponse();
-                    response.setBroker(BrokerClientConverter.toDTO(node));
+                    response.setBroker(BrokerClientConverter.toDTO(app != null ? app.getBroker() : null));
                     return Response.ok(response);
                 }
             }

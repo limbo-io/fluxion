@@ -25,5 +25,7 @@ public interface BrokerConstant {
     String API_WORKER_REGISTER = "/api/v1/worker/register";
 
     String API_WORKER_HEARTBEAT = "/api/v1/worker/heartbeat";
+
+    String API_BROKER_PING = "/api/v1/broker/ping";
     // ========== API ==========
 }

@@ -17,12 +17,13 @@
 package io.fluxion.remote.core.api.request;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.response.TaskDispatchResponse;
 
 /**
  * @author Devil
  * @since 2023/8/3
  */
-public class TaskDispatchRequest implements Request<Boolean> {
+public class TaskDispatchRequest implements Request<TaskDispatchResponse> {
 
     private String taskId;
 

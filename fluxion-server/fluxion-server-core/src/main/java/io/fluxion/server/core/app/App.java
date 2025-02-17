@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.app;
 
-import io.fluxion.remote.core.api.cluster.Node;
+import io.fluxion.remote.core.cluster.Node;
 import lombok.Data;
 
 /**
