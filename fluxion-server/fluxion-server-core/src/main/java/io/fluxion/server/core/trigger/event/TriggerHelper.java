@@ -16,12 +16,20 @@
 
 package io.fluxion.server.core.trigger.event;
 
+import io.fluxion.common.utils.MD5Utils;
+import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.server.infrastructure.schedule.ScheduleOption;
+
 /**
  * @author Devil
  */
 public class TriggerHelper {
 
-    public static String scheduleTaskId(String triggerId) {
+    public static String scheduleId(String triggerId) {
         return triggerId + "_tg";
+    }
+
+    public static String scheduleVersion(String refId, int refType, ScheduleOption scheduleOption) {
+        return MD5Utils.md5(refId + "_" + refType + "_" + JacksonUtils.toJSONString(scheduleOption));
     }
 }

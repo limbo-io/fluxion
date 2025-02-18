@@ -47,7 +47,7 @@ public interface ScheduleCalculator {
     /**
      * 此策略适用的调度类型
      */
-    ScheduleType getScheduleType();
+    ScheduleType scheduleType();
 
     /**
      * 计算作业的开始调度时间，从作业创建时间开始，加上delay。

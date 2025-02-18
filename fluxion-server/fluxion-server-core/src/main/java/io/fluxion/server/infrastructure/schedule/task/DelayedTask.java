@@ -16,27 +16,41 @@
 
 package io.fluxion.server.infrastructure.schedule.task;
 
-import io.fluxion.server.infrastructure.schedule.BasicCalculation;
-import io.fluxion.server.infrastructure.schedule.ScheduleOption;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.function.Consumer;
 
 /**
+ * 延迟一定时间的任务，执行一次
+ *
  * @author Devil
+ * @since 2022/12/19
  */
-public class DelayTaskFactory {
+@Slf4j
+public class DelayedTask extends AbstractTask {
 
-    public static DelayTask create(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
-                                   ScheduleOption scheduleOption, Consumer<DelayTask> consumer) {
-        BasicCalculation calculation = new BasicCalculation(
-            lastTriggerAt, lastFeedbackAt, scheduleOption
-        );
-        return new DelayTask(id, calculation.triggerAt(), consumer);
+    private final LocalDateTime triggerAt;
+
+    /**
+     * 业务逻辑
+     */
+    private final Consumer<DelayedTask> consumer;
+
+    public DelayedTask(String id, LocalDateTime triggerAt, Consumer<DelayedTask> consumer) {
+        super(id);
+        this.triggerAt = triggerAt;
+        this.consumer = consumer;
     }
 
-    public static DelayTask create(String id, LocalDateTime triggerAt, Consumer<DelayTask> consumer) {
-        return new DelayTask(id, triggerAt, consumer);
+    @Override
+    public void run() {
+        consumer.accept(this);
+    }
+
+    @Override
+    public LocalDateTime triggerAt() {
+        return triggerAt;
     }
 
 }

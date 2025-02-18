@@ -36,14 +36,14 @@ import java.time.LocalDateTime;
  */
 @Setter
 @Getter
-@Table(name = TableConstants.FLUXION_SCHEDULE_TASK)
+@Table(name = TableConstants.FLUXION_SCHEDULE)
 @Entity
 @DynamicInsert
 @DynamicUpdate
-public class ScheduleTaskEntity extends BaseEntity {
+public class ScheduleEntity extends BaseEntity {
 
     @Id
-    private String scheduleTaskId;
+    private String scheduleId;
     /**
      * 用来判断 调度配置是否有变化
      */
@@ -57,9 +57,9 @@ public class ScheduleTaskEntity extends BaseEntity {
     private int refType;
 
     /**
-     * 分配的节点 ip:host
+     * 分配的节点
      */
-    private String brokerUrl;
+    private String brokerId;
 
     /**
      * 计划作业调度方式
@@ -121,7 +121,7 @@ public class ScheduleTaskEntity extends BaseEntity {
 
     @Override
     public Object getUid() {
-        return scheduleTaskId;
+        return scheduleId;
     }
 
 }

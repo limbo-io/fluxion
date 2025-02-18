@@ -18,7 +18,7 @@ package io.fluxion.server.infrastructure.dao.entity;
 
 import io.fluxion.server.core.trigger.TriggerRefType;
 import io.fluxion.server.infrastructure.dao.TableConstants;
-import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.config.Trigger;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;

@@ -23,7 +23,7 @@ import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.server.core.app.App;
 import io.fluxion.server.core.app.cmd.AppBrokerElectCmd;
 import io.fluxion.server.core.app.cmd.AppRegisterCmd;
-import io.fluxion.server.core.cluster.ClusterContext;
+import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.cluster.NodeManger;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.AppEntity;
@@ -85,7 +85,7 @@ public class AppCommandHandler {
     public AppBrokerElectCmd.Response handle(AppBrokerElectCmd cmd) {
         String appId = cmd.getAppId();
         List<Node> nodes = nodeManger.allAlive();
-        Client client = ClusterContext.client();
+        Client client = BrokerContext.broker().client();
         String lockName = String.format(ELECT_LOCK, appId);
         for (int i = 0; i < ELECT_RETRY_TIMES; i++) {
             boolean locked = distributedLock.tryLock(lockName, 10000);
@@ -100,8 +100,8 @@ public class AppCommandHandler {
                 AppEntity entity = appEntityRepo.findById(appId)
                     .orElseThrow(() -> new IllegalArgumentException("can't find app by id:" + appId));
                 // 如果app当前绑定节点和worker请求的broker节点为同个节点则直接返回，说明连接正常无需重新选举
-                Node node = nodeManger.get(ClusterContext.nodeId());
-                if (entity.getBrokerId().equals(ClusterContext.nodeId())) {
+                Node node = nodeManger.get(BrokerContext.broker().id());
+                if (entity.getBrokerId().equals(BrokerContext.broker().id())) {
                     return new AppBrokerElectCmd.Response(node);
                 }
 
@@ -113,7 +113,7 @@ public class AppCommandHandler {
                 nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), node.id())).collect(Collectors.toList());
                 // 节点非存活状态，重新进行选举
                 Node elect = nodeManger.elect(appId);
-                if (!ClusterContext.nodeId().equals(elect.id())) {
+                if (!BrokerContext.broker().id().equals(elect.id())) {
                     pingResponse = client.call(API_BROKER_PING, elect, new BrokerPingRequest());
                     if (!pingResponse.isSuccess()) {
                         nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), elect.id())).collect(Collectors.toList());

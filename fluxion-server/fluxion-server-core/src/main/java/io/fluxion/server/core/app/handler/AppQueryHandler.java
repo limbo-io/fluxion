@@ -18,15 +18,10 @@ package io.fluxion.server.core.app.handler;
 
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.server.core.app.App;
-import io.fluxion.server.core.app.cmd.AppRegisterCmd;
 import io.fluxion.server.core.app.query.AppByIdQuery;
-import io.fluxion.server.core.cluster.ClusterContext;
 import io.fluxion.server.core.cluster.NodeManger;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.AppEntity;
 import io.fluxion.server.infrastructure.dao.repository.AppEntityRepo;
-import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
-import io.fluxion.server.infrastructure.id.data.IDType;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Component;
 

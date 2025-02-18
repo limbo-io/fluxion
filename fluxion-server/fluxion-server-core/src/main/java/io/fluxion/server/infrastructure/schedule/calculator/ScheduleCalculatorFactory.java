@@ -45,7 +45,7 @@ public class ScheduleCalculatorFactory {
         );
 
         for (ScheduleCalculator calculator : calculators) {
-            scheduleCalculators.put(calculator.getScheduleType(), calculator);
+            scheduleCalculators.put(calculator.scheduleType(), calculator);
         }
     }
 

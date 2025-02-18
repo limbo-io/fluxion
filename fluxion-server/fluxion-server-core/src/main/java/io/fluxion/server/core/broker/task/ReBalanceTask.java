@@ -14,27 +14,14 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.schedule.scheduler;
-
-import io.fluxion.server.infrastructure.schedule.ScheduleType;
+package io.fluxion.server.core.broker.task;
 
 /**
- * 调度器，封装了调度流程，根据{@link ScheduleType}有不同实现。
+ * 重新进行数据绑定平衡压力
+ * todo @d
  *
- * @author Brozen
+ * @author Devil
+ * @date 2025/1/9
  */
-public interface Scheduler<T> {
-
-    /**
-     * 进行一次调度 如果任务已存在 不会重复调度
-     * @param executable 待执行的对象
-     */
-    void schedule(T executable);
-
-    /**
-     * 停止调度
-     * @param id 待调度的对象 id
-     */
-    void stop(String id);
-
+public class ReBalanceTask {
 }

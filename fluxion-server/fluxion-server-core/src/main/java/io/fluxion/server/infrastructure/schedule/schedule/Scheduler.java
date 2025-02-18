@@ -14,24 +14,27 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.schedule.cmd;
+package io.fluxion.server.infrastructure.schedule.schedule;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
-import io.fluxion.server.infrastructure.schedule.task.DelayTask;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import io.fluxion.server.infrastructure.schedule.ScheduleType;
 
 /**
- * @author Devil
+ * 调度器，封装了调度流程，根据{@link ScheduleType}有不同实现。
+ *
+ * @author Brozen
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class DelayTaskSubmitCmd implements ICmd<Void> {
+public interface Scheduler<T> {
 
-    private DelayTask task;
+    /**
+     * 进行一次调度 如果任务已存在 不会重复调度
+     * @param executable 待执行的对象
+     */
+    void schedule(T executable);
+
+    /**
+     * 停止调度
+     * @param id 待调度的对象 id
+     */
+    void stop(String id);
 
 }

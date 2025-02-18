@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,47 +14,59 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.start.api.trigger.view;
+package io.fluxion.server.core.trigger.run;
 
-import io.fluxion.server.core.trigger.config.Trigger;
-import io.fluxion.server.core.trigger.config.TriggerConfig;
 import io.fluxion.server.core.trigger.TriggerRefType;
+import io.fluxion.server.infrastructure.schedule.ScheduleOption;
+import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 
 /**
  * @author Devil
  */
 @Data
-public class TriggerView {
-
+public class Schedule {
+    /**
+     * trigger唯一
+     */
     private String id;
 
     /**
-     * 触发方式
-     * @see Trigger.Type
+     * 调度关联数据
      */
-    private String type;
-
     private String refId;
 
     /**
+     * 调度关联类型
      * @see TriggerRefType
      */
-    private int refType;
+    private TriggerRefType refType;
 
     /**
-     * 描述
+     * 用来判断 调度配置是否有变化
      */
-    private String description;
+    private String version;
+
+    private ScheduleType scheduleType;
+
+    private ScheduleOption option;
 
     /**
-     * 配置信息
+     * 上次触发时间
      */
-    private TriggerConfig config;
+    private LocalDateTime latelyTriggerAt;
 
     /**
-     * 是否启动
+     * 上次回调时间
      */
+    private LocalDateTime latelyFeedbackAt;
+
+    /**
+     * 下次触发时间
+     */
+    private LocalDateTime nextTriggerAt;
+
     private boolean enabled;
 }

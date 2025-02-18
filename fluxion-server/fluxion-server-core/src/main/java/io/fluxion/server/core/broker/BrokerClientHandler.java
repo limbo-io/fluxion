@@ -20,6 +20,7 @@ import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
+import io.fluxion.remote.core.api.response.BrokerPingResponse;
 import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
 import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.server.ClientHandler;
@@ -66,6 +67,9 @@ public class BrokerClientHandler implements ClientHandler {
                     WorkerHeartbeatResponse response = new WorkerHeartbeatResponse();
                     response.setBroker(BrokerClientConverter.toDTO(app != null ? app.getBroker() : null));
                     return Response.ok(response);
+                }
+                case BrokerConstant.API_BROKER_PING: {
+                    return Response.ok(new BrokerPingResponse());
                 }
             }
             String msg = "Invalid request, Path NotFound.";

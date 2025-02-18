@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.schedule.scheduler;
+package io.fluxion.server.infrastructure.schedule.schedule;
 
 import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
+import io.fluxion.server.infrastructure.schedule.scheduler.TaskScheduler;
 import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
 import lombok.extern.slf4j.Slf4j;
 
@@ -86,7 +87,7 @@ public class ScheduledTaskScheduler extends TaskScheduler<ScheduledTask> {
         }
     }
 
-    public void reschedule(ScheduledTask task) {
+    private void reschedule(ScheduledTask task) {
         String scheduleId = task.id();
         try {
             log.info("reschedule task at:{}", task.triggerAt().format(Formatters.getFormatter(Formatters.YMD_HMS_SSS)));

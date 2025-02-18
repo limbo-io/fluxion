@@ -16,23 +16,30 @@
 
 package io.fluxion.server.core.broker;
 
+import com.google.common.collect.Lists;
 import io.fluxion.common.constants.CommonConstants;
+import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
-import io.fluxion.server.core.cluster.ClusterContext;
+import io.fluxion.server.core.broker.task.CoreTask;
+import io.fluxion.server.core.broker.task.ScheduleLoadTask;
 import io.fluxion.server.core.cluster.NodeManger;
 import io.fluxion.server.core.cluster.NodeRegistry;
-import io.fluxion.server.infrastructure.schedule.scheduler.ScheduledTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.schedule.ScheduledTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.schedule.TimingWheelTimer;
 import io.fluxion.server.infrastructure.schedule.scheduler.TaskScheduler;
-import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
 import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.Assert;
 
+import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -42,9 +49,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class Broker {
 
-    private final Protocol protocol;
-    private final String host;
-    private final int port;
+    private final Node node;
 
     private final NodeRegistry registry;
 
@@ -52,26 +57,38 @@ public class Broker {
 
     private final Client client;
 
-    private final TaskScheduler<ScheduledTask> taskScheduler; // todo @d
+    private final ScheduledExecutorService coreThreadPool;
+
+    private final List<CoreTask> coreTasks;
+
+    private final ScheduledTaskScheduler scheduledTaskScheduler;
+
+    private final DelayedTaskScheduler delayedTaskScheduler;
 
     public Broker(Protocol protocol, String host, int port, NodeRegistry registry, NodeManger manger) {
         Assert.isTrue(Protocol.UNKNOWN != protocol, "protocol is unknown");
         Assert.isTrue(StringUtils.isNotBlank(host), "host is null");
 
-        this.protocol = protocol;
-        this.host = host;
-        this.port = port;
+        this.node = new Node(protocol, host, port);
         this.registry = registry;
         this.manger = manger;
         this.client = ClientFactory.create(protocol);
-        this.taskScheduler = new ScheduledTaskScheduler(new TimingWheelTimer(100L, TimeUnit.MILLISECONDS));
+        this.coreTasks = Lists.newArrayList(
+            new ScheduleLoadTask(1000)
+        );
+        this.coreThreadPool = new ScheduledThreadPoolExecutor(
+            coreTasks.size(),
+            NamedThreadFactory.newInstance("FluxionBrokerCoreExecutor")
+        );
+        this.scheduledTaskScheduler = new ScheduledTaskScheduler(new TimingWheelTimer(100L, TimeUnit.MILLISECONDS));
+        this.delayedTaskScheduler = new DelayedTaskScheduler(new TimingWheelTimer(100L, TimeUnit.MILLISECONDS));
     }
 
     /**
      * 启动节点
      */
     public void start() {
-        Node node = new Node(protocol, host, port);
+
         // 将自己上线管理
         manger.online(node);
         // 节点注册 用于集群感知
@@ -97,7 +114,12 @@ public class Broker {
             }
         });
 
-        ClusterContext.initialize(node.id(), client);
+        // 启动核心任务
+        for (CoreTask coreTask : coreTasks) {
+            coreThreadPool.scheduleWithFixedDelay(coreTask, 0, coreTask.getInterval(), TimeUnit.MILLISECONDS);
+        }
+
+        BrokerContext.initialize(this);
 
         log.info("FluxionBroker start!!!~~~");
     }
@@ -107,6 +129,23 @@ public class Broker {
      */
     public void stop() {
         registry.stop();
+        coreThreadPool.shutdown();
+    }
+
+    public String id() {
+        return node.id();
+    }
+
+    public Client client() {
+        return client;
+    }
+
+    public ScheduledTaskScheduler scheduledTaskScheduler() {
+        return scheduledTaskScheduler;
+    }
+
+    public DelayedTaskScheduler delayedTaskScheduler() {
+        return delayedTaskScheduler;
     }
 
 }

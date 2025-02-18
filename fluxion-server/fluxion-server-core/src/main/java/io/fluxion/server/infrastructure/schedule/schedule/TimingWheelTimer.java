@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.schedule.scheduler;
+package io.fluxion.server.infrastructure.schedule.schedule;
 
 import io.fluxion.common.thread.NamedThreadFactory;
 import io.netty.util.HashedWheelTimer;

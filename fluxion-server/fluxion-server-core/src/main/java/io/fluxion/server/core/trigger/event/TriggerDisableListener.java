@@ -18,10 +18,10 @@ package io.fluxion.server.core.trigger.event;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
-import io.fluxion.server.infrastructure.dao.repository.ScheduleTaskEntityRepo;
+import io.fluxion.server.infrastructure.dao.repository.ScheduleEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.TriggerEntityRepo;
-import io.fluxion.server.core.trigger.Trigger;
-import io.fluxion.server.core.trigger.TriggerConfig;
+import io.fluxion.server.core.trigger.config.Trigger;
+import io.fluxion.server.core.trigger.config.TriggerConfig;
 import io.fluxion.server.core.trigger.cmd.TriggerDisableCmd;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
@@ -40,7 +40,7 @@ public class TriggerDisableListener {
     private TriggerEntityRepo triggerEntityRepo;
 
     @Resource
-    private ScheduleTaskEntityRepo scheduleTaskEntityRepo;
+    private ScheduleEntityRepo scheduleEntityRepo;
 
     /**
      * 触发调度等关闭
@@ -54,7 +54,7 @@ public class TriggerDisableListener {
         TriggerConfig config = JacksonUtils.toType(triggerEntity.getConfig(), TriggerConfig.class);
         switch (config.getTrigger().getType()) {
             case Trigger.Type.SCHEDULE:
-                scheduleTaskEntityRepo.updateEnable(TriggerHelper.scheduleTaskId(triggerEntity.getTriggerId()), false);
+                scheduleEntityRepo.updateEnable(TriggerHelper.scheduleId(triggerEntity.getTriggerId()), false);
                 break;
         }
     }

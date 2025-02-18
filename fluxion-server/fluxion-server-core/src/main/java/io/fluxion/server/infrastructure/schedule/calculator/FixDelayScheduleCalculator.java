@@ -69,7 +69,7 @@ public class FixDelayScheduleCalculator implements ScheduleCalculator {
     }
 
     @Override
-    public ScheduleType getScheduleType() {
+    public ScheduleType scheduleType() {
         return ScheduleType.FIXED_DELAY;
     }
 }

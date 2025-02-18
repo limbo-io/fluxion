@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,23 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.start.component;
+package io.fluxion.server.core.broker.task;
+
+import lombok.Getter;
 
 /**
- * 重新进行数据绑定平衡压力
- * todo @d
- *
  * @author Devil
- * @date 2025/1/9
  */
-public class ReBalanceTask {
+@Getter
+public abstract class CoreTask implements Runnable {
+
+    /**
+     * 间隔 毫秒
+     */
+    protected final int interval;
+
+    public CoreTask(int interval) {
+        this.interval = interval;
+    }
+
 }

@@ -21,7 +21,7 @@ package io.fluxion.server.infrastructure.dao;
  */
 public interface TableConstants {
     String FLUXION_FLOW = "fluxion_flow";
-    String FLUXION_SCHEDULE_TASK = "fluxion_schedule_task";
+    String FLUXION_SCHEDULE = "fluxion_schedule";
     String FLUXION_ID = "fluxion_id";
     String FLUXION_TAG = "fluxion_tag";
     String FLUXION_VERSION = "fluxion_version";

@@ -36,7 +36,7 @@ public class NeverScheduleCalculator implements ScheduleCalculator {
     }
 
     @Override
-    public ScheduleType getScheduleType() {
+    public ScheduleType scheduleType() {
         return ScheduleType.UNKNOWN;
     }
 }

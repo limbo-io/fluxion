@@ -79,7 +79,7 @@ public class CronScheduleCalculator implements ScheduleCalculator {
     }
 
     @Override
-    public ScheduleType getScheduleType() {
+    public ScheduleType scheduleType() {
         return ScheduleType.CRON;
     }
 }

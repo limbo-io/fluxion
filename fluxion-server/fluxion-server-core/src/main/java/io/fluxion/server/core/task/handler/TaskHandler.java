@@ -18,7 +18,7 @@ package io.fluxion.server.core.task.handler;
 
 import io.fluxion.common.thread.CommonThreadPool;
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.server.infrastructure.schedule.cmd.DelayTaskSubmitCmd;
+import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.cmd.TaskRunCmd;
 import io.fluxion.server.core.task.cmd.TasksCreateCmd;
@@ -29,8 +29,8 @@ import io.fluxion.server.infrastructure.dao.entity.TaskEntity;
 import io.fluxion.server.infrastructure.dao.repository.TaskEntityRepo;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
-import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
-import io.fluxion.server.infrastructure.schedule.task.DelayTaskFactory;
+import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.axonframework.commandhandling.CommandHandler;
@@ -40,7 +40,6 @@ import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -85,14 +84,13 @@ public class TaskHandler {
     @CommandHandler
     public void handle(TasksScheduleCmd cmd) {
         for (Task task : cmd.getTasks()) {
-            Cmd.send(new DelayTaskSubmitCmd(DelayTaskFactory.create(scheduleId(task), cmd.getTriggerAt(), consumer(task))));
+            DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
+            delayedTaskScheduler.schedule(DelayedTaskFactory.create(
+                scheduleId(task),
+                cmd.getTriggerAt(),
+                delayedTask -> CommonThreadPool.IO.submit(() -> Cmd.send(new TaskRunCmd(task)))
+            ));
         }
-    }
-
-    private <T extends AbstractTask> Consumer<T> consumer(Task task) {
-        return scheduleTask -> {
-            CommonThreadPool.IO.submit(() -> Cmd.send(new TaskRunCmd(task)));
-        };
     }
 
     private String scheduleId(Task task) {

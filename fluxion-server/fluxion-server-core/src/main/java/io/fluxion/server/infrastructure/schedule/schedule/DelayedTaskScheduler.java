@@ -14,43 +14,33 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.schedule.task;
+package io.fluxion.server.infrastructure.schedule.schedule;
 
+import io.fluxion.server.infrastructure.schedule.scheduler.TaskScheduler;
+import io.fluxion.server.infrastructure.schedule.task.DelayedTask;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
-import java.util.function.Consumer;
-
 /**
- * 延迟一定时间的任务，执行一次
+ * 延迟执行一次
  *
- * @author Devil
- * @since 2022/12/19
+ * @author Brozen
+ * @since 2022-10-11
  */
 @Slf4j
-public class DelayTask extends AbstractTask {
+public class DelayedTaskScheduler extends TaskScheduler<DelayedTask> {
 
-    private final LocalDateTime triggerAt;
-
-    /**
-     * 业务逻辑
-     */
-    private final Consumer<DelayTask> consumer;
-
-    public DelayTask(String id, LocalDateTime triggerAt, Consumer<DelayTask> consumer) {
-        super(id);
-        this.triggerAt = triggerAt;
-        this.consumer = consumer;
+    public DelayedTaskScheduler(Timer timer) {
+        super(timer);
     }
 
     @Override
-    public void run() {
-        consumer.accept(this);
+    protected Runnable run(DelayedTask task) {
+        return task::run;
     }
 
     @Override
-    public LocalDateTime triggerAt() {
-        return triggerAt;
+    protected void afterExecute(DelayedTask task, Throwable thrown) {
+        // 执行后移除 之后相同ID的可以再次执行
+        stop(task.id());
     }
-
 }

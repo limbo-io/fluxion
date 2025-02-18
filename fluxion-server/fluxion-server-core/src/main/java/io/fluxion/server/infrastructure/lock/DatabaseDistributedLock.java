@@ -17,7 +17,7 @@
 package io.fluxion.server.infrastructure.lock;
 
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.server.core.cluster.ClusterContext;
+import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.infrastructure.dao.entity.LockEntity;
 import io.fluxion.server.infrastructure.dao.repository.LockEntityRepo;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +45,7 @@ public class DatabaseDistributedLock implements DistributedLock {
 
         LockEntity lock = lockEntityRepo.findByName(name);
 
-        String current = ClusterContext.nodeId();
+        String current = BrokerContext.broker().id();
 
         // 如果锁未过期且当前节点非加锁节点，加锁失败
         if (lock != null && lock.getExpireAt().isBefore(TimeUtils.currentLocalDateTime()) && !lock.getOwner().equals(current)) {

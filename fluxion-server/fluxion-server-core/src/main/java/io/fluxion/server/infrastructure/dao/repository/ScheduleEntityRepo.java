@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.dao.repository;
 
-import io.fluxion.server.infrastructure.dao.entity.ScheduleTaskEntity;
+import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -25,19 +25,22 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Devil
  */
 @Repository
-public interface ScheduleTaskEntityRepo extends JpaRepository<ScheduleTaskEntity, String> {
+public interface ScheduleEntityRepo extends JpaRepository<ScheduleEntity, String> {
 
     @Modifying(clearAutomatically = true)
-    @Query(value = "update ScheduleTaskEntity set enabled = :enabled where scheduleTaskId = :scheduleTaskId")
+    @Query(value = "update ScheduleEntity set enabled = :enabled where scheduleTaskId = :scheduleTaskId")
     int updateEnable(@Param("scheduleTaskId") String scheduleTaskId, @Param("enabled") boolean enabled);
 
-    @Query(value = "select e from ScheduleTaskEntity e" +
-        " where e.brokerUrl = :brokerUrl and e.updatedAt >= :updatedAt " +
-        " and e.scheduleStartAt >= :now and e.scheduleEndAt <= :now")
-    List<ScheduleTaskEntity> loadByUpdated(@Param("brokerUrl") String brokerUrl, @Param("updatedAt") LocalDateTime updatedAt, @Param("now") LocalDateTime now);
+    @Query(value = "select e from ScheduleEntity e" +
+        " where e.brokerId = :brokerId and e.updatedAt >= :updatedAt " +
+        " and e.enabled = true and e.deleted = false ")
+    List<ScheduleEntity> loadByBrokerAndUpdated(@Param("brokerId") String brokerId, @Param("updatedAt") LocalDateTime updatedAt);
+
+    ScheduleEntity findByScheduleIdAndDeleted(@Param("scheduleId") String scheduleId, @Param("deleted") boolean deleted);
 }

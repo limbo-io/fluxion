@@ -18,7 +18,7 @@ package io.fluxion.server.core.trigger.handler;
 
 import io.fluxion.common.utils.Lambda;
 import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.server.core.trigger.TriggerConfig;
+import io.fluxion.server.core.trigger.config.TriggerConfig;
 import io.fluxion.server.core.trigger.cmd.*;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Event;
@@ -33,7 +33,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
@@ -46,7 +45,7 @@ import java.util.List;
  * @author Devil
  */
 @Component
-public class TriggerHandler {
+public class TriggerCommandHandler {
 
     @Resource
     private TriggerEntityRepo triggerEntityRepo;

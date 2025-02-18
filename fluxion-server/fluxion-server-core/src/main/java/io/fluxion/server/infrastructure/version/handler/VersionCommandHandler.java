@@ -23,15 +23,11 @@ import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
 import io.fluxion.server.infrastructure.version.cmd.VersionCreateCmd;
 import io.fluxion.server.infrastructure.version.cmd.VersionUpdateCmd;
-import io.fluxion.server.infrastructure.version.model.Version;
 import io.fluxion.server.infrastructure.version.model.VersionGenerateType;
 import io.fluxion.server.infrastructure.version.model.VersionRefType;
-import io.fluxion.server.infrastructure.version.query.VersionByIdQuery;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.CommandHandler;
-import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.EnumMap;
@@ -42,7 +38,7 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-public class VersionHandler {
+public class VersionCommandHandler {
 
     @Resource
     private VersionEntityRepo versionEntityRepo;
@@ -51,15 +47,6 @@ public class VersionHandler {
 
     static {
         REF_GENERATE_TYPES.put(VersionRefType.FLOW, VersionGenerateType.INCR);
-    }
-
-    @QueryHandler
-    public VersionByIdQuery.Response handle(VersionByIdQuery query) {
-        VersionEntity entity = versionEntityRepo.findById(new VersionEntity.ID(query.getRefId(), query.getRefType().value, query.getVersion())).orElse(null);
-        if (entity == null) {
-            return null;
-        }
-        return new VersionByIdQuery.Response(to(entity));
     }
 
     @CommandHandler
@@ -112,15 +99,6 @@ public class VersionHandler {
 
     private String randomVersion() {
         return UUIDUtils.randomID();
-    }
-
-    private Version to(VersionEntity entity) {
-        Version version = new Version();
-        version.setRefId(entity.getId().getRefId());
-        version.setRefType(VersionRefType.parse(entity.getId().getRefType()));
-        version.setVersion(entity.getId().getVersion());
-        version.setConfig(entity.getConfig());
-        return version;
     }
 
 }

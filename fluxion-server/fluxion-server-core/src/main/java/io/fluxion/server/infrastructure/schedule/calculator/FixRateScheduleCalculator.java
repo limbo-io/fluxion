@@ -64,7 +64,7 @@ public class FixRateScheduleCalculator implements ScheduleCalculator {
     }
 
     @Override
-    public ScheduleType getScheduleType() {
+    public ScheduleType scheduleType() {
         return ScheduleType.FIXED_RATE;
     }
 }

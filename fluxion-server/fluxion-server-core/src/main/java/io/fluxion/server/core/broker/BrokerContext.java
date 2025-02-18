@@ -14,18 +14,22 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.schedule.scheduler;
+package io.fluxion.server.core.broker;
 
-import java.util.concurrent.TimeUnit;
+/**
+ * @author Devil
+ * @date 2025/1/10
+ */
+public class BrokerContext {
 
-public interface Timer {
-    /**
-     * 在一定时间后执行任务
-     *
-     * @param runnable 运行内容
-     * @param delay    延迟
-     * @param unit     时间单位
-     */
-    void schedule(Runnable runnable, long delay, TimeUnit unit);
+    private static Broker broker;
+
+    public static Broker broker() {
+        return broker;
+    }
+
+    public static void initialize(Broker broker) {
+        BrokerContext.broker = broker;
+    }
 
 }

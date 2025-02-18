@@ -14,32 +14,30 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.schedule.scheduler;
+package io.fluxion.server.core.trigger.query;
 
-import io.fluxion.server.infrastructure.schedule.task.DelayTask;
-import lombok.extern.slf4j.Slf4j;
+import io.fluxion.server.core.trigger.run.Schedule;
+import io.fluxion.server.infrastructure.cqrs.IQuery;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
- * 延迟执行一次
- *
- * @author Brozen
- * @since 2022-10-11
+ * @author Devil
  */
-@Slf4j
-public class DelayTaskScheduler extends TaskScheduler<DelayTask> {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ScheduleByIdQuery implements IQuery<ScheduleByIdQuery.Response> {
 
-    public DelayTaskScheduler(Timer timer) {
-        super(timer);
+    private String id;
+
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private Schedule schedule;
     }
 
-    @Override
-    protected Runnable run(DelayTask task) {
-        return task::run;
-    }
-
-    @Override
-    protected void afterExecute(DelayTask task, Throwable thrown) {
-        // 执行后移除 之后相同ID的可以再次执行
-        stop(task.id());
-    }
 }

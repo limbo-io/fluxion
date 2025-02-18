@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.response;
+package io.fluxion.server.core.broker.task;
 
 /**
- * @author PengQ
- * @since 0.0.1
+ * 数据清理
+ * todo @d
+ * 1. delay_task
+ * 2. schedule_task
+ *
+ * @author Devil
+ * @date 2025/1/9
  */
-public class BrokerPingResponse {
-
-    private boolean success = true;
-
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
+public class DataCleaner {
 }

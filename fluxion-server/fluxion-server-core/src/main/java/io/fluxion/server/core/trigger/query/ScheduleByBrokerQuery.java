@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.schedule.cmd;
+package io.fluxion.server.core.trigger.query;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
-import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
+import io.fluxion.server.core.trigger.run.Schedule;
+import io.fluxion.server.infrastructure.cqrs.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Devil
@@ -30,8 +34,17 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ScheduledTaskSubmitCmd implements ICmd<Void> {
+public class ScheduleByBrokerQuery implements IQuery<ScheduleByBrokerQuery.Response> {
 
-    private ScheduledTask task;
+    private String brokerId;
+
+    private LocalDateTime updatedAt;
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Response {
+        private List<Schedule> schedules = Collections.emptyList();
+    }
 
 }
