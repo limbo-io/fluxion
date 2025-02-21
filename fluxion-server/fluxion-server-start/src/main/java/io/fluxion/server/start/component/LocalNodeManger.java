@@ -43,7 +43,7 @@ public class LocalNodeManger implements NodeManger {
      * 节点上线
      */
     public void online(Node node) {
-        nodes.putIfAbsent(node.id(), node);
+        nodes.putIfAbsent(node.serverId(), node);
         if (log.isDebugEnabled()) {
             log.debug("[LocalNodeManger] online {}", JacksonUtils.toJSONString(nodes));
         }
@@ -53,7 +53,7 @@ public class LocalNodeManger implements NodeManger {
      * 节点下线
      */
     public void offline(Node node) {
-        nodes.remove(node.id());
+        nodes.remove(node.serverId());
         if (log.isDebugEnabled()) {
             log.debug("[LocalNodeManger] offline {}", JacksonUtils.toJSONString(nodes));
         }
@@ -89,7 +89,7 @@ public class LocalNodeManger implements NodeManger {
      */
     public Node elect(String id) {
         List<Node> sortedNodes = nodes.values().stream()
-            .sorted(Comparator.comparing(Node::id))
+            .sorted(Comparator.comparing(Node::serverId))
             .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(sortedNodes)) {
             return null;

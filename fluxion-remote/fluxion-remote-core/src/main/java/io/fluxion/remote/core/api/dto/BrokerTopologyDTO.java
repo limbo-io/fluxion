@@ -14,51 +14,27 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.lb;
+package io.fluxion.remote.core.api.dto;
 
-import io.fluxion.remote.core.cluster.Node;
+import java.util.Collections;
+import java.util.List;
 
 /**
- * @author Brozen
+ * @author PengQ
+ * @since 0.0.1
  */
-public class BaseLBServer implements LBServer {
-
-    private final Node node;
-
-    public BaseLBServer(Node node) {
-        this.node = node;
-    }
-
+public class BrokerTopologyDTO {
 
     /**
-     * {@inheritDoc}
-     *
-     * @return
+     * broker节点列表，主从模式下，列表中仅包括一个主节点
      */
-    @Override
-    public String serverId() {
-        return node.id();
+    private List<NodeDTO> brokers = Collections.emptyList();
+
+    public List<NodeDTO> getBrokers() {
+        return brokers;
     }
 
-
-    /**
-     * {@inheritDoc}
-     *
-     * @return
-     */
-    @Override
-    public boolean isAlive() {
-        return true;
+    public void setBrokers(List<NodeDTO> brokers) {
+        this.brokers = brokers;
     }
-
-    @Override
-    public String host() {
-        return node.getHost();
-    }
-
-    @Override
-    public int port() {
-        return node.getPort();
-    }
-
 }

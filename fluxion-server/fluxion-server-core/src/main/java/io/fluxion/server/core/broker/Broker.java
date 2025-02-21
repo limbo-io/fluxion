@@ -133,7 +133,7 @@ public class Broker {
     }
 
     public String id() {
-        return node.id();
+        return node.serverId();
     }
 
     public Client client() {

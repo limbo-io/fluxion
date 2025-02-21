@@ -22,7 +22,10 @@ import io.fluxion.remote.core.api.request.TaskDispatchRequest;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.WorkerConstant;
 import io.fluxion.worker.core.WorkerContext;
+import io.fluxion.worker.core.executor.BroadcastExecutor;
 import io.fluxion.worker.core.executor.Executor;
+import io.fluxion.worker.core.executor.MapReduceExecutor;
+import io.fluxion.worker.core.executor.StandaloneExecutor;
 import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.task.tracker.BasicTaskTracker;
 import io.fluxion.worker.core.task.tracker.SubTaskTracker;
@@ -71,13 +74,22 @@ public class WorkerClientHandler implements ClientHandler {
             throw new IllegalArgumentException("unknown executor name:" + task.getExecutorName());
         }
         switch (task.getExecuteType()) {
-            // todo @pq 如果执行器类型不匹配则需要抛异常
             case STANDALONE:
-                return new BasicTaskTracker(task, workerContext);
+                if (!(executor instanceof StandaloneExecutor)) {
+                    throw new IllegalArgumentException("unknown executor:" + executor.name() + " not match executeType:" + task.getExecuteType().name());
+                }
+                return new BasicTaskTracker(task, executor, workerContext);
             case BROADCAST:
+                if (!(executor instanceof BroadcastExecutor)) {
+                    throw new IllegalArgumentException("unknown executor:" + executor.name() + " not match executeType:" + task.getExecuteType().name());
+                }
+                return new SubTaskTracker(task, executor, workerContext);
             case MAP:
             case MAP_REDUCE:
-                return new SubTaskTracker(task, workerContext);
+                if (!(executor instanceof MapReduceExecutor)) {
+                    throw new IllegalArgumentException("unknown executor:" + executor.name() + " not match executeType:" + task.getExecuteType().name());
+                }
+                return new SubTaskTracker(task, executor, workerContext);
             default:
                 throw new IllegalArgumentException("unknown execute type:" + task.getExecuteType().name());
         }

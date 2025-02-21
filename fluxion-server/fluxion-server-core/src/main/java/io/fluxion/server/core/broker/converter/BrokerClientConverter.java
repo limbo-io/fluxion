@@ -16,19 +16,18 @@
 
 package io.fluxion.server.core.broker.converter;
 
-import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerTagDTO;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -78,10 +77,18 @@ public class BrokerClientConverter {
             return null;
         }
         NodeDTO dto = new NodeDTO();
-        dto.setProtocol(node.getProtocol().getValue());
-        dto.setHost(node.getHost());
-        dto.setPort(node.getPort());
+        dto.setProtocol(node.protocol().getValue());
+        dto.setHost(node.host());
+        dto.setPort(node.port());
         return dto;
+    }
+
+    public static BrokerTopologyDTO toBrokerTopologyDTO(List<Node> nodes) {
+        BrokerTopologyDTO brokerTopologyDTO = new BrokerTopologyDTO();
+        if (CollectionUtils.isNotEmpty(nodes)) {
+            brokerTopologyDTO.setBrokers(nodes.stream().map(BrokerClientConverter::toDTO).collect(Collectors.toList()));
+        }
+        return brokerTopologyDTO;
     }
 
 }

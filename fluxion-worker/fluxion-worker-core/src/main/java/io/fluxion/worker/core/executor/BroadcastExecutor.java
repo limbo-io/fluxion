@@ -16,8 +16,14 @@
 
 package io.fluxion.worker.core.executor;
 
+import io.fluxion.worker.core.task.Task;
+
 /**
  * @author Devil
  */
-public class BroadcastExecutor {
+public class BroadcastExecutor implements Executor {
+    @Override
+    public void run(Task task) {
+
+    }
 }

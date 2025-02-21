@@ -17,9 +17,9 @@
 package io.fluxion.remote.core.client;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 
 /**
@@ -43,11 +43,20 @@ public interface Client {
      * send request by path and node
      *
      * @param path    path
-     * @param node    node to send
+     * @param host    server host
+     * @param port    server port
      * @param request request
      */
-    default <R> R call(String path, Node node, Request<R> request) {
-        return call(node.url(path), request);
+    default <R> R call(String path, String host, int port, Request<R> request) {
+        return call(url(path, host, port), request);
+    }
+
+    default URL url(String path, String host, int port) {
+        try {
+            return new URL(protocol().getValue(), host, port, path);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

@@ -18,6 +18,7 @@ package io.fluxion.worker.core.task.tracker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.worker.core.WorkerContext;
+import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,14 +44,17 @@ public abstract class TaskTracker {
 
     protected final WorkerContext workerContext;
 
+    protected final Executor executor;
+
     protected final AtomicBoolean destroyed;
 
     protected Future<?> processFuture;
 
     protected Future<?> statusReportFuture;
 
-    public TaskTracker(Task task, WorkerContext workerContext) {
+    public TaskTracker(Task task, Executor executor, WorkerContext workerContext) {
         this.task = task;
+        this.executor = executor;
         this.workerContext = workerContext;
         this.destroyed = new AtomicBoolean(false);
     }

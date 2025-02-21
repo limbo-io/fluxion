@@ -17,6 +17,7 @@
 package io.fluxion.worker.core.task.tracker;
 
 import io.fluxion.worker.core.WorkerContext;
+import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.Task;
 
 /**
@@ -26,8 +27,8 @@ import io.fluxion.worker.core.task.Task;
  */
 public class SubTaskTracker extends TaskTracker {
 
-    public SubTaskTracker(Task task, WorkerContext workerContext) {
-        super(task, workerContext);
+    public SubTaskTracker(Task task, Executor executor, WorkerContext workerContext) {
+        super(task, executor, workerContext);
     }
 
     @Override

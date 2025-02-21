@@ -16,9 +16,9 @@
 
 package io.fluxion.worker.spring.starter.configuration;
 
-import io.fluxion.remote.core.client.Client;
-import io.fluxion.remote.core.client.ClientFactory;
-import io.fluxion.remote.core.client.RetryableClient;
+import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.remote.core.constants.Protocol;
+import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.remote.core.utils.NetUtils;
 import io.fluxion.worker.core.Worker;
 import io.fluxion.worker.spring.starter.SpringDelegatedWorker;
@@ -36,10 +36,7 @@ import org.springframework.util.Assert;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.mapping;
@@ -58,12 +55,6 @@ public class FluxionWorkerAutoConfiguration {
     @Value("${spring.application.name}")
     private String springAppName;
 
-    private final WorkerProperties workerProps;
-
-    public FluxionWorkerAutoConfiguration(WorkerProperties workerProps) {
-        this.workerProps = workerProps;
-    }
-
     @Bean
     public ExecutorMethodProcessor executorMethodProcessor() {
         return new ExecutorMethodProcessor();
@@ -73,46 +64,53 @@ public class FluxionWorkerAutoConfiguration {
      * Worker 实例
      */
     @Bean
-    public Worker worker() throws MalformedURLException {
+    public Worker worker(WorkerProperties properties) throws MalformedURLException {
         // AppName 优先使用worker配置，否则使用spring配置
-        String appName = StringUtils.isBlank(workerProps.getAppName()) ? springAppName : workerProps.getAppName();
+        String appName = StringUtils.isBlank(properties.getAppName()) ? springAppName : properties.getAppName();
         Assert.isTrue(StringUtils.isNotBlank(appName), "Worker appName must not blank");
 
         // port
-        Integer port = workerProps.getPort() != null ? workerProps.getPort() : DEFAULT_HTTP_SERVER_PORT;
+        Integer port = properties.getPort() != null ? properties.getPort() : DEFAULT_HTTP_SERVER_PORT;
         Assert.isTrue(port > 0, "Worker port must be a positive integer in range 1 ~ 65534");
 
         // 优先使用指定的 host，如未指定则自动寻找本机 IP
-        String host = workerProps.getHost();
+        String host = properties.getHost();
         if (StringUtils.isEmpty(host)) {
             host = NetUtils.getLocalIp();
         }
-        URL workerClientUrl = new URL(workerProps.getProtocol().getValue(), host, port, "");
-
-        // client
-        Client client = RetryableClient.builder()
-            .client(ClientFactory.create(workerProps.getProtocol()))
-            .build();
 
         // tags
-        Map<String, Set<String>> tags = tags(workerProps);
+        Map<String, Set<String>> tags = tags(properties);
+
+        // brokers
+        List<LBServer> brokerNodes = brokerNodes(properties);
 
         // worker
-        return new SpringDelegatedWorker(appName, workerClientUrl, workerProps.getQueueSize(), workerProps.getConcurrency(), client, tags);
+        return new SpringDelegatedWorker(
+            appName, properties.getProtocol(), host, port,
+            properties.getQueueSize(), properties.getConcurrency(), tags, brokerNodes
+        );
     }
 
-    private Map<String, Set<String>> tags(WorkerProperties workerProps) {
-        if (CollectionUtils.isEmpty(workerProps.getTags())) {
+    private Map<String, Set<String>> tags(WorkerProperties properties) {
+        if (CollectionUtils.isEmpty(properties.getTags())) {
             return Collections.emptyMap();
         }
 
-        return workerProps.getTags().stream().map(s -> {
+        return properties.getTags().stream().map(s -> {
             String[] sp = s.split("=");
             if (sp.length < 2 || StringUtils.isAnyBlank(sp)) {
                 return null;
             }
             return Pair.of(sp[0], sp[1]);
         }).filter(Objects::nonNull).collect(Collectors.groupingBy(Pair::getKey, mapping(Pair::getValue, toSet())));
+    }
+
+    private List<LBServer> brokerNodes(WorkerProperties properties) {
+        List<URL> brokerUrls = properties.getBrokers() == null ? Collections.emptyList() : properties.getBrokers();
+        return brokerUrls.stream()
+            .map(url -> new Node(Protocol.parse(url.getProtocol()), url.getHost(), url.getPort()))
+            .collect(Collectors.toList());
     }
 
 }

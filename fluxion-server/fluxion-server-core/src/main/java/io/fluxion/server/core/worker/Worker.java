@@ -119,6 +119,11 @@ public class Worker implements LBServer, Tagged {
     }
 
     @Override
+    public Protocol protocol() {
+        return protocol;
+    }
+
+    @Override
     public String host() {
         return host;
     }

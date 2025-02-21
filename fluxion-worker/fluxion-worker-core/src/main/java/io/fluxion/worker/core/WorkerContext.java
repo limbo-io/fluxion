@@ -19,12 +19,12 @@ package io.fluxion.worker.core;
 import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.remote.core.api.constants.WorkerStatus;
 import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.tracker.TaskTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URL;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -40,11 +40,15 @@ public class WorkerContext {
 
     private String workerId;
 
+    private String appId;
+
     private String appName;
-    /**
-     * 连接 worker 的 url
-     */
-    private URL url;
+
+    private Protocol protocol;
+
+    private String host;
+
+    private int port;
 
     /**
      * 执行器
@@ -64,7 +68,10 @@ public class WorkerContext {
     private int concurrency;
 
     // ========== Runtime ==========
-    private Node broker;
+    /**
+     * 所有可访问节点
+     */
+    private List<Node> brokers;
 
     private final AtomicReference<WorkerStatus> status;
 
@@ -83,11 +90,13 @@ public class WorkerContext {
      */
     private ScheduledExecutorService taskStatusReportExecutor;
 
-    public WorkerContext(String appName, URL url,
+    public WorkerContext(String appName, Protocol protocol, String host, int port,
                          int queueSize, int concurrency,
                          List<Executor> executors, Map<String, Set<String>> tags) {
         this.appName = appName;
-        this.url = url;
+        this.protocol = protocol;
+        this.host = host;
+        this.port = port;
         this.executors = executors == null ? Collections.emptyMap() : executors.stream().collect(Collectors.toMap(Executor::name, executor -> executor));
         this.tags = tags == null ? Collections.emptyMap() : tags;
         this.queueSize = queueSize;
@@ -119,12 +128,12 @@ public class WorkerContext {
         taskStatusReportExecutor.shutdown();
     }
 
-    public WorkerStatus status() {
-        return status.get();
-    }
-
     public boolean changeStatus(WorkerStatus expect, WorkerStatus update) {
         return status.compareAndSet(expect, update);
+    }
+
+    public WorkerStatus status() {
+        return status.get();
     }
 
     public Map<String, TaskTracker> tasks() {
@@ -163,12 +172,15 @@ public class WorkerContext {
         return queueSize;
     }
 
-    public void broker(Node broker) {
-        this.broker = broker;
+    public String appId() {
+        return appId;
     }
 
-    public Node broker() {
-        return broker;
+    public void appId(String appId) {
+        this.appId = appId;
     }
 
+    public Protocol protocol() {
+        return protocol;
+    }
 }

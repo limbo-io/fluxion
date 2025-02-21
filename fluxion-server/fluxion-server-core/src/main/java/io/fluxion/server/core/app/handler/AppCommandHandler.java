@@ -88,6 +88,13 @@ public class AppCommandHandler {
         Client client = BrokerContext.broker().client();
         String lockName = String.format(ELECT_LOCK, appId);
         for (int i = 0; i < ELECT_RETRY_TIMES; i++) {
+            // 锁外先做一次，减少DB锁
+            AppEntity entity = appEntityRepo.findById(appId)
+                .orElseThrow(() -> new IllegalArgumentException("can't find app by id:" + appId));
+            Node node = nodeManger.get(BrokerContext.broker().id());
+            if (entity.getBrokerId().equals(BrokerContext.broker().id())) {
+                return new AppBrokerElectCmd.Response(node, false);
+            }
             boolean locked = distributedLock.tryLock(lockName, 10000);
             if (!locked) {
                 try {
@@ -97,33 +104,33 @@ public class AppCommandHandler {
                 continue;
             }
             try {
-                AppEntity entity = appEntityRepo.findById(appId)
+                // 如果app当前绑定节点和worker请求的broker节点为同个节点则直接返回
+                entity = appEntityRepo.findById(appId)
                     .orElseThrow(() -> new IllegalArgumentException("can't find app by id:" + appId));
-                // 如果app当前绑定节点和worker请求的broker节点为同个节点则直接返回，说明连接正常无需重新选举
-                Node node = nodeManger.get(BrokerContext.broker().id());
+                node = nodeManger.get(BrokerContext.broker().id());
                 if (entity.getBrokerId().equals(BrokerContext.broker().id())) {
-                    return new AppBrokerElectCmd.Response(node);
+                    return new AppBrokerElectCmd.Response(node, false);
                 }
-
-                // 判断app对应broker是否存活
-                BrokerPingResponse pingResponse = client.call(API_BROKER_PING, node, new BrokerPingRequest());
+                // 判断app对应broker是否存活 已经由其它节点选举
+                BrokerPingResponse pingResponse = client.call(API_BROKER_PING, node.host(), node.port(), new BrokerPingRequest());
                 if (pingResponse.isSuccess()) {
-                    return new AppBrokerElectCmd.Response(node);
+                    return new AppBrokerElectCmd.Response(node, true);
                 }
-                nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), node.id())).collect(Collectors.toList());
+                String failNodeId = node.serverId();
+                nodes = nodes.stream().filter(n -> !Objects.equals(n.serverId(), failNodeId)).collect(Collectors.toList());
                 // 节点非存活状态，重新进行选举
                 Node elect = nodeManger.elect(appId);
-                if (!BrokerContext.broker().id().equals(elect.id())) {
-                    pingResponse = client.call(API_BROKER_PING, elect, new BrokerPingRequest());
+                if (!BrokerContext.broker().id().equals(elect.serverId())) {
+                    pingResponse = client.call(API_BROKER_PING, elect.host(), elect.port(), new BrokerPingRequest());
                     if (!pingResponse.isSuccess()) {
-                        nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), elect.id())).collect(Collectors.toList());
+                        nodes = nodes.stream().filter(n -> !Objects.equals(n.serverId(), elect.serverId())).collect(Collectors.toList());
                         continue;
                     }
                 }
                 // 选举成功
-                entity.setBrokerId(elect.id());
+                entity.setBrokerId(elect.serverId());
                 appEntityRepo.saveAndFlush(entity);
-                return new AppBrokerElectCmd.Response(elect);
+                return new AppBrokerElectCmd.Response(elect, true);
             } catch (Exception e) {
                 log.error("App broker elect fail appId:{}", appId, e);
             } finally {
@@ -132,6 +139,5 @@ public class AppCommandHandler {
         }
         throw new PlatformException(ErrorCode.SYSTEM_ERROR, "broker elect failed appId: " + appId);
     }
-
 
 }

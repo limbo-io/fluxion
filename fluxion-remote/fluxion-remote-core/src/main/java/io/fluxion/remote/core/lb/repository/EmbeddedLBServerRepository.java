@@ -45,7 +45,7 @@ public class EmbeddedLBServerRepository implements LBServerRepository {
      */
     @Override
     public void updateServers(List<LBServer> servers) {
-        this.servers = Collections.unmodifiableList(new ArrayList<>(servers));
+        this.servers = Collections.unmodifiableList(servers);
     }
 
     /**

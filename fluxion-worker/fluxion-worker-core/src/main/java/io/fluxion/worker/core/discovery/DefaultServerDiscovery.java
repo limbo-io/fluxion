@@ -16,25 +16,29 @@
 
 package io.fluxion.worker.core.discovery;
 
-import io.fluxion.remote.core.api.dto.NodeDTO;
-import io.fluxion.remote.core.api.dto.SystemInfoDTO;
-import io.fluxion.remote.core.api.dto.WorkerExecutorDTO;
-import io.fluxion.remote.core.api.dto.WorkerTagDTO;
+import io.fluxion.remote.core.api.dto.*;
 import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
 import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.Client;
+import io.fluxion.remote.core.client.ClientFactory;
+import io.fluxion.remote.core.client.LBClient;
+import io.fluxion.remote.core.client.RetryableClient;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.exception.RpcException;
 import io.fluxion.remote.core.heartbeat.HeartbeatPacemaker;
+import io.fluxion.remote.core.lb.LBServer;
+import io.fluxion.remote.core.lb.repository.LBServerRepository;
 import io.fluxion.worker.core.SystemInfo;
 import io.fluxion.worker.core.WorkerContext;
+import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,7 +56,14 @@ public class DefaultServerDiscovery implements ServerDiscovery {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final Client client;
+    private final LBClient client;
+
+    private final LBServerRepository repository;
+
+    /**
+     * 当前
+     */
+    private Node broker;
 
     private final WorkerContext workerContext;
 
@@ -61,42 +72,54 @@ public class DefaultServerDiscovery implements ServerDiscovery {
      */
     private HeartbeatPacemaker heartbeatPacemaker;
 
-    public DefaultServerDiscovery(WorkerContext workerContext, Client client) {
+    public DefaultServerDiscovery(WorkerContext workerContext, LBServerRepository repository, LBClient client) {
         this.client = client;
+        this.repository = repository;
         this.workerContext = workerContext;
     }
 
     @Override
     public void start() {
-        // 注册
-        WorkerRegisterResponse registerResponse = client.call(API_WORKER_REGISTER, workerContext.broker(), registerRequest(workerContext));
-        workerContext.broker(node(registerResponse.getBroker()));
-        // 心跳管理
-        this.heartbeatPacemaker = new HeartbeatPacemaker(() -> {
-            try {
-                WorkerHeartbeatResponse heartbeatResponse = client.call(API_WORKER_HEARTBEAT, workerContext.broker(), heartbeatRequest(workerContext));
-                workerContext.broker(node(heartbeatResponse.getBroker()));
-            } catch (RpcException e) {
-                log.warn("[DefaultServerDiscovery] send heartbeat failed");
-                throw new IllegalStateException("[DefaultServerDiscovery] send heartbeat failed", e);
-            }
-        }, Duration.ofSeconds(HEARTBEAT_TIMEOUT_SECOND));
+        register();
+        startHeartbeat();
     }
 
-    private WorkerRegisterRequest registerRequest(WorkerContext workerContext) {
+    private void register() {
         WorkerRegisterRequest request = new WorkerRegisterRequest();
         request.setAppName(workerContext.appName());
         request.setSystemInfo(systemInfoDTO());
         request.setTags(tagDTOS(workerContext.tags()));
         request.setExecutors(executorDTOS(workerContext));
-        return request;
+
+        WorkerRegisterResponse registerResponse = client.call(API_WORKER_REGISTER, request);
+        workerContext.appId(registerResponse.getAppId());
+        broker = node(registerResponse.getBroker());
+        repository.updateServers(brokers(registerResponse.getBrokerTopology()));
     }
 
-    private WorkerHeartbeatRequest heartbeatRequest(WorkerContext workerContext) {
-        WorkerHeartbeatRequest request = new WorkerHeartbeatRequest();
-        request.setWorkerId(workerContext.workerId());
-        request.setSystemInfo(systemInfoDTO());
-        return request;
+    private void startHeartbeat() {
+        Client heartbeatClient = RetryableClient.builder()
+            .client(ClientFactory.create(workerContext.protocol()))
+            .build();
+        this.heartbeatPacemaker = new HeartbeatPacemaker(() -> {
+            try {
+                WorkerHeartbeatRequest request = new WorkerHeartbeatRequest();
+                request.setAppId(workerContext.appId());
+                request.setWorkerId(workerContext.workerId());
+                request.setSystemInfo(systemInfoDTO());
+
+                WorkerHeartbeatResponse heartbeatResponse = heartbeatClient.call(
+                    API_WORKER_HEARTBEAT, broker.host(), broker.port(), request
+                );
+                broker = node(heartbeatResponse.getBroker());
+                if (heartbeatResponse.isElected()) {
+                    repository.updateServers(brokers(heartbeatResponse.getBrokerTopology()));
+                }
+            } catch (RpcException e) {
+                log.warn("[DefaultServerDiscovery] send heartbeat failed");
+                throw new IllegalStateException("[DefaultServerDiscovery] send heartbeat failed", e);
+            }
+        }, Duration.ofSeconds(HEARTBEAT_TIMEOUT_SECOND));
     }
 
     private List<WorkerExecutorDTO> executorDTOS(WorkerContext workerContext) {
@@ -119,6 +142,13 @@ public class DefaultServerDiscovery implements ServerDiscovery {
         dto.setFreeMemory(SystemInfo.freeMemory());
         dto.setCpuProcessors(SystemInfo.cpuProcessors());
         return dto;
+    }
+
+    private List<LBServer> brokers(BrokerTopologyDTO topologyDTO) {
+        if (topologyDTO == null || CollectionUtils.isEmpty(topologyDTO.getBrokers())) {
+            return Collections.emptyList();
+        }
+        return topologyDTO.getBrokers().stream().map(this::node).collect(Collectors.toList());
     }
 
     private List<WorkerTagDTO> tagDTOS(Map<String, Set<String>> tags) {

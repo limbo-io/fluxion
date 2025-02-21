@@ -16,11 +16,18 @@
 
 package io.fluxion.worker.spring.starter;
 
-import io.fluxion.remote.core.client.Client;
+import io.fluxion.remote.core.client.ClientFactory;
+import io.fluxion.remote.core.client.LBClient;
+import io.fluxion.remote.core.client.RetryableLBClient;
 import io.fluxion.remote.core.client.server.AbstractClientServer;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.client.server.ClientServerConfig;
 import io.fluxion.remote.core.client.server.ClientServerFactory;
+import io.fluxion.remote.core.constants.Protocol;
+import io.fluxion.remote.core.lb.LBServer;
+import io.fluxion.remote.core.lb.repository.EmbeddedLBServerRepository;
+import io.fluxion.remote.core.lb.repository.LBServerRepository;
+import io.fluxion.remote.core.lb.strategies.RoundRobinLBStrategy;
 import io.fluxion.worker.core.FluxionWorker;
 import io.fluxion.worker.core.Worker;
 import io.fluxion.worker.core.WorkerContext;
@@ -33,7 +40,6 @@ import io.fluxion.worker.spring.starter.processor.event.WorkerReadyEvent;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.event.EventListener;
 
-import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,19 +54,25 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
     private List<Executor> executors;
 
     private final String appName;
-    private final URL url;
+    private final Protocol protocol;
+    private final String host;
+    private final int port;
     private final int queueSize;
     private final int concurrency;
-    private final Client client;
     private final Map<String, Set<String>> tags;
+    private final List<LBServer> brokerNodes;
 
-    public SpringDelegatedWorker(String appName, URL url, int queueSize, int concurrency, Client client, Map<String, Set<String>> tags) {
+    public SpringDelegatedWorker(String appName, Protocol protocol, String host, int port,
+                                 int queueSize, int concurrency, Map<String, Set<String>> tags,
+                                 List<LBServer> brokerNodes) {
         this.appName = appName;
-        this.url = url;
+        this.protocol = protocol;
+        this.host = host;
+        this.port = port;
         this.queueSize = queueSize;
         this.concurrency = concurrency;
-        this.client = client;
         this.tags = tags;
+        this.brokerNodes = brokerNodes;
     }
 
 
@@ -79,13 +91,19 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
     @EventListener(WorkerReadyEvent.class)
     public void onWorkerReady(WorkerReadyEvent event) {
         // WorkerContext
-        WorkerContext workerContext = new WorkerContext(appName, url, queueSize, concurrency, executors, tags);
+        WorkerContext workerContext = new WorkerContext(appName, protocol, host, port, queueSize, concurrency, executors, tags);
         // Discovery
-        ServerDiscovery discovery = new DefaultServerDiscovery(workerContext, client);
+        LBServerRepository lbServerRepository = new EmbeddedLBServerRepository(brokerNodes);
+        LBClient client = RetryableLBClient.builder()
+            .client(ClientFactory.create(protocol))
+            .repository(lbServerRepository)
+            .strategy(new RoundRobinLBStrategy<>())
+            .build();
+        ServerDiscovery discovery = new DefaultServerDiscovery(workerContext, lbServerRepository, client);
         // ClientServer
         ClientServerFactory factory = ClientServerFactory.instance();
         ClientHandler clientHandler = new WorkerClientHandler(workerContext);
-        ClientServerConfig clientServerConfig = new ClientServerConfig(url.getPort(), clientHandler);
+        ClientServerConfig clientServerConfig = new ClientServerConfig(port, clientHandler);
         AbstractClientServer clientServer = factory.create(clientServerConfig);
         // Worker
         Worker worker = new FluxionWorker(workerContext, clientServer, discovery);

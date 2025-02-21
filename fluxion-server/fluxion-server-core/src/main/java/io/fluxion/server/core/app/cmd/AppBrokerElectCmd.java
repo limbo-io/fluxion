@@ -38,7 +38,14 @@ public class AppBrokerElectCmd implements ICmd<AppBrokerElectCmd.Response> {
     @Getter
     @AllArgsConstructor
     public static class Response {
+        /**
+         * 当前节点
+         */
         private Node broker;
+        /**
+         * 是否发生重新选举
+         */
+        private boolean elected;
     }
 
 }

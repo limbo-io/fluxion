@@ -37,10 +37,7 @@ public class WorkerRegisterCmd implements ICmd<WorkerRegisterCmd.Response> {
     @Getter
     @AllArgsConstructor
     public static class Response {
-        /**
-         * worker id
-         */
-        private String id;
+        private String workerId;
     }
 
 }

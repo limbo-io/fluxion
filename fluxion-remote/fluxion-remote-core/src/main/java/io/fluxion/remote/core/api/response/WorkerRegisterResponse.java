@@ -16,6 +16,7 @@
 
 package io.fluxion.remote.core.api.response;
 
+import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 
 /**
@@ -23,13 +24,41 @@ import io.fluxion.remote.core.api.dto.NodeDTO;
  * @since 0.0.1
  */
 public class WorkerRegisterResponse {
+    /**
+     * 应用 ID
+     */
+    private String appId;
 
     /**
      * 工作节点 ID
      */
     private String workerId;
 
+    /**
+     * 当前绑定的broker
+     */
     private NodeDTO broker;
+
+    /**
+     * broker拓扑信息
+     */
+    private BrokerTopologyDTO brokerTopology;
+
+    public String getAppId() {
+        return appId;
+    }
+
+    public void setAppId(String appId) {
+        this.appId = appId;
+    }
+
+    public BrokerTopologyDTO getBrokerTopology() {
+        return brokerTopology;
+    }
+
+    public void setBrokerTopology(BrokerTopologyDTO brokerTopology) {
+        this.brokerTopology = brokerTopology;
+    }
 
     public String getWorkerId() {
         return workerId;

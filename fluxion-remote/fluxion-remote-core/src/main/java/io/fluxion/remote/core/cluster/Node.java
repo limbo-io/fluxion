@@ -17,15 +17,13 @@
 package io.fluxion.remote.core.cluster;
 
 import io.fluxion.remote.core.constants.Protocol;
-
-import java.net.MalformedURLException;
-import java.net.URL;
+import io.fluxion.remote.core.lb.LBServer;
 
 /**
  * @author Devil
  * @since 2022/8/23
  */
-public class Node {
+public class Node implements LBServer {
 
     private final String id;
 
@@ -42,28 +40,28 @@ public class Node {
         this.id = protocol.value + "://" + host + ":" + port;
     }
 
-    public String id() {
+    @Override
+    public String serverId() {
         return id;
     }
 
-    public Protocol getProtocol() {
+    @Override
+    public boolean isAlive() {
+        return true;
+    }
+
+    @Override
+    public Protocol protocol() {
         return protocol;
     }
 
-    public String getHost() {
+    @Override
+    public String host() {
         return host;
     }
 
-    public int getPort() {
+    @Override
+    public int port() {
         return port;
     }
-
-    public URL url(String path) {
-        try {
-            return new URL(protocol.getValue(), host, port, path);
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
 }

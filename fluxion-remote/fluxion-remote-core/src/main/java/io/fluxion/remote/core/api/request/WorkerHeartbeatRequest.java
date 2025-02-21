@@ -26,6 +26,8 @@ import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
  */
 public class WorkerHeartbeatRequest implements Request<WorkerHeartbeatResponse> {
 
+    private String appId;
+
     private String workerId;
 
     private SystemInfoDTO systemInfo;
@@ -33,6 +35,14 @@ public class WorkerHeartbeatRequest implements Request<WorkerHeartbeatResponse> 
     private int availableQueueNum;
 
     private long heartbeatTime;
+
+    public String getAppId() {
+        return appId;
+    }
+
+    public void setAppId(String appId) {
+        this.appId = appId;
+    }
 
     public String getWorkerId() {
         return workerId;
