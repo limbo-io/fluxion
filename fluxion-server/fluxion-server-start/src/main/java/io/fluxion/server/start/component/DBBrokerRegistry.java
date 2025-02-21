@@ -87,7 +87,7 @@ public class DBBrokerRegistry implements NodeRegistry {
 
         // 开启定时任务 维持心跳
         scheduledExecutorService.scheduleAtFixedRate(
-            new HeartbeatTask(node.serverId(), node), 0, heartbeatInterval.toMillis(), TimeUnit.MILLISECONDS
+            new HeartbeatTask(node.id(), node), 0, heartbeatInterval.toMillis(), TimeUnit.MILLISECONDS
         );
 
         // 开启定时任务，监听broker心跳情况
@@ -118,7 +118,7 @@ public class DBBrokerRegistry implements NodeRegistry {
 
     private BrokerEntity entity(Node node) {
         BrokerEntity entity = new BrokerEntity();
-        entity.setBrokerId(MD5Utils.md5(node.serverId()));
+        entity.setBrokerId(MD5Utils.md5(node.id()));
         entity.setProtocol(node.protocol().getValue());
         entity.setHost(node.host());
         entity.setPort(node.port());

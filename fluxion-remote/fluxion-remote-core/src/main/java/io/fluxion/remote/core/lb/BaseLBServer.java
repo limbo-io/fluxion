@@ -14,43 +14,57 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.cluster;
+package io.fluxion.remote.core.lb;
 
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 
 /**
- * @author Devil
- * @since 2022/8/23
+ * @author Brozen
  */
-public class Node {
+public class BaseLBServer implements LBServer {
 
-    private final String id;
+    private final Node node;
 
-    private final Protocol protocol;
-
-    private final String host;
-
-    private final int port;
-
-    public Node(Protocol protocol, String host, int port) {
-        this.protocol = protocol;
-        this.host = host;
-        this.port = port;
-        this.id = protocol.value + "://" + host + ":" + port;
-    }
-    public String id() {
-        return id;
+    public BaseLBServer(Node node) {
+        this.node = node;
     }
 
+
+    /**
+     * {@inheritDoc}
+     *
+     * @return
+     */
+    @Override
+    public String serverId() {
+        return node.id();
+    }
+
+
+    /**
+     * {@inheritDoc}
+     *
+     * @return
+     */
+    @Override
+    public boolean isAlive() {
+        return true;
+    }
+
+    @Override
     public Protocol protocol() {
-        return protocol;
+        return node.protocol();
     }
 
+    @Override
     public String host() {
-        return host;
+        return node.host();
     }
 
+    @Override
     public int port() {
-        return port;
+        return node.port();
     }
+
 }

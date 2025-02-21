@@ -116,19 +116,19 @@ public class AppCommandHandler {
                 if (pingResponse.isSuccess()) {
                     return new AppBrokerElectCmd.Response(node, true);
                 }
-                String failNodeId = node.serverId();
-                nodes = nodes.stream().filter(n -> !Objects.equals(n.serverId(), failNodeId)).collect(Collectors.toList());
+                String failNodeId = node.id();
+                nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), failNodeId)).collect(Collectors.toList());
                 // 节点非存活状态，重新进行选举
                 Node elect = nodeManger.elect(appId);
-                if (!BrokerContext.broker().id().equals(elect.serverId())) {
+                if (!BrokerContext.broker().id().equals(elect.id())) {
                     pingResponse = client.call(API_BROKER_PING, elect.host(), elect.port(), new BrokerPingRequest());
                     if (!pingResponse.isSuccess()) {
-                        nodes = nodes.stream().filter(n -> !Objects.equals(n.serverId(), elect.serverId())).collect(Collectors.toList());
+                        nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), elect.id())).collect(Collectors.toList());
                         continue;
                     }
                 }
                 // 选举成功
-                entity.setBrokerId(elect.serverId());
+                entity.setBrokerId(elect.id());
                 appEntityRepo.saveAndFlush(entity);
                 return new AppBrokerElectCmd.Response(elect, true);
             } catch (Exception e) {

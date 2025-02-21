@@ -29,6 +29,7 @@ import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.exception.RpcException;
 import io.fluxion.remote.core.heartbeat.HeartbeatPacemaker;
+import io.fluxion.remote.core.lb.BaseLBServer;
 import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.remote.core.lb.repository.LBServerRepository;
 import io.fluxion.worker.core.SystemInfo;
@@ -148,7 +149,10 @@ public class DefaultServerDiscovery implements ServerDiscovery {
         if (topologyDTO == null || CollectionUtils.isEmpty(topologyDTO.getBrokers())) {
             return Collections.emptyList();
         }
-        return topologyDTO.getBrokers().stream().map(this::node).collect(Collectors.toList());
+        return topologyDTO.getBrokers().stream().map(dto -> {
+            Node node = node(dto);
+            return new BaseLBServer(node);
+        }).collect(Collectors.toList());
     }
 
     private List<WorkerTagDTO> tagDTOS(Map<String, Set<String>> tags) {

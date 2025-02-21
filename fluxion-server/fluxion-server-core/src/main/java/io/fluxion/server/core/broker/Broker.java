@@ -31,8 +31,6 @@ import io.fluxion.server.core.cluster.NodeRegistry;
 import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.ScheduledTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.TimingWheelTimer;
-import io.fluxion.server.infrastructure.schedule.scheduler.TaskScheduler;
-import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.Assert;
@@ -133,7 +131,7 @@ public class Broker {
     }
 
     public String id() {
-        return node.serverId();
+        return node.id();
     }
 
     public Client client() {
