@@ -17,6 +17,7 @@
 package io.fluxion.server.core.trigger.event;
 
 import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.server.core.trigger.TriggerHelper;
 import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.TriggerEntityRepo;

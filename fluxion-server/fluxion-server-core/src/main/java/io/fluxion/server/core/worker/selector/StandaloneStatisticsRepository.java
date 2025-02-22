@@ -45,7 +45,7 @@ public abstract class StandaloneStatisticsRepository<T extends LBServerStatistic
         runInWriteLock(records -> {
             // 新增记录
             records.add(new StatisticsRecord(
-                lbServer.serverId(), Instant.now()
+                lbServer.id(), Instant.now()
             ));
 
             // 同时检测头部 10 条记录是否过时，如过时需要移除

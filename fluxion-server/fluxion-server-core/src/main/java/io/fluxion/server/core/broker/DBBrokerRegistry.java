@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.start.component;
+package io.fluxion.server.core.broker;
 
 import io.fluxion.common.thread.NamedThreadFactory;
-import io.fluxion.common.utils.MD5Utils;
 import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.LocalTimeUtils;
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
-import io.fluxion.server.core.cluster.NodeEvent;
-import io.fluxion.server.core.cluster.NodeListener;
-import io.fluxion.server.core.cluster.NodeRegistry;
+import io.fluxion.remote.core.cluster.NodeEvent;
+import io.fluxion.remote.core.cluster.NodeListener;
+import io.fluxion.remote.core.cluster.NodeRegistry;
 import io.fluxion.server.infrastructure.dao.entity.BrokerEntity;
 import io.fluxion.server.infrastructure.dao.repository.BrokerEntityRepo;
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +47,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Component
-public class DBBrokerRegistry implements NodeRegistry {
+public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
 
     private final BrokerEntityRepo brokerEntityRepo;
 
@@ -63,7 +61,7 @@ public class DBBrokerRegistry implements NodeRegistry {
      */
     private final Duration heartbeatTimeout;
 
-    private final List<NodeListener> listeners;
+    private final List<NodeListener<BrokerNode>> listeners;
 
     private final ScheduledExecutorService scheduledExecutorService;
 
@@ -79,7 +77,7 @@ public class DBBrokerRegistry implements NodeRegistry {
     }
 
     @Override
-    public void register(Node node) {
+    public void register(BrokerNode node) {
         // 新建
         BrokerEntity broker = entity(node);
         broker.setLastHeartbeat(TimeUtils.currentLocalDateTime());
@@ -100,7 +98,7 @@ public class DBBrokerRegistry implements NodeRegistry {
     }
 
     @Override
-    public void subscribe(NodeListener listener) {
+    public void subscribe(NodeListener<BrokerNode> listener) {
         if (listener == null) {
             return;
         }
@@ -112,25 +110,30 @@ public class DBBrokerRegistry implements NodeRegistry {
         scheduledExecutorService.shutdown();
     }
 
-    private Node node(BrokerEntity entity) {
-        return new Node(Protocol.parse(entity.getProtocol()), entity.getHost(), entity.getPort());
+    private BrokerNode node(BrokerEntity entity) {
+        return new BrokerNode(
+            Protocol.parse(entity.getProtocol()),
+            entity.getHost(), entity.getPort(),
+            entity.getLoad()
+        );
     }
 
-    private BrokerEntity entity(Node node) {
+    private BrokerEntity entity(BrokerNode node) {
         BrokerEntity entity = new BrokerEntity();
-        entity.setBrokerId(MD5Utils.md5(node.id()));
+        entity.setBrokerId(node.id());
         entity.setProtocol(node.protocol().getValue());
         entity.setHost(node.host());
         entity.setPort(node.port());
+        entity.setLoad(node.load());
         return entity;
     }
 
     private class HeartbeatTask extends TimerTask {
         private static final String TASK_NAME = "[HeartbeatTask]";
         private final String id;
-        private final Node node;
+        private final BrokerNode node;
 
-        public HeartbeatTask(String id, Node node) {
+        public HeartbeatTask(String id, BrokerNode node) {
             this.id = id;
             this.node = node;
         }
@@ -172,8 +175,8 @@ public class DBBrokerRegistry implements NodeRegistry {
                         if (log.isDebugEnabled()) {
                             log.debug("{} find online broker id: {}, lastHeartbeat:{}", TASK_NAME, entity.getBrokerId(), LocalTimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
                         }
-                        for (NodeListener listener : listeners) {
-                            listener.event(new NodeEvent(node(entity), NodeEvent.Type.ONLINE));
+                        for (NodeListener<BrokerNode> listener : listeners) {
+                            listener.event(new NodeEvent<>(node(entity), NodeEvent.Type.ONLINE));
                         }
                     }
                 }
@@ -205,8 +208,8 @@ public class DBBrokerRegistry implements NodeRegistry {
                         if (log.isDebugEnabled()) {
                             log.debug("{} find offline broker id: {}, lastHeartbeat:{}", TASK_NAME, entity.getBrokerId(), LocalTimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
                         }
-                        for (NodeListener listener : listeners) {
-                            listener.event(new NodeEvent(node(entity), NodeEvent.Type.OFFLINE));
+                        for (NodeListener<BrokerNode> listener : listeners) {
+                            listener.event(new NodeEvent<>(node(entity), NodeEvent.Type.OFFLINE));
                         }
                     }
                 }

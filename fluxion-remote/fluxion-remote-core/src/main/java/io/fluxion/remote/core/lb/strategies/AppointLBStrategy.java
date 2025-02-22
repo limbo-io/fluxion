@@ -49,7 +49,7 @@ public class AppointLBStrategy<S extends LBServer> extends AbstractLBStrategy<S>
         }
         Map<String, String> params = invocation.parameters();
         String serverId = params.get(PARAM_BY_SERVER_ID);
-        if (StringUtils.isNotBlank(serverId) && StringUtils.equals(server.serverId(), serverId)) {
+        if (StringUtils.isNotBlank(serverId) && StringUtils.equals(server.id(), serverId)) {
             return true;
         }
         String address = params.get(PARAM_BY_SERVER_ADDRESS);

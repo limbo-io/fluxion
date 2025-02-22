@@ -79,7 +79,7 @@ public class LFULBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
     @Override
     protected S doSelect(List<S> servers, Invocation invocation) {
         Set<String> serverIds = servers.stream()
-            .map(LBServer::serverId)
+            .map(LBServer::id)
             .collect(Collectors.toSet());
 
         List<LBServerStatistics> statistics = statisticsProvider.getStatistics(serverIds, this.interval);
@@ -91,7 +91,7 @@ public class LFULBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
         return statistics.stream()
             .min(Comparator.comparing(LBServerStatistics::accessTimes))
             .flatMap(s -> servers.stream()
-                .filter(server -> StringUtils.equals(server.serverId(), s.serverId()))
+                .filter(server -> StringUtils.equals(server.id(), s.serverId()))
                 .findFirst()
             ).orElse(null);
     }

@@ -23,6 +23,7 @@ import io.fluxion.remote.core.api.dto.WorkerTagDTO;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
+import io.fluxion.server.core.broker.BrokerNode;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
@@ -83,7 +84,7 @@ public class BrokerClientConverter {
         return dto;
     }
 
-    public static BrokerTopologyDTO toBrokerTopologyDTO(List<Node> nodes) {
+    public static BrokerTopologyDTO toBrokerTopologyDTO(List<BrokerNode> nodes) {
         BrokerTopologyDTO brokerTopologyDTO = new BrokerTopologyDTO();
         if (CollectionUtils.isNotEmpty(nodes)) {
             brokerTopologyDTO.setBrokers(nodes.stream().map(BrokerClientConverter::toDTO).collect(Collectors.toList()));

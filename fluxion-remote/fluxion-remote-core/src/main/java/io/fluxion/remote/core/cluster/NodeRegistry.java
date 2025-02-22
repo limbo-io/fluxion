@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,23 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.cluster;
-
-import io.fluxion.remote.core.cluster.Node;
+package io.fluxion.remote.core.cluster;
 
 /**
  * @author Devil
  * @since 2022/7/15
  */
-public interface NodeRegistry {
+public interface NodeRegistry<T extends Node> {
 
     /**
      * 注册node
      */
-    void register(Node node);
+    void register(T node);
 
     /**
      * 订阅监听
      */
-    void subscribe(NodeListener listener);
+    void subscribe(NodeListener<T> listener);
 
     /**
      * 停止

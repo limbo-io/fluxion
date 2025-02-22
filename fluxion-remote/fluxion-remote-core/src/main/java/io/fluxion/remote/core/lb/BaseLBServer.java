@@ -30,18 +30,6 @@ public class BaseLBServer implements LBServer {
         this.node = node;
     }
 
-
-    /**
-     * {@inheritDoc}
-     *
-     * @return
-     */
-    @Override
-    public String serverId() {
-        return node.id();
-    }
-
-
     /**
      * {@inheritDoc}
      *
@@ -50,6 +38,11 @@ public class BaseLBServer implements LBServer {
     @Override
     public boolean isAlive() {
         return true;
+    }
+
+    @Override
+    public String id() {
+        return node.id();
     }
 
     @Override

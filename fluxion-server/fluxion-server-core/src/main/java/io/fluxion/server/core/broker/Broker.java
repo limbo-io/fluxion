@@ -22,12 +22,10 @@ import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
-import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.task.CoreTask;
 import io.fluxion.server.core.broker.task.ScheduleLoadTask;
-import io.fluxion.server.core.cluster.NodeManger;
-import io.fluxion.server.core.cluster.NodeRegistry;
+import io.fluxion.remote.core.cluster.NodeRegistry;
 import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.ScheduledTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.TimingWheelTimer;
@@ -47,11 +45,11 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class Broker {
 
-    private final Node node;
+    private final BrokerNode node;
 
-    private final NodeRegistry registry;
+    private final NodeRegistry<BrokerNode> registry;
 
-    private final NodeManger manger;
+    private final BrokerManger manger;
 
     private final Client client;
 
@@ -63,11 +61,11 @@ public class Broker {
 
     private final DelayedTaskScheduler delayedTaskScheduler;
 
-    public Broker(Protocol protocol, String host, int port, NodeRegistry registry, NodeManger manger) {
+    public Broker(Protocol protocol, String host, int port, NodeRegistry<BrokerNode> registry, BrokerManger manger) {
         Assert.isTrue(Protocol.UNKNOWN != protocol, "protocol is unknown");
         Assert.isTrue(StringUtils.isNotBlank(host), "host is null");
 
-        this.node = new Node(protocol, host, port);
+        this.node = new BrokerNode(protocol, host, port, 0);
         this.registry = registry;
         this.manger = manger;
         this.client = ClientFactory.create(protocol);
@@ -144,6 +142,10 @@ public class Broker {
 
     public DelayedTaskScheduler delayedTaskScheduler() {
         return delayedTaskScheduler;
+    }
+
+    public BrokerNode node() {
+        return node;
     }
 
 }

@@ -40,6 +40,27 @@ public class ScheduleEntityConverter {
         return entities.stream().map(ScheduleEntityConverter::convert).collect(Collectors.toList());
     }
 
+    public static ScheduleEntity convert(Schedule schedule) {
+        if (schedule == null) {
+            return null;
+        }
+        ScheduleOption scheduleOption = schedule.getScheduleOption();
+        ScheduleEntity entity = new ScheduleEntity();
+        entity.setScheduleId(schedule.getId());
+        entity.setRefId(schedule.getRefId());
+        entity.setRefType(schedule.getRefType().value);
+        entity.setScheduleType(scheduleOption.getScheduleType().value);
+        entity.setScheduleStartAt(scheduleOption.getScheduleStartAt());
+        entity.setScheduleEndAt(scheduleOption.getScheduleEndAt());
+        entity.setScheduleDelay(scheduleOption.getScheduleDelay().getSeconds());
+        entity.setScheduleInterval(scheduleOption.getScheduleInterval().getSeconds());
+        entity.setScheduleCron(scheduleOption.getScheduleCron());
+        entity.setScheduleCronType(scheduleOption.getScheduleCronType());
+        entity.setEnabled(schedule.isEnabled());
+        entity.setVersion(schedule.getVersion());
+        return entity;
+    }
+
     public static Schedule convert(ScheduleEntity entity) {
         if (entity == null) {
             return null;
@@ -50,7 +71,7 @@ public class ScheduleEntityConverter {
         schedule.setRefId(entity.getRefId());
         schedule.setRefType(TriggerRefType.parse(entity.getRefType()));
         schedule.setScheduleType(ScheduleType.parse(entity.getScheduleType()));
-        schedule.setOption(toOption(entity));
+        schedule.setScheduleOption(toOption(entity));
         schedule.setLatelyTriggerAt(entity.getLatelyTriggerAt());
         schedule.setLatelyFeedbackAt(entity.getLatelyFeedbackAt());
         schedule.setNextTriggerAt(entity.getNextTriggerAt());

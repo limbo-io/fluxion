@@ -19,12 +19,12 @@ package io.fluxion.server.core.app.handler;
 import io.fluxion.remote.core.api.request.BrokerPingRequest;
 import io.fluxion.remote.core.api.response.BrokerPingResponse;
 import io.fluxion.remote.core.client.Client;
-import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.server.core.app.App;
 import io.fluxion.server.core.app.cmd.AppBrokerElectCmd;
 import io.fluxion.server.core.app.cmd.AppRegisterCmd;
 import io.fluxion.server.core.broker.BrokerContext;
-import io.fluxion.server.core.cluster.NodeManger;
+import io.fluxion.server.core.broker.BrokerManger;
+import io.fluxion.server.core.broker.BrokerNode;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.AppEntity;
 import io.fluxion.server.infrastructure.dao.repository.AppEntityRepo;
@@ -36,7 +36,7 @@ import io.fluxion.server.infrastructure.lock.DistributedLock;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -49,8 +49,8 @@ import static io.fluxion.remote.core.constants.BrokerConstant.API_BROKER_PING;
  * @author Devil
  */
 @Slf4j
-@Component
-public class AppCommandHandler {
+@Service
+public class AppCommandService {
 
     private static final int ELECT_RETRY_TIMES = 5;
 
@@ -60,7 +60,7 @@ public class AppCommandHandler {
     private AppEntityRepo appEntityRepo;
 
     @Resource
-    private NodeManger nodeManger;
+    private BrokerManger brokerManger;
 
     @Resource
     private DistributedLock distributedLock;
@@ -76,26 +76,26 @@ public class AppCommandHandler {
             entity.setAppId(appId);
             appEntityRepo.saveAndFlush(entity);
         }
-        Node node = Cmd.send(new AppBrokerElectCmd(entity.getAppId())).getBroker();
-        App app = AppEntityConverter.convert(entity, node);
+        BrokerNode node = Cmd.send(new AppBrokerElectCmd(entity.getAppId())).getBroker();
+        App app = AppEntityConverter.convert(entity, node, brokerManger.allAlive());
         return new AppRegisterCmd.Response(app);
     }
 
     @CommandHandler
     public AppBrokerElectCmd.Response handle(AppBrokerElectCmd cmd) {
         String appId = cmd.getAppId();
-        List<Node> nodes = nodeManger.allAlive();
+        List<BrokerNode> nodes = brokerManger.allAlive();
         Client client = BrokerContext.broker().client();
         String lockName = String.format(ELECT_LOCK, appId);
         for (int i = 0; i < ELECT_RETRY_TIMES; i++) {
             // 锁外先做一次，减少DB锁
             AppEntity entity = appEntityRepo.findById(appId)
                 .orElseThrow(() -> new IllegalArgumentException("can't find app by id:" + appId));
-            Node node = nodeManger.get(BrokerContext.broker().id());
+            BrokerNode node = brokerManger.get(BrokerContext.broker().id());
             if (entity.getBrokerId().equals(BrokerContext.broker().id())) {
-                return new AppBrokerElectCmd.Response(node, false);
+                return new AppBrokerElectCmd.Response(node, false, brokerManger.allAlive());
             }
-            boolean locked = distributedLock.tryLock(lockName, 10000);
+            boolean locked = distributedLock.lock(lockName, 10000);
             if (!locked) {
                 try {
                     Thread.sleep(1000);
@@ -107,21 +107,23 @@ public class AppCommandHandler {
                 // 如果app当前绑定节点和worker请求的broker节点为同个节点则直接返回
                 entity = appEntityRepo.findById(appId)
                     .orElseThrow(() -> new IllegalArgumentException("can't find app by id:" + appId));
-                node = nodeManger.get(BrokerContext.broker().id());
+                node = brokerManger.get(BrokerContext.broker().id());
                 if (entity.getBrokerId().equals(BrokerContext.broker().id())) {
-                    return new AppBrokerElectCmd.Response(node, false);
+                    return new AppBrokerElectCmd.Response(node, false, brokerManger.allAlive());
                 }
-                // 判断app对应broker是否存活 已经由其它节点选举
-                BrokerPingResponse pingResponse = client.call(API_BROKER_PING, node.host(), node.port(), new BrokerPingRequest());
-                if (pingResponse.isSuccess()) {
-                    return new AppBrokerElectCmd.Response(node, true);
+                // 已经绑定其它节点为broker，判断其是否存活
+                if (StringUtils.isNotBlank(entity.getBrokerId())) {
+                    BrokerPingResponse pingResponse = client.call(API_BROKER_PING, node.host(), node.port(), new BrokerPingRequest());
+                    if (pingResponse.isSuccess()) {
+                        return new AppBrokerElectCmd.Response(node, true, brokerManger.allAlive());
+                    }
+                    String failNodeId = node.id();
+                    nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), failNodeId)).collect(Collectors.toList());
                 }
-                String failNodeId = node.id();
-                nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), failNodeId)).collect(Collectors.toList());
-                // 节点非存活状态，重新进行选举
-                Node elect = nodeManger.elect(appId);
+                // 节点非存活状态，首次选举或者重新进行选举
+                BrokerNode elect = brokerManger.elect(appId);
                 if (!BrokerContext.broker().id().equals(elect.id())) {
-                    pingResponse = client.call(API_BROKER_PING, elect.host(), elect.port(), new BrokerPingRequest());
+                    BrokerPingResponse pingResponse = client.call(API_BROKER_PING, elect.host(), elect.port(), new BrokerPingRequest());
                     if (!pingResponse.isSuccess()) {
                         nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), elect.id())).collect(Collectors.toList());
                         continue;
@@ -130,7 +132,7 @@ public class AppCommandHandler {
                 // 选举成功
                 entity.setBrokerId(elect.id());
                 appEntityRepo.saveAndFlush(entity);
-                return new AppBrokerElectCmd.Response(elect, true);
+                return new AppBrokerElectCmd.Response(elect, true, brokerManger.allAlive());
             } catch (Exception e) {
                 log.error("App broker elect fail appId:{}", appId, e);
             } finally {

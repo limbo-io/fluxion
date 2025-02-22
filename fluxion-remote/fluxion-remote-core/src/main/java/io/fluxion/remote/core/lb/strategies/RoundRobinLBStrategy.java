@@ -46,7 +46,7 @@ public class RoundRobinLBStrategy<S extends LBServer> extends AbstractLBStrategy
 
 
     public RoundRobinLBStrategy() {
-        this(s -> s.stream().collect(Collectors.toMap(LBServer::serverId, a -> 1)));
+        this(s -> s.stream().collect(Collectors.toMap(LBServer::id, a -> 1)));
     }
 
 
@@ -76,8 +76,8 @@ public class RoundRobinLBStrategy<S extends LBServer> extends AbstractLBStrategy
         S selected = null;
         RoundRobinIndexer selectedIndexer = null;
         for (S server : servers) {
-            int weight = Math.max(weights.getOrDefault(server.serverId(), 0), 0);
-            RoundRobinIndexer indexer = indexerMap.computeIfAbsent(server.serverId(), sid -> new RoundRobinIndexer(weight));
+            int weight = Math.max(weights.getOrDefault(server.id(), 0), 0);
+            RoundRobinIndexer indexer = indexerMap.computeIfAbsent(server.id(), sid -> new RoundRobinIndexer(weight));
 
             if (indexer.weight != weight) {
                 indexer.weight = weight;

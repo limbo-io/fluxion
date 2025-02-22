@@ -22,7 +22,7 @@ import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleEntityRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.queryhandling.QueryHandler;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -31,8 +31,8 @@ import java.util.List;
  * @author Devil
  */
 @Slf4j
-@Component
-public class ScheduleQueryHandler {
+@Service
+public class ScheduleQueryService {
 
     @Resource
     private ScheduleEntityRepo scheduleEntityRepo;

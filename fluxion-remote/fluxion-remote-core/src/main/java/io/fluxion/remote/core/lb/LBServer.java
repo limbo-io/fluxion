@@ -16,29 +16,18 @@
 
 package io.fluxion.remote.core.lb;
 
-import io.fluxion.remote.core.constants.Protocol;
+import io.fluxion.remote.core.cluster.Node;
 
 /**
  * 被负载均衡的服务
  *
  * @author Brozen
  */
-public interface LBServer {
-
-    /**
-     * 当前服务的唯一 ID
-     */
-    String serverId();
+public interface LBServer extends Node {
 
     /**
      * 当前服务是否存活可用
      */
     boolean isAlive();
-
-    Protocol protocol();
-
-    String host();
-
-    int port();
 
 }

@@ -32,6 +32,8 @@ import io.fluxion.server.infrastructure.dao.entity.FlowEntity;
 import io.fluxion.server.infrastructure.dao.repository.ExecutionEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.FlowEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.TaskEntityRepo;
+import io.fluxion.server.infrastructure.exception.ErrorCode;
+import io.fluxion.server.infrastructure.exception.PlatformException;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
 import io.fluxion.server.infrastructure.version.model.Version;
@@ -39,15 +41,15 @@ import io.fluxion.server.infrastructure.version.model.VersionRefType;
 import io.fluxion.server.infrastructure.version.query.VersionByIdQuery;
 import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 
 /**
  * @author Devil
  */
-@Component
-public class ExecutionHandler {
+@Service
+public class ExecutionCommandService {
 
     @Resource
     private ExecutionEntityRepo executionEntityRepo;
@@ -63,13 +65,13 @@ public class ExecutionHandler {
         Executable executable = null;
         switch (cmd.getRefType()) {
             case FLOW:
-                executable = runFlow(cmd.getRefId());
+                executable = flow(cmd.getRefId());
                 break;
             case EXECUTOR:
                 break;
         }
         if (executable == null) {
-            return new ExecutionCreateCmd.Response(null);
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "executable not found by refId:" + cmd.getRefId() + " refT");
         }
         // 判断是否已经创建
         ExecutionEntity entity = executionEntityRepo.findByRefIdAndRefTypeAndTriggerAt(cmd.getRefId(), cmd.getRefType().value, cmd.getTriggerAt());
@@ -86,10 +88,11 @@ public class ExecutionHandler {
         return new ExecutionCreateCmd.Response(execution);
     }
 
-    private Flow runFlow(String id) {
-        FlowEntity flowEntity = flowEntityRepo.findById(id).orElse(null);
-        if (flowEntity == null || flowEntity.isDeleted() || StringUtils.isBlank(flowEntity.getRunVersion())) {
-            return null;
+    private Flow flow(String id) {
+        FlowEntity flowEntity = flowEntityRepo.findByFlowIdAndDeleted(id, false)
+            .orElseThrow(() -> new PlatformException(ErrorCode.PARAM_ERROR, "flow not found id:" + id));
+        if (StringUtils.isBlank(flowEntity.getRunVersion())) {
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "flow does not have runVersion id:" + id);
         }
         Version version = Query.query(VersionByIdQuery.builder()
             .refId(flowEntity.getFlowId())
@@ -98,7 +101,7 @@ public class ExecutionHandler {
             .build()
         ).getVersion();
         if (version == null) {
-            return null;
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "flow does not find runVersion id:" + id + " version:" + flowEntity.getRunVersion());
 
         }
         FlowConfig flowConfig = JacksonUtils.toType(version.getConfig(), FlowConfig.class);

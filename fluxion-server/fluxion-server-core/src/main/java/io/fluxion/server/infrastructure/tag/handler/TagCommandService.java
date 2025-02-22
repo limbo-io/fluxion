@@ -24,7 +24,7 @@ import io.fluxion.server.infrastructure.tag.cmd.TagBatchSaveCmd;
 import io.fluxion.server.infrastructure.tag.cmd.TagCreateCmd;
 import org.apache.commons.collections4.CollectionUtils;
 import org.axonframework.commandhandling.CommandHandler;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 /**
  * @author Devil
  */
-@Component
-public class TagCommandHandler {
+@Service
+public class TagCommandService {
 
     @Resource
     private TagEntityRepo tagEntityRepo;

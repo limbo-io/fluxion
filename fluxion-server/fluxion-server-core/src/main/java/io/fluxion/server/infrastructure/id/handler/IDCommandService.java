@@ -39,8 +39,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Devil
  */
 @Slf4j
-@Component
-public class IDHandler {
+@Service
+public class IDCommandService {
 
     private static final Map<IDType, ID> ID_MAP = new ConcurrentHashMap<>();
 

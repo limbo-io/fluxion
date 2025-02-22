@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.cluster;
+package io.fluxion.remote.core.cluster;
 
 /**
  * broker节点监听器
@@ -22,11 +22,11 @@ package io.fluxion.server.core.cluster;
  * @author Devil
  * @since 2022/7/18
  */
-public interface NodeListener {
+public interface NodeListener<T extends Node> {
 
     /**
      * 监听事件
      */
-    void event(NodeEvent event);
+    void event(NodeEvent<T> event);
 
 }

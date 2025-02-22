@@ -84,7 +84,7 @@ public class ConsistentHashLBStrategy<S extends LBServer> extends AbstractLBStra
 
             for (SERVER server : servers) {
                 // MD5 签名结果，每 32 位作为一组计算 slot，32 位对应 4 个字节，因此除以 4
-                String sid = server.serverId();
+                String sid = server.id();
                 for (int i = 0; i < replicas / 4; i++) {
                     byte[] digest = MD5Utils.bytes(sid + i);
                     for (int j = 0; j < 4; j++) {

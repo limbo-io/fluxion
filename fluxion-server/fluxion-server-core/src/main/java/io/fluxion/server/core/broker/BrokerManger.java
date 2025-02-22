@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.start.component;
+package io.fluxion.server.core.broker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.remote.core.cluster.Node;
-import io.fluxion.server.core.cluster.NodeManger;
+import io.fluxion.remote.core.cluster.NodeManger;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * 内存中缓存的 broker节点信息
@@ -35,14 +36,14 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Component
-public class LocalNodeManger implements NodeManger {
+public class BrokerManger implements NodeManger<BrokerNode> {
 
-    private static final Map<String, Node> nodes = new ConcurrentHashMap<>();
+    private static final Map<String, BrokerNode> nodes = new ConcurrentHashMap<>();
 
     /**
      * 节点上线
      */
-    public void online(Node node) {
+    public void online(BrokerNode node) {
         nodes.putIfAbsent(node.id(), node);
         if (log.isDebugEnabled()) {
             log.debug("[LocalNodeManger] online {}", JacksonUtils.toJSONString(nodes));
@@ -52,7 +53,7 @@ public class LocalNodeManger implements NodeManger {
     /**
      * 节点下线
      */
-    public void offline(Node node) {
+    public void offline(BrokerNode node) {
         nodes.remove(node.id());
         if (log.isDebugEnabled()) {
             log.debug("[LocalNodeManger] offline {}", JacksonUtils.toJSONString(nodes));
@@ -67,19 +68,21 @@ public class LocalNodeManger implements NodeManger {
     }
 
     @Override
-    public Node get(String id) {
+    public BrokerNode get(String id) {
         return nodes.get(id);
     }
 
     /**
      * 所有存活节点
      */
-    public List<Node> allAlive() {
+    @Override
+    public List<BrokerNode> allAlive() {
         if (nodes.isEmpty() && log.isDebugEnabled()) {
             log.debug("[LocalNodeManger] allAlive {}", JacksonUtils.toJSONString(nodes));
         }
         return new ArrayList<>(nodes.values());
     }
+
 
     /**
      * 为某个资源选择一个broker
@@ -87,20 +90,13 @@ public class LocalNodeManger implements NodeManger {
      * @param id 资源id
      * @return broker信息
      */
-    public Node elect(String id) {
-        List<Node> sortedNodes = nodes.values().stream()
-            .sorted(Comparator.comparing(Node::id))
-            .collect(Collectors.toList());
-        if (CollectionUtils.isEmpty(sortedNodes)) {
+    @Override
+    public BrokerNode elect(String id) {
+        if (CollectionUtils.isEmpty(nodes.values())) {
             return null;
         }
-
-        // hash获取id对应的值
-        int idx = id.hashCode() % sortedNodes.size();
-
-        Node node = sortedNodes.get(idx);
-        log.info("find elect:{}", node);
+        BrokerNode node = nodes.values().stream().min(Comparator.comparing(BrokerNode::load)).orElse(null);
+        log.info("id: {} find elect:{}", id, node == null ? null : node.id());
         return node;
     }
-
 }

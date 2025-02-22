@@ -14,22 +14,25 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.trigger.event;
+package io.fluxion.server.core.trigger.cmd;
 
-import io.fluxion.common.utils.MD5Utils;
-import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.server.infrastructure.schedule.ScheduleOption;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
+ * 重新分配某个schedule
+ * todo @d
  * @author Devil
  */
-public class TriggerHelper {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ScheduleBrokerElectCmd implements ICmd<Void> {
 
-    public static String scheduleId(String triggerId) {
-        return triggerId + "_tg";
-    }
+    private String brokerId;
 
-    public static String scheduleVersion(String refId, int refType, ScheduleOption scheduleOption) {
-        return MD5Utils.md5(refId + "_" + refType + "_" + JacksonUtils.toJSONString(scheduleOption));
-    }
 }

@@ -14,20 +14,22 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.cluster;
+package io.fluxion.server.core.trigger;
 
-import io.fluxion.remote.core.constants.Protocol;
+import io.fluxion.common.utils.MD5Utils;
+import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 
 /**
  * @author Devil
  */
-public interface Node {
+public class TriggerHelper {
 
-    String id();
+    public static String scheduleId(String triggerId) {
+        return triggerId + "_tg";
+    }
 
-    Protocol protocol();
-
-    String host();
-
-    int port();
+    public static String scheduleVersion(String refId, int refType, ScheduleOption scheduleOption) {
+        return MD5Utils.md5(refId + "_" + refType + "_" + JacksonUtils.toJSONString(scheduleOption));
+    }
 }

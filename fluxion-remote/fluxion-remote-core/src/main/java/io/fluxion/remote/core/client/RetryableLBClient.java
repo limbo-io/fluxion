@@ -62,7 +62,7 @@ public class RetryableLBClient extends LBClient {
                 return client.call(path, server.host(), server.port(), request);
             } catch (Exception e) {
                 log.warn("try {} times... address {} connect fail, try connect new node", i, newUrl, e);
-                servers = servers.stream().filter(s -> !s.serverId().equals(server.serverId())).collect(Collectors.toList());
+                servers = servers.stream().filter(s -> !s.id().equals(server.id())).collect(Collectors.toList());
             }
 
         }

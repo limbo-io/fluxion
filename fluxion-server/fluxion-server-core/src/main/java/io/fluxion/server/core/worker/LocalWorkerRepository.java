@@ -16,6 +16,10 @@
 
 package io.fluxion.server.core.worker;
 
+import io.fluxion.server.core.broker.BrokerContext;
+import io.fluxion.server.core.broker.BrokerNode;
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,18 +29,23 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author Devil
  */
+@Component
 public class LocalWorkerRepository implements WorkerRepository {
-    // appId - workerId - Worker
+    /**
+     * appId - workerId - Worker
+     */
     private final Map<String, Map<String, Worker>> APP_WORKERS = new ConcurrentHashMap<>();
 
     private final Map<String, Worker> WORKERS = new ConcurrentHashMap<>();
 
-
     @Override
     public void save(Worker worker) {
         Map<String, Worker> workers = APP_WORKERS.computeIfAbsent(worker.getAppId(), s -> new ConcurrentHashMap<>());
-        workers.putIfAbsent(worker.getId(), worker);
-        WORKERS.putIfAbsent(worker.getId(), worker);
+        if (!WORKERS.containsKey(worker.getId())) {
+            BrokerContext.broker().node().loadIncr(BrokerNode.LoadType.WORKER);
+        }
+        workers.put(worker.getId(), worker);
+        WORKERS.put(worker.getId(), worker);
     }
 
     @Override
@@ -50,6 +59,7 @@ public class LocalWorkerRepository implements WorkerRepository {
         if (removed != null && APP_WORKERS.containsKey(removed.getAppId())) {
             APP_WORKERS.get(removed.getAppId()).remove(id);
         }
+        BrokerContext.broker().node().loadDecr(BrokerNode.LoadType.WORKER);
     }
 
     @Override

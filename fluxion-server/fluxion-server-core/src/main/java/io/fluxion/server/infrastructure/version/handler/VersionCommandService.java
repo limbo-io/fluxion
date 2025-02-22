@@ -27,7 +27,7 @@ import io.fluxion.server.infrastructure.version.model.VersionGenerateType;
 import io.fluxion.server.infrastructure.version.model.VersionRefType;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.CommandHandler;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.EnumMap;
@@ -37,8 +37,8 @@ import java.util.Map;
  * @author Devil
  */
 @Slf4j
-@Component
-public class VersionCommandHandler {
+@Service
+public class VersionCommandService {
 
     @Resource
     private VersionEntityRepo versionEntityRepo;

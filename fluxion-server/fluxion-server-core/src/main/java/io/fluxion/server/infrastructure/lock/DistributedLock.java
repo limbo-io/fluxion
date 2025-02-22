@@ -30,7 +30,7 @@ public interface DistributedLock {
      * @param expire 加锁时间/毫秒
      * @return 是否成功
      */
-    boolean tryLock(String name, long expire);
+    boolean lock(String name, long expire);
 
     /**
      * 释放锁

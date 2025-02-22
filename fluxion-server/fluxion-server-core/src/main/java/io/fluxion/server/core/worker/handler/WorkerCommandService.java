@@ -29,7 +29,7 @@ import io.fluxion.server.infrastructure.tag.TagRefType;
 import io.fluxion.server.infrastructure.tag.cmd.TagBatchSaveCmd;
 import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -40,8 +40,8 @@ import java.util.stream.Collectors;
 /**
  * @author Devil
  */
-@Component
-public class WorkerCommandHandler {
+@Service
+public class WorkerCommandService {
 
     @Resource
     private WorkerRepository workerRepository;
@@ -52,8 +52,8 @@ public class WorkerCommandHandler {
         if (StringUtils.isNotBlank(worker.id())) {
             return new WorkerRegisterCmd.Response(worker.id());
         }
-
-        workerRepository.save(worker);
+        // 这里不需要保存，可能不是分配到当前节点
+//        workerRepository.save(worker);
 
         Cmd.send(new TagBatchSaveCmd(worker.id(), TagRefType.WORKER, tags(worker)));
         return new WorkerRegisterCmd.Response(worker.id());

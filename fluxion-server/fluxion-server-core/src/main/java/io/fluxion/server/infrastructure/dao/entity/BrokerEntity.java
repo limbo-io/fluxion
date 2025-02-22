@@ -50,6 +50,10 @@ public class BrokerEntity extends BaseEntity {
     private String host;
 
     private Integer port;
+    /**
+     * 负载分值
+     */
+    private Integer load;
 
     /**
      * 上次心跳时间

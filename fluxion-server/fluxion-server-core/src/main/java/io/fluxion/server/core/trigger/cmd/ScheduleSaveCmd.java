@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.app.cmd;
+package io.fluxion.server.core.trigger.cmd;
 
-import io.fluxion.server.core.broker.BrokerNode;
+import io.fluxion.server.core.trigger.run.Schedule;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 /**
  * @author Devil
@@ -32,23 +30,14 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AppBrokerElectCmd implements ICmd<AppBrokerElectCmd.Response> {
+public class ScheduleSaveCmd implements ICmd<ScheduleSaveCmd.Response> {
 
-    private String appId;
+    private Schedule schedule;
 
     @Getter
     @AllArgsConstructor
     public static class Response {
-        /**
-         * 当前节点
-         */
-        private BrokerNode broker;
-        /**
-         * 是否发生重新选举
-         */
-        private boolean elected;
-
-        private List<BrokerNode> brokers;
+        private String id;
     }
 
 }

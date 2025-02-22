@@ -73,7 +73,7 @@ public class ScheduleLoadTask extends CoreTask {
                             scheduleId,
                             schedule.getLatelyTriggerAt(),
                             schedule.getLatelyFeedbackAt(),
-                            schedule.getOption(),
+                            schedule.getScheduleOption(),
                             scheduledTask -> consumerTask(scheduledTask, schedule.getId())
                         ));
                         break;
@@ -83,7 +83,7 @@ public class ScheduleLoadTask extends CoreTask {
                             scheduleId,
                             schedule.getLatelyTriggerAt(),
                             schedule.getLatelyFeedbackAt(),
-                            schedule.getOption(),
+                            schedule.getScheduleOption(),
                             delayedTask -> consumerTask(delayedTask, schedule.getId())
                         ));
                         break;

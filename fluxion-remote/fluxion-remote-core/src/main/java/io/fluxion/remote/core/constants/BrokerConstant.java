@@ -21,6 +21,7 @@ package io.fluxion.remote.core.constants;
  * @since 0.0.1
  */
 public interface BrokerConstant {
+
     // ========== API ==========
     String API_WORKER_REGISTER = "/api/v1/worker/register";
 

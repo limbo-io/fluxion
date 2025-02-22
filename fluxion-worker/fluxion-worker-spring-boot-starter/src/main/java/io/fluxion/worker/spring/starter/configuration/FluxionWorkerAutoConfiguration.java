@@ -16,7 +16,7 @@
 
 package io.fluxion.worker.spring.starter.configuration;
 
-import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.lb.BaseLBServer;
 import io.fluxion.remote.core.lb.LBServer;
@@ -111,7 +111,7 @@ public class FluxionWorkerAutoConfiguration {
         List<URL> brokerUrls = properties.getBrokers() == null ? Collections.emptyList() : properties.getBrokers();
         return brokerUrls.stream()
             .map(url -> {
-                Node node = new Node(Protocol.parse(url.getProtocol()), url.getHost(), url.getPort());
+                BaseNode node = new BaseNode(Protocol.parse(url.getProtocol()), url.getHost(), url.getPort());
                 return new BaseLBServer(node);
             })
             .collect(Collectors.toList());

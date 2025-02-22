@@ -29,24 +29,16 @@ import io.fluxion.server.core.app.App;
 import io.fluxion.server.core.app.cmd.AppBrokerElectCmd;
 import io.fluxion.server.core.app.cmd.AppRegisterCmd;
 import io.fluxion.server.core.broker.converter.BrokerClientConverter;
-import io.fluxion.server.core.cluster.NodeManger;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerRegisterCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
-import javax.annotation.Resource;
 
 /**
  * @author Devil
  */
 @Slf4j
-@Component
 public class BrokerClientHandler implements ClientHandler {
-
-    @Resource
-    private NodeManger nodeManger;
 
     @Override
     public Response<?> process(String path, String data) {
@@ -82,7 +74,7 @@ public class BrokerClientHandler implements ClientHandler {
         response.setAppId(app.getId());
         response.setWorkerId(workerId);
         response.setBroker(BrokerClientConverter.toDTO(app.getBroker()));
-        response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(nodeManger.allAlive()));
+        response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(app.getBrokers()));
         return response;
     }
 
@@ -101,7 +93,7 @@ public class BrokerClientHandler implements ClientHandler {
         if (brokerElect.isElected()) {
             response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(null));
         } else {
-            response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(nodeManger.allAlive()));
+            response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(brokerElect.getBrokers()));
         }
         return response;
     }

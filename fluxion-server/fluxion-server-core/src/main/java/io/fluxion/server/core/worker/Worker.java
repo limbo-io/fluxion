@@ -109,11 +109,6 @@ public class Worker implements LBServer, Tagged {
     }
 
     @Override
-    public String serverId() {
-        return id();
-    }
-
-    @Override
     public boolean isAlive() {
         return WorkerStatus.RUNNING == status;
     }

@@ -16,8 +16,11 @@
 
 package io.fluxion.server.core.app;
 
-import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.server.core.broker.BrokerNode;
 import lombok.Data;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Devil
@@ -27,6 +30,8 @@ public class App {
 
     private String id;
 
-    private Node broker;
+    private BrokerNode broker;
+
+    private List<BrokerNode> brokers = Collections.emptyList();
 
 }

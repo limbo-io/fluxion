@@ -21,9 +21,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 /**
  * @author Devil
  */
 @Repository
 public interface FlowEntityRepo extends JpaRepository<FlowEntity, String>, JpaSpecificationExecutor<FlowEntity> {
+
+    Optional<FlowEntity> findByFlowIdAndDeleted(String flowId, boolean deleted);
 }

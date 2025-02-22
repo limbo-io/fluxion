@@ -41,7 +41,7 @@ public class DatabaseDistributedLock implements DistributedLock {
 
     @Override
     @Transactional
-    public boolean tryLock(String name, long expire) {
+    public boolean lock(String name, long expire) {
 
         LockEntity lock = lockEntityRepo.findByName(name);
 

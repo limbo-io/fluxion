@@ -16,28 +16,28 @@
 
 package io.fluxion.server.core.app.handler;
 
-import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.server.core.app.App;
 import io.fluxion.server.core.app.query.AppByIdQuery;
-import io.fluxion.server.core.cluster.NodeManger;
+import io.fluxion.server.core.broker.BrokerManger;
+import io.fluxion.server.core.broker.BrokerNode;
 import io.fluxion.server.infrastructure.dao.entity.AppEntity;
 import io.fluxion.server.infrastructure.dao.repository.AppEntityRepo;
 import org.axonframework.commandhandling.CommandHandler;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 
 /**
  * @author Devil
  */
-@Component
-public class AppQueryHandler {
+@Service
+public class AppQueryService {
 
     @Resource
     private AppEntityRepo appEntityRepo;
 
     @Resource
-    private NodeManger nodeManger;
+    private BrokerManger brokerManger;
 
     @CommandHandler
     public AppByIdQuery.Response handle(AppByIdQuery query) {
@@ -45,8 +45,8 @@ public class AppQueryHandler {
         if (entity == null) {
             return new AppByIdQuery.Response(null);
         }
-        Node node = nodeManger.get(entity.getBrokerId());
-        App app = AppEntityConverter.convert(entity, node);
+        BrokerNode broker = brokerManger.get(entity.getBrokerId());
+        App app = AppEntityConverter.convert(entity, broker, brokerManger.allAlive());
         return new AppByIdQuery.Response(app);
     }
 

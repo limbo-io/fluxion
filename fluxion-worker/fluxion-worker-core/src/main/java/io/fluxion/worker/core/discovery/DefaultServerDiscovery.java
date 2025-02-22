@@ -25,6 +25,7 @@ import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.LBClient;
 import io.fluxion.remote.core.client.RetryableClient;
+import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.exception.RpcException;
@@ -117,8 +118,9 @@ public class DefaultServerDiscovery implements ServerDiscovery {
                     repository.updateServers(brokers(heartbeatResponse.getBrokerTopology()));
                 }
             } catch (RpcException e) {
-                log.warn("[DefaultServerDiscovery] send heartbeat failed");
-                throw new IllegalStateException("[DefaultServerDiscovery] send heartbeat failed", e);
+                log.warn("[DefaultServerDiscovery] send heartbeat failed e:{}", e.getMessage());
+                // 换新broker节点重新注册
+                register();
             }
         }, Duration.ofSeconds(HEARTBEAT_TIMEOUT_SECOND));
     }
@@ -134,7 +136,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
     }
 
     private Node node(NodeDTO dto) {
-        return new Node(Protocol.parse(dto.getProtocol()), dto.getHost(), dto.getPort());
+        return new BaseNode(Protocol.parse(dto.getProtocol()), dto.getHost(), dto.getPort());
     }
 
     private SystemInfoDTO systemInfoDTO() {

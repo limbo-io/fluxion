@@ -20,14 +20,38 @@ import io.fluxion.remote.core.constants.Protocol;
 
 /**
  * @author Devil
+ * @since 2022/8/23
  */
-public interface Node {
+public class BaseNode implements Node {
 
-    String id();
+    private final String id;
 
-    Protocol protocol();
+    private final Protocol protocol;
 
-    String host();
+    private final String host;
 
-    int port();
+    private final int port;
+
+    public BaseNode(Protocol protocol, String host, int port) {
+        this.protocol = protocol;
+        this.host = host;
+        this.port = port;
+        this.id = protocol.value + "://" + host + ":" + port;
+    }
+
+    public String id() {
+        return id;
+    }
+
+    public Protocol protocol() {
+        return protocol;
+    }
+
+    public String host() {
+        return host;
+    }
+
+    public int port() {
+        return port;
+    }
 }

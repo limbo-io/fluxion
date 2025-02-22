@@ -32,7 +32,7 @@ import javax.annotation.Resource;
  */
 @Slf4j
 @Component
-public class VersionQueryHandler {
+public class VersionQueryService {
 
     @Resource
     private VersionEntityRepo versionEntityRepo;

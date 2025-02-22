@@ -17,18 +17,21 @@
 package io.fluxion.server.core.app.handler;
 
 import io.fluxion.server.core.app.App;
-import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.server.core.broker.BrokerNode;
 import io.fluxion.server.infrastructure.dao.entity.AppEntity;
+
+import java.util.List;
 
 /**
  * @author Devil
  */
 public class AppEntityConverter {
 
-    public static App convert(AppEntity entity, Node node) {
+    public static App convert(AppEntity entity, BrokerNode broker, List<BrokerNode> brokers) {
         App app = new App();
         app.setId(entity.getAppId());
-        app.setBroker(node);
+        app.setBroker(broker);
+        app.setBrokers(brokers);
         return app;
     }
 

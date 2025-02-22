@@ -51,7 +51,7 @@ public class Schedule {
 
     private ScheduleType scheduleType;
 
-    private ScheduleOption option;
+    private ScheduleOption scheduleOption;
 
     /**
      * 上次触发时间

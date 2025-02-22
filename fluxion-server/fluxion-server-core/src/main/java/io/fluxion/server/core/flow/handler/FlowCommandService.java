@@ -34,8 +34,6 @@ import io.fluxion.server.infrastructure.version.model.VersionRefType;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -48,16 +46,14 @@ import java.util.List;
 /**
  * @author Devil
  */
-@Component
-public class FlowHandler {
+@Service
+public class FlowCommandService {
 
     @Resource
-    private FlowEntityRepo flowEntityRepository;
+    private FlowEntityRepo flowEntityRepo;
 
     @Resource
     private EntityManager entityManager;
-    @Autowired
-    private FlowEntityRepo flowEntityRepo;
 
     @CommandHandler
     public FlowCreateCmd.Response handle(FlowCreateCmd cmd) {
@@ -70,20 +66,20 @@ public class FlowHandler {
         flowEntity.setName(cmd.getName());
         flowEntity.setDescription(cmd.getDescription());
         flowEntity.setDraftVersion(versionId);
-        flowEntityRepository.saveAndFlush(flowEntity);
+        flowEntityRepo.saveAndFlush(flowEntity);
         return new FlowCreateCmd.Response(flowId);
     }
 
     @CommandHandler
     public FlowDraftCmd.Response handle(FlowDraftCmd cmd) {
-        FlowEntity flowEntity = flowEntityRepository.findById(cmd.getId()).orElseThrow(
+        FlowEntity flowEntity = flowEntityRepo.findById(cmd.getId()).orElseThrow(
             PlatformException.supplier(ErrorCode.PARAM_ERROR, "can't find flow by id:" + cmd.getId())
         );
         String configJson = JacksonUtils.toJSONString(cmd.getConfig());
         if (StringUtils.isBlank(flowEntity.getDraftVersion())) {
             String version = Cmd.send(new VersionCreateCmd(flowEntity.getFlowId(), VersionRefType.FLOW, configJson)).getVersion();
             flowEntity.setDraftVersion(version);
-            flowEntityRepository.saveAndFlush(flowEntity);
+            flowEntityRepo.saveAndFlush(flowEntity);
         } else {
             Cmd.send(new VersionUpdateCmd(flowEntity.getFlowId(), VersionRefType.FLOW, flowEntity.getDraftVersion(), configJson));
         }
@@ -92,7 +88,7 @@ public class FlowHandler {
 
     @CommandHandler
     public FlowPublishCmd.Response handle(FlowPublishCmd cmd) {
-        FlowEntity flowEntity = flowEntityRepository.findById(cmd.getId()).orElseThrow(
+        FlowEntity flowEntity = flowEntityRepo.findById(cmd.getId()).orElseThrow(
             PlatformException.supplier(ErrorCode.PARAM_ERROR, "can't find flow by id:" + cmd.getId())
         );
         if (StringUtils.isBlank(flowEntity.getDraftVersion())) {
@@ -108,7 +104,7 @@ public class FlowHandler {
         String runVersion = flowEntity.getDraftVersion();
         flowEntity.setRunVersion(runVersion);
         flowEntity.setDraftVersion(StringUtils.EMPTY);
-        flowEntityRepository.saveAndFlush(flowEntity);
+        flowEntityRepo.saveAndFlush(flowEntity);
         return new FlowPublishCmd.Response(runVersion, null);
     }
 
