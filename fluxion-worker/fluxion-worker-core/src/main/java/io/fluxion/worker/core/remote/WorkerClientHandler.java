@@ -18,7 +18,8 @@ package io.fluxion.worker.core.remote;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
-import io.fluxion.remote.core.api.request.TaskDispatchRequest;
+import io.fluxion.remote.core.api.request.worker.SubTaskDispatchRequest;
+import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.WorkerConstant;
 import io.fluxion.worker.core.WorkerContext;
@@ -58,6 +59,13 @@ public class WorkerClientHandler implements ClientHandler {
                     boolean success = tracker.start();
                     return Response.ok(success);
                 }
+                case WorkerConstant.API_SUB_TASK_DISPATCH: {
+                    SubTaskDispatchRequest request = JacksonUtils.toType(data, SubTaskDispatchRequest.class);
+                    Task task = WorkerClientConverter.toTask(request);
+                    TaskTracker tracker = createSubTaskTracker(task);
+                    boolean success = tracker.start();
+                    return Response.ok(success);
+                }
             }
             String msg = "Invalid request, Path NotFound.";
             log.info("{} path={}", msg, path);
@@ -69,6 +77,23 @@ public class WorkerClientHandler implements ClientHandler {
     }
 
     private TaskTracker createTaskTracker(Task task) {
+        switch (task.getExecuteType()) {
+            case STANDALONE:
+                Executor executor = workerContext.executor(task.getExecutorName());
+                if (executor == null) {
+                    throw new IllegalArgumentException("unknown executor name:" + task.getExecutorName());
+                }
+                return new BasicTaskTracker(task, executor, workerContext);
+            case BROADCAST:
+            case MAP:
+            case MAP_REDUCE:
+                return new SubTaskTracker(task, workerContext);
+            default:
+                throw new IllegalArgumentException("unknown execute type:" + task.getExecuteType().name());
+        }
+    }
+
+    private TaskTracker createSubTaskTracker(Task task) {
         Executor executor = workerContext.executor(task.getExecutorName());
         if (executor == null) {
             throw new IllegalArgumentException("unknown executor name:" + task.getExecutorName());
@@ -78,21 +103,21 @@ public class WorkerClientHandler implements ClientHandler {
                 if (!(executor instanceof StandaloneExecutor)) {
                     throw new IllegalArgumentException("unknown executor:" + executor.name() + " not match executeType:" + task.getExecuteType().name());
                 }
-                return new BasicTaskTracker(task, executor, workerContext);
+                break;
             case BROADCAST:
                 if (!(executor instanceof BroadcastExecutor)) {
                     throw new IllegalArgumentException("unknown executor:" + executor.name() + " not match executeType:" + task.getExecuteType().name());
                 }
-                return new SubTaskTracker(task, executor, workerContext);
+                break;
             case MAP:
             case MAP_REDUCE:
                 if (!(executor instanceof MapReduceExecutor)) {
                     throw new IllegalArgumentException("unknown executor:" + executor.name() + " not match executeType:" + task.getExecuteType().name());
                 }
-                return new SubTaskTracker(task, executor, workerContext);
+                break;
             default:
                 throw new IllegalArgumentException("unknown execute type:" + task.getExecuteType().name());
         }
+        return new BasicTaskTracker(task, executor, workerContext);
     }
-
 }

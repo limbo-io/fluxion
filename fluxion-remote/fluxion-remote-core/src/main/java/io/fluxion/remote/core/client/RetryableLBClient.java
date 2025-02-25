@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.client;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.remote.core.lb.repository.LBServerRepository;
@@ -46,7 +47,7 @@ public class RetryableLBClient extends LBClient {
     }
 
     @Override
-    public <R> R call(String path, Request<R> request) {
+    public <R> R call(String path, Request<Response<R>> request) {
         List<LBServer> servers = servers();
         if (CollectionUtils.isEmpty(servers)) {
             throw new IllegalStateException("No alive servers!");

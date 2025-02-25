@@ -21,14 +21,14 @@ import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.Task;
 
 /**
- * 生成并管理分布式任务
+ * 生成子任务并进行追踪管理
  *
  * @author Devil
  */
 public class SubTaskTracker extends TaskTracker {
 
-    public SubTaskTracker(Task task, Executor executor, WorkerContext workerContext) {
-        super(task, executor, workerContext);
+    public SubTaskTracker(Task task, WorkerContext workerContext) {
+        super(task, workerContext);
     }
 
     @Override

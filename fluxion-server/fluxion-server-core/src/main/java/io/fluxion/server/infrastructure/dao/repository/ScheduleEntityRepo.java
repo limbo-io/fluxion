@@ -26,6 +26,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,12 +40,19 @@ public interface ScheduleEntityRepo extends JpaRepository<ScheduleEntity, String
     @Query(value = "update ScheduleEntity set enabled = :enabled where scheduleId = :scheduleId")
     int updateEnable(@Param("scheduleId") String scheduleId, @Param("enabled") boolean enabled);
 
+    @Modifying(clearAutomatically = true)
+    @Query(value = "update ScheduleEntity set brokerId = :brokerId where scheduleId = :scheduleId")
+    int updateBrokerId(@Param("scheduleId") String scheduleId, @Param("brokerId") String brokerId);
+
     @Query(value = "select e from ScheduleEntity e" +
         " where e.brokerId = :brokerId and e.updatedAt >= :updatedAt " +
         " and e.enabled = true and e.deleted = false ")
     List<ScheduleEntity> loadByBrokerAndUpdated(@Param("brokerId") String brokerId, @Param("updatedAt") LocalDateTime updatedAt);
 
+    Page<ScheduleEntity> findByBrokerIdNotInAndDeletedAndEnabledContaining(Collection<String> brokerIds, boolean deleted, boolean enabled, Pageable pageable);
+
     Page<ScheduleEntity> findByBrokerIdAndDeletedContaining(String brokerId, boolean deleted, Pageable pageable);
 
     ScheduleEntity findByScheduleIdAndDeleted(@Param("scheduleId") String scheduleId, @Param("deleted") boolean deleted);
+
 }

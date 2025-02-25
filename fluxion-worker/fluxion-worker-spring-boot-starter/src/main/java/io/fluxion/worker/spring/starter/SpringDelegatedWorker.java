@@ -90,15 +90,16 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
      */
     @EventListener(WorkerReadyEvent.class)
     public void onWorkerReady(WorkerReadyEvent event) {
-        // WorkerContext
-        WorkerContext workerContext = new WorkerContext(appName, protocol, host, port, queueSize, concurrency, executors, tags);
-        // Discovery
+        // remote client
         LBServerRepository lbServerRepository = new EmbeddedLBServerRepository(brokerNodes);
         LBClient client = RetryableLBClient.builder()
             .client(ClientFactory.create(protocol))
             .repository(lbServerRepository)
             .strategy(new RoundRobinLBStrategy<>())
             .build();
+        // WorkerContext
+        WorkerContext workerContext = new WorkerContext(appName, protocol, host, port, queueSize, concurrency, client, executors, tags);
+        // Discovery
         ServerDiscovery discovery = new DefaultServerDiscovery(workerContext, lbServerRepository, client);
         // ClientServer
         ClientServerFactory factory = ClientServerFactory.instance();

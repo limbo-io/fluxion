@@ -16,6 +16,7 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
+import io.fluxion.server.core.task.TaskStatus;
 import io.fluxion.server.core.task.TaskType;
 import io.fluxion.server.infrastructure.dao.TableConstants;
 import lombok.Getter;
@@ -60,6 +61,13 @@ public class TaskEntity extends BaseEntity {
     private String refId;
 
     /**
+     * 状态
+     *
+     * @see TaskStatus
+     */
+    private Integer status;
+
+    /**
      * 开始时间
      */
     private LocalDateTime triggerAt;
@@ -82,12 +90,22 @@ public class TaskEntity extends BaseEntity {
     /**
      * 执行节点
      */
-    private String workerId;
+    private String workerAddress;
 
     /**
      * 上次上报时间戳，毫秒
      */
     private LocalDateTime lastReportAt;
+
+    /**
+     * 当前是第几次重试
+     */
+    private Integer retryTimes;
+
+    /**
+     * 错误信息
+     */
+    private String errorMsg;
 
     @Override
     public Object getUid() {

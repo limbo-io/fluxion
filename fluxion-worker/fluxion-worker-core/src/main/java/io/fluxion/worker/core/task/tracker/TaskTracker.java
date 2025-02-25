@@ -17,8 +17,10 @@
 package io.fluxion.worker.core.task.tracker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.remote.core.api.request.broker.TaskFailRequest;
+import io.fluxion.remote.core.api.request.broker.TaskStartRequest;
+import io.fluxion.remote.core.api.request.broker.TaskSuccessRequest;
 import io.fluxion.worker.core.WorkerContext;
-import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +29,10 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static io.fluxion.remote.core.constants.BrokerConstant.API_TASK_FAIL;
+import static io.fluxion.remote.core.constants.BrokerConstant.API_TASK_START;
+import static io.fluxion.remote.core.constants.BrokerConstant.API_TASK_SUCCESS;
 
 /**
  * Task执行管理和监控
@@ -44,17 +50,14 @@ public abstract class TaskTracker {
 
     protected final WorkerContext workerContext;
 
-    protected final Executor executor;
-
     protected final AtomicBoolean destroyed;
 
     protected Future<?> processFuture;
 
     protected Future<?> statusReportFuture;
 
-    public TaskTracker(Task task, Executor executor, WorkerContext workerContext) {
+    public TaskTracker(Task task, WorkerContext workerContext) {
         this.task = task;
-        this.executor = executor;
         this.workerContext = workerContext;
         this.destroyed = new AtomicBoolean(false);
     }
@@ -75,21 +78,7 @@ public abstract class TaskTracker {
         }
 
         try {
-            // 提交执行 正常来说保存成功这里不会被拒绝
-            this.processFuture = workerContext.taskProcessExecutor().submit(() -> {
-                try {
-                    run();
-                } catch (Exception e) {
-                    log.error("[ExecuteContext] run error", e);
-                } finally {
-                    destroy();
-                }
-            });
-            // 提交状态监控
-            this.statusReportFuture = workerContext.taskStatusReportExecutor().submit(() -> {
-                // todo @d
-            });
-
+            run();
             return true;
         } catch (RejectedExecutionException e) {
             log.error("Schedule task in worker failed, maybe work thread exhausted task:{}", JacksonUtils.toJSONString(task), e);
@@ -133,6 +122,42 @@ public abstract class TaskTracker {
         }
         workerContext.tasks().remove(task.getTaskId());
         log.info("TaskTracker taskId: {} destroyed success", task.getTaskId());
+    }
+
+    protected boolean reportStart(Task task) {
+        try {
+            TaskStartRequest request = new TaskStartRequest();
+            request.setTaskId(task.getTaskId());
+            request.setWorkerAddress(workerContext.address());
+            return workerContext.client().call(API_TASK_START, request);
+        } catch (Exception e) {
+            log.error("reportStart fail task={}", task.getTaskId(), e);
+            return false;
+        }
+    }
+
+    protected boolean reportSuccess(Task task) {
+        try {
+            TaskSuccessRequest request = new TaskSuccessRequest();
+            request.setTaskId(task.getTaskId());
+            return workerContext.client().call(API_TASK_SUCCESS, request);
+        } catch (Exception e) {
+            log.error("reportSuccess fail task={}", task.getTaskId(), e);
+            // todo @d 如果上报失败需要记录，定时重试
+            return false;
+        }
+    }
+
+    protected boolean reportFail(Task task) {
+        try {
+            TaskFailRequest request = new TaskFailRequest();
+            request.setTaskId(task.getTaskId());
+            return workerContext.client().call(API_TASK_FAIL, request);
+        } catch (Exception e) {
+            log.error("reportFail fail task={}", task.getTaskId(), e);
+            // todo @d 如果上报失败需要记录，定时重试
+            return false;
+        }
     }
 
 }

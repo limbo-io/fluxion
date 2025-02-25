@@ -18,17 +18,24 @@ package io.fluxion.server.core.broker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
-import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
-import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
-import io.fluxion.remote.core.api.response.BrokerPingResponse;
-import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
-import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
+import io.fluxion.remote.core.api.request.broker.TaskFailRequest;
+import io.fluxion.remote.core.api.request.broker.TaskReportRequest;
+import io.fluxion.remote.core.api.request.broker.TaskStartRequest;
+import io.fluxion.remote.core.api.request.broker.TaskSuccessRequest;
+import io.fluxion.remote.core.api.request.broker.WorkerHeartbeatRequest;
+import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
+import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
+import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.BrokerConstant;
 import io.fluxion.server.core.app.App;
 import io.fluxion.server.core.app.cmd.AppBrokerElectCmd;
 import io.fluxion.server.core.app.cmd.AppRegisterCmd;
 import io.fluxion.server.core.broker.converter.BrokerClientConverter;
+import io.fluxion.server.core.task.cmd.TaskFailCmd;
+import io.fluxion.server.core.task.cmd.TaskReportCmd;
+import io.fluxion.server.core.task.cmd.TaskStartCmd;
+import io.fluxion.server.core.task.cmd.TaskSuccessCmd;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerRegisterCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
@@ -51,7 +58,34 @@ public class BrokerClientHandler implements ClientHandler {
                     return Response.ok(heartbeat(JacksonUtils.toType(data, WorkerHeartbeatRequest.class)));
                 }
                 case BrokerConstant.API_BROKER_PING: {
-                    return Response.ok(new BrokerPingResponse());
+                    return Response.ok(Response.ok(true));
+                }
+                case BrokerConstant.API_TASK_START: {
+                    TaskStartRequest request = JacksonUtils.toType(data, TaskStartRequest.class);
+                    Boolean success = Cmd.send(new TaskStartCmd(request.getTaskId(), request.getWorkerAddress()));
+                    return Response.ok(Response.ok(success));
+                }
+                case BrokerConstant.API_TASK_REPORT: {
+                    TaskReportRequest request = JacksonUtils.toType(data, TaskReportRequest.class);
+                    Boolean success = Cmd.send(new TaskReportCmd(
+                        request.getTaskId(), request.getWorkerAddress(), request.getReportTime()
+                    ));
+                    return Response.ok(Response.ok(success));
+                }
+                case BrokerConstant.API_TASK_SUCCESS: {
+                    TaskSuccessRequest request = JacksonUtils.toType(data, TaskSuccessRequest.class);
+                    Boolean success = Cmd.send(new TaskSuccessCmd(
+                        request.getTaskId(), request.getWorkerAddress(), request.getReportTime()
+                    ));
+                    return Response.ok(Response.ok(success));
+                }
+                case BrokerConstant.API_TASK_FAIL: {
+                    TaskFailRequest request = JacksonUtils.toType(data, TaskFailRequest.class);
+                    Boolean success = Cmd.send(new TaskFailCmd(
+                        request.getTaskId(), request.getWorkerAddress(), request.getReportTime(),
+                        request.getErrorMsg()
+                    ));
+                    return Response.ok(Response.ok(success));
                 }
             }
             String msg = "Invalid request, Path NotFound.";

@@ -16,13 +16,21 @@
 
 package io.fluxion.server.core.task;
 
+import io.fluxion.common.thread.CommonThreadPool;
+import io.fluxion.server.core.broker.BrokerContext;
+import io.fluxion.server.core.task.cmd.TaskRunCmd;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
 import lombok.Data;
+
+import java.time.LocalDateTime;
 
 /**
  * @author Devil
  */
 @Data
-public class Task {
+public abstract class Task {
 
     private String executionId;
 
@@ -30,8 +38,23 @@ public class Task {
 
     private String taskId;
 
-    private TaskType type;
-
     private String refId;
+
+    private LocalDateTime triggerAt;
+
+    public void schedule() {
+        DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
+        delayedTaskScheduler.schedule(DelayedTaskFactory.create(
+            scheduleId(),
+            triggerAt,
+            delayedTask -> CommonThreadPool.IO.submit(() -> Cmd.send(new TaskRunCmd(this)))
+        ));
+    }
+
+    private String scheduleId() {
+        return "t_" + taskId;
+    }
+
+    public abstract TaskType type();
 
 }

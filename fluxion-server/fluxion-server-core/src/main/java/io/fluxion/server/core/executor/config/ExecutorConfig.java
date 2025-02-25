@@ -19,7 +19,7 @@ package io.fluxion.server.core.executor.config;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
 import io.fluxion.common.utils.json.JacksonTypeIdResolver;
-import io.fluxion.remote.core.api.constants.ExecuteType;
+import io.fluxion.remote.core.constants.ExecuteType;
 import io.fluxion.server.core.executor.option.DispatchOption;
 import io.fluxion.server.core.executor.option.OvertimeOption;
 import io.fluxion.server.core.executor.option.RetryOption;

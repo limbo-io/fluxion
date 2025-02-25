@@ -18,12 +18,10 @@ package io.fluxion.server.core.task.runner;
 
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskType;
-import lombok.Data;
 
 /**
  * @author Devil
  */
-@Data
 public abstract class TaskRunner {
 
     public abstract TaskType type();

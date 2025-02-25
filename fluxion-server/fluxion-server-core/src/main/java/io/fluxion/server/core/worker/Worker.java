@@ -17,11 +17,10 @@
 package io.fluxion.server.core.worker;
 
 import io.fluxion.common.utils.MD5Utils;
-import io.fluxion.remote.core.api.constants.WorkerStatus;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.constants.Protocol;
+import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.remote.core.lb.LBServer;
-import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
 import io.fluxion.server.infrastructure.tag.Tagged;
@@ -87,7 +86,7 @@ public class Worker implements LBServer, Tagged {
         this.host = host;
         this.port = port;
         this.protocol = protocol;
-        this.id = MD5Utils.md5(appId + ":" + host + ":" + port);
+        this.id = MD5Utils.md5(host + ":" + port);
     }
 
     public String id() {
@@ -97,15 +96,6 @@ public class Worker implements LBServer, Tagged {
     @Override
     public Map<String, Set<String>> tags() {
         return tags;
-    }
-
-    /**
-     * 发送一个作业到worker执行。当worker接受此task后，将触发返回
-     *
-     * @param task 任务
-     */
-    public void dispatch(Task task) {
-
     }
 
     @Override

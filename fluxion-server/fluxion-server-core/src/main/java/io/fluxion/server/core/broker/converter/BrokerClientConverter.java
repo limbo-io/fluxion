@@ -20,7 +20,7 @@ import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerTagDTO;
-import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
+import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.BrokerNode;

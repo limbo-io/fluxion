@@ -17,10 +17,10 @@
 package io.fluxion.worker.core.discovery;
 
 import io.fluxion.remote.core.api.dto.*;
-import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
-import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
-import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
-import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
+import io.fluxion.remote.core.api.request.broker.WorkerHeartbeatRequest;
+import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
+import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
+import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.LBClient;
@@ -107,7 +107,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
             try {
                 WorkerHeartbeatRequest request = new WorkerHeartbeatRequest();
                 request.setAppId(workerContext.appId());
-                request.setWorkerId(workerContext.workerId());
+                request.setWorkerId(workerContext.address());
                 request.setSystemInfo(systemInfoDTO());
 
                 WorkerHeartbeatResponse heartbeatResponse = heartbeatClient.call(

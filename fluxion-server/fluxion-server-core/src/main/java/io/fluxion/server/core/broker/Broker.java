@@ -22,10 +22,12 @@ import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
+import io.fluxion.remote.core.cluster.NodeRegistry;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.task.CoreTask;
+import io.fluxion.server.core.broker.task.ScheduleCheckTask;
 import io.fluxion.server.core.broker.task.ScheduleLoadTask;
-import io.fluxion.remote.core.cluster.NodeRegistry;
+import io.fluxion.server.infrastructure.lock.DistributedLock;
 import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.ScheduledTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.TimingWheelTimer;
@@ -61,7 +63,8 @@ public class Broker {
 
     private final DelayedTaskScheduler delayedTaskScheduler;
 
-    public Broker(Protocol protocol, String host, int port, NodeRegistry<BrokerNode> registry, BrokerManger manger) {
+    public Broker(Protocol protocol, String host, int port, NodeRegistry<BrokerNode> registry,
+                  BrokerManger manger, DistributedLock distributedLock) {
         Assert.isTrue(Protocol.UNKNOWN != protocol, "protocol is unknown");
         Assert.isTrue(StringUtils.isNotBlank(host), "host is null");
 
@@ -70,7 +73,8 @@ public class Broker {
         this.manger = manger;
         this.client = ClientFactory.create(protocol);
         this.coreTasks = Lists.newArrayList(
-            new ScheduleLoadTask(1000)
+            new ScheduleLoadTask(1, TimeUnit.SECONDS),
+            new ScheduleCheckTask(10, TimeUnit.SECONDS, distributedLock)
         );
         this.coreThreadPool = new ScheduledThreadPoolExecutor(
             coreTasks.size(),
@@ -112,7 +116,7 @@ public class Broker {
 
         // 启动核心任务
         for (CoreTask coreTask : coreTasks) {
-            coreThreadPool.scheduleWithFixedDelay(coreTask, 0, coreTask.getInterval(), TimeUnit.MILLISECONDS);
+            coreThreadPool.scheduleWithFixedDelay(coreTask, 0, coreTask.getInterval(), coreTask.getUnit());
         }
 
         BrokerContext.initialize(this);

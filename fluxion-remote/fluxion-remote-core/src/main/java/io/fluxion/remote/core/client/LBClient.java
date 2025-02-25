@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.client;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.remote.core.lb.repository.LBServerRepository;
@@ -57,7 +58,7 @@ public abstract class LBClient {
      * @param path    path
      * @param request request
      */
-    public abstract <R> R call(String path, Request<R> request);
+    public abstract <R> R call(String path, Request<Response<R>> request);
 
     /**
      * Protocol used by the client

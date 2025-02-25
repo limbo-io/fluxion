@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.client;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.constants.Protocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,7 @@ public class RetryableClient implements Client {
     }
 
     @Override
-    public <R> R call(URL url, Request<R> request) {
+    public <R> R call(URL url, Request<Response<R>> request) {
         for (int i = 1; i <= retryTimes; i++) {
             try {
                 return client.call(url, request);

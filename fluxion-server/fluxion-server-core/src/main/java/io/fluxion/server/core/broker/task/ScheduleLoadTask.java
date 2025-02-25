@@ -23,8 +23,8 @@ import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionRunCmd;
-import io.fluxion.server.core.trigger.query.ScheduleByBrokerQuery;
 import io.fluxion.server.core.trigger.query.ScheduleByIdQuery;
+import io.fluxion.server.core.trigger.query.ScheduleUpdatedQuery;
 import io.fluxion.server.core.trigger.run.Schedule;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
@@ -37,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 加载 ScheduledTask 并执行
@@ -48,8 +49,8 @@ public class ScheduleLoadTask extends CoreTask {
 
     private LocalDateTime loadTimePoint = LocalDateTimeUtils.parse("2000-01-01 00:00:00", Formatters.YMD_HMS);
 
-    public ScheduleLoadTask(int interval) {
-        super(interval);
+    public ScheduleLoadTask(int interval, TimeUnit unit) {
+        super(interval, unit);
     }
 
     @Override
@@ -57,10 +58,10 @@ public class ScheduleLoadTask extends CoreTask {
         String brokerId = BrokerContext.broker().id();
         try {
             LocalDateTime now = TimeUtils.currentLocalDateTime();
-            List<Schedule> schedules = Query.query(new ScheduleByBrokerQuery(brokerId, loadTimePoint.plusSeconds(-interval))).getSchedules();
+            List<Schedule> schedules = Query.query(new ScheduleUpdatedQuery(brokerId, loadTimePoint.plusSeconds(-interval))).getSchedules();
             loadTimePoint = now;
             for (Schedule schedule : schedules) {
-                if (needlessSchedule(schedule)) {
+                if (schedule == null) {
                     continue;
                 }
                 String scheduleId = scheduleId(schedule);
@@ -97,7 +98,7 @@ public class ScheduleLoadTask extends CoreTask {
     private void consumerTask(AbstractTask task, String scheduleId) {
         // 移除不需要调度的
         Schedule schedule = Query.query(new ScheduleByIdQuery(scheduleId)).getSchedule();
-        if (needlessSchedule(schedule)) {
+        if (!schedule.isEnabled()) {
             task.stop();
             return;
         }
@@ -112,14 +113,6 @@ public class ScheduleLoadTask extends CoreTask {
             task.triggerAt()
         )).getExecution();
         Cmd.send(new ExecutionRunCmd(execution));
-    }
-
-    /**
-     * 是否需要调度
-     * 开始结束周期校验已经在 ScheduledTaskScheduler 统一处理
-     */
-    private boolean needlessSchedule(Schedule schedule) {
-        return !(schedule != null && schedule.isEnabled());
     }
 
     private String scheduleId(Schedule schedule) {

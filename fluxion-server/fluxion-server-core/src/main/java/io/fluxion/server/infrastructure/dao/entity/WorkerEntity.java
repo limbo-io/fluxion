@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
-import io.fluxion.remote.core.api.constants.WorkerStatus;
+import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.server.infrastructure.dao.TableConstants;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

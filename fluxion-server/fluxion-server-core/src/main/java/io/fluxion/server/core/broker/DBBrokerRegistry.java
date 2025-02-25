@@ -20,10 +20,10 @@ import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.LocalTimeUtils;
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.cluster.NodeEvent;
 import io.fluxion.remote.core.cluster.NodeListener;
 import io.fluxion.remote.core.cluster.NodeRegistry;
+import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.infrastructure.dao.entity.BrokerEntity;
 import io.fluxion.server.infrastructure.dao.repository.BrokerEntityRepo;
 import lombok.extern.slf4j.Slf4j;
@@ -113,17 +113,15 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
     private BrokerNode node(BrokerEntity entity) {
         return new BrokerNode(
             Protocol.parse(entity.getProtocol()),
-            entity.getHost(), entity.getPort(),
+            entity.getId().getHost(), entity.getId().getPort(),
             entity.getLoad()
         );
     }
 
     private BrokerEntity entity(BrokerNode node) {
         BrokerEntity entity = new BrokerEntity();
-        entity.setBrokerId(node.id());
+        entity.setId(new BrokerEntity.ID(node.host(), node.port()));
         entity.setProtocol(node.protocol().getValue());
-        entity.setHost(node.host());
-        entity.setPort(node.port());
         entity.setLoad(node.load());
         return entity;
     }
@@ -173,7 +171,7 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
                 if (CollectionUtils.isNotEmpty(onlineBrokers)) {
                     for (BrokerEntity entity : onlineBrokers) {
                         if (log.isDebugEnabled()) {
-                            log.debug("{} find online broker id: {}, lastHeartbeat:{}", TASK_NAME, entity.getBrokerId(), LocalTimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
+                            log.debug("{} find online broker id: {}, lastHeartbeat:{}", TASK_NAME, entity.getId(), LocalTimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
                         }
                         for (NodeListener<BrokerNode> listener : listeners) {
                             listener.event(new NodeEvent<>(node(entity), NodeEvent.Type.ONLINE));
@@ -206,7 +204,7 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
                 if (CollectionUtils.isNotEmpty(offlineBrokers)) {
                     for (BrokerEntity entity : offlineBrokers) {
                         if (log.isDebugEnabled()) {
-                            log.debug("{} find offline broker id: {}, lastHeartbeat:{}", TASK_NAME, entity.getBrokerId(), LocalTimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
+                            log.debug("{} find offline broker id: {}, lastHeartbeat:{}", TASK_NAME, entity.getId(), LocalTimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
                         }
                         for (NodeListener<BrokerNode> listener : listeners) {
                             listener.event(new NodeEvent<>(node(entity), NodeEvent.Type.OFFLINE));

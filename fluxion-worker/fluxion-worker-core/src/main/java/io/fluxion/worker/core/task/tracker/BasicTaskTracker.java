@@ -16,9 +16,13 @@
 
 package io.fluxion.worker.core.task.tracker;
 
+import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.remote.core.api.request.broker.TaskReportRequest;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.Task;
+
+import static io.fluxion.remote.core.constants.BrokerConstant.API_TASK_REPORT;
 
 /**
  * 执行一个任务
@@ -27,13 +31,41 @@ import io.fluxion.worker.core.task.Task;
  */
 public class BasicTaskTracker extends TaskTracker {
 
+    private final Executor executor;
+
     public BasicTaskTracker(Task task, Executor executor, WorkerContext workerContext) {
-        super(task, executor, workerContext);
+        super(task, workerContext);
+        this.executor = executor;
     }
 
     @Override
     public void run() {
-
+        // 提交执行 正常来说保存成功这里不会被拒绝
+        this.processFuture = workerContext.taskProcessExecutor().submit(() -> {
+            try {
+                // 反馈执行中 -- 排除由于网络问题导致的失败可能性
+                boolean success = reportStart(task);
+                if (!success) {
+                    // 不成功，可能已经下发给其它节点
+                    return;
+                }
+                executor.run(task);
+                // 执行成功
+                reportSuccess(task);
+            } catch (Exception e) {
+                log.error("[BasicTaskTracker] run error", e);
+                reportFail(task);
+            } finally {
+                destroy();
+            }
+        });
+        // 提交状态监控
+        this.statusReportFuture = workerContext.taskStatusReportExecutor().submit(() -> {
+            TaskReportRequest request = new TaskReportRequest();
+            request.setTaskId(task.getTaskId());
+            request.setReportTime(TimeUtils.currentLocalDateTime());
+            request.setWorkerAddress(workerContext.address());
+            workerContext.client().call(API_TASK_REPORT, request);
+        });
     }
-
 }

@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.client;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.constants.Protocol;
 
 import java.net.MalformedURLException;
@@ -32,7 +33,7 @@ public interface Client {
      * @param url     url
      * @param request request
      */
-    <R> R call(URL url, Request<R> request);
+    <R> R call(URL url, Request<Response<R>> request);
 
     /**
      * Protocol used by the client
@@ -47,7 +48,7 @@ public interface Client {
      * @param port    server port
      * @param request request
      */
-    default <R> R call(String path, String host, int port, Request<R> request) {
+    default <R> R call(String path, String host, int port, Request<Response<R>> request) {
         return call(url(path, host, port), request);
     }
 

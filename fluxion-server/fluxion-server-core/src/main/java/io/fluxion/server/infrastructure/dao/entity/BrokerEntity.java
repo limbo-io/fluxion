@@ -17,14 +17,15 @@
 package io.fluxion.server.infrastructure.dao.entity;
 
 import io.fluxion.server.infrastructure.dao.TableConstants;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
@@ -39,17 +40,13 @@ import java.time.LocalDateTime;
 @DynamicUpdate
 public class BrokerEntity extends BaseEntity {
 
-    @Id
-    private String brokerId;
+    @EmbeddedId
+    private ID id;
 
     /**
      * 服务使用的通信协议
      */
     private String protocol;
-
-    private String host;
-
-    private Integer port;
     /**
      * 负载分值
      */
@@ -62,6 +59,17 @@ public class BrokerEntity extends BaseEntity {
 
     @Override
     public Object getUid() {
-        return brokerId;
+        return id;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Embeddable
+    public static class ID implements Serializable {
+
+        private String host;
+
+        private Integer port;
     }
 }

@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.task;
 
+import io.fluxion.remote.core.constants.ExecuteType;
 import io.fluxion.server.core.executor.option.DispatchOption;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -30,5 +31,12 @@ public class ExecutorTask extends Task {
 
     private String executorName;
 
+    private ExecuteType executeType;
+
     private DispatchOption dispatchOption;
+
+    @Override
+    public TaskType type() {
+        return TaskType.EXECUTOR;
+    }
 }

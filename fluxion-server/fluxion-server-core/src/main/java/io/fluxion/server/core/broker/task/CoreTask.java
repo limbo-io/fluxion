@@ -18,6 +18,8 @@ package io.fluxion.server.core.broker.task;
 
 import lombok.Getter;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * @author Devil
  */
@@ -25,12 +27,18 @@ import lombok.Getter;
 public abstract class CoreTask implements Runnable {
 
     /**
-     * 间隔 毫秒
+     * 间隔
      */
     protected final int interval;
 
-    public CoreTask(int interval) {
+    /**
+     * 单位
+     */
+    protected final TimeUnit unit;
+
+    public CoreTask(int interval, TimeUnit unit) {
         this.interval = interval;
+        this.unit = unit;
     }
 
 }

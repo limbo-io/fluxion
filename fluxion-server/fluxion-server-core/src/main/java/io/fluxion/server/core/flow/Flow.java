@@ -20,11 +20,10 @@ import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.flow.node.FlowNode;
+import io.fluxion.server.core.task.InputOutputTask;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskStatus;
-import io.fluxion.server.core.task.TaskType;
 import io.fluxion.server.core.task.cmd.TasksCreateCmd;
-import io.fluxion.server.core.task.cmd.TasksScheduleCmd;
 import io.fluxion.server.core.task.query.TaskStatusByRefQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
@@ -32,6 +31,7 @@ import io.fluxion.server.infrastructure.dag.DAG;
 import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -94,16 +94,34 @@ public class Flow implements Executable, ValidatableConfig {
 
     @Override
     public void execute(RunContext context) {
-        List<Task> starNodeTasks = dag.origins().stream().map(n -> {
-            Task task = new Task();
+        LocalDateTime now = TimeUtils.currentLocalDateTime();
+        List<Task> startNodeTasks = dag.origins().stream().map(n -> {
+            InputOutputTask task = new InputOutputTask();
             task.setExecutionId(context.executionId());
             task.setRefId(n.id());
-            task.setType(TaskType.INPUT_OUTPUT);
+            task.setTriggerAt(now);
             return task;
         }).collect(Collectors.toList());
+        // 保存数据
+        Cmd.send(new TasksCreateCmd(startNodeTasks));
+        // 执行
+        for (Task task : startNodeTasks) {
+            task.schedule();
+        }
+    }
 
-        Cmd.send(new TasksCreateCmd(starNodeTasks));
-        Cmd.send(new TasksScheduleCmd(starNodeTasks, TimeUtils.currentLocalDateTime()));
+    /**
+     * 某个 node 成功后执行的逻辑
+     */
+    public void success(String nodeId) {
+        // todo @d
+    }
+
+    /**
+     * 某个 node 失败后执行的逻辑
+     */
+    public void fail(String nodeId) {
+        // todo @d
     }
 
 }

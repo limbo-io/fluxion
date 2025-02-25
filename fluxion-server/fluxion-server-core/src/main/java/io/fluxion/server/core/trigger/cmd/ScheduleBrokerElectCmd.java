@@ -24,7 +24,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 重新分配某个schedule
- * todo @d
+ *
  * @author Devil
  */
 @Getter
@@ -33,6 +33,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ScheduleBrokerElectCmd implements ICmd<Void> {
 
-    private String brokerId;
+    private String scheduleId;
 
 }

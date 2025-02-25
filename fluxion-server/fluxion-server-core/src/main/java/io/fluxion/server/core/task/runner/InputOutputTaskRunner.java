@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.task.runner;
 
+import io.fluxion.server.core.task.InputOutputTask;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskType;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,6 @@ public class InputOutputTaskRunner extends TaskRunner {
 
     @Override
     public void run(Task task) {
-
+        InputOutputTask inputOutputTask = (InputOutputTask) task;
     }
 }

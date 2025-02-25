@@ -16,7 +16,7 @@
 
 package io.fluxion.worker.core.task;
 
-import io.fluxion.remote.core.api.constants.ExecuteType;
+import io.fluxion.remote.core.constants.ExecuteType;
 
 /**
  * @author Devil
@@ -26,7 +26,7 @@ public class Task {
 
     private String taskId;
 
-    private String brokerId;
+    private String reportAddress;
 
     private ExecuteType executeType;
 
@@ -43,14 +43,6 @@ public class Task {
         this.taskId = taskId;
     }
 
-    public String getBrokerId() {
-        return brokerId;
-    }
-
-    public void setBrokerId(String brokerId) {
-        this.brokerId = brokerId;
-    }
-
     public String getExecutorName() {
         return executorName;
     }
@@ -65,5 +57,13 @@ public class Task {
 
     public void setExecuteType(ExecuteType executeType) {
         this.executeType = executeType;
+    }
+
+    public String getReportAddress() {
+        return reportAddress;
+    }
+
+    public void setReportAddress(String reportAddress) {
+        this.reportAddress = reportAddress;
     }
 }

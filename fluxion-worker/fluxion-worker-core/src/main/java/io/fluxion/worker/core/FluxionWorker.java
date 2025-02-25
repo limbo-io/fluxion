@@ -16,7 +16,7 @@
 
 package io.fluxion.worker.core;
 
-import io.fluxion.remote.core.api.constants.WorkerStatus;
+import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.remote.core.client.server.ClientServer;
 import io.fluxion.worker.core.discovery.ServerDiscovery;
 import org.slf4j.Logger;
@@ -42,7 +42,6 @@ public class FluxionWorker implements Worker {
      * Client服务
      */
     private final ClientServer clientServer;
-
 
     /**
      * 创建一个 Worker 实例

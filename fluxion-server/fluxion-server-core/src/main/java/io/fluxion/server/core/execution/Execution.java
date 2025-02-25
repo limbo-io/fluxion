@@ -31,7 +31,7 @@ public class Execution {
 
     private final Executable executable;
 
-    private ExecutionStatus status;
+    private final ExecutionStatus status;
 
     public Execution(String executionId, Executable executable, ExecutionStatus status) {
         this.executionId = executionId;

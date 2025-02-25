@@ -22,7 +22,12 @@ import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.exception.RpcException;
-import okhttp3.*;
+import okhttp3.Call;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,11 +54,12 @@ public class OKHttpClient implements Client {
     }
 
     @Override
-    public <R> R call(URL url, Request<R> request) {
+    public <R> R call(URL url, Request<io.fluxion.remote.core.api.Response<R>> request) {
         try {
             ResponseBody responseBody = executePost(url, request);
-            Class<R> responseType = ReflectionUtils.refType(request);
-            return JacksonUtils.toType(responseBody.string(), responseType);
+            Class<io.fluxion.remote.core.api.Response<R>> responseType = ReflectionUtils.refType(request);
+            io.fluxion.remote.core.api.Response<R> response = JacksonUtils.toType(responseBody.string(), responseType);
+            return response.getData();
         } catch (IOException e) {
             throw new RpcException("Api access failed " + logRequest(url, JacksonUtils.toJSONString(request)), e);
         }

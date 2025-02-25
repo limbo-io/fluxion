@@ -30,5 +30,7 @@ public interface WorkerConstant {
 
     // ========== API ==========
     String API_TASK_DISPATCH = "/api/v1/task/dispatch";
+
+    String API_SUB_TASK_DISPATCH = "/api/v1/sub_task/dispatch";
     // ========== API ==========
 }
