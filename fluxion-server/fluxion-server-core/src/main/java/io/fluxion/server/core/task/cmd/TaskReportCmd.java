@@ -37,6 +37,6 @@ public class TaskReportCmd implements ICmd<Boolean> {
 
     private String workerAddress;
 
-    private LocalDateTime reportTime;
+    private LocalDateTime reportAt;
 
 }

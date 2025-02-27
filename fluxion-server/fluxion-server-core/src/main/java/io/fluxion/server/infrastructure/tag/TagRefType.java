@@ -25,7 +25,6 @@ import io.fluxion.common.constants.CommonConstants;
  */
 public enum TagRefType {
     UNKNOWN(CommonConstants.UNKNOWN),
-    WORKER(1),
     ;
 
     @JsonValue

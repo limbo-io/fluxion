@@ -31,7 +31,7 @@ public class TaskFailRequest implements Request<Response<Boolean>> {
 
     private String workerAddress;
 
-    private LocalDateTime reportTime;
+    private LocalDateTime reportAt;
 
     /**
      * 执行失败时候返回的信息
@@ -46,12 +46,12 @@ public class TaskFailRequest implements Request<Response<Boolean>> {
         this.errorMsg = errorMsg;
     }
 
-    public LocalDateTime getReportTime() {
-        return reportTime;
+    public LocalDateTime getReportAt() {
+        return reportAt;
     }
 
-    public void setReportTime(LocalDateTime reportTime) {
-        this.reportTime = reportTime;
+    public void setReportAt(LocalDateTime reportAt) {
+        this.reportAt = reportAt;
     }
 
     public String getWorkerAddress() {

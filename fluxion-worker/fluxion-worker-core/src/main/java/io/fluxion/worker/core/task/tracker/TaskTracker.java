@@ -129,7 +129,7 @@ public abstract class TaskTracker {
             TaskStartRequest request = new TaskStartRequest();
             request.setTaskId(task.getTaskId());
             request.setWorkerAddress(workerContext.address());
-            return workerContext.client().call(API_TASK_START, request);
+            return workerContext.call(API_TASK_START, request);
         } catch (Exception e) {
             log.error("reportStart fail task={}", task.getTaskId(), e);
             return false;
@@ -140,7 +140,7 @@ public abstract class TaskTracker {
         try {
             TaskSuccessRequest request = new TaskSuccessRequest();
             request.setTaskId(task.getTaskId());
-            return workerContext.client().call(API_TASK_SUCCESS, request);
+            return workerContext.call(API_TASK_SUCCESS, request);
         } catch (Exception e) {
             log.error("reportSuccess fail task={}", task.getTaskId(), e);
             // todo @d 如果上报失败需要记录，定时重试
@@ -152,7 +152,7 @@ public abstract class TaskTracker {
         try {
             TaskFailRequest request = new TaskFailRequest();
             request.setTaskId(task.getTaskId());
-            return workerContext.client().call(API_TASK_FAIL, request);
+            return workerContext.call(API_TASK_FAIL, request);
         } catch (Exception e) {
             log.error("reportFail fail task={}", task.getTaskId(), e);
             // todo @d 如果上报失败需要记录，定时重试

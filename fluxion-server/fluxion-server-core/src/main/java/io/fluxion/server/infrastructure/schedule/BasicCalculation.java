@@ -60,7 +60,7 @@ public class BasicCalculation implements Calculable {
         this.lastTriggerAt = lastTriggerAt;
         this.lastFeedbackAt = lastFeedbackAt;
         this.scheduleOption = scheduleOption;
-        this.calculator = ScheduleCalculatorFactory.create(scheduleOption.getScheduleType());
+        this.calculator = ScheduleCalculatorFactory.create(scheduleOption.getType());
         this.triggerAt = calTriggerAt();
     }
 

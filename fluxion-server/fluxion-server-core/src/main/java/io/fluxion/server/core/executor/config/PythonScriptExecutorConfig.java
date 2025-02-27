@@ -46,4 +46,9 @@ public class PythonScriptExecutorConfig extends ExecutorConfig {
         }
         return infos;
     }
+
+    @Override
+    public String executorName() {
+        return "PythonScriptExecutor";
+    }
 }

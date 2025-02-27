@@ -37,7 +37,7 @@ public class WorkerHeartbeatRequest implements Request<Response<WorkerHeartbeatR
 
     private int availableQueueNum;
 
-    private long heartbeatTime;
+    private long heartbeatAt;
 
     public String getAppId() {
         return appId;
@@ -71,11 +71,11 @@ public class WorkerHeartbeatRequest implements Request<Response<WorkerHeartbeatR
         this.availableQueueNum = availableQueueNum;
     }
 
-    public long getHeartbeatTime() {
-        return heartbeatTime;
+    public long getHeartbeatAt() {
+        return heartbeatAt;
     }
 
-    public void setHeartbeatTime(long heartbeatTime) {
-        this.heartbeatTime = heartbeatTime;
+    public void setHeartbeatAt(long heartbeatAt) {
+        this.heartbeatAt = heartbeatAt;
     }
 }

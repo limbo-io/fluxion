@@ -16,13 +16,18 @@
 
 package io.fluxion.server.core.execution.service;
 
-import io.fluxion.common.thread.CommonThreadPool;
+import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
-import io.fluxion.server.core.execution.cmd.ExecutionRunCmd;
+import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
+import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
+import io.fluxion.server.core.trigger.TriggerHelper;
+import io.fluxion.server.core.trigger.cmd.ScheduleRefreshLastFeedbackCmd;
+import io.fluxion.server.core.trigger.query.ScheduleByIdQuery;
+import io.fluxion.server.core.trigger.run.Schedule;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
@@ -31,19 +36,29 @@ import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
+import io.fluxion.server.infrastructure.schedule.ScheduleType;
+import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.persistence.EntityManager;
+import java.time.LocalDateTime;
 
 /**
  * @author Devil
  */
+@Slf4j
 @Service
 public class ExecutionCommandService {
 
     @Resource
     private ExecutionEntityRepo executionEntityRepo;
+
+    @Resource
+    private EntityManager entityManager;
 
     @CommandHandler
     public ExecutionCreateCmd.Response handle(ExecutionCreateCmd cmd) {
@@ -58,6 +73,7 @@ public class ExecutionCommandService {
         if (entity == null) {
             entity = new ExecutionEntity();
             entity.setExecutionId(Cmd.send(new IDGenerateCmd(IDType.EXECUTION)).getId());
+            entity.setScheduleId(cmd.getScheduleId());
             entity.setRefId(cmd.getRefId());
             entity.setRefType(cmd.getRefType().value);
             entity.setTriggerAt(cmd.getTriggerAt());
@@ -69,11 +85,56 @@ public class ExecutionCommandService {
     }
 
     @CommandHandler
-    public ExecutionRunCmd.Response handle(ExecutionRunCmd cmd) {
-        // todo @d 校验是否由当前节点触发
-        Execution execution = cmd.getExecution();
-        CommonThreadPool.IO.submit(execution::execute);
-        return new ExecutionRunCmd.Response();
+    public boolean handle(ExecutionSuccessCmd cmd) {
+        boolean finished = updateToFinish(cmd.getExecutionId(), ExecutionStatus.SUCCEED, cmd.getEndAt());
+        if (!finished) {
+            log.warn("ExecutionSuccessCmd update fail executionId:{}", cmd.getExecutionId());
+            return false;
+        }
+        afterFinsh(cmd.getExecutionId(), cmd.getEndAt());
+        return true;
+    }
+
+    @CommandHandler
+    public boolean handle(ExecutionFailCmd cmd) {
+        boolean finished = updateToFinish(cmd.getExecutionId(), ExecutionStatus.FAILED, cmd.getEndAt());
+        if (!finished) {
+            log.warn("ExecutionFailCmd update fail executionId:{}", cmd.getExecutionId());
+            return false;
+        }
+        afterFinsh(cmd.getExecutionId(), cmd.getEndAt());
+        return true;
+    }
+
+    private boolean updateToFinish(String executionId, ExecutionStatus status, LocalDateTime endTime) {
+        return entityManager.createQuery("update ExecutionEntity " +
+                "set status = :newStatus, endAt = :endAt " +
+                "where executionId = :executionId and status = :oldStatus "
+            )
+            .setParameter("endAt", endTime)
+            .setParameter("executionId", executionId)
+            .setParameter("oldStatus", ExecutionStatus.RUNNING.value)
+            .setParameter("newStatus", status.value)
+            .executeUpdate() > 0;
+    }
+
+    private void afterFinsh(String executionId, LocalDateTime feedbackTime) {
+        ExecutionEntity entity = executionEntityRepo.findById(executionId).get();
+        Schedule schedule = Query.query(new ScheduleByIdQuery(entity.getScheduleId())).getSchedule();
+        if (ScheduleType.FIXED_DELAY != schedule.getScheduleType()) {
+            return;
+        }
+        // 更新反馈时间
+        Cmd.send(new ScheduleRefreshLastFeedbackCmd(
+            schedule.getId(), feedbackTime
+        ));
+        // FIXED_DELAY 类型的这个时候下发后续的
+        DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
+        delayedTaskScheduler.schedule(DelayedTaskFactory.create(
+            TriggerHelper.taskScheduleId(schedule),
+            schedule.getLastTriggerAt(), feedbackTime, schedule.getScheduleOption(),
+            delayedTask -> TriggerHelper.consumerTask(delayedTask, schedule.getId())
+        ));
     }
 
 }

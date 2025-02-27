@@ -21,12 +21,9 @@ import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.WorkerRepository;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerRegisterCmd;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
 import io.fluxion.server.infrastructure.tag.Tag;
-import io.fluxion.server.infrastructure.tag.TagRefType;
-import io.fluxion.server.infrastructure.tag.cmd.TagBatchSaveCmd;
 import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
@@ -52,10 +49,7 @@ public class WorkerCommandService {
         if (StringUtils.isNotBlank(worker.id())) {
             return new WorkerRegisterCmd.Response(worker.id());
         }
-        // 这里不需要保存，可能不是分配到当前节点
-//        workerRepository.save(worker);
-
-        Cmd.send(new TagBatchSaveCmd(worker.id(), TagRefType.WORKER, tags(worker)));
+        workerRepository.save(worker);
         return new WorkerRegisterCmd.Response(worker.id());
     }
 

@@ -20,17 +20,15 @@ import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.LocalDateTimeUtils;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.BrokerContext;
-import io.fluxion.server.core.execution.Execution;
-import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
-import io.fluxion.server.core.execution.cmd.ExecutionRunCmd;
-import io.fluxion.server.core.trigger.query.ScheduleByIdQuery;
+import io.fluxion.server.core.trigger.TriggerHelper;
+import io.fluxion.server.core.trigger.cmd.ScheduleRefreshLastTriggerCmd;
 import io.fluxion.server.core.trigger.query.ScheduleUpdatedQuery;
 import io.fluxion.server.core.trigger.run.Schedule;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
+import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.ScheduledTaskScheduler;
-import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
 import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
 import io.fluxion.server.infrastructure.schedule.task.ScheduledTaskFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -58,13 +56,14 @@ public class ScheduleLoadTask extends CoreTask {
         String brokerId = BrokerContext.broker().id();
         try {
             LocalDateTime now = TimeUtils.currentLocalDateTime();
+            // todo @d 由于Schedule一直在更新这个方式有点问题会一直拉数据
             List<Schedule> schedules = Query.query(new ScheduleUpdatedQuery(brokerId, loadTimePoint.plusSeconds(-interval))).getSchedules();
             loadTimePoint = now;
             for (Schedule schedule : schedules) {
                 if (schedule == null) {
                     continue;
                 }
-                String scheduleId = scheduleId(schedule);
+                String scheduleId = TriggerHelper.taskScheduleId(schedule);
                 // 移除老的，调度新的
                 switch (schedule.getScheduleType()) {
                     case CRON:
@@ -72,20 +71,20 @@ public class ScheduleLoadTask extends CoreTask {
                         ScheduledTaskScheduler scheduledTaskScheduler = BrokerContext.broker().scheduledTaskScheduler();
                         scheduledTaskScheduler.schedule(ScheduledTaskFactory.task(
                             scheduleId,
-                            schedule.getLatelyTriggerAt(),
-                            schedule.getLatelyFeedbackAt(),
+                            schedule.getLastTriggerAt(),
+                            schedule.getLastFeedbackAt(),
                             schedule.getScheduleOption(),
-                            scheduledTask -> consumerTask(scheduledTask, schedule.getId())
+                            scheduledTask -> TriggerHelper.consumerTask(scheduledTask, schedule.getId())
                         ));
                         break;
                     case FIXED_DELAY:
                         DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
                         delayedTaskScheduler.schedule(DelayedTaskFactory.create(
                             scheduleId,
-                            schedule.getLatelyTriggerAt(),
-                            schedule.getLatelyFeedbackAt(),
+                            schedule.getLastTriggerAt(),
+                            schedule.getLastFeedbackAt(),
                             schedule.getScheduleOption(),
-                            delayedTask -> consumerTask(delayedTask, schedule.getId())
+                            delayedTask -> TriggerHelper.consumerTask(delayedTask, schedule.getId())
                         ));
                         break;
                 }
@@ -93,31 +92,6 @@ public class ScheduleLoadTask extends CoreTask {
         } catch (Exception e) {
             log.error("[{}] execute fail", this.getClass().getSimpleName(), e);
         }
-    }
-
-    private void consumerTask(AbstractTask task, String scheduleId) {
-        // 移除不需要调度的
-        Schedule schedule = Query.query(new ScheduleByIdQuery(scheduleId)).getSchedule();
-        if (!schedule.isEnabled()) {
-            task.stop();
-            return;
-        }
-        // 版本变化了老的可以不用执行
-        if (!task.id().equals(scheduleId(schedule))) {
-            task.stop();
-            return;
-        }
-        Execution execution = Cmd.send(new ExecutionCreateCmd(
-            schedule.getRefId(),
-            schedule.getRefType(),
-            task.triggerAt()
-        )).getExecution();
-        Cmd.send(new ExecutionRunCmd(execution));
-    }
-
-    private String scheduleId(Schedule schedule) {
-        // entity = trigger 所以不会变，这里使用version判断是否有版本变动
-        return "st_" + schedule.getId() + "_" + schedule.getVersion();
     }
 
 }

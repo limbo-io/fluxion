@@ -37,5 +37,5 @@ public class TaskSuccessCmd implements ICmd<Boolean> {
 
     private String workerAddress;
 
-    private LocalDateTime reportTime;
+    private LocalDateTime endAt;
 }

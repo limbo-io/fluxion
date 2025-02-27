@@ -17,7 +17,11 @@
 package io.fluxion.worker.core;
 
 import io.fluxion.common.thread.NamedThreadFactory;
-import io.fluxion.remote.core.client.LBClient;
+import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.Response;
+import io.fluxion.remote.core.client.Client;
+import io.fluxion.remote.core.client.ClientFactory;
+import io.fluxion.remote.core.client.RetryableClient;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.constants.WorkerStatus;
@@ -80,13 +84,13 @@ public class WorkerContext {
 
     private int concurrency;
 
-    private LBClient client;
+    private Client client;
 
     // ========== Runtime ==========
     /**
-     * 所有可访问节点
+     * 当前访问节点
      */
-    private List<Node> brokers;
+    private Node broker;
 
     private final AtomicReference<WorkerStatus> status;
 
@@ -106,7 +110,7 @@ public class WorkerContext {
     private ScheduledExecutorService taskStatusReportExecutor;
 
     public WorkerContext(String appName, Protocol protocol, String host, int port,
-                         int queueSize, int concurrency, LBClient client,
+                         int queueSize, int concurrency,
                          List<Executor> executors, Map<String, Set<String>> tags) {
         this.appName = appName;
         this.protocol = protocol;
@@ -116,7 +120,10 @@ public class WorkerContext {
         this.tags = tags == null ? Collections.emptyMap() : tags;
         this.queueSize = queueSize;
         this.concurrency = concurrency;
-        this.client = client;
+        this.client = RetryableClient.builder()
+            .client(ClientFactory.create(protocol))
+            .build();
+        ;
         this.status = new AtomicReference<>();
         this.address = host + ":" + port;
     }
@@ -201,7 +208,15 @@ public class WorkerContext {
         return protocol;
     }
 
-    public LBClient client() {
-        return client;
+    public <R> R call(String path, Request<Response<R>> request) {
+        return client.call(path, broker.host(), broker.port(), request);
+    }
+
+    public Node broker() {
+        return broker;
+    }
+
+    public void broker(Node broker) {
+        this.broker = broker;
     }
 }

@@ -14,26 +14,29 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.app;
+package io.fluxion.server.core.task.query;
 
-import io.fluxion.server.core.broker.BrokerNode;
-import lombok.Data;
-
-import java.util.Collections;
-import java.util.List;
+import io.fluxion.server.core.task.Task;
+import io.fluxion.server.infrastructure.cqrs.IQuery;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * @author Devil
  */
-@Data
-public class App {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class TaskByIdQuery implements IQuery<TaskByIdQuery.Response> {
 
-    private String id;
-    /**
-     * 绑定的broker 通过 BrokerManager选举
-     */
-    private BrokerNode broker;
+    private String taskId;
 
-    private List<BrokerNode> brokers = Collections.emptyList();
-
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private Task task;
+    }
 }

@@ -55,9 +55,9 @@ public interface ScheduleCalculator {
      * @return 作业开始进行调度计算的时间
      */
     default long calculateStartScheduleTimestamp(ScheduleOption scheduleOption) {
-        LocalDateTime startAt = scheduleOption.getScheduleStartAt();
-        Duration delay = scheduleOption.getScheduleDelay();
-        long startScheduleAt = startAt.toInstant(TimeUtils.defaultZoneOffset()).toEpochMilli();
+        LocalDateTime startTime = scheduleOption.getStartTime();
+        Duration delay = scheduleOption.getDelay();
+        long startScheduleAt = startTime.toInstant(TimeUtils.defaultZoneOffset()).toEpochMilli();
         return delay != null ? startScheduleAt + delay.toMillis() : startScheduleAt;
     }
 

@@ -31,7 +31,7 @@ public class TaskReportRequest implements Request<Response<Boolean>> {
 
     private String workerAddress;
 
-    private LocalDateTime reportTime;
+    private LocalDateTime reportAt;
 
     public String getWorkerAddress() {
         return workerAddress;
@@ -49,11 +49,11 @@ public class TaskReportRequest implements Request<Response<Boolean>> {
         this.taskId = taskId;
     }
 
-    public LocalDateTime getReportTime() {
-        return reportTime;
+    public LocalDateTime getReportAt() {
+        return reportAt;
     }
 
-    public void setReportTime(LocalDateTime reportTime) {
-        this.reportTime = reportTime;
+    public void setReportAt(LocalDateTime reportAt) {
+        this.reportAt = reportAt;
     }
 }

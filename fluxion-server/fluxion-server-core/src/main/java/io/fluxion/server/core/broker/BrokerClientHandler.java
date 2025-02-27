@@ -32,14 +32,21 @@ import io.fluxion.server.core.app.App;
 import io.fluxion.server.core.app.cmd.AppBrokerElectCmd;
 import io.fluxion.server.core.app.cmd.AppRegisterCmd;
 import io.fluxion.server.core.broker.converter.BrokerClientConverter;
-import io.fluxion.server.core.task.cmd.TaskFailCmd;
+import io.fluxion.server.core.execution.Executable;
+import io.fluxion.server.core.execution.Execution;
+import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
+import io.fluxion.server.core.flow.Flow;
+import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.cmd.TaskReportCmd;
 import io.fluxion.server.core.task.cmd.TaskStartCmd;
-import io.fluxion.server.core.task.cmd.TaskSuccessCmd;
+import io.fluxion.server.core.task.query.TaskByIdQuery;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerRegisterCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.cqrs.Query;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Objects;
 
 /**
  * @author Devil
@@ -68,23 +75,32 @@ public class BrokerClientHandler implements ClientHandler {
                 case BrokerConstant.API_TASK_REPORT: {
                     TaskReportRequest request = JacksonUtils.toType(data, TaskReportRequest.class);
                     Boolean success = Cmd.send(new TaskReportCmd(
-                        request.getTaskId(), request.getWorkerAddress(), request.getReportTime()
+                        request.getTaskId(), request.getWorkerAddress(), request.getReportAt()
                     ));
                     return Response.ok(Response.ok(success));
                 }
                 case BrokerConstant.API_TASK_SUCCESS: {
                     TaskSuccessRequest request = JacksonUtils.toType(data, TaskSuccessRequest.class);
-                    Boolean success = Cmd.send(new TaskSuccessCmd(
-                        request.getTaskId(), request.getWorkerAddress(), request.getReportTime()
-                    ));
+                    Task task = Query.query(new TaskByIdQuery(request.getTaskId())).getTask();
+                    Execution execution = Query.query(new ExecutionByIdQuery(task.getExecutionId())).getExecution();
+                    Executable executable = execution.getExecutable();
+                    boolean success = false;
+                    if (executable instanceof Flow) {
+                        Flow flow = (Flow) executable;
+                        success = flow.success(task.getRefId(), task, request.getWorkerAddress(), request.getReportAt());
+                    }
                     return Response.ok(Response.ok(success));
                 }
                 case BrokerConstant.API_TASK_FAIL: {
                     TaskFailRequest request = JacksonUtils.toType(data, TaskFailRequest.class);
-                    Boolean success = Cmd.send(new TaskFailCmd(
-                        request.getTaskId(), request.getWorkerAddress(), request.getReportTime(),
-                        request.getErrorMsg()
-                    ));
+                    Task task = Query.query(new TaskByIdQuery(request.getTaskId())).getTask();
+                    Execution execution = Query.query(new ExecutionByIdQuery(task.getExecutionId())).getExecution();
+                    Executable executable = execution.getExecutable();
+                    boolean success = false;
+                    if (executable instanceof Flow) {
+                        Flow flow = (Flow) executable;
+                        success = flow.fail(task.getRefId(), task, request.getWorkerAddress(), request.getReportAt(), request.getErrorMsg());
+                    }
                     return Response.ok(Response.ok(success));
                 }
             }
@@ -100,16 +116,21 @@ public class BrokerClientHandler implements ClientHandler {
     private WorkerRegisterResponse register(WorkerRegisterRequest request) {
         // 注册app
         App app = Cmd.send(new AppRegisterCmd(request.getAppName())).getApp();
-        // 注册worker
-        String workerId = Cmd.send(new WorkerRegisterCmd(
-            BrokerClientConverter.toWorker(app.getId(), request)
-        )).getWorkerId();
-        WorkerRegisterResponse response = new WorkerRegisterResponse();
-        response.setAppId(app.getId());
-        response.setWorkerId(workerId);
-        response.setBroker(BrokerClientConverter.toDTO(app.getBroker()));
-        response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(app.getBrokers()));
-        return response;
+        if (Objects.equals(BrokerContext.broker().id(), app.getBroker().id())) {
+            // 如果是当前节点则注册
+            String workerId = Cmd.send(new WorkerRegisterCmd(
+                BrokerClientConverter.toWorker(app, request)
+            )).getWorkerId();
+            WorkerRegisterResponse response = new WorkerRegisterResponse();
+            response.setAppId(app.getId());
+            response.setWorkerId(workerId);
+            response.setBroker(BrokerClientConverter.toDTO(app.getBroker()));
+            response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(app.getBrokers()));
+            return response;
+        } else {
+            // 如果是其它节点转发请求
+            return BrokerContext.broker().client().call(BrokerConstant.API_WORKER_REGISTER, app.getBroker().host(), app.getBroker().port(), request);
+        }
     }
 
     private WorkerHeartbeatResponse heartbeat(WorkerHeartbeatRequest request) {
@@ -118,7 +139,7 @@ public class BrokerClientHandler implements ClientHandler {
         // 心跳
         Cmd.send(new WorkerHeartbeatCmd(
             request.getWorkerId(),
-            BrokerClientConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), request.getHeartbeatTime())
+            BrokerClientConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), request.getHeartbeatAt())
         ));
         WorkerHeartbeatResponse response = new WorkerHeartbeatResponse();
         response.setBroker(BrokerClientConverter.toDTO(brokerElect.getBroker()));

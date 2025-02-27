@@ -50,18 +50,18 @@ public class ScheduleTrigger extends Trigger {
             return Collections.singletonList(new ValidateSuppressInfo(FlowConstants.SCHEDULE_CONFIG_ERROR));
         }
         List<ValidateSuppressInfo> infos = new ArrayList<>();
-        if (scheduleOption.getScheduleType() == null || ScheduleType.UNKNOWN == scheduleOption.getScheduleType()) {
+        if (scheduleOption.getType() == null || ScheduleType.UNKNOWN == scheduleOption.getType()) {
             infos.add(new ValidateSuppressInfo(FlowConstants.SCHEDULE_CONFIG_ERROR));
         }
-        switch (scheduleOption.getScheduleType()) {
+        switch (scheduleOption.getType()) {
             case CRON:
-                if (StringUtils.isBlank(scheduleOption.getScheduleCron())) {
+                if (StringUtils.isBlank(scheduleOption.getCron())) {
                     infos.add(new ValidateSuppressInfo(FlowConstants.SCHEDULE_CONFIG_ERROR));
                 }
                 break;
             case FIXED_RATE:
             case FIXED_DELAY:
-                if (scheduleOption.getScheduleInterval() == null) {
+                if (scheduleOption.getInterval() == null) {
                     infos.add(new ValidateSuppressInfo(FlowConstants.SCHEDULE_CONFIG_ERROR));
                 }
                 break;

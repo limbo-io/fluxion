@@ -31,14 +31,14 @@ public class TaskSuccessRequest implements Request<Response<Boolean>> {
 
     private String workerAddress;
 
-    private LocalDateTime reportTime;
+    private LocalDateTime reportAt;
 
-    public LocalDateTime getReportTime() {
-        return reportTime;
+    public LocalDateTime getReportAt() {
+        return reportAt;
     }
 
-    public void setReportTime(LocalDateTime reportTime) {
-        this.reportTime = reportTime;
+    public void setReportAt(LocalDateTime reportAt) {
+        this.reportAt = reportAt;
     }
 
     public String getWorkerAddress() {

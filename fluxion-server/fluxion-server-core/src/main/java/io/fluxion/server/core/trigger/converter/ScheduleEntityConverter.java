@@ -49,13 +49,13 @@ public class ScheduleEntityConverter {
         entity.setScheduleId(schedule.getId());
         entity.setRefId(schedule.getRefId());
         entity.setRefType(schedule.getRefType().value);
-        entity.setScheduleType(scheduleOption.getScheduleType().value);
-        entity.setScheduleStartAt(scheduleOption.getScheduleStartAt());
-        entity.setScheduleEndAt(scheduleOption.getScheduleEndAt());
-        entity.setScheduleDelay(scheduleOption.getScheduleDelay().getSeconds());
-        entity.setScheduleInterval(scheduleOption.getScheduleInterval().getSeconds());
-        entity.setScheduleCron(scheduleOption.getScheduleCron());
-        entity.setScheduleCronType(scheduleOption.getScheduleCronType());
+        entity.setScheduleType(scheduleOption.getType().value);
+        entity.setStartTime(scheduleOption.getStartTime());
+        entity.setEndTime(scheduleOption.getEndTime());
+        entity.setDelay(scheduleOption.getDelay().getSeconds());
+        entity.setInterval(scheduleOption.getInterval().getSeconds());
+        entity.setCron(scheduleOption.getCron());
+        entity.setCronType(scheduleOption.getCronType());
         entity.setEnabled(schedule.isEnabled());
         entity.setVersion(schedule.getVersion());
         return entity;
@@ -72,9 +72,8 @@ public class ScheduleEntityConverter {
         schedule.setRefType(TriggerRefType.parse(entity.getRefType()));
         schedule.setScheduleType(ScheduleType.parse(entity.getScheduleType()));
         schedule.setScheduleOption(toOption(entity));
-        schedule.setLatelyTriggerAt(entity.getLatelyTriggerAt());
-        schedule.setLatelyFeedbackAt(entity.getLatelyFeedbackAt());
-        schedule.setNextTriggerAt(entity.getNextTriggerAt());
+        schedule.setLastTriggerAt(entity.getLastTriggerAt());
+        schedule.setLastFeedbackAt(entity.getLastFeedbackAt());
         schedule.setEnabled(entity.isEnabled());
         return schedule;
     }
@@ -82,12 +81,12 @@ public class ScheduleEntityConverter {
     public static ScheduleOption toOption(ScheduleEntity entity) {
         return new ScheduleOption(
             ScheduleType.parse(entity.getScheduleType()),
-            entity.getScheduleStartAt(),
-            entity.getScheduleEndAt(),
-            Duration.ofMillis(entity.getScheduleDelay()),
-            Duration.ofMillis(entity.getScheduleInterval()),
-            entity.getScheduleCron(),
-            entity.getScheduleCronType()
+            entity.getStartTime(),
+            entity.getEndTime(),
+            Duration.ofMillis(entity.getDelay()),
+            Duration.ofMillis(entity.getInterval()),
+            entity.getCron(),
+            entity.getCronType()
         );
     }
 

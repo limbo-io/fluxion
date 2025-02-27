@@ -57,8 +57,8 @@ public class CronScheduleCalculator implements ScheduleCalculator {
     public Long calculate(Calculable calculable) {
         ScheduleOption scheduleOption = calculable.scheduleOption();
         // 计算下一次调度
-        String cron = scheduleOption.getScheduleCron();
-        String cronType = scheduleOption.getScheduleCronType();
+        String cron = scheduleOption.getCron();
+        String cronType = scheduleOption.getCronType();
         try {
             ExecutionTime executionTime = ExecutionTime.forCron(getCron(cron, cronType));
 

@@ -37,7 +37,7 @@ public class TaskFailCmd implements ICmd<Boolean> {
 
     private String workerAddress;
 
-    private LocalDateTime reportTime;
+    private LocalDateTime endAt;
 
     /**
      * 执行失败时候返回的信息

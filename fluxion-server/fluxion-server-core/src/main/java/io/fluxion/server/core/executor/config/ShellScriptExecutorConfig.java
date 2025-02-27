@@ -46,4 +46,9 @@ public class ShellScriptExecutorConfig extends ExecutorConfig {
         }
         return infos;
     }
+
+    @Override
+    public String executorName() {
+        return "ShellScriptExecutor";
+    }
 }

@@ -16,15 +16,33 @@
 
 package io.fluxion.server.core.trigger;
 
+import io.fluxion.common.thread.CommonThreadPool;
 import io.fluxion.common.utils.MD5Utils;
 import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.server.core.broker.BrokerContext;
+import io.fluxion.server.core.execution.Execution;
+import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
+import io.fluxion.server.core.trigger.cmd.ScheduleRefreshLastTriggerCmd;
+import io.fluxion.server.core.trigger.query.ScheduleByIdQuery;
+import io.fluxion.server.core.trigger.run.Schedule;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.cqrs.Query;
+import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
+import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.Objects;
 
 /**
  * @author Devil
  */
+@Slf4j
 public class TriggerHelper {
 
+    /**
+     * 触发器对应的schedule的id
+     */
     public static String scheduleId(String triggerId) {
         return triggerId + "_tg";
     }
@@ -32,4 +50,53 @@ public class TriggerHelper {
     public static String scheduleVersion(String refId, int refType, ScheduleOption scheduleOption) {
         return MD5Utils.md5(refId + "_" + refType + "_" + JacksonUtils.toJSONString(scheduleOption));
     }
+
+    /**
+     * 放入 TaskScheduler 中的task的id
+     */
+    public static String taskScheduleId(Schedule schedule) {
+        // entity = trigger 所以不会变，这里使用version判断是否有版本变动
+        return "schedule_" + schedule.getId() + "_" + schedule.getVersion();
+    }
+
+    public static void consumerTask(AbstractTask task, String scheduleId) {
+        // 移除不需要调度的
+        Schedule schedule = Query.query(new ScheduleByIdQuery(scheduleId)).getSchedule();
+        if (!schedule.isEnabled()) {
+            log.info("Schedule is not enabled id:{}", scheduleId);
+            task.stop();
+            return;
+        }
+        // 非当前节点的，可能重新分配给其他了
+        if (!Objects.equals(BrokerContext.broker().id(), schedule.getBrokerAddress())) {
+            log.info("Schedule is not schedule by current broker id:{} address:{} currentAddress:{}",
+                scheduleId, schedule.getBrokerAddress(), BrokerContext.broker().id()
+            );
+            task.stop();
+            return;
+        }
+        // 版本变化了老的可以不用执行
+        String taskScheduleId = TriggerHelper.taskScheduleId(schedule);
+        if (!task.id().equals(taskScheduleId)) {
+            log.info("Schedule version is change id:{} taskScheduleId:{} taskId:{}",
+                scheduleId, taskScheduleId, task.id()
+            );
+            task.stop();
+            return;
+        }
+        // 更新上次触发时间
+        Cmd.send(new ScheduleRefreshLastTriggerCmd(
+            schedule.getId(), task.triggerAt()
+        ));
+        // 创建执行记录
+        Execution execution = Cmd.send(new ExecutionCreateCmd(
+            scheduleId,
+            schedule.getRefId(),
+            schedule.getRefType(),
+            task.triggerAt()
+        )).getExecution();
+        // 异步执行
+        CommonThreadPool.IO.submit(execution::execute);
+    }
+
 }

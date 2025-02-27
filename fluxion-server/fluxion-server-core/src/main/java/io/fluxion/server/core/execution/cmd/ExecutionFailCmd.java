@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,26 +14,27 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.app;
+package io.fluxion.server.core.execution.cmd;
 
-import io.fluxion.server.core.broker.BrokerNode;
-import lombok.Data;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import java.util.Collections;
-import java.util.List;
+import java.time.LocalDateTime;
 
 /**
  * @author Devil
  */
-@Data
-public class App {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ExecutionFailCmd implements ICmd<Boolean> {
 
-    private String id;
-    /**
-     * 绑定的broker 通过 BrokerManager选举
-     */
-    private BrokerNode broker;
+    private String executionId;
 
-    private List<BrokerNode> brokers = Collections.emptyList();
+    private LocalDateTime endAt;
 
 }

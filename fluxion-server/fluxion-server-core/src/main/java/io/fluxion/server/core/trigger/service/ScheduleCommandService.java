@@ -16,9 +16,12 @@
 
 package io.fluxion.server.core.trigger.service;
 
+import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.core.broker.BrokerManger;
 import io.fluxion.server.core.broker.BrokerNode;
 import io.fluxion.server.core.trigger.cmd.ScheduleBrokerElectCmd;
+import io.fluxion.server.core.trigger.cmd.ScheduleRefreshLastFeedbackCmd;
+import io.fluxion.server.core.trigger.cmd.ScheduleRefreshLastTriggerCmd;
 import io.fluxion.server.core.trigger.cmd.ScheduleSaveCmd;
 import io.fluxion.server.core.trigger.converter.ScheduleEntityConverter;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
@@ -29,6 +32,9 @@ import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityTransaction;
+import javax.persistence.LockModeType;
 
 /**
  * @author Devil
@@ -46,11 +52,15 @@ public class ScheduleCommandService {
     @Resource
     private DistributedLock distributedLock;
 
+    @Resource
+    private EntityManager entityManager;
+
     @CommandHandler
-    public void handle(ScheduleSaveCmd cmd) {
+    public String handle(ScheduleSaveCmd cmd) {
         ScheduleEntity entity = ScheduleEntityConverter.convert(cmd.getSchedule());
         scheduleEntityRepo.saveAndFlush(entity);
         // todo @d 如果是首次创建，立即进行调度 否则保存下次触发时间为最近一次触发时间
+        return entity.getScheduleId();
     }
 
     @CommandHandler
@@ -70,4 +80,43 @@ public class ScheduleCommandService {
         }
     }
 
+    @CommandHandler
+    public boolean handle(ScheduleRefreshLastTriggerCmd cmd) {
+        EntityTransaction transaction = entityManager.getTransaction();
+        transaction.begin();
+
+        try {
+            ScheduleEntity entity = entityManager.find(ScheduleEntity.class, cmd.getScheduleId(), LockModeType.PESSIMISTIC_WRITE);
+            entity.setLastTriggerAt(cmd.getLastTriggerAt());
+
+            // 提交事务 todo 这里不用保存？？
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            log.error("ScheduleRefreshNext fail cmd:{}", JacksonUtils.toJSONString(cmd), e);
+        }
+        return true;
+    }
+
+    @CommandHandler
+    public boolean handle(ScheduleRefreshLastFeedbackCmd cmd) {
+        EntityTransaction transaction = entityManager.getTransaction();
+        transaction.begin();
+
+        try {
+            ScheduleEntity entity = entityManager.find(ScheduleEntity.class, cmd.getScheduleId(), LockModeType.PESSIMISTIC_WRITE);
+            entity.setLastFeedbackAt(cmd.getLastFeedbackAt());
+
+            // 提交事务 todo 这里不用保存？？
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            log.error("ScheduleRefreshNext fail cmd:{}", JacksonUtils.toJSONString(cmd), e);
+        }
+        return true;
+    }
 }

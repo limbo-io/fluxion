@@ -16,9 +16,6 @@
 
 package io.fluxion.worker.spring.starter;
 
-import io.fluxion.remote.core.client.ClientFactory;
-import io.fluxion.remote.core.client.LBClient;
-import io.fluxion.remote.core.client.RetryableLBClient;
 import io.fluxion.remote.core.client.server.AbstractClientServer;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.client.server.ClientServerConfig;
@@ -26,8 +23,6 @@ import io.fluxion.remote.core.client.server.ClientServerFactory;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.remote.core.lb.repository.EmbeddedLBServerRepository;
-import io.fluxion.remote.core.lb.repository.LBServerRepository;
-import io.fluxion.remote.core.lb.strategies.RoundRobinLBStrategy;
 import io.fluxion.worker.core.FluxionWorker;
 import io.fluxion.worker.core.Worker;
 import io.fluxion.worker.core.WorkerContext;
@@ -90,17 +85,10 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
      */
     @EventListener(WorkerReadyEvent.class)
     public void onWorkerReady(WorkerReadyEvent event) {
-        // remote client
-        LBServerRepository lbServerRepository = new EmbeddedLBServerRepository(brokerNodes);
-        LBClient client = RetryableLBClient.builder()
-            .client(ClientFactory.create(protocol))
-            .repository(lbServerRepository)
-            .strategy(new RoundRobinLBStrategy<>())
-            .build();
         // WorkerContext
-        WorkerContext workerContext = new WorkerContext(appName, protocol, host, port, queueSize, concurrency, client, executors, tags);
+        WorkerContext workerContext = new WorkerContext(appName, protocol, host, port, queueSize, concurrency, executors, tags);
         // Discovery
-        ServerDiscovery discovery = new DefaultServerDiscovery(workerContext, lbServerRepository, client);
+        ServerDiscovery discovery = new DefaultServerDiscovery(workerContext, new EmbeddedLBServerRepository(brokerNodes));
         // ClientServer
         ClientServerFactory factory = ClientServerFactory.instance();
         ClientHandler clientHandler = new WorkerClientHandler(workerContext);

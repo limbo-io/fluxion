@@ -17,10 +17,6 @@
 package io.fluxion.server.core.task.service;
 
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.server.core.execution.Executable;
-import io.fluxion.server.core.execution.Execution;
-import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
-import io.fluxion.server.core.flow.Flow;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskStatus;
 import io.fluxion.server.core.task.cmd.TaskFailCmd;
@@ -31,7 +27,6 @@ import io.fluxion.server.core.task.cmd.TaskSuccessCmd;
 import io.fluxion.server.core.task.cmd.TasksCreateCmd;
 import io.fluxion.server.core.task.runner.TaskRunner;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
-import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.TaskEntity;
 import io.fluxion.server.infrastructure.dao.repository.TaskEntityRepo;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
@@ -123,7 +118,7 @@ public class TaskCommandService {
                 "where taskId = :taskId and status = :oldStatus and lastReportAt < :lastReportAt " +
                 "and workerAddress = :workerAddress"
             )
-            .setParameter("lastReportAt", TimeUtils.currentLocalDateTime())
+            .setParameter("lastReportAt", cmd.getReportAt())
             .setParameter("taskId", cmd.getTaskId())
             .setParameter("oldStatus", TaskStatus.RUNNING.value)
             .setParameter("workerAddress", cmd.getWorkerAddress())
@@ -142,22 +137,16 @@ public class TaskCommandService {
                 "where taskId = :taskId and status = :oldStatus and lastReportAt < :lastReportAt " +
                 "and workerAddress = :workerAddress"
             )
-            .setParameter("lastReportAt", TimeUtils.currentLocalDateTime())
-            .setParameter("endAt", TimeUtils.currentLocalDateTime())
+            .setParameter("lastReportAt", cmd.getEndAt())
+            .setParameter("endAt", cmd.getEndAt())
             .setParameter("taskId", cmd.getTaskId())
             .setParameter("oldStatus", TaskStatus.RUNNING.value)
             .setParameter("newStatus", TaskStatus.SUCCEED.value)
             .setParameter("workerAddress", cmd.getWorkerAddress())
             .executeUpdate();
         if (updated <= 0) {
-            log.warn("TaskSuccessCmd update success fail taskId:{}", cmd.getTaskId());
+            log.warn("TaskSuccessCmd update fail taskId:{}", cmd.getTaskId());
             return false;
-        }
-        Execution execution = Query.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
-        Executable executable = execution.getExecutable();
-        if (executable instanceof Flow) {
-            Flow flow = (Flow) executable;
-            flow.success(entity.getRefId());
         }
         return true;
     }
@@ -173,23 +162,17 @@ public class TaskCommandService {
                 "where taskId = :taskId and status = :oldStatus and lastReportAt < :lastReportAt " +
                 "and workerAddress = :workerAddress"
             )
-            .setParameter("lastReportAt", TimeUtils.currentLocalDateTime())
+            .setParameter("lastReportAt", cmd.getEndAt())
             .setParameter("errorMsg", cmd.getErrorMsg())
-            .setParameter("endAt", TimeUtils.currentLocalDateTime())
+            .setParameter("endAt", cmd.getEndAt())
             .setParameter("taskId", cmd.getTaskId())
             .setParameter("oldStatus", TaskStatus.RUNNING.value)
             .setParameter("newStatus", TaskStatus.FAILED.value)
             .setParameter("workerAddress", cmd.getWorkerAddress())
             .executeUpdate();
         if (updated <= 0) {
-            log.warn("TaskFailCmd update fail fail taskId:{}", cmd.getTaskId());
+            log.warn("TaskFailCmd update fail taskId:{}", cmd.getTaskId());
             return false;
-        }
-        Execution execution = Query.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
-        Executable executable = execution.getExecutable();
-        if (executable instanceof Flow) {
-            Flow flow = (Flow) executable;
-            flow.fail(entity.getRefId());
         }
         return true;
     }

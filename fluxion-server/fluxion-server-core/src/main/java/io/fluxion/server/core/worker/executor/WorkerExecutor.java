@@ -36,4 +36,9 @@ public class WorkerExecutor {
      */
     private String name;
 
+    /**
+     * 版本
+     */
+    private String version;
+
 }

@@ -59,7 +59,7 @@ public class ScheduleEntity extends BaseEntity {
     /**
      * 分配的节点
      */
-    private String brokerId;
+    private String brokerAddress;
 
     /**
      * 计划作业调度方式
@@ -71,47 +71,42 @@ public class ScheduleEntity extends BaseEntity {
     /**
      * 从何时开始调度作业
      */
-    private LocalDateTime scheduleStartAt;
+    private LocalDateTime startTime;
 
     /**
      * 从何时结束调度作业
      */
-    private LocalDateTime scheduleEndAt;
+    private LocalDateTime endTime;
 
     /**
      * 作业调度延迟时间，单位秒
      */
-    private Long scheduleDelay;
+    private Long delay;
 
     /**
      * 作业调度间隔时间，单位秒。
      */
-    private Long scheduleInterval;
+    private Long interval;
 
     /**
      * 作业调度的CRON表达式
      */
-    private String scheduleCron;
+    private String cron;
 
     /**
      * 作业调度的CRON表达式
      */
-    private String scheduleCronType;
+    private String cronType;
 
     /**
      * 上次触发时间
      */
-    private LocalDateTime latelyTriggerAt;
+    private LocalDateTime lastTriggerAt;
 
     /**
      * 上次回调时间
      */
-    private LocalDateTime latelyFeedbackAt;
-
-    /**
-     * 下次触发时间
-     */
-    private LocalDateTime nextTriggerAt;
+    private LocalDateTime lastFeedbackAt;
 
     /**
      * 是否启动

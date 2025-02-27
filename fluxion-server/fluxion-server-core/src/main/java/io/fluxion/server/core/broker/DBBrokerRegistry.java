@@ -157,12 +157,12 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
 
         private static final String TASK_NAME = "[NodeOnlineCheckTask]";
 
-        LocalDateTime lastCheckTime = TimeUtils.currentLocalDateTime().plusSeconds(-heartbeatTimeout.getSeconds());
+        LocalDateTime lastCheckAt = TimeUtils.currentLocalDateTime().plusSeconds(-heartbeatTimeout.getSeconds());
 
         @Override
         public void run() {
             try {
-                LocalDateTime startTime = lastCheckTime;
+                LocalDateTime startTime = lastCheckAt;
                 LocalDateTime endTime = TimeUtils.currentLocalDateTime();
                 if (log.isDebugEnabled()) {
                     log.info("{} checkOnline start:{} end:{}", TASK_NAME, LocalTimeUtils.format(startTime, Formatters.YMD_HMS), LocalTimeUtils.format(endTime, Formatters.YMD_HMS));
@@ -178,7 +178,7 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
                         }
                     }
                 }
-                lastCheckTime = endTime;
+                lastCheckAt = endTime;
             } catch (Exception e) {
                 log.error("{} check fail", TASK_NAME, e);
             }
@@ -190,12 +190,12 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
 
         private static final String TASK_NAME = "[NodeOfflineCheckTask]";
 
-        LocalDateTime lastCheckTime = TimeUtils.currentLocalDateTime().plusSeconds(-2 * heartbeatTimeout.getSeconds());
+        LocalDateTime lastCheckAt = TimeUtils.currentLocalDateTime().plusSeconds(-2 * heartbeatTimeout.getSeconds());
 
         @Override
         public void run() {
             try {
-                LocalDateTime startTime = lastCheckTime;
+                LocalDateTime startTime = lastCheckAt;
                 LocalDateTime endTime = TimeUtils.currentLocalDateTime().plusSeconds(-heartbeatTimeout.getSeconds());
                 if (log.isDebugEnabled()) {
                     log.debug("{} checkOffline start:{} end:{}", TASK_NAME, LocalTimeUtils.format(startTime, Formatters.YMD_HMS), LocalTimeUtils.format(endTime, Formatters.YMD_HMS));
@@ -211,7 +211,7 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
                         }
                     }
                 }
-                lastCheckTime = endTime;
+                lastCheckAt = endTime;
             } catch (Exception e) {
                 log.error("{} check fail", TASK_NAME, e);
             }

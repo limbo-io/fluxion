@@ -25,6 +25,7 @@ import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.cluster.NodeRegistry;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.task.CoreTask;
+import io.fluxion.server.core.broker.task.DataCleaner;
 import io.fluxion.server.core.broker.task.ScheduleCheckTask;
 import io.fluxion.server.core.broker.task.ScheduleLoadTask;
 import io.fluxion.server.infrastructure.lock.DistributedLock;
@@ -74,7 +75,8 @@ public class Broker {
         this.client = ClientFactory.create(protocol);
         this.coreTasks = Lists.newArrayList(
             new ScheduleLoadTask(1, TimeUnit.SECONDS),
-            new ScheduleCheckTask(10, TimeUnit.SECONDS, distributedLock)
+            new ScheduleCheckTask(10, TimeUnit.SECONDS, distributedLock),
+            new DataCleaner(15, TimeUnit.DAYS)
         );
         this.coreThreadPool = new ScheduledThreadPoolExecutor(
             coreTasks.size(),
@@ -88,7 +90,6 @@ public class Broker {
      * 启动节点
      */
     public void start() {
-
         // 将自己上线管理
         manger.online(node);
         // 节点注册 用于集群感知

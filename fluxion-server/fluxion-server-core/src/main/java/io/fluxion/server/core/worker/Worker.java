@@ -21,6 +21,7 @@ import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.remote.core.lb.LBServer;
+import io.fluxion.server.core.app.App;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
 import io.fluxion.server.infrastructure.tag.Tagged;
@@ -41,7 +42,7 @@ public class Worker implements LBServer, Tagged {
      */
     private String id;
 
-    private String appId;
+    private App app;
 
     private Protocol protocol;
 
@@ -81,8 +82,8 @@ public class Worker implements LBServer, Tagged {
      */
     private boolean enabled = true;
 
-    public Worker(String appId, String host, int port, Protocol protocol) {
-        this.appId = appId;
+    public Worker(App app, String host, int port, Protocol protocol) {
+        this.app = app;
         this.host = host;
         this.port = port;
         this.protocol = protocol;
@@ -116,9 +117,5 @@ public class Worker implements LBServer, Tagged {
     @Override
     public int port() {
         return port;
-    }
-
-    public void setAppId(String appId) {
-        this.appId = appId;
     }
 }

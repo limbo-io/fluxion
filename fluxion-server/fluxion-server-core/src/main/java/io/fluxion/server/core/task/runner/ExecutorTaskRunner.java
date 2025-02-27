@@ -58,7 +58,7 @@ public class ExecutorTaskRunner extends TaskRunner {
     public void run(Task task) {
         ExecutorTask executorTask = (ExecutorTask) task;
         Map<String, Object> attributes = new HashMap<>();
-        List<Worker> workers = workerRepository.allByApp(task.getAppId()).stream()
+        List<Worker> workers = workerRepository.allByApp(executorTask.getAppId()).stream()
             .filter(Worker::isEnabled)
             .collect(Collectors.toList());
         DispatchOption dispatchOption = executorTask.getDispatchOption();

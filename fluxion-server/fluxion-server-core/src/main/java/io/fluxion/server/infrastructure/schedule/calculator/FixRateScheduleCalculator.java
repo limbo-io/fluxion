@@ -45,7 +45,7 @@ public class FixRateScheduleCalculator implements ScheduleCalculator {
     public Long calculate(Calculable calculable) {
         ScheduleOption scheduleOption = calculable.scheduleOption();
         // 上次调度一定间隔后调度
-        Duration interval = scheduleOption.getScheduleInterval();
+        Duration interval = scheduleOption.getInterval();
         if (interval == null) {
             log.error("cannot calculate next trigger timestamp of {} because interval is not assigned!", calculable);
             return ScheduleCalculator.NOT_TRIGGER;

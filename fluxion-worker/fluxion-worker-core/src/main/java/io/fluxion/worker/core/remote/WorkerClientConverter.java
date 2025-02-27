@@ -30,7 +30,7 @@ public class WorkerClientConverter {
     public static Task toTask(TaskDispatchRequest request) {
         Task task = new Task();
         task.setTaskId(request.getTaskId());
-        task.setReportAddress(request.getBrokerId());
+        task.setBrokerAddress(request.getBrokerId());
         task.setExecuteType(ExecuteType.parse(request.getExecuteType()));
         task.setExecutorName(request.getExecutorName());
         return task;
@@ -39,7 +39,7 @@ public class WorkerClientConverter {
     public static Task toTask(SubTaskDispatchRequest request) {
         Task task = new Task();
         task.setTaskId(request.getTaskId());
-        task.setReportAddress(request.getWorkerId());
+        task.setBrokerAddress(request.getWorkerId());
         task.setExecuteType(ExecuteType.parse(request.getExecuteType()));
         task.setExecutorName(request.getExecutorName());
         return task;

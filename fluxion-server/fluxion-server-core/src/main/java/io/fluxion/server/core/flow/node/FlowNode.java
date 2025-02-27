@@ -19,6 +19,8 @@ package io.fluxion.server.core.flow.node;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
 import io.fluxion.common.utils.json.JacksonTypeIdResolver;
+import io.fluxion.server.core.executor.option.OvertimeOption;
+import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.infrastructure.dag.DAGNode;
 import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Data;
@@ -61,6 +63,23 @@ public abstract class FlowNode implements DAGNode, ValidatableConfig {
      * 描述
      */
     private String description;
+
+    /**
+     * 重试参数
+     */
+    private RetryOption retryOption;
+
+    /**
+     * 超时参数
+     */
+    private OvertimeOption overtimeOption;
+
+    /**
+     * 执行失败是否继续
+     * true  会继续执行后续作业
+     * false 终止环节
+     */
+    private boolean skipWhenFail = false;
 
     /**
      * 扩展信息 目前只给前端使用

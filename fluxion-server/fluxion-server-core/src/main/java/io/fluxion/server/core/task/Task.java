@@ -18,6 +18,8 @@ package io.fluxion.server.core.task;
 
 import io.fluxion.common.thread.CommonThreadPool;
 import io.fluxion.server.core.broker.BrokerContext;
+import io.fluxion.server.core.executor.option.OvertimeOption;
+import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.core.task.cmd.TaskRunCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
@@ -34,13 +36,38 @@ public abstract class Task {
 
     private String executionId;
 
-    private String appId;
-
     private String taskId;
 
+    /**
+     * 关联的 id
+     * flow 中是nodeId
+     * executor 则直接为其id
+     */
     private String refId;
 
     private LocalDateTime triggerAt;
+
+    /**
+     * 当前是第几次重试
+     */
+    private int retryTimes;
+
+    /**
+     * 重试参数
+     */
+    private RetryOption retryOption;
+
+    /**
+     * 超时参数
+     */
+    private OvertimeOption overtimeOption;
+
+    /**
+     * 执行失败是否继续
+     * true  会继续执行后续作业
+     * false 终止环节
+     */
+    private boolean skipWhenFail = false;
 
     public void schedule() {
         DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
@@ -57,4 +84,7 @@ public abstract class Task {
 
     public abstract TaskType type();
 
+    public boolean canRetry() {
+        return retryTimes < retryOption.getRetryTimes();
+    }
 }

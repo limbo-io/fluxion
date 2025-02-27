@@ -28,9 +28,7 @@ import java.time.LocalDateTime;
  */
 @Data
 public class Schedule {
-    /**
-     * trigger唯一
-     */
+
     private String id;
 
     /**
@@ -49,6 +47,11 @@ public class Schedule {
      */
     private String version;
 
+    /**
+     * 分配的节点
+     */
+    private String brokerAddress;
+
     private ScheduleType scheduleType;
 
     private ScheduleOption scheduleOption;
@@ -56,17 +59,12 @@ public class Schedule {
     /**
      * 上次触发时间
      */
-    private LocalDateTime latelyTriggerAt;
+    private LocalDateTime lastTriggerAt;
 
     /**
      * 上次回调时间
      */
-    private LocalDateTime latelyFeedbackAt;
-
-    /**
-     * 下次触发时间
-     */
-    private LocalDateTime nextTriggerAt;
+    private LocalDateTime lastFeedbackAt;
 
     private boolean enabled;
 }

@@ -57,7 +57,7 @@ public class FixDelayScheduleCalculator implements ScheduleCalculator {
             }
         }
 
-        Duration interval = scheduleOption.getScheduleInterval();
+        Duration interval = scheduleOption.getInterval();
         if (interval == null) {
             log.error("cannot calculate next trigger timestamp of {} because interval is not assigned!", calculable);
             return ScheduleCalculator.NOT_TRIGGER;

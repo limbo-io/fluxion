@@ -51,24 +51,21 @@ public abstract class ExecutorConfig implements ValidatableConfig {
     private String type;
 
     /**
+     * 所属应用
+     */
+    private String appId;
+
+    /**
      * 执行方式
      */
     private ExecuteType executeType;
 
     /**
-     * 超时参数
-     */
-    private OvertimeOption overtimeOption;
-
-    /**
-     * 重试参数
-     */
-    private RetryOption retryOption;
-
-    /**
      * 下发属性
      */
     private DispatchOption dispatchOption;
+
+    public abstract String executorName();
 
     public interface Type {
         String CUSTOM = "custom";

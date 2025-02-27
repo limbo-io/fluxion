@@ -46,22 +46,22 @@ public class ScheduledTaskScheduler extends TaskScheduler<ScheduledTask> {
                 String scheduleId = task.id();
 
                 ScheduleOption scheduleOption = task.calculation().scheduleOption();
-                if (scheduleOption == null || scheduleOption.getScheduleType() == null || ScheduleType.UNKNOWN == scheduleOption.getScheduleType()) {
+                if (scheduleOption == null || scheduleOption.getType() == null || ScheduleType.UNKNOWN == scheduleOption.getType()) {
                     log.error("{} scheduleType is {} scheduleOption={}", scheduleId, ScheduleType.UNKNOWN.name(), scheduleOption);
                     return;
                 }
 
-                // 超过时间的不需要调度
-                LocalDateTime scheduleStartAt = scheduleOption.getScheduleStartAt();
-                LocalDateTime scheduleEndAt = scheduleOption.getScheduleEndAt();
+                // 超过时间的不需要调度 todo @d 这里有问题 放到内存了直接停止了，没法重新加载
+                LocalDateTime startTime = scheduleOption.getStartTime();
+                LocalDateTime endTime = scheduleOption.getEndTime();
                 LocalDateTime now = TimeUtils.currentLocalDateTime();
-                if ((scheduleStartAt != null && scheduleStartAt.isAfter(now))
-                    || (scheduleEndAt != null && scheduleEndAt.isBefore(now))) {
+                if ((startTime != null && startTime.isAfter(now))
+                    || (endTime != null && endTime.isBefore(now))) {
                     stop(task.id());
                     return;
                 }
 
-                switch (scheduleOption.getScheduleType()) {
+                switch (scheduleOption.getType()) {
                     case FIXED_RATE:
                     case CRON:
                         reschedule(task);

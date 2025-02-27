@@ -25,8 +25,10 @@ import io.fluxion.remote.core.constants.ExecuteType;
 public class Task {
 
     private String taskId;
-
-    private String reportAddress;
+    /**
+     * 绑定的broker 基于 app 选举
+     */
+    private String brokerAddress;
 
     private ExecuteType executeType;
 
@@ -59,11 +61,11 @@ public class Task {
         this.executeType = executeType;
     }
 
-    public String getReportAddress() {
-        return reportAddress;
+    public String getBrokerAddress() {
+        return brokerAddress;
     }
 
-    public void setReportAddress(String reportAddress) {
-        this.reportAddress = reportAddress;
+    public void setBrokerAddress(String brokerAddress) {
+        this.brokerAddress = brokerAddress;
     }
 }

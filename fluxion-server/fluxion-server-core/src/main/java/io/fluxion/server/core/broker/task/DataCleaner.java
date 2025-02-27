@@ -16,14 +16,25 @@
 
 package io.fluxion.server.core.broker.task;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * 数据清理
- * todo @d
+ * todo @d later
  * 1. delay_task
  * 2. schedule_task
  *
  * @author Devil
  * @date 2025/1/9
  */
-public class DataCleaner {
+public class DataCleaner extends CoreTask {
+
+    public DataCleaner(int interval, TimeUnit unit) {
+        super(interval, unit);
+    }
+
+    @Override
+    public void run() {
+
+    }
 }

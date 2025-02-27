@@ -14,42 +14,30 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.dao.entity;
+package io.fluxion.server.core.trigger.cmd;
 
-import io.fluxion.server.infrastructure.dao.TableConstants;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
-import org.hibernate.annotations.DynamicInsert;
-import org.hibernate.annotations.DynamicUpdate;
+import lombok.NoArgsConstructor;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import java.time.LocalDateTime;
 
 /**
  * @author Devil
  */
-@Setter
 @Getter
-@Table(name = TableConstants.FLUXION_EXECUTOR)
-@Entity
-@DynamicInsert
-@DynamicUpdate
-public class ExecutorEntity {
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ScheduleRefreshLastFeedbackCmd implements ICmd<Boolean> {
 
-    @Id
-    private String executorId;
+    private String scheduleId;
 
     /**
-     * 名称
+     * 上次回调时间
      */
-    private String name;
-
-    /**
-     * 描述
-     */
-    private String description;
-
-    private String version;
+    private LocalDateTime lastFeedbackAt;
 
 }

@@ -40,7 +40,7 @@ public class LocalWorkerRepository implements WorkerRepository {
 
     @Override
     public void save(Worker worker) {
-        Map<String, Worker> workers = APP_WORKERS.computeIfAbsent(worker.getAppId(), s -> new ConcurrentHashMap<>());
+        Map<String, Worker> workers = APP_WORKERS.computeIfAbsent(worker.getApp().getId(), s -> new ConcurrentHashMap<>());
         if (!WORKERS.containsKey(worker.getId())) {
             BrokerContext.broker().node().loadIncr(BrokerNode.LoadType.WORKER);
         }
@@ -56,8 +56,8 @@ public class LocalWorkerRepository implements WorkerRepository {
     @Override
     public void delete(String id) {
         Worker removed = WORKERS.remove(id);
-        if (removed != null && APP_WORKERS.containsKey(removed.getAppId())) {
-            APP_WORKERS.get(removed.getAppId()).remove(id);
+        if (removed != null && APP_WORKERS.containsKey(removed.getApp().getId())) {
+            APP_WORKERS.get(removed.getApp().getId()).remove(id);
         }
         BrokerContext.broker().node().loadDecr(BrokerNode.LoadType.WORKER);
     }

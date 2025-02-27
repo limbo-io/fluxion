@@ -38,8 +38,6 @@ public class CustomExecutorConfig extends ExecutorConfig {
      */
     private String name;
 
-
-
     @Override
     public List<ValidateSuppressInfo> validate() {
         List<ValidateSuppressInfo> infos = new ArrayList<>();
@@ -47,5 +45,10 @@ public class CustomExecutorConfig extends ExecutorConfig {
             infos.add(new ValidateSuppressInfo(FlowConstants.EXECUTOR_NAME_IS_EMPTY));
         }
         return infos;
+    }
+
+    @Override
+    public String executorName() {
+        return name;
     }
 }

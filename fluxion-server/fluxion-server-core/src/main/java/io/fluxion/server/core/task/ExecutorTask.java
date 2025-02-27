@@ -18,6 +18,8 @@ package io.fluxion.server.core.task;
 
 import io.fluxion.remote.core.constants.ExecuteType;
 import io.fluxion.server.core.executor.option.DispatchOption;
+import io.fluxion.server.core.executor.option.OvertimeOption;
+import io.fluxion.server.core.executor.option.RetryOption;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -29,11 +31,18 @@ import lombok.EqualsAndHashCode;
 @Data
 public class ExecutorTask extends Task {
 
+    private String appId;
+
     private String executorName;
 
     private ExecuteType executeType;
 
     private DispatchOption dispatchOption;
+
+    /**
+     * 超时参数
+     */
+    private OvertimeOption overtimeOption;
 
     @Override
     public TaskType type() {
