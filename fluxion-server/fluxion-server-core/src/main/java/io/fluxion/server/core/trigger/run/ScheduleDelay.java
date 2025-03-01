@@ -14,16 +14,42 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.trigger.config;
+package io.fluxion.server.core.trigger.run;
 
-import com.fasterxml.jackson.annotation.JsonTypeName;
+import io.fluxion.server.core.trigger.TriggerRefType;
+import lombok.Data;
+
+import java.time.LocalDateTime;
 
 /**
- * Http 回调触发
- *
  * @author Devil
  */
-@JsonTypeName(Trigger.Type.WEBHOOK)
-public class WebhookTrigger extends Trigger {
+@Data
+public class ScheduleDelay {
 
+    private String id;
+
+    private String scheduleId;
+
+    /**
+     * 调度关联数据
+     */
+    private String refId;
+
+    /**
+     * 调度关联类型
+     *
+     * @see TriggerRefType
+     */
+    private TriggerRefType refType;
+
+    /**
+     * 分配的节点
+     */
+    private String brokerId;
+
+    /**
+     * 触发时间
+     */
+    private LocalDateTime triggerAt;
 }

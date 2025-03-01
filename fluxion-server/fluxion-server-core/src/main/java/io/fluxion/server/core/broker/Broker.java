@@ -27,7 +27,7 @@ import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.task.CoreTask;
 import io.fluxion.server.core.broker.task.DataCleaner;
 import io.fluxion.server.core.broker.task.ScheduleCheckTask;
-import io.fluxion.server.core.broker.task.ScheduleLoadTask;
+import io.fluxion.server.core.broker.task.ScheduleLoadTaskBak;
 import io.fluxion.server.infrastructure.lock.DistributedLock;
 import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.ScheduledTaskScheduler;
@@ -74,9 +74,9 @@ public class Broker {
         this.manger = manger;
         this.client = ClientFactory.create(protocol);
         this.coreTasks = Lists.newArrayList(
-            new ScheduleLoadTask(1, TimeUnit.SECONDS),
+            new ScheduleLoadTaskBak(1, TimeUnit.SECONDS),
             new ScheduleCheckTask(10, TimeUnit.SECONDS, distributedLock),
-            new DataCleaner(15, TimeUnit.DAYS)
+            new DataCleaner(30, TimeUnit.DAYS)
         );
         this.coreThreadPool = new ScheduledThreadPoolExecutor(
             coreTasks.size(),

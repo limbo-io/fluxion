@@ -58,7 +58,7 @@ public class FluxionWorker implements Worker {
 
     @Override
     public void start() {
-        if (!workerContext.changeStatus(WorkerStatus.IDLE, WorkerStatus.INITIALIZING)) {
+        if (!workerContext.status(WorkerStatus.IDLE, WorkerStatus.INITIALIZING)) {
             return;
         }
         // Launch the program in order
@@ -73,20 +73,20 @@ public class FluxionWorker implements Worker {
         this.discovery.start();
 
         // 更新为运行中
-        workerContext.changeStatus(WorkerStatus.INITIALIZING, WorkerStatus.RUNNING);
+        workerContext.status(WorkerStatus.INITIALIZING, WorkerStatus.RUNNING);
         log.info("FluxionWorker Start!!!");
     }
 
     @Override
     public void stop() {
-        if (!workerContext.changeStatus(WorkerStatus.RUNNING, WorkerStatus.TERMINATING)) {
+        if (!workerContext.status(WorkerStatus.RUNNING, WorkerStatus.TERMINATING)) {
             return;
         }
         this.discovery.stop();
         this.clientServer.stop();
         this.workerContext.destroy();
         // 修改状态
-        workerContext.changeStatus(WorkerStatus.TERMINATING, WorkerStatus.TERMINATED);
+        workerContext.status(WorkerStatus.TERMINATING, WorkerStatus.TERMINATED);
     }
 
 }

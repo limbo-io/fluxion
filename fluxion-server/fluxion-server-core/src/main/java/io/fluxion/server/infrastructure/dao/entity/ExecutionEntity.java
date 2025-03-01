@@ -18,6 +18,7 @@ package io.fluxion.server.infrastructure.dao.entity;
 
 import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.trigger.TriggerRefType;
+import io.fluxion.server.core.trigger.config.TriggerConfig;
 import io.fluxion.server.infrastructure.dao.TableConstants;
 import lombok.Getter;
 import lombok.Setter;
@@ -45,10 +46,13 @@ public class ExecutionEntity extends BaseEntity {
 
     @Id
     private String executionId;
+
+    private String triggerId;
+
     /**
-     * 关联调度
+     * @see TriggerConfig.Type
      */
-    private String scheduleId;
+    private String triggerType;
 
     private String refId;
 
@@ -61,6 +65,7 @@ public class ExecutionEntity extends BaseEntity {
 
     /**
      * 状态
+     *
      * @see ExecutionStatus
      */
     private Integer status;

@@ -23,11 +23,11 @@ import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.trigger.cmd.ScheduleRefreshLastTriggerCmd;
+import io.fluxion.server.core.trigger.config.TriggerConfig;
 import io.fluxion.server.core.trigger.query.ScheduleByIdQuery;
 import io.fluxion.server.core.trigger.run.Schedule;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
-import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
 import lombok.extern.slf4j.Slf4j;
@@ -56,7 +56,7 @@ public class TriggerHelper {
      */
     public static String taskScheduleId(Schedule schedule) {
         // entity = trigger 所以不会变，这里使用version判断是否有版本变动
-        return "schedule_" + schedule.getId() + "_" + schedule.getVersion();
+        return schedule.getId() + "_" + schedule.getVersion() + "_sch";
     }
 
     public static void consumerTask(AbstractTask task, String scheduleId) {
@@ -68,9 +68,9 @@ public class TriggerHelper {
             return;
         }
         // 非当前节点的，可能重新分配给其他了
-        if (!Objects.equals(BrokerContext.broker().id(), schedule.getBrokerAddress())) {
-            log.info("Schedule is not schedule by current broker id:{} address:{} currentAddress:{}",
-                scheduleId, schedule.getBrokerAddress(), BrokerContext.broker().id()
+        if (!Objects.equals(BrokerContext.broker().id(), schedule.getBrokerId())) {
+            log.info("Schedule is not schedule by current broker scheduleId:{} brokerId:{} currentBrokerId:{}",
+                scheduleId, schedule.getBrokerId(), BrokerContext.broker().id()
             );
             task.stop();
             return;
@@ -90,7 +90,8 @@ public class TriggerHelper {
         ));
         // 创建执行记录
         Execution execution = Cmd.send(new ExecutionCreateCmd(
-            scheduleId,
+            schedule.getTriggerId(),
+            Trigger.Type.SCHEDULE,
             schedule.getRefId(),
             schedule.getRefType(),
             task.triggerAt()

@@ -16,7 +16,7 @@
 
 package io.fluxion.server.start.api.trigger.request;
 
-import io.fluxion.server.core.trigger.config.Trigger;
+import io.fluxion.server.core.trigger.config.TriggerConfig;
 import io.fluxion.server.core.trigger.TriggerRefType;
 import lombok.Data;
 
@@ -31,7 +31,7 @@ public class TriggerCreateRequest {
     /**
      * 触发方式
      *
-     * @see Trigger.Type
+     * @see TriggerConfig.Type
      */
     @NotBlank
     private String type;

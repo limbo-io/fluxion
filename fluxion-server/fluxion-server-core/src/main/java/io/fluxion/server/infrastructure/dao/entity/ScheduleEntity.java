@@ -59,7 +59,7 @@ public class ScheduleEntity extends BaseEntity {
     /**
      * 分配的节点
      */
-    private String brokerAddress;
+    private String brokerId;
 
     /**
      * 计划作业调度方式

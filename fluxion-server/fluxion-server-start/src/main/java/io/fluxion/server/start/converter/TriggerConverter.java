@@ -17,7 +17,7 @@
 package io.fluxion.server.start.converter;
 
 import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.server.core.trigger.config.TriggerConfig;
+import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
 import io.fluxion.server.start.api.trigger.view.TriggerView;
 import org.apache.commons.collections4.CollectionUtils;
@@ -45,7 +45,7 @@ public class TriggerConverter {
         triggerView.setRefId(entity.getRefId());
         triggerView.setRefType(entity.getRefType());
         triggerView.setDescription(entity.getDescription());
-        triggerView.setConfig(JacksonUtils.toType(entity.getConfig(), TriggerConfig.class));
+        triggerView.setConfig(JacksonUtils.toType(entity.getConfig(), Trigger.class));
         triggerView.setEnabled(entity.isEnabled());
         return triggerView;
     }

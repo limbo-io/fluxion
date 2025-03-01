@@ -16,7 +16,8 @@
 
 package io.fluxion.server.core.trigger.cmd;
 
-import io.fluxion.server.core.trigger.config.Trigger;
+import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.config.TriggerConfig;
 import io.fluxion.server.core.trigger.TriggerRefType;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;

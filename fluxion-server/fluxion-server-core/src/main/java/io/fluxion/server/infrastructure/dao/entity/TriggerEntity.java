@@ -18,7 +18,7 @@ package io.fluxion.server.infrastructure.dao.entity;
 
 import io.fluxion.server.core.trigger.TriggerRefType;
 import io.fluxion.server.infrastructure.dao.TableConstants;
-import io.fluxion.server.core.trigger.config.Trigger;
+import io.fluxion.server.core.trigger.config.TriggerConfig;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
@@ -47,7 +47,7 @@ public class TriggerEntity extends BaseEntity {
 
     /**
      * 触发方式
-     * @see Trigger.Type
+     * @see TriggerConfig.Type
      */
     private String type;
 

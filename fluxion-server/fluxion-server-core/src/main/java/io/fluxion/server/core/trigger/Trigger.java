@@ -14,36 +14,26 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.trigger.config;
+package io.fluxion.server.core.trigger;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
-import io.fluxion.common.utils.json.JacksonTypeIdResolver;
-import io.fluxion.server.infrastructure.validata.ValidatableConfig;
+import io.fluxion.server.core.trigger.config.TriggerConfig;
 import lombok.Data;
 
 /**
- * 触发某个对象执行，创建Execution
+ * Trigger 配置态
  *
  * @author Devil
  */
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.CLASS,
-    include = JsonTypeInfo.As.EXISTING_PROPERTY,
-    property = "type",
-    visible = true
-)
-@JsonTypeIdResolver(JacksonTypeIdResolver.class)
 @Data
-public abstract class Trigger implements ValidatableConfig {
-    /**
-     * 触发方式
-     * @see Type
-     */
-    private String type;
+public class Trigger {
+
+    private String id;
+
+    private TriggerConfig config;
 
     public interface Type {
         String SCHEDULE = "schedule";
+        String DELAY = "delay";
         String WEBHOOK = "webhook"; // event ?? todo @d later
     }
 

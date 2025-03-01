@@ -30,7 +30,7 @@ public class TaskDispatchRequest implements Request<Response<Boolean>> {
 
     private String taskId;
 
-    private String brokerId;
+    private String brokerAddress;
 
     /**
      * 执行方式
@@ -67,11 +67,11 @@ public class TaskDispatchRequest implements Request<Response<Boolean>> {
         this.executorName = executorName;
     }
 
-    public String getBrokerId() {
-        return brokerId;
+    public String getBrokerAddress() {
+        return brokerAddress;
     }
 
-    public void setBrokerId(String brokerId) {
-        this.brokerId = brokerId;
+    public void setBrokerAddress(String brokerAddress) {
+        this.brokerAddress = brokerAddress;
     }
 }

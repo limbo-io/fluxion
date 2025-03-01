@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.app.service;
 
-import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.broker.BrokerPingRequest;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.server.core.app.App;
@@ -56,7 +55,7 @@ public class AppCommandService {
 
     private static final int ELECT_RETRY_TIMES = 5;
 
-    private static final String ELECT_LOCK = "app_broker_elect_%s";
+    private static final String ELECT_LOCK = "%s_app_broker_elect";
 
     @Resource
     private AppEntityRepo appEntityRepo;

@@ -40,11 +40,11 @@ import java.util.concurrent.TimeUnit;
  * @author Devil
  */
 @Slf4j
-public class ScheduleLoadTask extends CoreTask {
+public class ScheduleLoadTaskBak extends CoreTask {
 
     private LocalDateTime loadTimePoint = LocalDateTimeUtils.parse("2000-01-01 00:00:00", Formatters.YMD_HMS);
 
-    public ScheduleLoadTask(int interval, TimeUnit unit) {
+    public ScheduleLoadTaskBak(int interval, TimeUnit unit) {
         super(interval, unit);
     }
 

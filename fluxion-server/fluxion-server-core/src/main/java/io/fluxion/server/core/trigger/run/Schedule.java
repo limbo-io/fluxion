@@ -31,6 +31,8 @@ public class Schedule {
 
     private String id;
 
+    private String triggerId;
+
     /**
      * 调度关联数据
      */
@@ -50,7 +52,7 @@ public class Schedule {
     /**
      * 分配的节点
      */
-    private String brokerAddress;
+    private String brokerId;
 
     private ScheduleType scheduleType;
 

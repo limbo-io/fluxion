@@ -17,13 +17,13 @@
 package io.fluxion.server.core.trigger.event;
 
 import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.TriggerHelper;
+import io.fluxion.server.core.trigger.cmd.TriggerEnableCmd;
+import io.fluxion.server.core.trigger.config.TriggerConfig;
 import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.TriggerEntityRepo;
-import io.fluxion.server.core.trigger.config.Trigger;
-import io.fluxion.server.core.trigger.config.TriggerConfig;
-import io.fluxion.server.core.trigger.cmd.TriggerEnableCmd;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
 import org.axonframework.eventhandling.EventHandler;
@@ -53,7 +53,7 @@ public class TriggerEnableListener {
         );
 
         TriggerConfig config = JacksonUtils.toType(triggerEntity.getConfig(), TriggerConfig.class);
-        switch (config.getTrigger().getType()) {
+        switch (config.getType()) {
             case Trigger.Type.SCHEDULE:
                 scheduleEntityRepo.updateEnable(TriggerHelper.scheduleId(triggerEntity.getTriggerId()), true);
                 break;

@@ -16,31 +16,31 @@
 
 package io.fluxion.server.core.trigger.config;
 
-import io.fluxion.server.core.flow.FlowConstants;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
+import io.fluxion.common.utils.json.JacksonTypeIdResolver;
+import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.infrastructure.validata.ValidatableConfig;
-import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import lombok.Data;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 /**
- * Trigger 配置态
+ * 触发某个对象执行，创建Execution
  *
  * @author Devil
  */
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.CLASS,
+    include = JsonTypeInfo.As.EXISTING_PROPERTY,
+    property = "type",
+    visible = true
+)
+@JsonTypeIdResolver(JacksonTypeIdResolver.class)
 @Data
-public class TriggerConfig implements ValidatableConfig {
-
-    private Trigger trigger;
-
-    @Override
-    public List<ValidateSuppressInfo> validate() {
-        if (trigger == null) {
-            return Collections.singletonList(new ValidateSuppressInfo(FlowConstants.TRIGGER_IS_EMPTY));
-        }
-        return new ArrayList<>(trigger.validate());
-    }
+public abstract class TriggerConfig implements ValidatableConfig {
+    /**
+     * 触发方式
+     * @see Trigger.Type
+     */
+    private String type;
 
 }

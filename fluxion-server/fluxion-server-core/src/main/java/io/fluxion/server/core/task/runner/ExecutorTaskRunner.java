@@ -75,7 +75,7 @@ public class ExecutorTaskRunner extends TaskRunner {
         // 远程调用处理任务
         TaskDispatchRequest request = new TaskDispatchRequest();
         request.setTaskId(task.getTaskId());
-        request.setBrokerId(BrokerContext.broker().id());
+        request.setBrokerAddress(BrokerContext.broker().id());
         request.setExecutorName(executorTask.getExecutorName());
         request.setExecuteType(executorTask.getExecuteType().type);
         // call

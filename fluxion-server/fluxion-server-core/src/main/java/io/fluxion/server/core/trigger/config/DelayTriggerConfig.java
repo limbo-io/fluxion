@@ -14,28 +14,17 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.broker.task;
+package io.fluxion.server.core.trigger.config;
 
-import java.util.concurrent.TimeUnit;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import io.fluxion.server.core.trigger.Trigger;
 
 /**
- * 数据清理
- *
- * todo @d later
- *
- * 1. delay_task
+ * 触发后延迟一定时间后执行后续流程
  *
  * @author Devil
- * @date 2025/1/9
  */
-public class DataCleaner extends CoreTask {
+@JsonTypeName(Trigger.Type.DELAY)
+public class DelayTriggerConfig extends TriggerConfig {
 
-    public DataCleaner(int interval, TimeUnit unit) {
-        super(interval, unit);
-    }
-
-    @Override
-    public void run() {
-
-    }
 }

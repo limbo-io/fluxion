@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.broker.task;
 
-import io.fluxion.server.core.broker.BrokerManger;
 import io.fluxion.server.core.trigger.cmd.ScheduleBrokerElectCmd;
 import io.fluxion.server.core.trigger.query.ScheduleNotOwnerQuery;
 import io.fluxion.server.core.trigger.run.Schedule;
@@ -29,7 +28,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 对broker无效的，重新进行数据绑定
+ * Schedule对应的broker无效的，重新进行数据绑定
  *
  * @author Devil
  * @date 2025/1/9

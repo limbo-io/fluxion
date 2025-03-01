@@ -35,7 +35,9 @@ import java.time.LocalDateTime;
 @Builder
 public class ExecutionCreateCmd implements ICmd<ExecutionCreateCmd.Response> {
 
-    private String scheduleId;
+    private String triggerId;
+
+    private String triggerType;
 
     private String refId;
 

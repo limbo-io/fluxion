@@ -51,8 +51,6 @@ public interface ScheduleEntityRepo extends JpaRepository<ScheduleEntity, String
 
     Page<ScheduleEntity> findByBrokerIdNotInAndDeletedAndEnabledContaining(Collection<String> brokerIds, boolean deleted, boolean enabled, Pageable pageable);
 
-    Page<ScheduleEntity> findByBrokerIdAndDeletedContaining(String brokerId, boolean deleted, Pageable pageable);
-
     ScheduleEntity findByScheduleIdAndDeleted(@Param("scheduleId") String scheduleId, @Param("deleted") boolean deleted);
 
 }

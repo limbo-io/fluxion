@@ -16,12 +16,12 @@
 
 package io.fluxion.server.core.trigger.event;
 
+import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.TriggerHelper;
 import io.fluxion.server.core.trigger.TriggerRefType;
 import io.fluxion.server.core.trigger.cmd.ScheduleSaveCmd;
 import io.fluxion.server.core.trigger.cmd.TriggerPublishCmd;
-import io.fluxion.server.core.trigger.config.ScheduleTrigger;
-import io.fluxion.server.core.trigger.config.Trigger;
+import io.fluxion.server.core.trigger.config.ScheduleTriggerConfig;
 import io.fluxion.server.core.trigger.config.TriggerConfig;
 import io.fluxion.server.core.trigger.query.ScheduleByIdQuery;
 import io.fluxion.server.core.trigger.run.Schedule;
@@ -61,9 +61,9 @@ public class TriggerPublishListener {
             PlatformException.supplier(ErrorCode.PARAM_ERROR, "can't find trigger by id:" + event.getId())
         );
 
-        switch (config.getTrigger().getType()) {
+        switch (config.getType()) {
             case Trigger.Type.SCHEDULE:
-                handleSchedule(triggerEntity, (ScheduleTrigger) config.getTrigger());
+                handleSchedule(triggerEntity, (ScheduleTriggerConfig) config);
                 break;
         }
 
@@ -73,7 +73,7 @@ public class TriggerPublishListener {
      * 更新触发器对应的 调度任务
      * 目前一个 trigger 对应 一个 ScheduleTask
      */
-    private void handleSchedule(TriggerEntity triggerEntity, ScheduleTrigger scheduleTrigger) {
+    private void handleSchedule(TriggerEntity triggerEntity, ScheduleTriggerConfig scheduleTrigger) {
         ScheduleOption scheduleOption = scheduleTrigger.getScheduleOption();
         String scheduleId = TriggerHelper.scheduleId(triggerEntity.getTriggerId());
 

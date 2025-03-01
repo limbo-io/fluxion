@@ -53,8 +53,6 @@ import java.util.stream.Collectors;
  */
 public class WorkerContext {
 
-    private static final Logger log = LoggerFactory.getLogger(WorkerContext.class);
-
     private String appId;
 
     private String appName;
@@ -123,7 +121,6 @@ public class WorkerContext {
         this.client = RetryableClient.builder()
             .client(ClientFactory.create(protocol))
             .build();
-        ;
         this.status = new AtomicReference<>();
         this.address = host + ":" + port;
     }
@@ -152,7 +149,14 @@ public class WorkerContext {
         taskStatusReportExecutor.shutdown();
     }
 
-    public boolean changeStatus(WorkerStatus expect, WorkerStatus update) {
+    /**
+     * 状态更新
+     *
+     * @param expect 预期值（旧值）
+     * @param update 更新值（新值）
+     * @return 是否成功
+     */
+    public boolean status(WorkerStatus expect, WorkerStatus update) {
         return status.compareAndSet(expect, update);
     }
 
@@ -210,10 +214,6 @@ public class WorkerContext {
 
     public <R> R call(String path, Request<Response<R>> request) {
         return client.call(path, broker.host(), broker.port(), request);
-    }
-
-    public Node broker() {
-        return broker;
     }
 
     public void broker(Node broker) {

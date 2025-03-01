@@ -16,11 +16,15 @@
 
 package io.fluxion.server.core.trigger.config;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import io.fluxion.server.core.trigger.Trigger;
+
 /**
- * 触发后延迟一定时间后执行后续流程
+ * Http 回调触发
  *
  * @author Devil
  */
-public class DelayTrigger extends Trigger {
+@JsonTypeName(Trigger.Type.WEBHOOK)
+public class WebhookTriggerConfig extends TriggerConfig {
 
 }

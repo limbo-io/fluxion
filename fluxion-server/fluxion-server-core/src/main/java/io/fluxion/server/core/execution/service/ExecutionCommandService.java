@@ -24,6 +24,7 @@ import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
+import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.TriggerHelper;
 import io.fluxion.server.core.trigger.cmd.ScheduleRefreshLastFeedbackCmd;
 import io.fluxion.server.core.trigger.query.ScheduleByIdQuery;
@@ -73,7 +74,8 @@ public class ExecutionCommandService {
         if (entity == null) {
             entity = new ExecutionEntity();
             entity.setExecutionId(Cmd.send(new IDGenerateCmd(IDType.EXECUTION)).getId());
-            entity.setScheduleId(cmd.getScheduleId());
+            entity.setTriggerId(cmd.getTriggerId());
+            entity.setTriggerType(cmd.getTriggerType());
             entity.setRefId(cmd.getRefId());
             entity.setRefType(cmd.getRefType().value);
             entity.setTriggerAt(cmd.getTriggerAt());
@@ -120,7 +122,10 @@ public class ExecutionCommandService {
 
     private void afterFinsh(String executionId, LocalDateTime feedbackTime) {
         ExecutionEntity entity = executionEntityRepo.findById(executionId).get();
-        Schedule schedule = Query.query(new ScheduleByIdQuery(entity.getScheduleId())).getSchedule();
+        if (!Trigger.Type.SCHEDULE.equals(entity.getTriggerType())) {
+            return;
+        }
+        Schedule schedule = Query.query(new ScheduleByIdQuery(TriggerHelper.scheduleId(entity.getTriggerId()))).getSchedule();
         if (ScheduleType.FIXED_DELAY != schedule.getScheduleType()) {
             return;
         }

@@ -43,6 +43,8 @@ import javax.persistence.LockModeType;
 @Service
 public class ScheduleCommandService {
 
+    private static final String ELECT_LOCK = "%s_schedule_elect";
+
     @Resource
     private ScheduleEntityRepo scheduleEntityRepo;
 
@@ -66,7 +68,7 @@ public class ScheduleCommandService {
     @CommandHandler
     public void handle(ScheduleBrokerElectCmd cmd) {
         String scheduleId = cmd.getScheduleId();
-        String lock = "schedule_elect_" + scheduleId;
+        String lock = String.format(ELECT_LOCK, scheduleId);
         try {
             if (!distributedLock.lock(lock, 3)) {
                 return;

@@ -18,6 +18,7 @@ package io.fluxion.server.core.trigger.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.fluxion.server.core.flow.FlowConstants;
+import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
@@ -37,7 +38,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @JsonTypeName(Trigger.Type.SCHEDULE)
-public class ScheduleTrigger extends Trigger {
+public class ScheduleTriggerConfig extends TriggerConfig {
 
     /**
      * 调度信息配置
