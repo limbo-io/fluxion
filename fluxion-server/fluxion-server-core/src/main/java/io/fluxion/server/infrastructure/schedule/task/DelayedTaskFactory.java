@@ -27,10 +27,10 @@ import java.util.function.Consumer;
  */
 public class DelayedTaskFactory {
 
-    public static DelayedTask create(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+    public static DelayedTask create(String id, LocalDateTime lastFeedbackAt,
                                      ScheduleOption scheduleOption, Consumer<DelayedTask> consumer) {
         BasicCalculation calculation = new BasicCalculation(
-            lastTriggerAt, lastFeedbackAt, scheduleOption
+            null, lastFeedbackAt, scheduleOption
         );
         return new DelayedTask(id, calculation.triggerAt(), consumer);
     }

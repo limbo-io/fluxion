@@ -16,7 +16,11 @@
 
 package io.fluxion.server.start.api.trigger.request;
 
+import io.fluxion.server.core.execution.ExecutionRefType;
+import io.fluxion.server.core.trigger.Trigger;
 import lombok.Data;
+
+import javax.validation.constraints.NotBlank;
 
 /**
  * @author Devil
@@ -25,6 +29,27 @@ import lombok.Data;
 public class TriggerUpdateRequest {
 
     private String id;
+
+    /**
+     * 触发方式
+     *
+     * @see Trigger.Type
+     */
+    @NotBlank
+    private String type;
+
+    /**
+     * 关联类型
+     *
+     * @see ExecutionRefType
+     */
+    @NotBlank
+    private String refType;
+
+    @NotBlank
+    private String refId;
+
+    private Trigger.Config config;
 
     private String description;
 

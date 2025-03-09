@@ -55,7 +55,7 @@ public class FixRateScheduleCalculator implements ScheduleCalculator {
         if (calculable.lastTriggerAt() == null) {
             Instant nowInstant = TimeUtils.currentInstant();
             long startScheduleAt = calculateStartScheduleTimestamp(calculable.scheduleOption());
-            return Math.max(startScheduleAt, nowInstant.getEpochSecond());
+            return Math.max(startScheduleAt, nowInstant.toEpochMilli());
         }
 
         long now = TimeUtils.currentInstant().toEpochMilli();

@@ -25,6 +25,6 @@ import io.fluxion.server.core.trigger.Trigger;
  * @author Devil
  */
 @JsonTypeName(Trigger.Type.WEBHOOK)
-public class WebhookTriggerConfig extends TriggerConfig {
+public class WebhookTriggerConfig extends Trigger.Config {
 
 }

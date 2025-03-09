@@ -17,7 +17,7 @@
 package io.fluxion.worker.spring.starter.properties;
 
 import io.fluxion.remote.core.constants.Protocol;
-import io.fluxion.remote.core.constants.WorkerConstant;
+import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.net.URL;
@@ -66,7 +66,7 @@ public class WorkerProperties {
     /**
      * Worker 向 Broker 发送心跳请求的间隔
      */
-    private Duration heartbeat = Duration.ofSeconds(WorkerConstant.HEARTBEAT_TIMEOUT_SECOND);
+    private Duration heartbeat = Duration.ofSeconds(WorkerRemoteConstant.HEARTBEAT_TIMEOUT_SECOND);
 
     /**
      * 任务执行并发数量。worker 将允许同时执行的任务个数，同时执行的任务数量超出此限制后，后续接收的任务将放入积压队列中。默认为系统 CPU 核数。

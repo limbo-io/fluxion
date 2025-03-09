@@ -16,12 +16,13 @@
 
 package io.fluxion.server.core.broker.task;
 
-import io.fluxion.server.core.trigger.cmd.ScheduleBrokerElectCmd;
-import io.fluxion.server.core.trigger.query.ScheduleNotOwnerQuery;
-import io.fluxion.server.core.trigger.run.Schedule;
+import io.fluxion.server.core.schedule.Schedule;
+import io.fluxion.server.core.schedule.cmd.ScheduleBrokerElectCmd;
+import io.fluxion.server.core.schedule.query.ScheduleNotOwnerQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.lock.DistributedLock;
+import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.List;
@@ -59,8 +60,13 @@ public class ScheduleCheckTask extends CoreTask {
                 return;
             }
             for (Schedule schedule : schedules) {
-                Cmd.send(new ScheduleBrokerElectCmd(schedule.getId()));
+                Cmd.send(new ScheduleBrokerElectCmd(schedule));
             }
         }
+    }
+
+    @Override
+    public ScheduleType scheduleType() {
+        return ScheduleType.FIXED_DELAY;
     }
 }

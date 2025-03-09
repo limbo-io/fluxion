@@ -14,18 +14,14 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.trigger.query;
+package io.fluxion.server.core.schedule.cmd;
 
-import io.fluxion.server.core.trigger.run.Schedule;
-import io.fluxion.server.infrastructure.cqrs.IQuery;
+import io.fluxion.server.core.schedule.Schedule;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * @author Devil
@@ -34,17 +30,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ScheduleUpdatedQuery implements IQuery<ScheduleUpdatedQuery.Response> {
+public class ScheduleTriggerCmd implements ICmd<Void> {
 
-    private String brokerId;
-
-    private LocalDateTime updatedAt;
-
-    @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Response {
-        private List<Schedule> schedules = Collections.emptyList();
-    }
+    private Schedule schedule;
 
 }

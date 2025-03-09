@@ -17,7 +17,7 @@
 package io.fluxion.server.core.task.runner;
 
 import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
-import io.fluxion.remote.core.constants.WorkerConstant;
+import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.executor.option.DispatchOption;
 import io.fluxion.server.core.task.ExecutorTask;
@@ -80,7 +80,7 @@ public class ExecutorTaskRunner extends TaskRunner {
         request.setExecuteType(executorTask.getExecuteType().type);
         // call
         BrokerContext.broker().client().call(
-            WorkerConstant.API_TASK_DISPATCH, worker.getHost(), worker.getPort(), request
+            WorkerRemoteConstant.API_TASK_DISPATCH, worker.getHost(), worker.getPort(), request
         );
     }
 

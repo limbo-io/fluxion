@@ -38,7 +38,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @JsonTypeName(Trigger.Type.SCHEDULE)
-public class ScheduleTriggerConfig extends TriggerConfig {
+public class ScheduleTriggerConfig extends Trigger.Config {
 
     /**
      * 调度信息配置

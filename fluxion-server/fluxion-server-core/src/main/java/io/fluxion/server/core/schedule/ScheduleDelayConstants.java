@@ -14,34 +14,10 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.broker.task;
-
-import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import lombok.Getter;
-
-import java.util.concurrent.TimeUnit;
+package io.fluxion.server.core.schedule;
 
 /**
  * @author Devil
  */
-@Getter
-public abstract class CoreTask implements Runnable {
-
-    /**
-     * 间隔
-     */
-    protected final int interval;
-
-    /**
-     * 单位
-     */
-    protected final TimeUnit unit;
-
-    public CoreTask(int interval, TimeUnit unit) {
-        this.interval = interval;
-        this.unit = unit;
-    }
-
-    public abstract ScheduleType scheduleType();
-
+public interface ScheduleDelayConstants {
 }

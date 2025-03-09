@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,26 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.start.api.trigger.request;
+package io.fluxion.server.core.schedule.cmd;
 
-import io.fluxion.server.core.trigger.config.TriggerConfig;
-import lombok.Data;
+import io.fluxion.server.core.schedule.Schedule;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
+ * 重新分配某个schedule
+ *
  * @author Devil
  */
-@Data
-public class TriggerConfigRequest {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ScheduleBrokerElectCmd implements ICmd<Void> {
 
-    private String id;
-
-    private TriggerConfig config;
+    private Schedule schedule;
 
 }

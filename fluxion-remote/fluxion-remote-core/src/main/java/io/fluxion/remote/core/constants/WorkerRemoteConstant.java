@@ -22,9 +22,15 @@ package io.fluxion.remote.core.constants;
  * @author Devil
  * @since 2023/8/16
  */
-public interface TaskConstant {
+public interface WorkerRemoteConstant {
     /**
-     * 任务上报间隔 秒
+     * worker 心跳间隔
      */
-    int TASK_REPORT_SECONDS = 60;
+    int HEARTBEAT_TIMEOUT_SECOND = 3;
+
+    // ========== API ==========
+    String API_TASK_DISPATCH = "/api/v1/task/dispatch";
+
+    String API_SUB_TASK_DISPATCH = "/api/v1/sub_task/dispatch";
+    // ========== API ==========
 }

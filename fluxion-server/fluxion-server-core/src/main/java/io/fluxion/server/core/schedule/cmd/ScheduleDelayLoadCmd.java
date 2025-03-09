@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.trigger.query;
+package io.fluxion.server.core.schedule.cmd;
 
-import io.fluxion.server.core.trigger.run.Schedule;
-import io.fluxion.server.infrastructure.cqrs.IQuery;
+import io.fluxion.server.core.schedule.ScheduleDelay;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,14 +30,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ScheduleByIdQuery implements IQuery<ScheduleByIdQuery.Response> {
+public class ScheduleDelayLoadCmd implements ICmd<Void> {
 
-    private String id;
-
-    @Getter
-    @AllArgsConstructor
-    public static class Response {
-        private Schedule schedule;
-    }
+    private ScheduleDelay delay;
 
 }

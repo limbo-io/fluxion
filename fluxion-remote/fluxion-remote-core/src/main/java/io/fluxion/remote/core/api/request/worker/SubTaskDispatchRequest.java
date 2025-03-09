@@ -36,7 +36,7 @@ public class SubTaskDispatchRequest implements Request<Response<Boolean>> {
      * 执行方式
      * @see ExecuteType
      */
-    private Integer executeType;
+    private String executeType;
 
     /**
      * 执行器的名称
@@ -51,11 +51,11 @@ public class SubTaskDispatchRequest implements Request<Response<Boolean>> {
         this.taskId = taskId;
     }
 
-    public Integer getExecuteType() {
+    public String getExecuteType() {
         return executeType;
     }
 
-    public void setExecuteType(Integer executeType) {
+    public void setExecuteType(String executeType) {
         this.executeType = executeType;
     }
 

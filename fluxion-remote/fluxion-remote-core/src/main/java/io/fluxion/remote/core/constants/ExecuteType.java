@@ -21,49 +21,39 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import io.fluxion.common.constants.CommonConstants;
 
 /**
- *
  * @author Brozen
  * @since 2021-05-19
  */
 public enum ExecuteType {
 
-    UNKNOWN(CommonConstants.UNKNOWN),
+    UNKNOWN(CommonConstants.UNKNOWN_STR),
     /**
      * 单机任务
      * 给一个节点下发的任务
      */
-    STANDALONE(1),
+    STANDALONE("standalone"),
     /**
      * 广播任务
      * 给每个可选中节点下发任务
      */
-    BROADCAST(2),
+    BROADCAST("broadcast"),
     /**
      * Map任务
      * 并行任务 拆分任务->处理分片
      */
-    MAP(3),
+    MAP("map"),
     /**
      * MapReduce任务
      * 拆分任务->处理分片->最终处理
      */
-    MAP_REDUCE(4),
+    MAP_REDUCE("map_reduce"),
     ;
 
     @JsonValue
-    public final int type;
+    public final String type;
 
-    ExecuteType(int type) {
+    ExecuteType(String type) {
         this.type = type;
-    }
-
-    /**
-     * 校验是否是当前状态
-     *
-     * @param type 待校验值
-     */
-    public boolean is(ExecuteType type) {
-        return equals(type);
     }
 
     /**
@@ -71,15 +61,15 @@ public enum ExecuteType {
      *
      * @param type 待校验状态值
      */
-    public boolean is(Number type) {
-        return type != null && type.intValue() == this.type;
+    public boolean is(String type) {
+        return this.type.equals(type);
     }
 
     /**
      * 解析上下文状态值
      */
     @JsonCreator
-    public static ExecuteType parse(Number type) {
+    public static ExecuteType parse(String type) {
         for (ExecuteType t : values()) {
             if (t.is(type)) {
                 return t;

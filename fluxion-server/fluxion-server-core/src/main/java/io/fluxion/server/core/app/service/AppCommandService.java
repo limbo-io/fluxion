@@ -44,7 +44,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static io.fluxion.remote.core.constants.BrokerConstant.API_BROKER_PING;
+import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_BROKER_PING;
 
 /**
  * @author Devil

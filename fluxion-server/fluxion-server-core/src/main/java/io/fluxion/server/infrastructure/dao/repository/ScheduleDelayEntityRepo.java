@@ -16,21 +16,13 @@
 
 package io.fluxion.server.infrastructure.dao.repository;
 
-import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
+import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
  * @author Devil
  */
 @Repository
-public interface TriggerEntityRepo extends JpaRepository<TriggerEntity, String>, JpaSpecificationExecutor<TriggerEntity> {
-
-    @Modifying(clearAutomatically = true)
-    @Query(value = "update TriggerEntity set enabled = :enabled where triggerId = :triggerId")
-    int updateEnable(@Param("triggerId") String triggerId, @Param("enabled") boolean enabled);
+public interface ScheduleDelayEntityRepo extends JpaRepository<ScheduleDelayEntity, ScheduleDelayEntity.ID> {
 }

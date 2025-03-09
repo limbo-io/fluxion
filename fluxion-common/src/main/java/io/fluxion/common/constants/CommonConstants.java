@@ -21,4 +21,5 @@ package io.fluxion.common.constants;
  */
 public interface CommonConstants {
     int UNKNOWN = -1;
+    String UNKNOWN_STR = "unknown";
 }

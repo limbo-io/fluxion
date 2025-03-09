@@ -16,15 +16,12 @@
 
 package io.fluxion.server.core.trigger.query;
 
-import io.fluxion.server.core.trigger.run.Schedule;
+import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.infrastructure.cqrs.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.util.Collections;
-import java.util.List;
 
 /**
  * @author Devil
@@ -33,15 +30,14 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ScheduleNotOwnerQuery implements IQuery<ScheduleNotOwnerQuery.Response> {
+public class TriggerByIdQuery implements IQuery<TriggerByIdQuery.Response> {
 
-    private int limit;
+    private String id;
 
     @Getter
-    @NoArgsConstructor
     @AllArgsConstructor
     public static class Response {
-        private List<Schedule> schedules = Collections.emptyList();
+        private Trigger trigger;
     }
 
 }

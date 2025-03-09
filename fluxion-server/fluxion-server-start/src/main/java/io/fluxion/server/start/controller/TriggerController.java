@@ -16,29 +16,26 @@
 
 package io.fluxion.server.start.controller;
 
-import io.fluxion.common.utils.ValidatorUtils;
 import io.fluxion.remote.core.api.PageResponse;
-import io.fluxion.server.core.trigger.TriggerRefType;
-import io.fluxion.server.core.trigger.cmd.*;
+import io.fluxion.server.core.execution.ExecutionRefType;
+import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.cmd.TriggerCreateCmd;
+import io.fluxion.server.core.trigger.cmd.TriggerDeleteCmd;
+import io.fluxion.server.core.trigger.cmd.TriggerDisableCmd;
+import io.fluxion.server.core.trigger.cmd.TriggerEnableCmd;
+import io.fluxion.server.core.trigger.cmd.TriggerUpdateCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
-import io.fluxion.server.infrastructure.exception.PlatformException;
-import io.fluxion.server.start.api.trigger.request.TriggerConfigRequest;
 import io.fluxion.server.start.api.trigger.request.TriggerCreateRequest;
 import io.fluxion.server.start.api.trigger.request.TriggerPageRequest;
 import io.fluxion.server.start.api.trigger.request.TriggerUpdateRequest;
 import io.fluxion.server.start.api.trigger.view.TriggerView;
 import io.fluxion.server.start.service.TriggerService;
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
-import javax.validation.ConstraintViolation;
-import java.util.Set;
-
-import static io.fluxion.server.infrastructure.exception.ErrorCode.PARAM_ERROR;
 
 
 /**
@@ -52,35 +49,24 @@ public class TriggerController {
 
     @RequestMapping("/api/v1/trigger/create")
     public String create(@RequestBody TriggerCreateRequest request) {
-        Set<ConstraintViolation<TriggerCreateRequest>> validate = ValidatorUtils.validate(request);
-        if (CollectionUtils.isNotEmpty(validate)) {
-            throw new PlatformException(PARAM_ERROR, validate.stream().findFirst().get().getMessage());
-        }
-        TriggerCreateCmd cmd = new TriggerCreateCmd(
-            request.getType(),
-            TriggerRefType.parse(request.getRefType()), request.getRefId(),
-            request.getDescription()
-        );
-        TriggerCreateCmd.Response response = Cmd.send(cmd);
+        Trigger trigger = new Trigger();
+        trigger.setConfig(request.getConfig());
+        trigger.setDescription(request.getDescription());
+        trigger.setRefId(request.getRefId());
+        trigger.setRefType(ExecutionRefType.parse(request.getRefType()));
+        TriggerCreateCmd.Response response = Cmd.send(new TriggerCreateCmd(trigger));
         return response.getId();
     }
 
     @RequestMapping("/api/v1/trigger/update")
     public void update(@RequestBody TriggerUpdateRequest request) {
-        TriggerUpdateCmd cmd = new TriggerUpdateCmd(
-            request.getId(),
-            request.getDescription()
-        );
-        Cmd.send(cmd);
-    }
-
-    @RequestMapping("/api/v1/trigger/publish")
-    public void publish(@RequestBody TriggerConfigRequest request) {
-        TriggerPublishCmd cmd = new TriggerPublishCmd(
-            request.getId(),
-            request.getConfig()
-        );
-        Cmd.send(cmd);
+        Trigger trigger = new Trigger();
+        trigger.setId(request.getId());
+        trigger.setConfig(request.getConfig());
+        trigger.setDescription(request.getDescription());
+        trigger.setRefId(request.getRefId());
+        trigger.setRefType(ExecutionRefType.parse(request.getRefType()));
+        Cmd.send(new TriggerUpdateCmd(trigger));
     }
 
     @RequestMapping("/api/v1/trigger/enable")

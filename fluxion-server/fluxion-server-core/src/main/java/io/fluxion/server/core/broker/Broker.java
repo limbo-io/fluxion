@@ -27,10 +27,9 @@ import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.task.CoreTask;
 import io.fluxion.server.core.broker.task.DataCleaner;
 import io.fluxion.server.core.broker.task.ScheduleCheckTask;
-import io.fluxion.server.core.broker.task.ScheduleLoadTaskBak;
+import io.fluxion.server.core.broker.task.ScheduleLoadTask;
 import io.fluxion.server.infrastructure.lock.DistributedLock;
 import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
-import io.fluxion.server.infrastructure.schedule.schedule.ScheduledTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.TimingWheelTimer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -60,8 +59,6 @@ public class Broker {
 
     private final List<CoreTask> coreTasks;
 
-    private final ScheduledTaskScheduler scheduledTaskScheduler;
-
     private final DelayedTaskScheduler delayedTaskScheduler;
 
     public Broker(Protocol protocol, String host, int port, NodeRegistry<BrokerNode> registry,
@@ -74,7 +71,7 @@ public class Broker {
         this.manger = manger;
         this.client = ClientFactory.create(protocol);
         this.coreTasks = Lists.newArrayList(
-            new ScheduleLoadTaskBak(1, TimeUnit.SECONDS),
+            new ScheduleLoadTask(),
             new ScheduleCheckTask(10, TimeUnit.SECONDS, distributedLock),
             new DataCleaner(30, TimeUnit.DAYS)
         );
@@ -82,7 +79,6 @@ public class Broker {
             coreTasks.size(),
             NamedThreadFactory.newInstance("FluxionBrokerCoreExecutor")
         );
-        this.scheduledTaskScheduler = new ScheduledTaskScheduler(new TimingWheelTimer(100L, TimeUnit.MILLISECONDS));
         this.delayedTaskScheduler = new DelayedTaskScheduler(new TimingWheelTimer(100L, TimeUnit.MILLISECONDS));
     }
 
@@ -117,7 +113,14 @@ public class Broker {
 
         // 启动核心任务
         for (CoreTask coreTask : coreTasks) {
-            coreThreadPool.scheduleWithFixedDelay(coreTask, 0, coreTask.getInterval(), coreTask.getUnit());
+            switch (coreTask.scheduleType()) {
+                case FIXED_DELAY:
+                    coreThreadPool.scheduleWithFixedDelay(coreTask, 0, coreTask.getInterval(), coreTask.getUnit());
+                    break;
+                case FIXED_RATE:
+                    coreThreadPool.scheduleAtFixedRate(coreTask, 0, coreTask.getInterval(), coreTask.getUnit());
+                    break;
+            }
         }
 
         BrokerContext.initialize(this);
@@ -139,10 +142,6 @@ public class Broker {
 
     public Client client() {
         return client;
-    }
-
-    public ScheduledTaskScheduler scheduledTaskScheduler() {
-        return scheduledTaskScheduler;
     }
 
     public DelayedTaskScheduler delayedTaskScheduler() {

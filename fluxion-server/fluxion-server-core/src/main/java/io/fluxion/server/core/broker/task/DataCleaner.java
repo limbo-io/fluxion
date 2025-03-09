@@ -16,6 +16,8 @@
 
 package io.fluxion.server.core.broker.task;
 
+import io.fluxion.server.infrastructure.schedule.ScheduleType;
+
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -37,5 +39,10 @@ public class DataCleaner extends CoreTask {
     @Override
     public void run() {
 
+    }
+
+    @Override
+    public ScheduleType scheduleType() {
+        return ScheduleType.FIXED_DELAY;
     }
 }

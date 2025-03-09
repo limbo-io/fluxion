@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.trigger.converter;
+package io.fluxion.server.core.schedule.converter;
 
-import io.fluxion.server.core.trigger.TriggerRefType;
-import io.fluxion.server.core.trigger.run.Schedule;
+import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
@@ -44,11 +43,9 @@ public class ScheduleEntityConverter {
         if (schedule == null) {
             return null;
         }
-        ScheduleOption scheduleOption = schedule.getScheduleOption();
+        ScheduleOption scheduleOption = schedule.getOption();
         ScheduleEntity entity = new ScheduleEntity();
         entity.setScheduleId(schedule.getId());
-        entity.setRefId(schedule.getRefId());
-        entity.setRefType(schedule.getRefType().value);
         entity.setScheduleType(scheduleOption.getType().value);
         entity.setStartTime(scheduleOption.getStartTime());
         entity.setEndTime(scheduleOption.getEndTime());
@@ -56,8 +53,10 @@ public class ScheduleEntityConverter {
         entity.setInterval(scheduleOption.getInterval().getSeconds());
         entity.setCron(scheduleOption.getCron());
         entity.setCronType(scheduleOption.getCronType());
+        entity.setNextTriggerAt(schedule.getNextTriggerAt());
+        entity.setLastFeedbackAt(schedule.getLastFeedbackAt());
+        entity.setLastTriggerAt(schedule.getLastTriggerAt());
         entity.setEnabled(schedule.isEnabled());
-        entity.setVersion(schedule.getVersion());
         return entity;
     }
 
@@ -67,11 +66,7 @@ public class ScheduleEntityConverter {
         }
         Schedule schedule = new Schedule();
         schedule.setId(entity.getScheduleId());
-        schedule.setVersion(entity.getVersion());
-        schedule.setRefId(entity.getRefId());
-        schedule.setRefType(TriggerRefType.parse(entity.getRefType()));
-        schedule.setScheduleType(ScheduleType.parse(entity.getScheduleType()));
-        schedule.setScheduleOption(toOption(entity));
+        schedule.setOption(toOption(entity));
         schedule.setLastTriggerAt(entity.getLastTriggerAt());
         schedule.setLastFeedbackAt(entity.getLastFeedbackAt());
         schedule.setEnabled(entity.isEnabled());

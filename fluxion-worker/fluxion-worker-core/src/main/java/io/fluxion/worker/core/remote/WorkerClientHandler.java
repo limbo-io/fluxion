@@ -21,7 +21,7 @@ import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.worker.SubTaskDispatchRequest;
 import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
 import io.fluxion.remote.core.client.server.ClientHandler;
-import io.fluxion.remote.core.constants.WorkerConstant;
+import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.BroadcastExecutor;
 import io.fluxion.worker.core.executor.Executor;
@@ -52,14 +52,14 @@ public class WorkerClientHandler implements ClientHandler {
     public Response<?> process(String path, String data) {
         try {
             switch (path) {
-                case WorkerConstant.API_TASK_DISPATCH: {
+                case WorkerRemoteConstant.API_TASK_DISPATCH: {
                     TaskDispatchRequest request = JacksonUtils.toType(data, TaskDispatchRequest.class);
                     Task task = WorkerClientConverter.toTask(request);
                     TaskTracker tracker = createTaskTracker(task);
                     boolean success = tracker.start();
                     return Response.ok(success);
                 }
-                case WorkerConstant.API_SUB_TASK_DISPATCH: {
+                case WorkerRemoteConstant.API_SUB_TASK_DISPATCH: {
                     SubTaskDispatchRequest request = JacksonUtils.toType(data, SubTaskDispatchRequest.class);
                     Task task = WorkerClientConverter.toTask(request);
                     TaskTracker tracker = createSubTaskTracker(task);

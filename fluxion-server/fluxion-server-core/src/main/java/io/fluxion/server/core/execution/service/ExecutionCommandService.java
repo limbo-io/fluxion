@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.execution.service;
 
-import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.ExecutionStatus;
@@ -24,11 +23,10 @@ import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
+import io.fluxion.server.core.schedule.Schedule;
+import io.fluxion.server.core.schedule.cmd.ScheduleFeedbackCmd;
+import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
 import io.fluxion.server.core.trigger.Trigger;
-import io.fluxion.server.core.trigger.TriggerHelper;
-import io.fluxion.server.core.trigger.cmd.ScheduleRefreshLastFeedbackCmd;
-import io.fluxion.server.core.trigger.query.ScheduleByIdQuery;
-import io.fluxion.server.core.trigger.run.Schedule;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
@@ -37,9 +35,6 @@ import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
-import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
-import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
@@ -125,21 +120,8 @@ public class ExecutionCommandService {
         if (!Trigger.Type.SCHEDULE.equals(entity.getTriggerType())) {
             return;
         }
-        Schedule schedule = Query.query(new ScheduleByIdQuery(TriggerHelper.scheduleId(entity.getTriggerId()))).getSchedule();
-        if (ScheduleType.FIXED_DELAY != schedule.getScheduleType()) {
-            return;
-        }
-        // 更新反馈时间
-        Cmd.send(new ScheduleRefreshLastFeedbackCmd(
-            schedule.getId(), feedbackTime
-        ));
-        // FIXED_DELAY 类型的这个时候下发后续的
-        DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
-        delayedTaskScheduler.schedule(DelayedTaskFactory.create(
-            TriggerHelper.taskScheduleId(schedule),
-            schedule.getLastTriggerAt(), feedbackTime, schedule.getScheduleOption(),
-            delayedTask -> TriggerHelper.consumerTask(delayedTask, schedule.getId())
-        ));
+        Schedule schedule = Query.query(new ScheduleByIdQuery(entity.getTriggerId())).getSchedule();
+        Cmd.send(new ScheduleFeedbackCmd(schedule));
     }
 
 }

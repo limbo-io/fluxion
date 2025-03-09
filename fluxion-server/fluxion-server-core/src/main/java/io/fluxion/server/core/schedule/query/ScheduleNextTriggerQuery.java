@@ -14,34 +14,37 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.broker.task;
+package io.fluxion.server.core.schedule.query;
 
-import io.fluxion.server.infrastructure.schedule.ScheduleType;
+import io.fluxion.server.core.schedule.Schedule;
+import io.fluxion.server.infrastructure.cqrs.IQuery;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import java.util.concurrent.TimeUnit;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Devil
  */
 @Getter
-public abstract class CoreTask implements Runnable {
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ScheduleNextTriggerQuery implements IQuery<ScheduleNextTriggerQuery.Response> {
 
-    /**
-     * 间隔
-     */
-    protected final int interval;
+    private String brokerId;
 
-    /**
-     * 单位
-     */
-    protected final TimeUnit unit;
+    private int limit;
 
-    public CoreTask(int interval, TimeUnit unit) {
-        this.interval = interval;
-        this.unit = unit;
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Response {
+        private List<Schedule> schedules = Collections.emptyList();
     }
-
-    public abstract ScheduleType scheduleType();
 
 }

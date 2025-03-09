@@ -16,7 +16,6 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
-import io.fluxion.server.core.trigger.TriggerRefType;
 import io.fluxion.server.infrastructure.dao.TableConstants;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.Getter;
@@ -44,17 +43,6 @@ public class ScheduleEntity extends BaseEntity {
 
     @Id
     private String scheduleId;
-    /**
-     * 用来判断 调度配置是否有变化
-     */
-    private String version;
-
-    private String refId;
-
-    /**
-     * @see TriggerRefType
-     */
-    private int refType;
 
     /**
      * 分配的节点
@@ -109,6 +97,11 @@ public class ScheduleEntity extends BaseEntity {
     private LocalDateTime lastFeedbackAt;
 
     /**
+     * 下次触发时间
+     */
+    private LocalDateTime nextTriggerAt;
+
+    /**
      * 是否启动
      */
     @Column(name = "is_enabled")
@@ -118,5 +111,4 @@ public class ScheduleEntity extends BaseEntity {
     public Object getUid() {
         return scheduleId;
     }
-
 }

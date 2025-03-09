@@ -17,31 +17,29 @@
 package io.fluxion.server.core.broker.task;
 
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import lombok.Getter;
 
 import java.util.concurrent.TimeUnit;
 
 /**
  * @author Devil
  */
-@Getter
-public abstract class CoreTask implements Runnable {
+public class ScheduleDelayLoadTask extends CoreTask {
 
-    /**
-     * 间隔
-     */
-    protected final int interval;
+    public static final int LOAD_INTERVAL = 1;
 
-    /**
-     * 单位
-     */
-    protected final TimeUnit unit;
+    public static final TimeUnit LOAD_TIME_UNIT = TimeUnit.MINUTES;
 
-    public CoreTask(int interval, TimeUnit unit) {
-        this.interval = interval;
-        this.unit = unit;
+    public ScheduleDelayLoadTask() {
+        super(LOAD_INTERVAL, LOAD_TIME_UNIT);
     }
 
-    public abstract ScheduleType scheduleType();
+    @Override
+    public void run() {
 
+    }
+
+    @Override
+    public ScheduleType scheduleType() {
+        return ScheduleType.FIXED_DELAY;
+    }
 }

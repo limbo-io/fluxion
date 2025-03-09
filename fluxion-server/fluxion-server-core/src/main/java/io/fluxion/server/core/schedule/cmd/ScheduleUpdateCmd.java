@@ -14,34 +14,30 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.broker.task;
+package io.fluxion.server.core.schedule.cmd;
 
-import io.fluxion.server.infrastructure.schedule.ScheduleType;
+import io.fluxion.server.core.schedule.Schedule;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
-
-import java.util.concurrent.TimeUnit;
+import lombok.NoArgsConstructor;
 
 /**
  * @author Devil
  */
 @Getter
-public abstract class CoreTask implements Runnable {
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ScheduleUpdateCmd implements ICmd<ScheduleUpdateCmd.Response> {
 
-    /**
-     * 间隔
-     */
-    protected final int interval;
+    private Schedule schedule;
 
-    /**
-     * 单位
-     */
-    protected final TimeUnit unit;
-
-    public CoreTask(int interval, TimeUnit unit) {
-        this.interval = interval;
-        this.unit = unit;
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private String id;
     }
-
-    public abstract ScheduleType scheduleType();
 
 }

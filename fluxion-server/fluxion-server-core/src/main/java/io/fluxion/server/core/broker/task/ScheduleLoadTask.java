@@ -16,23 +16,20 @@
 
 package io.fluxion.server.core.broker.task;
 
-import io.fluxion.common.utils.time.Formatters;
-import io.fluxion.common.utils.time.LocalDateTimeUtils;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.BrokerContext;
-import io.fluxion.server.core.trigger.TriggerHelper;
-import io.fluxion.server.core.trigger.query.ScheduleUpdatedQuery;
-import io.fluxion.server.core.trigger.run.Schedule;
+import io.fluxion.server.core.schedule.Schedule;
+import io.fluxion.server.core.schedule.ScheduleConstants;
+import io.fluxion.server.core.schedule.cmd.ScheduleTriggerCmd;
+import io.fluxion.server.core.schedule.query.ScheduleNextTriggerQuery;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
-import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
-import io.fluxion.server.infrastructure.schedule.schedule.ScheduledTaskScheduler;
-import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
-import io.fluxion.server.infrastructure.schedule.task.ScheduledTaskFactory;
+import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 加载 ScheduledTask 并执行
@@ -42,53 +39,29 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class ScheduleLoadTask extends CoreTask {
 
-    private LocalDateTime loadTimePoint = LocalDateTimeUtils.parse("2000-01-01 00:00:00", Formatters.YMD_HMS);
-
-    public ScheduleLoadTask(int interval, TimeUnit unit) {
-        super(interval, unit);
+    public ScheduleLoadTask() {
+        super(ScheduleConstants.LOAD_INTERVAL, ScheduleConstants.LOAD_TIME_UNIT);
     }
 
     @Override
     public void run() {
         String brokerId = BrokerContext.broker().id();
         try {
-            LocalDateTime now = TimeUtils.currentLocalDateTime();
-            // todo @d 由于Schedule一直在更新这个方式有点问题会一直拉数据
-            List<Schedule> schedules = Query.query(new ScheduleUpdatedQuery(brokerId, loadTimePoint.plusSeconds(-interval))).getSchedules();
-            loadTimePoint = now;
-            for (Schedule schedule : schedules) {
-                if (schedule == null) {
-                    continue;
+            List<Schedule> schedules = Query.query(new ScheduleNextTriggerQuery(brokerId, 100)).getSchedules();
+            while (CollectionUtils.isNotEmpty(schedules)) {
+                for (Schedule schedule : schedules) {
+                    Cmd.send(new ScheduleTriggerCmd(schedule));
                 }
-                String scheduleId = TriggerHelper.taskScheduleId(schedule);
-                // 移除老的，调度新的
-                switch (schedule.getScheduleType()) {
-                    case CRON:
-                    case FIXED_RATE:
-                        ScheduledTaskScheduler scheduledTaskScheduler = BrokerContext.broker().scheduledTaskScheduler();
-                        scheduledTaskScheduler.schedule(ScheduledTaskFactory.task(
-                            scheduleId,
-                            schedule.getLastTriggerAt(),
-                            schedule.getLastFeedbackAt(),
-                            schedule.getScheduleOption(),
-                            scheduledTask -> TriggerHelper.consumerTask(scheduledTask, schedule.getId())
-                        ));
-                        break;
-                    case FIXED_DELAY:
-                        DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
-                        delayedTaskScheduler.schedule(DelayedTaskFactory.create(
-                            scheduleId,
-                            schedule.getLastTriggerAt(),
-                            schedule.getLastFeedbackAt(),
-                            schedule.getScheduleOption(),
-                            delayedTask -> TriggerHelper.consumerTask(delayedTask, schedule.getId())
-                        ));
-                        break;
-                }
+                // 拉取后续的
+                schedules = Query.query(new ScheduleNextTriggerQuery(brokerId, 100)).getSchedules();
             }
         } catch (Exception e) {
             log.error("[{}] execute fail", this.getClass().getSimpleName(), e);
         }
     }
 
+    @Override
+    public ScheduleType scheduleType() {
+        return ScheduleType.FIXED_RATE;
+    }
 }

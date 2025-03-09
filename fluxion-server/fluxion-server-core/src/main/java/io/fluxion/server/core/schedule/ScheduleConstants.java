@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,30 +14,19 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.trigger.cmd;
+package io.fluxion.server.core.schedule;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Devil
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class ScheduleRefreshLastFeedbackCmd implements ICmd<Boolean> {
+public interface ScheduleConstants {
 
-    private String scheduleId;
+    int LOAD_INTERVAL = 10;
 
-    /**
-     * 上次回调时间
-     */
-    private LocalDateTime lastFeedbackAt;
+    TimeUnit LOAD_TIME_UNIT = TimeUnit.MINUTES;
+
+    long LOAD_INTERVAL_SECONDS = LOAD_TIME_UNIT.toSeconds(LOAD_INTERVAL);
 
 }

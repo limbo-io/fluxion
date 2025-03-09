@@ -30,9 +30,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.fluxion.remote.core.constants.BrokerConstant.API_TASK_FAIL;
-import static io.fluxion.remote.core.constants.BrokerConstant.API_TASK_START;
-import static io.fluxion.remote.core.constants.BrokerConstant.API_TASK_SUCCESS;
+import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_TASK_FAIL;
+import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_TASK_START;
+import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_TASK_SUCCESS;
 
 /**
  * Task执行管理和监控

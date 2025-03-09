@@ -14,34 +14,26 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.broker.task;
-
-import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import lombok.Getter;
-
-import java.util.concurrent.TimeUnit;
+package io.fluxion.remote.core.constants;
 
 /**
- * @author Devil
+ * @author PengQ
+ * @since 0.0.1
  */
-@Getter
-public abstract class CoreTask implements Runnable {
+public interface BrokerRemoteConstant {
+    // ========== API ==========
+    String API_WORKER_REGISTER = "/api/v1/worker/register";
 
-    /**
-     * 间隔
-     */
-    protected final int interval;
+    String API_WORKER_HEARTBEAT = "/api/v1/worker/heartbeat";
 
-    /**
-     * 单位
-     */
-    protected final TimeUnit unit;
+    String API_BROKER_PING = "/api/v1/broker/ping";
 
-    public CoreTask(int interval, TimeUnit unit) {
-        this.interval = interval;
-        this.unit = unit;
-    }
+    String API_TASK_START = "/api/v1/task/start";
 
-    public abstract ScheduleType scheduleType();
+    String API_TASK_REPORT = "/api/v1/task/report";
 
+    String API_TASK_SUCCESS = "/api/v1/task/success";
+
+    String API_TASK_FAIL = "/api/v1/task/fail";
+    // ========== API ==========
 }

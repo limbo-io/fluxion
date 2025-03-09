@@ -27,7 +27,7 @@ import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
 import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
 import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.server.ClientHandler;
-import io.fluxion.remote.core.constants.BrokerConstant;
+import io.fluxion.remote.core.constants.BrokerRemoteConstant;
 import io.fluxion.server.core.app.App;
 import io.fluxion.server.core.app.cmd.AppBrokerElectCmd;
 import io.fluxion.server.core.app.cmd.AppRegisterCmd;
@@ -58,28 +58,28 @@ public class BrokerClientHandler implements ClientHandler {
     public Response<?> process(String path, String data) {
         try {
             switch (path) {
-                case BrokerConstant.API_WORKER_REGISTER: {
+                case BrokerRemoteConstant.API_WORKER_REGISTER: {
                     return Response.ok(register(JacksonUtils.toType(data, WorkerRegisterRequest.class)));
                 }
-                case BrokerConstant.API_WORKER_HEARTBEAT: {
+                case BrokerRemoteConstant.API_WORKER_HEARTBEAT: {
                     return Response.ok(heartbeat(JacksonUtils.toType(data, WorkerHeartbeatRequest.class)));
                 }
-                case BrokerConstant.API_BROKER_PING: {
+                case BrokerRemoteConstant.API_BROKER_PING: {
                     return Response.ok(Response.ok(true));
                 }
-                case BrokerConstant.API_TASK_START: {
+                case BrokerRemoteConstant.API_TASK_START: {
                     TaskStartRequest request = JacksonUtils.toType(data, TaskStartRequest.class);
                     Boolean success = Cmd.send(new TaskStartCmd(request.getTaskId(), request.getWorkerAddress()));
                     return Response.ok(Response.ok(success));
                 }
-                case BrokerConstant.API_TASK_REPORT: {
+                case BrokerRemoteConstant.API_TASK_REPORT: {
                     TaskReportRequest request = JacksonUtils.toType(data, TaskReportRequest.class);
                     Boolean success = Cmd.send(new TaskReportCmd(
                         request.getTaskId(), request.getWorkerAddress(), request.getReportAt()
                     ));
                     return Response.ok(Response.ok(success));
                 }
-                case BrokerConstant.API_TASK_SUCCESS: {
+                case BrokerRemoteConstant.API_TASK_SUCCESS: {
                     TaskSuccessRequest request = JacksonUtils.toType(data, TaskSuccessRequest.class);
                     Task task = Query.query(new TaskByIdQuery(request.getTaskId())).getTask();
                     Execution execution = Query.query(new ExecutionByIdQuery(task.getExecutionId())).getExecution();
@@ -91,7 +91,7 @@ public class BrokerClientHandler implements ClientHandler {
                     }
                     return Response.ok(Response.ok(success));
                 }
-                case BrokerConstant.API_TASK_FAIL: {
+                case BrokerRemoteConstant.API_TASK_FAIL: {
                     TaskFailRequest request = JacksonUtils.toType(data, TaskFailRequest.class);
                     Task task = Query.query(new TaskByIdQuery(request.getTaskId())).getTask();
                     Execution execution = Query.query(new ExecutionByIdQuery(task.getExecutionId())).getExecution();
@@ -129,7 +129,7 @@ public class BrokerClientHandler implements ClientHandler {
             return response;
         } else {
             // 如果是其它节点转发请求
-            return BrokerContext.broker().client().call(BrokerConstant.API_WORKER_REGISTER, app.getBroker().host(), app.getBroker().port(), request);
+            return BrokerContext.broker().client().call(BrokerRemoteConstant.API_WORKER_REGISTER, app.getBroker().host(), app.getBroker().port(), request);
         }
     }
 

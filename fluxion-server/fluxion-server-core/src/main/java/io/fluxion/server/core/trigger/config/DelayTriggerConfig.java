@@ -25,6 +25,6 @@ import io.fluxion.server.core.trigger.Trigger;
  * @author Devil
  */
 @JsonTypeName(Trigger.Type.DELAY)
-public class DelayTriggerConfig extends TriggerConfig {
+public class DelayTriggerConfig extends Trigger.Config {
 
 }

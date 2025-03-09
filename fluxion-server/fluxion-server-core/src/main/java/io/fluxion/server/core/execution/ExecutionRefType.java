@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.trigger;
+package io.fluxion.server.core.execution;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -23,27 +23,27 @@ import io.fluxion.common.constants.CommonConstants;
 /**
  * @author Devil
  */
-public enum TriggerRefType {
-    UNKNOWN(CommonConstants.UNKNOWN),
-    FLOW(1),
-    EXECUTOR(2),
+public enum ExecutionRefType {
+    UNKNOWN(CommonConstants.UNKNOWN_STR),
+    FLOW("flow"),
+    EXECUTOR("executor"),
     ;
 
     @JsonValue
-    public final int value;
+    public final String value;
 
 
-    TriggerRefType(int value) {
+    ExecutionRefType(String value) {
         this.value = value;
     }
 
-    public boolean is(Number value) {
-        return value != null && value.intValue() == this.value;
+    public boolean is(String value) {
+        return this.value.equals(value);
     }
 
     @JsonCreator
-    public static TriggerRefType parse(Number value) {
-        for (TriggerRefType v : values()) {
+    public static ExecutionRefType parse(String value) {
+        for (ExecutionRefType v : values()) {
             if (v.is(value)) {
                 return v;
             }

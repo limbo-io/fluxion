@@ -50,9 +50,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static io.fluxion.remote.core.constants.BrokerConstant.API_WORKER_HEARTBEAT;
-import static io.fluxion.remote.core.constants.BrokerConstant.API_WORKER_REGISTER;
-import static io.fluxion.remote.core.constants.WorkerConstant.HEARTBEAT_TIMEOUT_SECOND;
+import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_WORKER_HEARTBEAT;
+import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_WORKER_REGISTER;
+import static io.fluxion.remote.core.constants.WorkerRemoteConstant.HEARTBEAT_TIMEOUT_SECOND;
 
 /**
  * @author PengQ

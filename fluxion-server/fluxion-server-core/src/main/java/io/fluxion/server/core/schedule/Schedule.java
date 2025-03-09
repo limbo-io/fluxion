@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.trigger.run;
+package io.fluxion.server.core.schedule;
 
-import io.fluxion.server.core.trigger.TriggerRefType;
+import io.fluxion.common.utils.MD5Utils;
+import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
-import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -31,32 +31,12 @@ public class Schedule {
 
     private String id;
 
-    private String triggerId;
-
-    /**
-     * 调度关联数据
-     */
-    private String refId;
-
-    /**
-     * 调度关联类型
-     * @see TriggerRefType
-     */
-    private TriggerRefType refType;
-
-    /**
-     * 用来判断 调度配置是否有变化
-     */
-    private String version;
+    private ScheduleOption option;
 
     /**
      * 分配的节点
      */
     private String brokerId;
-
-    private ScheduleType scheduleType;
-
-    private ScheduleOption scheduleOption;
 
     /**
      * 上次触发时间
@@ -68,5 +48,18 @@ public class Schedule {
      */
     private LocalDateTime lastFeedbackAt;
 
+    /**
+     * 下次触发时间
+     */
+    private LocalDateTime nextTriggerAt;
+
     private boolean enabled;
+
+    /**
+     * 用来判断 调度配置是否有变化
+     */
+    public String version() {
+        return MD5Utils.md5(JacksonUtils.toJSONString(option));
+    }
+
 }

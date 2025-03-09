@@ -14,34 +14,26 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.broker.task;
+package io.fluxion.server.core.schedule.converter;
 
-import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import lombok.Getter;
-
-import java.util.concurrent.TimeUnit;
+import io.fluxion.server.core.schedule.ScheduleDelay;
+import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
 
 /**
  * @author Devil
  */
-@Getter
-public abstract class CoreTask implements Runnable {
+public class ScheduleDelayEntityConverter {
 
-    /**
-     * 间隔
-     */
-    protected final int interval;
-
-    /**
-     * 单位
-     */
-    protected final TimeUnit unit;
-
-    public CoreTask(int interval, TimeUnit unit) {
-        this.interval = interval;
-        this.unit = unit;
+    public static ScheduleDelay.ID convert(ScheduleDelayEntity.ID id) {
+        return new ScheduleDelay.ID(
+            id.getScheduleId(), id.getTriggerAt()
+        );
     }
 
-    public abstract ScheduleType scheduleType();
+    public static ScheduleDelayEntity.ID convert(ScheduleDelay.ID id) {
+        return new ScheduleDelayEntity.ID(
+            id.getScheduleId(), id.getTriggerAt()
+        );
+    }
 
 }

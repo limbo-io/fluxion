@@ -18,7 +18,6 @@ package io.fluxion.server.infrastructure.dao.repository;
 
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -29,5 +28,5 @@ import java.time.LocalDateTime;
 @Repository
 public interface ExecutionEntityRepo extends JpaRepository<ExecutionEntity, String> {
 
-    ExecutionEntity findByRefIdAndRefTypeAndTriggerAt(String refId, int refType, LocalDateTime triggerAt);
+    ExecutionEntity findByRefIdAndRefTypeAndTriggerAt(String refId, String refType, LocalDateTime triggerAt);
 }

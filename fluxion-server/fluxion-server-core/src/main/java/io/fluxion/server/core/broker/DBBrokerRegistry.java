@@ -66,8 +66,8 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
     private final ScheduledExecutorService scheduledExecutorService;
 
     public DBBrokerRegistry(BrokerEntityRepo brokerEntityRepo) {
-        this.heartbeatInterval = Duration.ofMillis(2000);
-        this.heartbeatTimeout = Duration.ofMillis(5000);
+        this.heartbeatInterval = Duration.ofMillis(3000);
+        this.heartbeatTimeout = Duration.ofMillis(10000);
         this.brokerEntityRepo = brokerEntityRepo;
         this.listeners = new ArrayList<>();
         this.scheduledExecutorService = new ScheduledThreadPoolExecutor(

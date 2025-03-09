@@ -14,42 +14,26 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.trigger.run;
+package io.fluxion.server.core.schedule.cmd;
 
-import io.fluxion.server.core.trigger.TriggerRefType;
-import lombok.Data;
+import io.fluxion.server.core.schedule.ScheduleDelay;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * @author Devil
  */
-@Data
-public class ScheduleDelay {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ScheduleDelayBatchSaveCmd implements ICmd<Void> {
 
-    private String id;
+    private List<ScheduleDelay> delays;
 
-    private String scheduleId;
-
-    /**
-     * 调度关联数据
-     */
-    private String refId;
-
-    /**
-     * 调度关联类型
-     *
-     * @see TriggerRefType
-     */
-    private TriggerRefType refType;
-
-    /**
-     * 分配的节点
-     */
-    private String brokerId;
-
-    /**
-     * 触发时间
-     */
-    private LocalDateTime triggerAt;
 }

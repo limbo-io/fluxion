@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.trigger.service;
+package io.fluxion.server.core.schedule.service;
 
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.BrokerManger;
 import io.fluxion.server.core.broker.BrokerNode;
-import io.fluxion.server.core.trigger.converter.ScheduleEntityConverter;
-import io.fluxion.server.core.trigger.query.ScheduleByIdQuery;
-import io.fluxion.server.core.trigger.query.ScheduleNotOwnerQuery;
-import io.fluxion.server.core.trigger.query.ScheduleUpdatedQuery;
+import io.fluxion.server.core.schedule.ScheduleConstants;
+import io.fluxion.server.core.schedule.converter.ScheduleEntityConverter;
+import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
+import io.fluxion.server.core.schedule.query.ScheduleNextTriggerQuery;
+import io.fluxion.server.core.schedule.query.ScheduleNotOwnerQuery;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleEntityRepo;
 import io.fluxion.server.infrastructure.utils.JpaHelper;
@@ -32,6 +34,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.persistence.EntityManager;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -48,16 +52,31 @@ public class ScheduleQueryService {
     @Resource
     private BrokerManger brokerManger;
 
+    @Resource
+    private EntityManager entityManager;
+
     @QueryHandler
     public ScheduleByIdQuery.Response handle(ScheduleByIdQuery query) {
         ScheduleEntity entity = scheduleEntityRepo.findByScheduleIdAndDeleted(query.getId(), false);
         return new ScheduleByIdQuery.Response(ScheduleEntityConverter.convert(entity));
     }
 
+    @SuppressWarnings("unchecked")
     @QueryHandler
-    public ScheduleUpdatedQuery.Response handle(ScheduleUpdatedQuery query) {
-        List<ScheduleEntity> entities = scheduleEntityRepo.loadByBrokerAndUpdated(query.getBrokerId(), query.getUpdatedAt());
-        return new ScheduleUpdatedQuery.Response(ScheduleEntityConverter.convert(entities));
+    public ScheduleNextTriggerQuery.Response handle(ScheduleNextTriggerQuery query) {
+        LocalDateTime nextTriggerAt = TimeUtils.currentLocalDateTime().plusSeconds(ScheduleConstants.LOAD_INTERVAL_SECONDS);
+        LocalDateTime startTime = TimeUtils.currentLocalDateTime().plusSeconds(-ScheduleConstants.LOAD_INTERVAL_SECONDS);
+        List<ScheduleEntity> entities = entityManager.createQuery("select e from ScheduleEntity e" +
+                " where e.brokerId = :brokerId and e.nextTriggerAt <= :nextTriggerAt " +
+                "and e.startTime <= :startTime and e.endTime >= :nextTriggerAt " +
+                "and e.enabled = true and e.deleted = false order by nextTriggerAt"
+            )
+            .setParameter("brokerId", query.getBrokerId())
+            .setParameter("nextTriggerAt", nextTriggerAt)
+            .setParameter("startTime", startTime)
+            .setMaxResults(query.getLimit())
+            .getResultList();
+        return new ScheduleNextTriggerQuery.Response(ScheduleEntityConverter.convert(entities));
     }
 
     @QueryHandler

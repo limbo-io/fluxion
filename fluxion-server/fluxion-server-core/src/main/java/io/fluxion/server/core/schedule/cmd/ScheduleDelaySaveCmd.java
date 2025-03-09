@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.trigger.cmd;
+package io.fluxion.server.core.schedule.cmd;
 
-import io.fluxion.server.core.trigger.run.Schedule;
+import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 /**
  * @author Devil
@@ -30,14 +32,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ScheduleSaveCmd implements ICmd<ScheduleSaveCmd.Response> {
+public class ScheduleDelaySaveCmd implements ICmd<Void> {
 
-    private Schedule schedule;
-
-    @Getter
-    @AllArgsConstructor
-    public static class Response {
-        private String id;
-    }
+    private ScheduleDelay delay;
 
 }

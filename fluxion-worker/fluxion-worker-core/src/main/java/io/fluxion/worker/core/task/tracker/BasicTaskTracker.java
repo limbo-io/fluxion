@@ -22,7 +22,7 @@ import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.Task;
 
-import static io.fluxion.remote.core.constants.BrokerConstant.API_TASK_REPORT;
+import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_TASK_REPORT;
 
 /**
  * 执行一个任务

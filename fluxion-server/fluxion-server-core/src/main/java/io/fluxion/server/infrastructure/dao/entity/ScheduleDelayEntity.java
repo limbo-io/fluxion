@@ -16,82 +16,63 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
-import io.fluxion.server.core.execution.ExecutionRefType;
-import io.fluxion.server.core.execution.ExecutionStatus;
-import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.infrastructure.dao.TableConstants;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
+import javax.persistence.Embeddable;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 执行记录
- *
  * @author Devil
- * @since 2021/9/1
+ * @since 2021/7/23
  */
 @Setter
 @Getter
-@Table(name = TableConstants.FLUXION_EXECUTION)
+@Table(name = TableConstants.FLUXION_SCHEDULE_DELAY)
 @Entity
 @DynamicInsert
 @DynamicUpdate
-public class ExecutionEntity extends BaseEntity {
+public class ScheduleDelayEntity extends BaseEntity {
 
-    @Id
-    private String executionId;
-
-    private String triggerId;
+    @EmbeddedId
+    private ID id;
 
     /**
-     * @see Trigger.Type
+     * 分配的节点
      */
-    private String triggerType;
-
-    private String refId;
+    private String brokerId;
 
     /**
-     * @see ExecutionRefType
-     */
-    private String refType;
-
-    private String refVersion;
-
-    /**
-     * 状态
+     * 计划作业调度方式
      *
-     * @see ExecutionStatus
+     * @see ScheduleDelay.Status
      */
-    private Integer status;
-
-    /**
-     * 属性参数
-     */
-    protected String attributes;
-
-    /**
-     * 期望的调度触发时间
-     */
-    private LocalDateTime triggerAt;
-
-    /**
-     * 执行开始时间
-     */
-    private LocalDateTime startAt;
-
-    /**
-     * 执行结束时间
-     */
-    private LocalDateTime endAt;
+    private String status;
 
     @Override
     public Object getUid() {
-        return executionId;
+        return id;
     }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Embeddable
+    public static class ID implements Serializable {
+
+        private String scheduleId;
+
+        private LocalDateTime triggerAt;
+    }
+
 }

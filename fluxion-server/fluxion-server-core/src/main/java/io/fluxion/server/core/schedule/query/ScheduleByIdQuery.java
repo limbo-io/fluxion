@@ -14,27 +14,30 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.constants;
+package io.fluxion.server.core.schedule.query;
+
+import io.fluxion.server.core.schedule.Schedule;
+import io.fluxion.server.infrastructure.cqrs.IQuery;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
- * @author PengQ
- * @since 0.0.1
+ * @author Devil
  */
-public interface BrokerConstant {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ScheduleByIdQuery implements IQuery<ScheduleByIdQuery.Response> {
 
-    // ========== API ==========
-    String API_WORKER_REGISTER = "/api/v1/worker/register";
+    private String id;
 
-    String API_WORKER_HEARTBEAT = "/api/v1/worker/heartbeat";
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private Schedule schedule;
+    }
 
-    String API_BROKER_PING = "/api/v1/broker/ping";
-
-    String API_TASK_START = "/api/v1/task/start";
-
-    String API_TASK_REPORT = "/api/v1/task/report";
-
-    String API_TASK_SUCCESS = "/api/v1/task/success";
-
-    String API_TASK_FAIL = "/api/v1/task/fail";
-    // ========== API ==========
 }
