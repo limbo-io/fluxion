@@ -54,7 +54,7 @@ public class ScheduleEntity extends BaseEntity {
      *
      * @see ScheduleType
      */
-    private int scheduleType;
+    private String scheduleType;
 
     /**
      * 从何时开始调度作业
@@ -69,22 +69,22 @@ public class ScheduleEntity extends BaseEntity {
     /**
      * 作业调度延迟时间，单位秒
      */
-    private Long delay;
+    private Long scheduleDelay;
 
     /**
      * 作业调度间隔时间，单位秒。
      */
-    private Long interval;
+    private Long scheduleInterval;
 
     /**
      * 作业调度的CRON表达式
      */
-    private String cron;
+    private String scheduleCron;
 
     /**
      * 作业调度的CRON表达式
      */
-    private String cronType;
+    private String scheduleCronType;
 
     /**
      * 上次触发时间

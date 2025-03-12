@@ -35,35 +35,35 @@ public enum ScheduleType {
     /**
      * unknown 不应该出现
      */
-    UNKNOWN(CommonConstants.UNKNOWN),
+    UNKNOWN(CommonConstants.UNKNOWN_STR),
 
     /**
      * 固定速度，作业创建后，每次调度下发后，间隔固定时间长度后，再次触发作业调度。
      */
-    FIXED_RATE(1),
+    FIXED_RATE("fixed_rate"),
 
     /**
      * 固定延迟，作业创建后，每次作业下发执行完成（成功或失败）后，间隔固定时间长度后，再次触发作业调度。
      */
-    FIXED_DELAY(2),
+    FIXED_DELAY("fixed_delay"),
 
     /**
      * CRON表达式，通过CRON表达式指定作业触发调度的时间点。FIXED_RATE 的另一种模式
      */
-    CRON(3),
+    CRON("cron"),
 
     ;
 
     @JsonValue
-    public final int value;
+    public final String value;
 
 
-    ScheduleType(int value) {
+    ScheduleType(String value) {
         this.value = value;
     }
 
-    public boolean is(Number value) {
-        return value != null && value.intValue() == this.value;
+    public boolean is(String value) {
+        return this.value.equals(value);
     }
 
     /**
@@ -73,7 +73,7 @@ public enum ScheduleType {
      * @return 作业调度类型枚举
      */
     @JsonCreator
-    public static ScheduleType parse(Number value) {
+    public static ScheduleType parse(String value) {
         for (ScheduleType v : values()) {
             if (v.is(value)) {
                 return v;

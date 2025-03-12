@@ -82,7 +82,7 @@ public class Flow implements Executable, ValidatableConfig {
     }
 
     /**
-     * 某个 node 成功后执行的逻辑 todo 事务
+     * 某个 node 成功后执行的逻辑
      */
     public boolean success(String nodeId, Task task, String workerAddress, LocalDateTime time) {
         Boolean success = Cmd.send(new TaskSuccessCmd(task.getTaskId(), workerAddress, time));
@@ -137,7 +137,7 @@ public class Flow implements Executable, ValidatableConfig {
     }
 
     /**
-     * 某个 node 失败后执行的逻辑 todo 事务
+     * 某个 node 失败后执行的逻辑
      */
     public boolean fail(String nodeId, Task task, String workerAddress, LocalDateTime time, String errorMsg) {
         if (task.canRetry()) {
@@ -166,7 +166,6 @@ public class Flow implements Executable, ValidatableConfig {
             ExecutorConfig executorConfig = executorNode.getExecutor();
             executorTask.setAppId(executorConfig.getAppId());
             executorTask.setExecutorName(executorConfig.executorName());
-            executorTask.setExecuteType(executorConfig.getExecuteType());
             executorTask.setDispatchOption(executorConfig.getDispatchOption());
         }
         task.setOvertimeOption(node.getOvertimeOption());

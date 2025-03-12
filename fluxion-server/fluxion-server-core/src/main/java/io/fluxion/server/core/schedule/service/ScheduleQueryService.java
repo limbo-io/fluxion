@@ -61,7 +61,6 @@ public class ScheduleQueryService {
         return new ScheduleByIdQuery.Response(ScheduleEntityConverter.convert(entity));
     }
 
-    @SuppressWarnings("unchecked")
     @QueryHandler
     public ScheduleNextTriggerQuery.Response handle(ScheduleNextTriggerQuery query) {
         LocalDateTime nextTriggerAt = TimeUtils.currentLocalDateTime().plusSeconds(ScheduleConstants.LOAD_INTERVAL_SECONDS);
@@ -69,7 +68,7 @@ public class ScheduleQueryService {
         List<ScheduleEntity> entities = entityManager.createQuery("select e from ScheduleEntity e" +
                 " where e.brokerId = :brokerId and e.nextTriggerAt <= :nextTriggerAt " +
                 "and e.startTime <= :startTime and e.endTime >= :nextTriggerAt " +
-                "and e.enabled = true and e.deleted = false order by nextTriggerAt"
+                "and e.enabled = true and e.deleted = false order by nextTriggerAt", ScheduleEntity.class
             )
             .setParameter("brokerId", query.getBrokerId())
             .setParameter("nextTriggerAt", nextTriggerAt)
@@ -84,7 +83,7 @@ public class ScheduleQueryService {
         Pageable pageable = JpaHelper.pageable(1, query.getLimit());
         List<BrokerNode> brokerNodes = brokerManger.allAlive();
         List<String> brokerIds = brokerNodes.stream().map(BrokerNode::id).collect(Collectors.toList());
-        Page<ScheduleEntity> page = scheduleEntityRepo.findByBrokerIdNotInAndDeletedAndEnabledContaining(brokerIds, false, true, pageable);
+        Page<ScheduleEntity> page = scheduleEntityRepo.findByBrokerIdNotInAndDeletedAndEnabled(brokerIds, false, true, pageable);
         return new ScheduleNotOwnerQuery.Response(ScheduleEntityConverter.convert(page.toList()));
     }
 

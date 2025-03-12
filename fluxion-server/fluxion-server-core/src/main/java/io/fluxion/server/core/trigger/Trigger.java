@@ -16,11 +16,7 @@
 
 package io.fluxion.server.core.trigger;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
-import io.fluxion.common.utils.json.JacksonTypeIdResolver;
-import io.fluxion.server.core.execution.ExecutionRefType;
-import io.fluxion.server.infrastructure.validata.ValidatableConfig;
+import io.fluxion.server.core.execution.ExecuteConfig;
 import lombok.Data;
 
 /**
@@ -33,46 +29,16 @@ public class Trigger {
 
     private String id;
 
-    private String refId;
+    private String name;
 
-    private ExecutionRefType refType;
-
-    private Config config;
-
-    /**
-     * 描述
-     */
     private String description;
 
+    private TriggerType type;
+
+    private TriggerConfig triggerConfig;
+
+    private ExecuteConfig executeConfig;
+
     private boolean enabled;
-
-    public interface Type {
-        String SCHEDULE = "schedule";
-        String DELAY = "delay";
-        String WEBHOOK = "webhook"; // event ?? todo @d later
-    }
-
-    /**
-     * Trigger 配置态
-     *
-     * @author Devil
-     */
-    @JsonTypeInfo(
-        use = JsonTypeInfo.Id.CLASS,
-        include = JsonTypeInfo.As.EXISTING_PROPERTY,
-        property = "type",
-        visible = true
-    )
-    @JsonTypeIdResolver(JacksonTypeIdResolver.class)
-    @Data
-    public static abstract class Config implements ValidatableConfig {
-        /**
-         * 触发方式
-         *
-         * @see Trigger.Type
-         */
-        private String type;
-
-    }
 
 }

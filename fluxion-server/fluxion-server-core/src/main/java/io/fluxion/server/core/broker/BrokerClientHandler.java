@@ -129,7 +129,7 @@ public class BrokerClientHandler implements ClientHandler {
             return response;
         } else {
             // 如果是其它节点转发请求
-            return BrokerContext.broker().client().call(BrokerRemoteConstant.API_WORKER_REGISTER, app.getBroker().host(), app.getBroker().port(), request);
+            return BrokerContext.call(BrokerRemoteConstant.API_WORKER_REGISTER, app.getBroker().host(), app.getBroker().port(), request);
         }
     }
 

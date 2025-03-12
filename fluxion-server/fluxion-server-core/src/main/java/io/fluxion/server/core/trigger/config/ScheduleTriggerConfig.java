@@ -18,10 +18,11 @@ package io.fluxion.server.core.trigger.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.fluxion.server.core.flow.FlowConstants;
-import io.fluxion.server.core.trigger.Trigger;
-import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
+import io.fluxion.server.core.trigger.TriggerConfig;
+import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
+import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.StringUtils;
@@ -37,8 +38,8 @@ import java.util.List;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-@JsonTypeName(Trigger.Type.SCHEDULE)
-public class ScheduleTriggerConfig extends Trigger.Config {
+@JsonTypeName(TriggerType.Val.SCHEDULE)
+public class ScheduleTriggerConfig extends TriggerConfig {
 
     /**
      * 调度信息配置

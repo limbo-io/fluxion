@@ -30,6 +30,7 @@ import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.persistence.EntityManager;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -42,6 +43,9 @@ public class VersionCommandService {
 
     @Resource
     private VersionEntityRepo versionEntityRepo;
+
+    @Resource
+    private EntityManager entityManager;
 
     private static final Map<VersionRefType, VersionGenerateType> REF_GENERATE_TYPES = new EnumMap<>(VersionRefType.class);
 
@@ -89,7 +93,14 @@ public class VersionCommandService {
     }
 
     private String incrVersion(String refId, String refType) {
-        VersionEntity last = versionEntityRepo.findLast(refId, refType);
+        VersionEntity last = entityManager.createQuery("select e from VersionEntity e" +
+                " where id.refId = :refId and id.refType = :refType " +
+                " order by id.version desc ", VersionEntity.class
+            )
+            .setParameter("refId", refId)
+            .setParameter("refType", refType)
+            .setMaxResults(1)
+            .getSingleResult();
         long version = 1L;
         if (last != null) {
             version = Long.parseLong(last.getId().getVersion()) + 1;

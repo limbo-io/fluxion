@@ -16,7 +16,6 @@
 
 package io.fluxion.server.infrastructure.id.service;
 
-import io.fluxion.common.utils.MD5Utils;
 import io.fluxion.server.infrastructure.dao.entity.IdEntity;
 import io.fluxion.server.infrastructure.dao.repository.IdEntityRepo;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
@@ -49,8 +48,7 @@ public class IDCommandService {
     @CommandHandler
     public IDGenerateCmd.Response handle(IDGenerateCmd cmd) {
         Long autoIncrId = gainRandomAutoId(cmd.getType());
-        String randomId = MD5Utils.md5(String.valueOf(autoIncrId));
-        return new IDGenerateCmd.Response(randomId);
+        return new IDGenerateCmd.Response(String.valueOf(autoIncrId));
     }
 
     /**

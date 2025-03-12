@@ -16,15 +16,14 @@
 
 package io.fluxion.server.core.trigger.config;
 
-import com.fasterxml.jackson.annotation.JsonTypeName;
-import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.TriggerConfig;
 
 /**
  * Http 回调触发
  *
  * @author Devil
  */
-@JsonTypeName(Trigger.Type.WEBHOOK)
-public class WebhookTriggerConfig extends Trigger.Config {
+//@JsonTypeName(Trigger.Type.WEBHOOK)
+public class WebhookTriggerConfig extends TriggerConfig {
 
 }

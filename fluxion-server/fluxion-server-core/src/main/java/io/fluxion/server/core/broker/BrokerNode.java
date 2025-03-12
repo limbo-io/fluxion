@@ -42,6 +42,17 @@ public class BrokerNode extends BaseNode {
         return id;
     }
 
+    @Override
+    public String toString() {
+        return "BrokerNode{" +
+            "id='" + id + '\'' +
+            ", protocol=" + protocol() +
+            ", host=" + host() +
+            ", port=" + port() +
+            ", load=" + load +
+            '}';
+    }
+
     public Integer load() {
         return load.get();
     }

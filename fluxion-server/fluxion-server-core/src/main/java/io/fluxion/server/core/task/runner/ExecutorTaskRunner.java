@@ -43,8 +43,7 @@ import java.util.stream.Collectors;
 @Component
 public class ExecutorTaskRunner extends TaskRunner {
 
-    @Resource
-    private WorkerSelectorFactory workerSelectorFactory;
+    private static final WorkerSelectorFactory workerSelectorFactory = new WorkerSelectorFactory();
 
     @Resource
     private WorkerRepository workerRepository;
@@ -77,9 +76,8 @@ public class ExecutorTaskRunner extends TaskRunner {
         request.setTaskId(task.getTaskId());
         request.setBrokerAddress(BrokerContext.broker().id());
         request.setExecutorName(executorTask.getExecutorName());
-        request.setExecuteType(executorTask.getExecuteType().type);
         // call
-        BrokerContext.broker().client().call(
+        BrokerContext.call(
             WorkerRemoteConstant.API_TASK_DISPATCH, worker.getHost(), worker.getPort(), request
         );
     }

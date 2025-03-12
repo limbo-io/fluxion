@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.dao.repository;
+package io.fluxion.remote.netty;
+
+import io.fluxion.remote.core.client.server.AbstractClientServer;
+import io.fluxion.remote.core.client.server.ClientServerConfig;
+import io.fluxion.remote.core.client.server.ClientServerFactory;
 
 /**
- * todo @d
  * @author Devil
  */
-public interface DelayTaskEntityRepo {
-
-
+public class NettyClientServerFactory implements ClientServerFactory {
+    @Override
+    public AbstractClientServer create(ClientServerConfig config) {
+        return new NettyHttpClientServer(config);
+    }
 }

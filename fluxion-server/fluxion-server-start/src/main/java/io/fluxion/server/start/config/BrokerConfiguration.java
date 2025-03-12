@@ -16,10 +16,19 @@
 
 package io.fluxion.server.start.config;
 
+import io.fluxion.remote.core.utils.NetUtils;
+import io.fluxion.server.core.broker.Broker;
+import io.fluxion.server.core.broker.BrokerManger;
+import io.fluxion.server.core.broker.DBBrokerRegistry;
+import io.fluxion.server.infrastructure.lock.DistributedLock;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.Assert;
 
 import javax.annotation.Resource;
 
@@ -35,5 +44,33 @@ public class BrokerConfiguration {
     @Resource
     private BrokerProperties brokerProperties;
 
+    @Resource
+    private DistributedLock distributedLock;
+
+    @Resource
+    private DBBrokerRegistry brokerRegistry;
+
+    @Resource
+    private BrokerManger brokerManger;
+
+    @Value("${server.port:8080}")
+    private Integer httpServerPort;
+
+    @Bean
+    public Broker broker() {
+        Integer port = brokerProperties.getPort() != null ? brokerProperties.getPort() : httpServerPort;
+        // 优先使用指定的 host，如未指定则自动寻找本机 IP
+        String host = brokerProperties.getHost();
+        if (StringUtils.isEmpty(host)) {
+            host = NetUtils.getLocalIp();
+        }
+        Assert.isTrue(port > 0, "port must be a positive integer in range 1 ~ 65534");
+        Broker broker = new Broker(
+            brokerProperties.getProtocol(), host, port,
+            brokerRegistry, brokerManger, distributedLock
+        );
+        broker.start();
+        return broker;
+    }
 
 }

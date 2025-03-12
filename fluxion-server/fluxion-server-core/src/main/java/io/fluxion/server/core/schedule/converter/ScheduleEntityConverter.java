@@ -49,10 +49,10 @@ public class ScheduleEntityConverter {
         entity.setScheduleType(scheduleOption.getType().value);
         entity.setStartTime(scheduleOption.getStartTime());
         entity.setEndTime(scheduleOption.getEndTime());
-        entity.setDelay(scheduleOption.getDelay().getSeconds());
-        entity.setInterval(scheduleOption.getInterval().getSeconds());
-        entity.setCron(scheduleOption.getCron());
-        entity.setCronType(scheduleOption.getCronType());
+        entity.setScheduleDelay(scheduleOption.getDelay().getSeconds());
+        entity.setScheduleInterval(scheduleOption.getInterval().getSeconds());
+        entity.setScheduleCron(scheduleOption.getCron());
+        entity.setScheduleCronType(scheduleOption.getCronType());
         entity.setNextTriggerAt(schedule.getNextTriggerAt());
         entity.setLastFeedbackAt(schedule.getLastFeedbackAt());
         entity.setLastTriggerAt(schedule.getLastTriggerAt());
@@ -78,10 +78,10 @@ public class ScheduleEntityConverter {
             ScheduleType.parse(entity.getScheduleType()),
             entity.getStartTime(),
             entity.getEndTime(),
-            Duration.ofMillis(entity.getDelay()),
-            Duration.ofMillis(entity.getInterval()),
-            entity.getCron(),
-            entity.getCronType()
+            Duration.ofMillis(entity.getScheduleDelay()),
+            Duration.ofMillis(entity.getScheduleInterval()),
+            entity.getScheduleCron(),
+            entity.getScheduleCronType()
         );
     }
 

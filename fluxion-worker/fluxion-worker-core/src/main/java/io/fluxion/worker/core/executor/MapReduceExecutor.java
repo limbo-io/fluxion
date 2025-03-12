@@ -16,6 +16,7 @@
 
 package io.fluxion.worker.core.executor;
 
+import io.fluxion.remote.core.constants.ExecutorType;
 import io.fluxion.worker.core.task.Task;
 
 /**
@@ -26,4 +27,10 @@ public class MapReduceExecutor implements Executor {
     public void run(Task task) {
 
     }
+
+    @Override
+    public ExecutorType type() {
+        return ExecutorType.MAP_REDUCE;
+    }
+
 }

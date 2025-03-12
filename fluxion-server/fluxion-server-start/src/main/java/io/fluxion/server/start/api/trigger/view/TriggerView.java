@@ -16,8 +16,11 @@
 
 package io.fluxion.server.start.api.trigger.view;
 
+import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.core.trigger.Trigger;
-import io.fluxion.server.core.execution.ExecutionRefType;
+import io.fluxion.server.core.execution.ExecuteType;
+import io.fluxion.server.core.trigger.TriggerConfig;
+import io.fluxion.server.core.trigger.TriggerType;
 import lombok.Data;
 
 
@@ -31,16 +34,14 @@ public class TriggerView {
 
     /**
      * 触发方式
-     * @see Trigger.Type
+     * @see TriggerType
      */
     private String type;
 
-    private String refId;
-
     /**
-     * @see ExecutionRefType
+     * 描述
      */
-    private String refType;
+    private String name;
 
     /**
      * 描述
@@ -48,9 +49,14 @@ public class TriggerView {
     private String description;
 
     /**
-     * 配置信息
+     * 触发配置
      */
-    private Trigger config;
+    private TriggerConfig triggerConfig;
+
+    /**
+     * 执行配置
+     */
+    private ExecuteConfig executeConfig;
 
     /**
      * 是否启动

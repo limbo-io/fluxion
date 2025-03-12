@@ -14,26 +14,35 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.task;
+package io.fluxion.server.core.execution.config;
 
-import io.fluxion.server.core.executor.option.DispatchOption;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import io.fluxion.server.core.execution.Executable;
+import io.fluxion.server.core.execution.ExecuteConfig;
+import io.fluxion.server.core.execution.ExecuteType;
+import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.executor.option.OvertimeOption;
+import io.fluxion.server.core.executor.option.RetryOption;
+import io.fluxion.server.core.trigger.Trigger;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * @author PengQ
- * @since 0.0.1
+ * 基于调度配置执行后续
+ *
+ * @author Devil
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class ExecutorTask extends Task {
+@JsonTypeName(ExecuteType.Val.EXECUTOR)
+public class ExecutorExecuteConfig extends ExecuteConfig {
 
-    private String appId;
+    private ExecutorConfig executor;
 
-    private String executorName;
-
-    private DispatchOption dispatchOption;
+    /**
+     * 重试参数
+     */
+    private RetryOption retryOption;
 
     /**
      * 超时参数
@@ -41,7 +50,7 @@ public class ExecutorTask extends Task {
     private OvertimeOption overtimeOption;
 
     @Override
-    public TaskType type() {
-        return TaskType.EXECUTOR;
+    public String executeId() {
+        return executor.executorName();
     }
 }

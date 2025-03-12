@@ -14,40 +14,63 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.execution;
+package io.fluxion.remote.core.constants;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.fluxion.common.constants.CommonConstants;
 
 /**
- * @author Devil
+ * @author Brozen
+ * @since 2021-05-19
  */
-public enum ExecutionRefType {
+public enum ExecutorType {
+
     UNKNOWN(CommonConstants.UNKNOWN_STR),
-    FLOW("flow"),
-    EXECUTOR("executor"),
+    /**
+     * 单机任务
+     * 给一个节点下发的任务
+     */
+    STANDALONE("standalone"),
+    /**
+     * 广播任务
+     * 给每个可选中节点下发任务
+     */
+    BROADCAST("broadcast"),
+    /**
+     * MapReduce任务
+     * 拆分任务->处理分片->最终处理
+     */
+    MAP_REDUCE("map_reduce"),
     ;
 
     @JsonValue
-    public final String value;
+    public final String type;
 
-
-    ExecutionRefType(String value) {
-        this.value = value;
+    ExecutorType(String type) {
+        this.type = type;
     }
 
-    public boolean is(String value) {
-        return this.value.equals(value);
+    /**
+     * 校验是否是当前状态
+     *
+     * @param type 待校验状态值
+     */
+    public boolean is(String type) {
+        return this.type.equals(type);
     }
 
+    /**
+     * 解析上下文状态值
+     */
     @JsonCreator
-    public static ExecutionRefType parse(String value) {
-        for (ExecutionRefType v : values()) {
-            if (v.is(value)) {
-                return v;
+    public static ExecutorType parse(String type) {
+        for (ExecutorType t : values()) {
+            if (t.is(type)) {
+                return t;
             }
         }
         return UNKNOWN;
     }
+
 }

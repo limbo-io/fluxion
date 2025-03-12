@@ -25,6 +25,7 @@ import org.axonframework.lifecycle.Phase;
 import org.axonframework.messaging.Message;
 import org.axonframework.messaging.interceptors.LoggingInterceptor;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.format.datetime.DateFormatter;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -34,6 +35,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * @since 2021/7/26
  */
 @Slf4j
+@Configuration
 public class WebConfiguration implements WebMvcConfigurer {
 
     /**

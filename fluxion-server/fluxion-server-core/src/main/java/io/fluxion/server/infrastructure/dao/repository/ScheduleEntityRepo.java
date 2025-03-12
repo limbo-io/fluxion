@@ -41,7 +41,7 @@ public interface ScheduleEntityRepo extends JpaRepository<ScheduleEntity, String
     @Query(value = "update ScheduleEntity set brokerId = :brokerId where scheduleId = :scheduleId ")
     int updateBrokerId(@Param("scheduleId") String scheduleId, @Param("brokerId") String brokerId);
 
-    Page<ScheduleEntity> findByBrokerIdNotInAndDeletedAndEnabledContaining(Collection<String> brokerIds, boolean deleted, boolean enabled, Pageable pageable);
+    Page<ScheduleEntity> findByBrokerIdNotInAndDeletedAndEnabled(Collection<String> brokerIds, boolean deleted, boolean enabled, Pageable pageable);
 
     ScheduleEntity findByScheduleIdAndDeleted(@Param("scheduleId") String scheduleId, @Param("deleted") boolean deleted);
 

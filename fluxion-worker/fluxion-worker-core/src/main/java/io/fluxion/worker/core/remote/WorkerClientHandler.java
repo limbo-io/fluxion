@@ -23,10 +23,7 @@ import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.worker.core.WorkerContext;
-import io.fluxion.worker.core.executor.BroadcastExecutor;
 import io.fluxion.worker.core.executor.Executor;
-import io.fluxion.worker.core.executor.MapReduceExecutor;
-import io.fluxion.worker.core.executor.StandaloneExecutor;
 import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.task.tracker.BasicTaskTracker;
 import io.fluxion.worker.core.task.tracker.SubTaskTracker;
@@ -77,19 +74,18 @@ public class WorkerClientHandler implements ClientHandler {
     }
 
     private TaskTracker createTaskTracker(Task task) {
-        switch (task.getExecuteType()) {
+        Executor executor = workerContext.executor(task.getExecutorName());
+        if (executor == null) {
+            throw new IllegalArgumentException("unknown executor name:" + task.getExecutorName());
+        }
+        switch (executor.type()) {
             case STANDALONE:
-                Executor executor = workerContext.executor(task.getExecutorName());
-                if (executor == null) {
-                    throw new IllegalArgumentException("unknown executor name:" + task.getExecutorName());
-                }
                 return new BasicTaskTracker(task, executor, workerContext);
             case BROADCAST:
-            case MAP:
             case MAP_REDUCE:
                 return new SubTaskTracker(task, workerContext);
             default:
-                throw new IllegalArgumentException("unknown execute type:" + task.getExecuteType().name());
+                throw new IllegalArgumentException("unknown execute type:" + executor.type());
         }
     }
 
@@ -97,26 +93,6 @@ public class WorkerClientHandler implements ClientHandler {
         Executor executor = workerContext.executor(task.getExecutorName());
         if (executor == null) {
             throw new IllegalArgumentException("unknown executor name:" + task.getExecutorName());
-        }
-        switch (task.getExecuteType()) {
-            case STANDALONE:
-                if (!(executor instanceof StandaloneExecutor)) {
-                    throw new IllegalArgumentException("unknown executor:" + executor.name() + " not match executeType:" + task.getExecuteType().name());
-                }
-                break;
-            case BROADCAST:
-                if (!(executor instanceof BroadcastExecutor)) {
-                    throw new IllegalArgumentException("unknown executor:" + executor.name() + " not match executeType:" + task.getExecuteType().name());
-                }
-                break;
-            case MAP:
-            case MAP_REDUCE:
-                if (!(executor instanceof MapReduceExecutor)) {
-                    throw new IllegalArgumentException("unknown executor:" + executor.name() + " not match executeType:" + task.getExecuteType().name());
-                }
-                break;
-            default:
-                throw new IllegalArgumentException("unknown execute type:" + task.getExecuteType().name());
         }
         return new BasicTaskTracker(task, executor, workerContext);
     }

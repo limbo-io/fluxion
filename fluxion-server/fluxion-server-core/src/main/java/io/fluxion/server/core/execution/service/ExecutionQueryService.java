@@ -22,7 +22,7 @@ import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
 import io.fluxion.server.core.flow.query.FlowByIdQuery;
-import io.fluxion.server.core.execution.ExecutionRefType;
+import io.fluxion.server.core.execution.ExecuteType;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
 import io.fluxion.server.infrastructure.dao.repository.ExecutionEntityRepo;
@@ -47,7 +47,7 @@ public class ExecutionQueryService {
             return new ExecutionByIdQuery.Response(null);
         }
         Executable executable = Query.query(new ExecutableByIdQuery(
-            entity.getRefId(), ExecutionRefType.parse(entity.getRefType())
+            entity.getRefId(), ExecuteType.parse(entity.getRefType())
         )).getExecutable();
         if (executable == null) {
             return new ExecutionByIdQuery.Response(null);

@@ -84,6 +84,8 @@ public class ScheduleCommandService {
         );
         schedule.setNextTriggerAt(calculation.triggerAt());
         ScheduleEntity entity = ScheduleEntityConverter.convert(cmd.getSchedule());
+        BrokerNode elect = brokerManger.elect(schedule.getId());
+        entity.setBrokerId(elect.id());
         scheduleEntityRepo.saveAndFlush(entity);
         // 调度
         Cmd.send(new ScheduleTriggerCmd(schedule));
@@ -178,20 +180,23 @@ public class ScheduleCommandService {
     @CommandHandler
     public void handle(ScheduleFeedbackCmd cmd) {
         Schedule schedule = cmd.getSchedule();
-        if (ScheduleType.FIXED_DELAY != schedule.getOption().getType()) {
+        LocalDateTime now = TimeUtils.currentLocalDateTime();
+        int rows = entityManager.createQuery("update ScheduleEntity " +
+                " set lastFeedbackAt = :lastFeedbackAt " +
+                " where id = :id"
+            )
+            .setParameter("lastFeedbackAt", now)
+            .setParameter("id", schedule.getId())
+            .executeUpdate();
+        if (rows <= 0 || ScheduleType.FIXED_DELAY != schedule.getOption().getType()) {
             return;
         }
-        // 更新反馈时间 todo @d
-//        Cmd.send(new ScheduleRefreshLastFeedbackCmd(
-//            schedule.getId(), feedbackTime
-//        ));
-        // FIXED_DELAY 类型的这个时候下发后续的
-//        DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
-//        delayedTaskScheduler.schedule(DelayedTaskFactory.create(
-//            TriggerHelper.taskScheduleId(schedule),
-//            null, schedule.getOption(),
-//            delayedTask -> TriggerHelper.consumerTask(delayedTask, schedule.getId())
-//        ));
+        // 触发下次调度
+        BasicCalculation calculation = new BasicCalculation(
+            schedule.getLastTriggerAt(), schedule.getLastFeedbackAt(), schedule.getOption()
+        );
+        schedule.setNextTriggerAt(calculation.triggerAt());
+        Cmd.send(new ScheduleTriggerCmd(schedule));
     }
 
     @CommandHandler

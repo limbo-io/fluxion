@@ -18,7 +18,7 @@ package io.fluxion.remote.core.api.request.worker;
 
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.Response;
-import io.fluxion.remote.core.constants.ExecuteType;
+import io.fluxion.remote.core.constants.ExecutorType;
 
 /**
  * dispatch to worker
@@ -34,7 +34,7 @@ public class SubTaskDispatchRequest implements Request<Response<Boolean>> {
 
     /**
      * 执行方式
-     * @see ExecuteType
+     * @see ExecutorType
      */
     private String executeType;
 

@@ -143,7 +143,7 @@ public abstract class TaskTracker {
             return workerContext.call(API_TASK_SUCCESS, request);
         } catch (Exception e) {
             log.error("reportSuccess fail task={}", task.getTaskId(), e);
-            // todo @d 如果上报失败需要记录，定时重试
+            // todo @d later 如果上报失败需要记录，定时重试
             return false;
         }
     }
@@ -155,7 +155,7 @@ public abstract class TaskTracker {
             return workerContext.call(API_TASK_FAIL, request);
         } catch (Exception e) {
             log.error("reportFail fail task={}", task.getTaskId(), e);
-            // todo @d 如果上报失败需要记录，定时重试
+            // todo @d later 如果上报失败需要记录，定时重试
             return false;
         }
     }

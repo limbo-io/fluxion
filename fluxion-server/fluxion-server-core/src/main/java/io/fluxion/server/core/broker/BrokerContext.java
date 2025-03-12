@@ -16,6 +16,9 @@
 
 package io.fluxion.server.core.broker;
 
+import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.Response;
+
 /**
  * @author Devil
  * @date 2025/1/10
@@ -30,6 +33,10 @@ public class BrokerContext {
 
     public static void initialize(Broker broker) {
         BrokerContext.broker = broker;
+    }
+
+    public static <R> R call(String path, String host, int port, Request<Response<R>> request) {
+        return broker().client().call(path, host, port, request);
     }
 
 }

@@ -16,7 +16,9 @@
 
 package io.fluxion.server.core.execution.service;
 
+import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.core.execution.Executable;
+import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
@@ -26,7 +28,7 @@ import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.cmd.ScheduleFeedbackCmd;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
-import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
@@ -58,21 +60,25 @@ public class ExecutionCommandService {
 
     @CommandHandler
     public ExecutionCreateCmd.Response handle(ExecutionCreateCmd cmd) {
+        ExecuteConfig executeConfig = cmd.getExecuteConfig();
+        if (executeConfig == null) {
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "executeConfig is null");
+        }
         Executable executable = Query.query(new ExecutableByIdQuery(
-            cmd.getRefId(), cmd.getRefType()
+            executeConfig.executeId(), executeConfig.type()
         )).getExecutable();
         if (executable == null) {
-            throw new PlatformException(ErrorCode.PARAM_ERROR, "executable not found by refId:" + cmd.getRefId() + " refT");
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "executable not found by config:" + JacksonUtils.toJSONString(executeConfig) + " refT");
         }
         // 判断是否已经创建
-        ExecutionEntity entity = executionEntityRepo.findByRefIdAndRefTypeAndTriggerAt(cmd.getRefId(), cmd.getRefType().value, cmd.getTriggerAt());
+        ExecutionEntity entity = executionEntityRepo.findByRefIdAndRefTypeAndTriggerAt(executeConfig.executeId(), executeConfig.getType(), cmd.getTriggerAt());
         if (entity == null) {
             entity = new ExecutionEntity();
             entity.setExecutionId(Cmd.send(new IDGenerateCmd(IDType.EXECUTION)).getId());
             entity.setTriggerId(cmd.getTriggerId());
-            entity.setTriggerType(cmd.getTriggerType());
-            entity.setRefId(cmd.getRefId());
-            entity.setRefType(cmd.getRefType().value);
+            entity.setTriggerType(cmd.getTriggerType().value);
+            entity.setRefId(executeConfig.executeId());
+            entity.setRefType(executeConfig.getType());
             entity.setTriggerAt(cmd.getTriggerAt());
             entity.setStatus(ExecutionStatus.CREATED.value);
             executionEntityRepo.saveAndFlush(entity);
@@ -88,7 +94,7 @@ public class ExecutionCommandService {
             log.warn("ExecutionSuccessCmd update fail executionId:{}", cmd.getExecutionId());
             return false;
         }
-        afterFinsh(cmd.getExecutionId(), cmd.getEndAt());
+        afterFinsh(cmd.getExecutionId());
         return true;
     }
 
@@ -99,7 +105,7 @@ public class ExecutionCommandService {
             log.warn("ExecutionFailCmd update fail executionId:{}", cmd.getExecutionId());
             return false;
         }
-        afterFinsh(cmd.getExecutionId(), cmd.getEndAt());
+        afterFinsh(cmd.getExecutionId());
         return true;
     }
 
@@ -115,9 +121,9 @@ public class ExecutionCommandService {
             .executeUpdate() > 0;
     }
 
-    private void afterFinsh(String executionId, LocalDateTime feedbackTime) {
+    private void afterFinsh(String executionId) {
         ExecutionEntity entity = executionEntityRepo.findById(executionId).get();
-        if (!Trigger.Type.SCHEDULE.equals(entity.getTriggerType())) {
+        if (TriggerType.SCHEDULE != TriggerType.parse(entity.getTriggerType())) {
             return;
         }
         Schedule schedule = Query.query(new ScheduleByIdQuery(entity.getTriggerId())).getSchedule();

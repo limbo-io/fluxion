@@ -17,14 +17,16 @@
 package io.fluxion.server.start.controller;
 
 import io.fluxion.remote.core.api.PageResponse;
-import io.fluxion.server.core.execution.ExecutionRefType;
 import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.core.trigger.cmd.TriggerCreateCmd;
 import io.fluxion.server.core.trigger.cmd.TriggerDeleteCmd;
 import io.fluxion.server.core.trigger.cmd.TriggerDisableCmd;
 import io.fluxion.server.core.trigger.cmd.TriggerEnableCmd;
 import io.fluxion.server.core.trigger.cmd.TriggerUpdateCmd;
+import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.start.api.trigger.request.TriggerCreateRequest;
 import io.fluxion.server.start.api.trigger.request.TriggerPageRequest;
 import io.fluxion.server.start.api.trigger.request.TriggerUpdateRequest;
@@ -50,22 +52,22 @@ public class TriggerController {
     @RequestMapping("/api/v1/trigger/create")
     public String create(@RequestBody TriggerCreateRequest request) {
         Trigger trigger = new Trigger();
-        trigger.setConfig(request.getConfig());
+        trigger.setName(request.getName());
+        trigger.setType(TriggerType.parse(request.getType()));
+        trigger.setTriggerConfig(request.getTriggerConfig());
+        trigger.setExecuteConfig(request.getExecuteConfig());
         trigger.setDescription(request.getDescription());
-        trigger.setRefId(request.getRefId());
-        trigger.setRefType(ExecutionRefType.parse(request.getRefType()));
         TriggerCreateCmd.Response response = Cmd.send(new TriggerCreateCmd(trigger));
         return response.getId();
     }
 
     @RequestMapping("/api/v1/trigger/update")
     public void update(@RequestBody TriggerUpdateRequest request) {
-        Trigger trigger = new Trigger();
-        trigger.setId(request.getId());
-        trigger.setConfig(request.getConfig());
+        Trigger trigger = Query.query(new TriggerByIdQuery(request.getId())).getTrigger();
+        trigger.setName(request.getName());
+        trigger.setTriggerConfig(request.getTriggerConfig());
+        trigger.setExecuteConfig(request.getExecuteConfig());
         trigger.setDescription(request.getDescription());
-        trigger.setRefId(request.getRefId());
-        trigger.setRefType(ExecutionRefType.parse(request.getRefType()));
         Cmd.send(new TriggerUpdateCmd(trigger));
     }
 

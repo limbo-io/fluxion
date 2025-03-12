@@ -96,17 +96,17 @@ public class Broker {
                 case ONLINE:
                     manger.online(event.getNode());
                     if (log.isDebugEnabled()) {
-                        log.debug("[BrokerNodeListener] receive online evnet {}", JacksonUtils.toJSONString(event));
+                        log.debug("[BrokerNodeListener] receive online evnet {}", event);
                     }
                     break;
                 case OFFLINE:
                     manger.offline(event.getNode());
                     if (log.isDebugEnabled()) {
-                        log.debug("[BrokerNodeListener] receive offline evnet {}", JacksonUtils.toJSONString(event));
+                        log.debug("[BrokerNodeListener] receive offline evnet {}", event);
                     }
                     break;
                 default:
-                    log.warn("[BrokerNodeListener] " + CommonConstants.UNKNOWN + " evnet {}", JacksonUtils.toJSONString(event));
+                    log.warn("[BrokerNodeListener] {} evnet {}", CommonConstants.UNKNOWN, event);
                     break;
             }
         });

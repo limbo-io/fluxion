@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.executor.config;
+package io.fluxion.server.core.execution;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
 import io.fluxion.common.utils.json.JacksonTypeIdResolver;
-import io.fluxion.server.core.executor.option.DispatchOption;
 import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
- * 任务执行器
+ * 执行配置
  *
  * @author Devil
  */
@@ -37,32 +35,17 @@ import lombok.NoArgsConstructor;
 )
 @JsonTypeIdResolver(JacksonTypeIdResolver.class)
 @Data
-@NoArgsConstructor
-public abstract class ExecutorConfig implements ValidatableConfig {
-
+public abstract class ExecuteConfig implements ValidatableConfig {
     /**
-     * 类型
+     * 触发方式
      *
-     * @see Type
+     * @see ExecuteType
      */
     private String type;
 
-    /**
-     * 所属应用
-     */
-    private String appId;
-
-    /**
-     * 下发属性
-     */
-    private DispatchOption dispatchOption;
-
-    public abstract String executorName();
-
-    public interface Type {
-        String CUSTOM = "custom";
-        String PYTHON_SCRIPT = "python_script";
-        String SHELL_SCRIPT = "shell_script";
+    public ExecuteType type() {
+        return ExecuteType.parse(type);
     }
 
+    public abstract String executeId();
 }

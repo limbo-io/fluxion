@@ -86,7 +86,6 @@ public class AppCommandService {
     public AppBrokerElectCmd.Response handle(AppBrokerElectCmd cmd) {
         String appId = cmd.getAppId();
         List<BrokerNode> nodes = brokerManger.allAlive();
-        Client client = BrokerContext.broker().client();
         String lockName = String.format(ELECT_LOCK, appId);
         for (int i = 0; i < ELECT_RETRY_TIMES; i++) {
             // 锁外先做一次，减少DB锁
@@ -114,7 +113,7 @@ public class AppCommandService {
                 }
                 // 已经绑定其它节点为broker，判断其是否存活
                 if (StringUtils.isNotBlank(entity.getBrokerId())) {
-                    Boolean pong = client.call(API_BROKER_PING, node.host(), node.port(), new BrokerPingRequest());
+                    Boolean pong = BrokerContext.call(API_BROKER_PING, node.host(), node.port(), new BrokerPingRequest());
                     if (BooleanUtils.isTrue(pong)) {
                         return new AppBrokerElectCmd.Response(node, true, brokerManger.allAlive());
                     }
@@ -124,7 +123,7 @@ public class AppCommandService {
                 // 节点非存活状态，首次选举或者重新进行选举
                 BrokerNode elect = brokerManger.elect(appId);
                 if (!BrokerContext.broker().id().equals(elect.id())) {
-                    Boolean pong = client.call(API_BROKER_PING, elect.host(), elect.port(), new BrokerPingRequest());
+                    Boolean pong = BrokerContext.call(API_BROKER_PING, elect.host(), elect.port(), new BrokerPingRequest());
                     if (BooleanUtils.isNotTrue(pong)) {
                         nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), elect.id())).collect(Collectors.toList());
                         continue;

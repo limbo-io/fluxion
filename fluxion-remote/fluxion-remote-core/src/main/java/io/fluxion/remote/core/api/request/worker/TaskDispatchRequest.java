@@ -18,7 +18,6 @@ package io.fluxion.remote.core.api.request.worker;
 
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.Response;
-import io.fluxion.remote.core.constants.ExecuteType;
 
 /**
  * dispatch to worker
@@ -33,13 +32,6 @@ public class TaskDispatchRequest implements Request<Response<Boolean>> {
     private String brokerAddress;
 
     /**
-     * 执行方式
-     *
-     * @see ExecuteType
-     */
-    private String executeType;
-
-    /**
      * 执行器的名称
      */
     private String executorName;
@@ -50,14 +42,6 @@ public class TaskDispatchRequest implements Request<Response<Boolean>> {
 
     public void setTaskId(String taskId) {
         this.taskId = taskId;
-    }
-
-    public String getExecuteType() {
-        return executeType;
-    }
-
-    public void setExecuteType(String executeType) {
-        this.executeType = executeType;
     }
 
     public String getExecutorName() {

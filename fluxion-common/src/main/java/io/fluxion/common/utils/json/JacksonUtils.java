@@ -66,7 +66,6 @@ public class JacksonUtils {
 //        javaTimeModule.addDeserializer(LocalDate.class, new LocalDateDeserializer(DateTimeFormatter.ofPattern(Formatters.YMD_HMS)));
 //        javaTimeModule.addSerializer(LocalTime.class, new LocalTimeSerializer(DateTimeFormatter.ofPattern(Formatters.YMD_HMS)));
 //        javaTimeModule.addDeserializer(LocalTime.class, new LocalTimeDeserializer(DateTimeFormatter.ofPattern(Formatters.YMD_HMS)));
-//        module.addDeserializer(Duration.class, DurationDeserializer.INSTANCE);
 
         //在反序列化时忽略在 json 中存在但 Java 对象不存在的属性
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,38 +14,30 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.start.api.trigger.request;
+package io.fluxion.server.core.execution.config;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.core.execution.ExecuteType;
-import io.fluxion.server.core.trigger.Trigger;
-import io.fluxion.server.core.trigger.TriggerConfig;
-import io.fluxion.server.core.trigger.TriggerType;
 import lombok.Data;
-
-import javax.validation.constraints.NotBlank;
+import lombok.EqualsAndHashCode;
 
 /**
+ * 基于调度配置执行后续
+ *
  * @author Devil
  */
+@EqualsAndHashCode(callSuper = true)
 @Data
-public class TriggerCreateRequest {
-
-    @NotBlank
-    private String name;
-
+@JsonTypeName(ExecuteType.Val.FLOW)
+public class FlowExecuteConfig extends ExecuteConfig {
     /**
-     * 触发方式
-     *
-     * @see TriggerType
+     * 流程ID
      */
-    @NotBlank
-    private String type;
+    private String flowId;
 
-    private TriggerConfig triggerConfig;
-
-    private ExecuteConfig executeConfig;
-
-    private String description;
-
+    @Override
+    public String executeId() {
+        return flowId;
+    }
 }

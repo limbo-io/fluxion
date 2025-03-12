@@ -16,8 +16,6 @@
 
 package io.fluxion.worker.core.task;
 
-import io.fluxion.remote.core.constants.ExecuteType;
-
 /**
  * @author Devil
  * @since 2021/7/24
@@ -29,8 +27,6 @@ public class Task {
      * 绑定的broker 基于 app 选举
      */
     private String brokerAddress;
-
-    private ExecuteType executeType;
 
     /**
      * 执行器的名称
@@ -51,14 +47,6 @@ public class Task {
 
     public void setExecutorName(String executorName) {
         this.executorName = executorName;
-    }
-
-    public ExecuteType getExecuteType() {
-        return executeType;
-    }
-
-    public void setExecuteType(ExecuteType executeType) {
-        this.executeType = executeType;
     }
 
     public String getBrokerAddress() {

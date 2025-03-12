@@ -16,6 +16,12 @@
             <groupId>io.github.fluxion-io</groupId>
             <artifactId>fluxion-server-core</artifactId>
         </dependency>
+        <!-- 服务启动方式：Netty -->
+        <dependency>
+            <groupId>io.github.fluxion-io</groupId>
+            <artifactId>fluxion-remote-netty</artifactId>
+        </dependency>
+        <!-- Worker同时加载进来 -->
         <dependency>
             <groupId>io.github.fluxion-io</groupId>
             <artifactId>fluxion-worker-spring-boot-starter</artifactId>

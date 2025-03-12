@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.broker;
 
-import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.cluster.NodeManger;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -46,7 +45,7 @@ public class BrokerManger implements NodeManger<BrokerNode> {
     public void online(BrokerNode node) {
         nodes.putIfAbsent(node.id(), node);
         if (log.isDebugEnabled()) {
-            log.debug("[LocalNodeManger] online {}", JacksonUtils.toJSONString(nodes));
+            log.debug("[BrokerManger] online {}", nodes);
         }
     }
 
@@ -56,7 +55,7 @@ public class BrokerManger implements NodeManger<BrokerNode> {
     public void offline(BrokerNode node) {
         nodes.remove(node.id());
         if (log.isDebugEnabled()) {
-            log.debug("[LocalNodeManger] offline {}", JacksonUtils.toJSONString(nodes));
+            log.debug("[BrokerManger] offline {}", nodes);
         }
     }
 
@@ -78,7 +77,7 @@ public class BrokerManger implements NodeManger<BrokerNode> {
     @Override
     public List<BrokerNode> allAlive() {
         if (nodes.isEmpty() && log.isDebugEnabled()) {
-            log.debug("[LocalNodeManger] allAlive {}", JacksonUtils.toJSONString(nodes));
+            log.debug("[BrokerManger] allAlive {}", nodes);
         }
         return new ArrayList<>(nodes.values());
     }

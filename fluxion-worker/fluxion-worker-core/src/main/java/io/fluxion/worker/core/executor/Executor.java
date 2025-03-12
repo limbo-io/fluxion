@@ -17,6 +17,7 @@
 package io.fluxion.worker.core.executor;
 
 
+import io.fluxion.remote.core.constants.ExecutorType;
 import io.fluxion.worker.core.task.Task;
 
 /**
@@ -41,5 +42,7 @@ public interface Executor {
     default String name() {
         return this.getClass().getName();
     }
+
+    ExecutorType type();
 
 }

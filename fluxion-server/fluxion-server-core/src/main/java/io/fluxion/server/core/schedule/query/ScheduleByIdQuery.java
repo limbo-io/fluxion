@@ -27,7 +27,6 @@ import lombok.NoArgsConstructor;
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class ScheduleByIdQuery implements IQuery<ScheduleByIdQuery.Response> {

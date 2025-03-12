@@ -24,12 +24,12 @@ import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayLoadCmd;
 import io.fluxion.server.core.schedule.converter.ScheduleDelayEntityConverter;
 import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleDelayEntityRepo;
 import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
-import io.fluxion.server.infrastructure.schedule.task.DelayedTask;
 import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.CommandHandler;
@@ -38,7 +38,6 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * @author Devil
@@ -78,35 +77,31 @@ public class ScheduleDelayCommandService {
         delayedTaskScheduler.schedule(DelayedTaskFactory.create(
             delay.id(),
             delay.getId().getTriggerAt(),
-            new Consumer<DelayedTask>() {
-                @Override
-                public void accept(DelayedTask task) {
-                    // 移除不需要调度的
-                    Trigger trigger = Query.query(new TriggerByIdQuery(scheduleId)).getTrigger();
-                    if (!trigger.isEnabled()) {
-                        log.info("Trigger is not enabled id:{}", scheduleId);
-                        task.stop();
-                        return;
-                    }
-                    // 非当前节点的，可能重新分配给其他了
-                    if (!Objects.equals(BrokerContext.broker().id(), delay.getBrokerId())) {
-                        log.info("ScheduleDelay is not schedule by current broker scheduleId:{} brokerId:{} currentBrokerId:{}",
-                            scheduleId, delay.getBrokerId(), BrokerContext.broker().id()
-                        );
-                        task.stop();
-                        return;
-                    }
-                    // 创建执行记录
-                    Execution execution = Cmd.send(new ExecutionCreateCmd(
-                        trigger.getId(),
-                        Trigger.Type.SCHEDULE,
-                        trigger.getRefId(),
-                        trigger.getRefType(),
-                        task.triggerAt()
-                    )).getExecution();
-                    // 异步执行
-                    CommonThreadPool.IO.submit(execution::execute);
+            task -> {
+                // 移除不需要调度的
+                Trigger trigger = Query.query(new TriggerByIdQuery(scheduleId)).getTrigger();
+                if (!trigger.isEnabled()) {
+                    log.info("Trigger is not enabled id:{}", scheduleId);
+                    task.stop();
+                    return;
                 }
+                // 非当前节点的，可能重新分配给其他了
+                if (!Objects.equals(BrokerContext.broker().id(), delay.getBrokerId())) {
+                    log.info("ScheduleDelay is not schedule by current broker scheduleId:{} brokerId:{} currentBrokerId:{}",
+                        scheduleId, delay.getBrokerId(), BrokerContext.broker().id()
+                    );
+                    task.stop();
+                    return;
+                }
+                // 创建执行记录
+                Execution execution = Cmd.send(new ExecutionCreateCmd(
+                    trigger.getId(),
+                    TriggerType.SCHEDULE,
+                    trigger.getExecuteConfig(),
+                    task.triggerAt()
+                )).getExecution();
+                // 异步执行
+                CommonThreadPool.IO.submit(execution::execute);
             }
         ));
     }

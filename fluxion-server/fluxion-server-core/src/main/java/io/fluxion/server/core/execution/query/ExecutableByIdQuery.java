@@ -17,7 +17,7 @@
 package io.fluxion.server.core.execution.query;
 
 import io.fluxion.server.core.execution.Executable;
-import io.fluxion.server.core.execution.ExecutionRefType;
+import io.fluxion.server.core.execution.ExecuteType;
 import io.fluxion.server.infrastructure.cqrs.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,7 +35,7 @@ public class ExecutableByIdQuery implements IQuery<ExecutableByIdQuery.Response>
 
     private String id;
 
-    private ExecutionRefType type;
+    private ExecuteType type;
 
     @Getter
     @AllArgsConstructor

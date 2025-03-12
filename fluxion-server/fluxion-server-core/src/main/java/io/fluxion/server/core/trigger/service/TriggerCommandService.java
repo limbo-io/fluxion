@@ -26,6 +26,8 @@ import io.fluxion.server.core.schedule.cmd.ScheduleEnableCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleUpdateCmd;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
 import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.TriggerConfig;
+import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.core.trigger.cmd.TriggerCreateCmd;
 import io.fluxion.server.core.trigger.cmd.TriggerDeleteCmd;
 import io.fluxion.server.core.trigger.cmd.TriggerDisableCmd;
@@ -73,27 +75,24 @@ public class TriggerCommandService {
         String id = Cmd.send(new IDGenerateCmd(IDType.TRIGGER)).getId();
         TriggerEntity entity = new TriggerEntity();
         entity.setTriggerId(id);
-        entity.setType(trigger.getConfig().getType());
-        entity.setRefId(trigger.getRefId());
-        entity.setRefType(trigger.getRefType().value);
+        entity.setType(trigger.getType().value);
+        entity.setExecuteConfig(JacksonUtils.toJSONString(trigger.getExecuteConfig()));
+        entity.setName(trigger.getName());
         entity.setDescription(trigger.getDescription());
-        entity.setConfig(JacksonUtils.toJSONString(trigger.getConfig()));
+        entity.setTriggerConfig(JacksonUtils.toJSONString(trigger.getTriggerConfig()));
         entity.setEnabled(false);
         triggerEntityRepo.saveAndFlush(entity);
 
         // 后续逻辑
-        switch (trigger.getConfig().getType()) {
-            case Trigger.Type.SCHEDULE:
-                ScheduleTriggerConfig scheduleTrigger = (ScheduleTriggerConfig) trigger.getConfig();
+        switch (trigger.getType()) {
+            case SCHEDULE:
+                ScheduleTriggerConfig scheduleTrigger = (ScheduleTriggerConfig) trigger.getTriggerConfig();
                 ScheduleOption scheduleOption = scheduleTrigger.getScheduleOption();
-                Schedule schedule = Query.query(new ScheduleByIdQuery()).getSchedule();
-                if (schedule == null) {
-                    schedule = new Schedule();
-                    schedule.setEnabled(false);
-                    schedule.setId(id);
-                    schedule.setOption(scheduleOption);
-                    Cmd.send(new ScheduleCreateCmd(schedule));
-                }
+                Schedule schedule = new Schedule();
+                schedule.setEnabled(false);
+                schedule.setId(id);
+                schedule.setOption(scheduleOption);
+                Cmd.send(new ScheduleCreateCmd(schedule));
                 break;
         }
 
@@ -108,20 +107,24 @@ public class TriggerCommandService {
         CriteriaUpdate<TriggerEntity> update = cb.createCriteriaUpdate(TriggerEntity.class);
         Root<TriggerEntity> root = update.from(TriggerEntity.class);
 
-        update.set(Lambda.name(TriggerEntity::getRefId), StringUtils.defaultIfBlank(trigger.getRefId(), StringUtils.EMPTY));
-        update.set(Lambda.name(TriggerEntity::getRefType), trigger.getRefType().value);
+        update.set(Lambda.name(TriggerEntity::getExecuteConfig), JacksonUtils.toJSONString(trigger.getExecuteConfig()));
         update.set(Lambda.name(TriggerEntity::getDescription), StringUtils.defaultIfBlank(trigger.getDescription(), StringUtils.EMPTY));
-        update.set(Lambda.name(TriggerEntity::getConfig), JacksonUtils.toJSONString(trigger.getConfig()));
+        update.set(Lambda.name(TriggerEntity::getTriggerConfig), JacksonUtils.toJSONString(trigger.getTriggerConfig()));
+        update.set(Lambda.name(TriggerEntity::getName), trigger.getName());
 
         update.where(cb.equal(root.get(Lambda.name(TriggerEntity::getTriggerId)), trigger.getId()));
-        entityManager.createQuery(update).executeUpdate();
+        update.where(cb.equal(root.get(Lambda.name(TriggerEntity::getType)), trigger.getType()));
+        int rows = entityManager.createQuery(update).executeUpdate();
+        if (rows <= 0) {
+            return;
+        }
 
         // 后续逻辑
-        switch (trigger.getConfig().getType()) {
-            case Trigger.Type.SCHEDULE:
-                ScheduleTriggerConfig scheduleTrigger = (ScheduleTriggerConfig) trigger.getConfig();
+        switch (trigger.getType()) {
+            case SCHEDULE:
+                ScheduleTriggerConfig scheduleTrigger = (ScheduleTriggerConfig) trigger.getTriggerConfig();
                 ScheduleOption scheduleOption = scheduleTrigger.getScheduleOption();
-                Schedule schedule = Query.query(new ScheduleByIdQuery()).getSchedule();
+                Schedule schedule = Query.query(new ScheduleByIdQuery(trigger.getId())).getSchedule();
                 schedule.setOption(scheduleOption);
                 Cmd.send(new ScheduleUpdateCmd(schedule));
                 break;
@@ -129,9 +132,12 @@ public class TriggerCommandService {
     }
 
     private void triggerSaveCheck(Trigger trigger) {
-        Trigger.Config config = trigger.getConfig();
+        TriggerConfig config = trigger.getTriggerConfig();
         if (config == null) {
             throw new PlatformException(ErrorCode.PARAM_ERROR, "config is null");
+        }
+        if (trigger.getType() != config.type()) {
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "config type not match");
         }
         List<ValidateSuppressInfo> suppressInfos = config.validate();
         if (CollectionUtils.isNotEmpty(suppressInfos)) {
@@ -145,9 +151,9 @@ public class TriggerCommandService {
         TriggerEntity entity = findByIdWithNullError(cmd.getId());
         triggerEntityRepo.updateEnable(cmd.getId(), true);
         // 后续逻辑
-        Trigger.Config config = JacksonUtils.toType(entity.getConfig(), Trigger.Config.class);
-        switch (config.getType()) {
-            case Trigger.Type.SCHEDULE:
+        TriggerType type = TriggerType.parse(entity.getType());
+        switch (type) {
+            case SCHEDULE:
                 Cmd.send(new ScheduleEnableCmd(entity.getTriggerId()));
                 break;
         }
@@ -158,9 +164,9 @@ public class TriggerCommandService {
         TriggerEntity entity = findByIdWithNullError(cmd.getId());
         triggerEntityRepo.updateEnable(cmd.getId(), false);
         // 后续逻辑
-        Trigger.Config config = JacksonUtils.toType(entity.getConfig(), Trigger.Config.class);
-        switch (config.getType()) {
-            case Trigger.Type.SCHEDULE:
+        TriggerType type = TriggerType.parse(entity.getType());
+        switch (type) {
+            case SCHEDULE:
                 Cmd.send(new ScheduleDisableCmd(entity.getTriggerId()));
                 break;
         }
@@ -180,9 +186,9 @@ public class TriggerCommandService {
         entityManager.createQuery(update).executeUpdate();
 
         // 后续逻辑
-        Trigger.Config config = JacksonUtils.toType(entity.getConfig(), Trigger.Config.class);
-        switch (config.getType()) {
-            case Trigger.Type.SCHEDULE:
+        TriggerType type = TriggerType.parse(entity.getType());
+        switch (type) {
+            case SCHEDULE:
                 Cmd.send(new ScheduleDeleteCmd(entity.getTriggerId()));
                 break;
         }
