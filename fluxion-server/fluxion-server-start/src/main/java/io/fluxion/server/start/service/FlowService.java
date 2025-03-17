@@ -80,7 +80,7 @@ public class FlowService {
             return null;
         }
         if (StringUtils.isBlank(versionId)) {
-            versionId = StringUtils.defaultString(flowEntity.getDraftVersion(), flowEntity.getRunVersion());
+            versionId = StringUtils.defaultIfBlank(flowEntity.getDraftVersion(), flowEntity.getRunVersion());
         }
         Version version = Query.query(VersionByIdQuery.builder()
             .refId(flowId)

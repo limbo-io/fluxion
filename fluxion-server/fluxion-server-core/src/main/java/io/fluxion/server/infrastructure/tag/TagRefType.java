@@ -28,19 +28,19 @@ public enum TagRefType {
     ;
 
     @JsonValue
-    public final int value;
+    public final String value;
 
 
-    TagRefType(int value) {
+    TagRefType(String value) {
         this.value = value;
     }
 
-    public boolean is(Number value) {
-        return value != null && value.intValue() == this.value;
+    public boolean is(String value) {
+        return this.value.equals(value);
     }
 
     @JsonCreator
-    public static TagRefType parse(Number value) {
+    public static TagRefType parse(String value) {
         for (TagRefType v : values()) {
             if (v.is(value)) {
                 return v;

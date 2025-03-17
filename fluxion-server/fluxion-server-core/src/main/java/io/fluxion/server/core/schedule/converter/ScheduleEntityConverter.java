@@ -66,9 +66,11 @@ public class ScheduleEntityConverter {
         }
         Schedule schedule = new Schedule();
         schedule.setId(entity.getScheduleId());
+        schedule.setBrokerId(entity.getBrokerId());
         schedule.setOption(toOption(entity));
         schedule.setLastTriggerAt(entity.getLastTriggerAt());
         schedule.setLastFeedbackAt(entity.getLastFeedbackAt());
+        schedule.setNextTriggerAt(entity.getNextTriggerAt());
         schedule.setEnabled(entity.isEnabled());
         return schedule;
     }

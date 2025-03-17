@@ -17,7 +17,6 @@
 package io.fluxion.server.core.broker;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.api.Response;
 
 /**
  * @author Devil
@@ -35,8 +34,8 @@ public class BrokerContext {
         BrokerContext.broker = broker;
     }
 
-    public static <R> R call(String path, String host, int port, Request<Response<R>> request) {
-        return broker().client().call(path, host, port, request);
+    public static <R> R call(String path, String host, int port, Request<R> request) {
+        return broker().client().call(path, host, port, request).getData();
     }
 
 }

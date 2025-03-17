@@ -25,5 +25,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface TagEntityRepo extends JpaRepository<TagEntity, TagEntity.ID> {
 
-    int deleteById_RefIdAndId_RefType(String refId, int refType);
+    int deleteById_RefIdAndId_RefType(String refId, String refType);
 }

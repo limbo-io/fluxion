@@ -138,7 +138,7 @@ public class JacksonUtils {
             JavaType javaType = TypeFactory.defaultInstance().constructType(type);
             return MAPPER.readValue(json, javaType);
         } catch (Exception e) {
-            throw new IllegalStateException("Jackson deserialization fail！json:" + json, e);
+            throw new IllegalStateException("Jackson deserialization fail！type:" + type + " json:" + json, e);
         }
     }
 
@@ -153,7 +153,7 @@ public class JacksonUtils {
         try {
             return MAPPER.readValue(json, type);
         } catch (Exception e) {
-            throw new IllegalStateException("Jackson deserialization fail！json:" + json, e);
+            throw new IllegalStateException("Jackson deserialization fail！type:" + type + "json:" + json, e);
         }
     }
 

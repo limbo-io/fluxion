@@ -58,7 +58,7 @@ public abstract class LBClient {
      * @param path    path
      * @param request request
      */
-    public abstract <R> R call(String path, Request<Response<R>> request);
+    public abstract <R> Response<R> call(String path, Request<R> request);
 
     /**
      * Protocol used by the client

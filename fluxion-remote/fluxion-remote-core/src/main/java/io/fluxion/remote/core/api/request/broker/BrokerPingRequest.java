@@ -17,7 +17,6 @@
 package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.api.Response;
 
 /**
  * ping broker
@@ -25,5 +24,5 @@ import io.fluxion.remote.core.api.Response;
  * @author Devil
  * @since 2023/8/3
  */
-public class BrokerPingRequest implements Request<Response<Boolean>> {
+public class BrokerPingRequest implements Request<Boolean> {
 }

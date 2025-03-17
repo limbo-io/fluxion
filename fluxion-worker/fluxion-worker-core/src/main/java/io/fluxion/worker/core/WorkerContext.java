@@ -18,7 +18,6 @@ package io.fluxion.worker.core;
 
 import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.RetryableClient;
@@ -27,8 +26,6 @@ import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.tracker.TaskTracker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -121,7 +118,7 @@ public class WorkerContext {
         this.client = RetryableClient.builder()
             .client(ClientFactory.create(protocol))
             .build();
-        this.status = new AtomicReference<>();
+        this.status = new AtomicReference<>(WorkerStatus.IDLE);
         this.address = host + ":" + port;
     }
 
@@ -212,8 +209,8 @@ public class WorkerContext {
         return protocol;
     }
 
-    public <R> R call(String path, Request<Response<R>> request) {
-        return client.call(path, broker.host(), broker.port(), request);
+    public <R> R call(String path, Request<R> request) {
+        return client.call(path, broker.host(), broker.port(), request).getData();
     }
 
     public void broker(Node broker) {

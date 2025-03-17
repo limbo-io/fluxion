@@ -47,7 +47,7 @@ public class RetryableLBClient extends LBClient {
     }
 
     @Override
-    public <R> R call(String path, Request<Response<R>> request) {
+    public <R> Response<R> call(String path, Request<R> request) {
         List<LBServer> servers = servers();
         if (CollectionUtils.isEmpty(servers)) {
             throw new IllegalStateException("No alive servers!");

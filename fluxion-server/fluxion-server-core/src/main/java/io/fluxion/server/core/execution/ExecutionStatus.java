@@ -25,7 +25,7 @@ import io.fluxion.common.constants.CommonConstants;
  * @author Devil
  */
 public enum ExecutionStatus {
-    UNKNOWN(CommonConstants.UNKNOWN_STR),
+    UNKNOWN(CommonConstants.UNKNOWN),
     /**
      * 已经创建 等待下发
      */

@@ -26,7 +26,7 @@ import io.fluxion.remote.core.constants.ExecutorType;
  * @author Devil
  * @since 2023/8/3
  */
-public class SubTaskDispatchRequest implements Request<Response<Boolean>> {
+public class SubTaskDispatchRequest implements Request<Boolean> {
 
     private String taskId;
 

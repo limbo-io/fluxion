@@ -30,49 +30,49 @@ public enum WorkerStatus {
     /**
      * 闲置
      */
-    IDLE(1),
+    IDLE("idle"),
     /**
      * 初始化中
      */
-    INITIALIZING(2),
+    INITIALIZING("initializing"),
     /**
      * Worker正常运行中
      */
-    RUNNING(3),
+    RUNNING("running"),
 
     /**
      * Worker熔断中，此状态的Worker无法接受作业，并将等待心跳重连并复活。
      */
-    FUSING(4),
+    FUSING("fusing"),
 
     /**
      * 关闭中
      */
-    TERMINATING(5),
+    TERMINATING("terminating"),
 
     /**
      * Worker已停止。
      */
-    TERMINATED(6),
+    TERMINATED("terminated"),
 
     ;
 
     @JsonValue
-    public final int status;
+    public final String status;
 
-    WorkerStatus(int status) {
+    WorkerStatus(String status) {
         this.status = status;
     }
 
-    public boolean is(Number status) {
-        return status != null && status.intValue() == this.status;
+    public boolean is(String status) {
+        return this.status.equals(status);
     }
 
     /**
      * 解析worker状态
      */
     @JsonCreator
-    public static WorkerStatus parse(Number status) {
+    public static WorkerStatus parse(String status) {
         for (WorkerStatus statusEnum : values()) {
             if (statusEnum.is(status)) {
                 return statusEnum;
@@ -82,7 +82,7 @@ public enum WorkerStatus {
     }
 
     public boolean isRunning() {
-        return status == RUNNING.status;
+        return is(RUNNING.status);
     }
 
 }

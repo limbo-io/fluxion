@@ -24,7 +24,7 @@ import io.fluxion.common.constants.CommonConstants;
  * @author Devil
  */
 public enum TriggerType {
-    UNKNOWN(CommonConstants.UNKNOWN_STR),
+    UNKNOWN(CommonConstants.UNKNOWN),
     SCHEDULE(Val.SCHEDULE),
     ;
 

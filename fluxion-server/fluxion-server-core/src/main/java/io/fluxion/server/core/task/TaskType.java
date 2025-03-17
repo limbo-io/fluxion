@@ -25,24 +25,24 @@ import io.fluxion.common.constants.CommonConstants;
  */
 public enum TaskType {
     UNKNOWN(CommonConstants.UNKNOWN),
-    INPUT_OUTPUT(1),
-    EXECUTOR(2),
+    INPUT_OUTPUT("input_output"),
+    EXECUTOR("executor"),
     ;
 
     @JsonValue
-    public final int value;
+    public final String value;
 
 
-    TaskType(int value) {
+    TaskType(String value) {
         this.value = value;
     }
 
-    public boolean is(Number value) {
-        return value != null && value.intValue() == this.value;
+    public boolean is(String value) {
+        return this.value.equals(value);
     }
 
     @JsonCreator
-    public static TaskType parse(Number value) {
+    public static TaskType parse(String value) {
         for (TaskType v : values()) {
             if (v.is(value)) {
                 return v;

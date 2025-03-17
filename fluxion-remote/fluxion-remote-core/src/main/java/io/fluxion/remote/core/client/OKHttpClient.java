@@ -16,6 +16,7 @@
 
 package io.fluxion.remote.core.client;
 
+import com.fasterxml.jackson.databind.JavaType;
 import com.google.common.net.HttpHeaders;
 import io.fluxion.common.utils.ReflectionUtils;
 import io.fluxion.common.utils.json.JacksonUtils;
@@ -54,12 +55,13 @@ public class OKHttpClient implements Client {
     }
 
     @Override
-    public <R> R call(URL url, Request<io.fluxion.remote.core.api.Response<R>> request) {
+    public <R> io.fluxion.remote.core.api.Response<R> call(URL url, Request<R> request) {
         try {
             ResponseBody responseBody = executePost(url, request);
-            Class<io.fluxion.remote.core.api.Response<R>> responseType = ReflectionUtils.refType(request);
-            io.fluxion.remote.core.api.Response<R> response = JacksonUtils.toType(responseBody.string(), responseType);
-            return response.getData();
+            Class<R> resultClass = ReflectionUtils.refType(request);
+            JavaType responseType = JacksonUtils.MAPPER.getTypeFactory()
+                .constructParametricType(io.fluxion.remote.core.api.Response.class, resultClass);
+            return JacksonUtils.toType(responseBody.string(), responseType);
         } catch (IOException e) {
             throw new RpcException("Api access failed " + logRequest(url, JacksonUtils.toJSONString(request)), e);
         }

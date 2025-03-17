@@ -24,7 +24,7 @@ import io.fluxion.common.constants.CommonConstants;
  * @author Devil
  */
 public enum ExecuteType {
-    UNKNOWN(CommonConstants.UNKNOWN_STR),
+    UNKNOWN(CommonConstants.UNKNOWN),
     FLOW(Val.FLOW),
     EXECUTOR(Val.EXECUTOR),
     ;

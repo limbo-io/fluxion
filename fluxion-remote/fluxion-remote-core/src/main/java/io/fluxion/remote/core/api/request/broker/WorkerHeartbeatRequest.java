@@ -17,7 +17,6 @@
 package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
 
@@ -27,7 +26,7 @@ import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
  * @author Devil
  * @since 2023/8/3
  */
-public class WorkerHeartbeatRequest implements Request<Response<WorkerHeartbeatResponse>> {
+public class WorkerHeartbeatRequest implements Request<WorkerHeartbeatResponse> {
 
     private String appId;
 

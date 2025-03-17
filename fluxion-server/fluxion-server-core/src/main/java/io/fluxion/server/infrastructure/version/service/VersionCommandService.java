@@ -100,7 +100,7 @@ public class VersionCommandService {
             .setParameter("refId", refId)
             .setParameter("refType", refType)
             .setMaxResults(1)
-            .getSingleResult();
+            .getResultList().stream().findFirst().orElse(null);
         long version = 1L;
         if (last != null) {
             version = Long.parseLong(last.getId().getVersion()) + 1;

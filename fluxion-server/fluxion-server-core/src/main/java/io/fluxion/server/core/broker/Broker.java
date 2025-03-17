@@ -19,9 +19,9 @@ package io.fluxion.server.core.broker;
 import com.google.common.collect.Lists;
 import io.fluxion.common.constants.CommonConstants;
 import io.fluxion.common.thread.NamedThreadFactory;
-import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
+import io.fluxion.remote.core.client.server.ClientServer;
 import io.fluxion.remote.core.cluster.NodeRegistry;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.task.CoreTask;
@@ -55,6 +55,11 @@ public class Broker {
 
     private final Client client;
 
+    /**
+     * Client服务
+     */
+    private final ClientServer clientServer;
+
     private final ScheduledExecutorService coreThreadPool;
 
     private final List<CoreTask> coreTasks;
@@ -62,7 +67,7 @@ public class Broker {
     private final DelayedTaskScheduler delayedTaskScheduler;
 
     public Broker(Protocol protocol, String host, int port, NodeRegistry<BrokerNode> registry,
-                  BrokerManger manger, DistributedLock distributedLock) {
+                  BrokerManger manger, ClientServer clientServer, DistributedLock distributedLock) {
         Assert.isTrue(Protocol.UNKNOWN != protocol, "protocol is unknown");
         Assert.isTrue(StringUtils.isNotBlank(host), "host is null");
 
@@ -75,6 +80,7 @@ public class Broker {
             new ScheduleCheckTask(10, TimeUnit.SECONDS, distributedLock),
             new DataCleaner(30, TimeUnit.DAYS)
         );
+        this.clientServer = clientServer;
         this.coreThreadPool = new ScheduledThreadPoolExecutor(
             coreTasks.size(),
             NamedThreadFactory.newInstance("FluxionBrokerCoreExecutor")
@@ -86,6 +92,7 @@ public class Broker {
      * 启动节点
      */
     public void start() {
+        clientServer.start();
         // 将自己上线管理
         manger.online(node);
         // 节点注册 用于集群感知
@@ -134,6 +141,7 @@ public class Broker {
     public void stop() {
         registry.stop();
         coreThreadPool.shutdown();
+        clientServer.stop();
     }
 
     public String id() {

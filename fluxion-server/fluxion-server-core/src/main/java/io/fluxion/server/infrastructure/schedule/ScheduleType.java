@@ -35,7 +35,7 @@ public enum ScheduleType {
     /**
      * unknown 不应该出现
      */
-    UNKNOWN(CommonConstants.UNKNOWN_STR),
+    UNKNOWN(CommonConstants.UNKNOWN),
 
     /**
      * 固定速度，作业创建后，每次调度下发后，间隔固定时间长度后，再次触发作业调度。

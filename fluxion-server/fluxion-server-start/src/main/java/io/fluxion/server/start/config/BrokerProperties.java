@@ -38,7 +38,7 @@ public class BrokerProperties {
      * 提供给worker的服务 port
      * 如果未指定此配置，则尝试使用 ${server.port} 配置；如 ${server.port} 配置也不存在，则使用 8080，
      */
-    private Integer port;
+    private Integer port = 9785;
 
     /**
      * RPC 通信协议类型。默认为 http。

@@ -51,7 +51,7 @@ public class TaskEntity extends BaseEntity {
     /**
      * @see TaskType
      */
-    private int type;
+    private String type;
 
     /**
      * 关联的 id
@@ -65,10 +65,10 @@ public class TaskEntity extends BaseEntity {
      *
      * @see TaskStatus
      */
-    private Integer status;
+    private String status;
 
     /**
-     * 开始时间
+     * 应该触发的时间
      */
     private LocalDateTime triggerAt;
 
@@ -101,11 +101,6 @@ public class TaskEntity extends BaseEntity {
      * 当前是第几次重试
      */
     private Integer retryTimes;
-
-    /**
-     * 错误信息
-     */
-    private String errorMsg;
 
     @Override
     public Object getUid() {

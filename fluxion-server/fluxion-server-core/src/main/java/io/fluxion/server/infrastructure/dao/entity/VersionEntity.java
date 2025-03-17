@@ -72,7 +72,7 @@ public class VersionEntity extends BaseEntity {
         /**
          * @see VersionRefType
          */
-        private int refType;
+        private String refType;
 
         private String version;
     }

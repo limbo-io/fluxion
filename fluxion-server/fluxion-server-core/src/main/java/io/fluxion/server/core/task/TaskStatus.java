@@ -28,46 +28,46 @@ public enum TaskStatus {
     /**
      * 已经创建 等待下发
      */
-    CREATED(1),
+    CREATED("created"),
     /**
      * 队列中
      * 已下发给worker
      */
-    QUEUED(2),
+    QUEUED("queued"),
     /**
      * 运行中
      */
-    RUNNING(3),
-    SUCCEED(4),
-    FAILED(5), // worker拒绝，进入容错策略 失败次数不增加 TERMINATED 作业被手动终止 不再增加一个状态 而是写入 errMsg
+    RUNNING("running"),
+    SUCCEED("succeed"),
+    FAILED("failed"), // worker拒绝，进入容错策略 失败次数不增加 TERMINATED 作业被手动终止 不再增加一个状态 而是写入 errMsg
     /**
      * 重试 调度中
      */
-    RESTARTED(6),
+    RESTARTED("restarted"),
     /**
      * 取消
      */
-    CANCELLED(7),
+    CANCELLED("cancelled"),
     /**
      * 暂停
      */
-    PAUSED(8),
+    PAUSED("paused"),
     ;
 
     @JsonValue
-    public final int value;
+    public final String value;
 
 
-    TaskStatus(int type) {
+    TaskStatus(String type) {
         this.value = type;
     }
 
-    public boolean is(Number type) {
-        return type != null && type.intValue() == this.value;
+    public boolean is(String type) {
+        return this.value.equals(type);
     }
 
     @JsonCreator
-    public static TaskStatus parse(Number value) {
+    public static TaskStatus parse(String value) {
         for (TaskStatus v : values()) {
             if (v.is(value)) {
                 return v;

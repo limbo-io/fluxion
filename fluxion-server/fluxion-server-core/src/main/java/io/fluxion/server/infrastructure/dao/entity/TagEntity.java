@@ -64,7 +64,7 @@ public class TagEntity extends BaseEntity {
         /**
          * @see TagRefType
          */
-        private int refType;
+        private String refType;
 
         /**
          * tag name

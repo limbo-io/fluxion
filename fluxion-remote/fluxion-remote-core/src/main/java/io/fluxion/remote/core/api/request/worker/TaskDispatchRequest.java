@@ -17,7 +17,6 @@
 package io.fluxion.remote.core.api.request.worker;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.api.Response;
 
 /**
  * dispatch to worker
@@ -25,7 +24,7 @@ import io.fluxion.remote.core.api.Response;
  * @author Devil
  * @since 2023/8/3
  */
-public class TaskDispatchRequest implements Request<Response<Boolean>> {
+public class TaskDispatchRequest implements Request<Boolean> {
 
     private String taskId;
 

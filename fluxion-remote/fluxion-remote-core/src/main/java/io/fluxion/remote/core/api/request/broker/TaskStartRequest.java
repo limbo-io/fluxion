@@ -17,13 +17,12 @@
 package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.api.Response;
 
 /**
  * @author Devil
  * @since 2023/8/3
  */
-public class TaskStartRequest implements Request<Response<Boolean>> {
+public class TaskStartRequest implements Request<Boolean> {
 
     private String taskId;
 

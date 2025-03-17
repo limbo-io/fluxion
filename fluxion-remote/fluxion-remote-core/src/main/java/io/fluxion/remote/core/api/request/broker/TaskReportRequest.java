@@ -17,7 +17,6 @@
 package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.api.Response;
 
 import java.time.LocalDateTime;
 
@@ -25,7 +24,7 @@ import java.time.LocalDateTime;
  * @author Devil
  * @since 2023/8/3
  */
-public class TaskReportRequest implements Request<Response<Boolean>> {
+public class TaskReportRequest implements Request<Boolean> {
 
     private String taskId;
 

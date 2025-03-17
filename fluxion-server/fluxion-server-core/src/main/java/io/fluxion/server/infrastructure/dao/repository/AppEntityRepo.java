@@ -17,7 +17,9 @@
 package io.fluxion.server.infrastructure.dao.repository;
 
 import io.fluxion.server.infrastructure.dao.entity.AppEntity;
+import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Optional;
 
@@ -25,7 +27,7 @@ import java.util.Optional;
  * @author Devil
  * @since 2022/7/18
  */
-public interface AppEntityRepo extends JpaRepository<AppEntity, String> {
+public interface AppEntityRepo extends JpaRepository<AppEntity, String>, JpaSpecificationExecutor<AppEntity> {
 
     Optional<AppEntity> findByAppName(String appName);
 }

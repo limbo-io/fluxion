@@ -49,6 +49,6 @@ public class RetryOption {
     /**
      * 重试方式
      */
-    private int retryType = RetryType.ALL.getValue();
+    private String retryType = RetryType.ALL.getValue();
 
 }

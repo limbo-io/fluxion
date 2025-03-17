@@ -28,46 +28,46 @@ public enum TagFilterCondition {
     /**
      * 存在指定名称的标签
      */
-    EXISTS(1, "存在指定名称的标签"),
+    EXISTS("exists", "存在指定名称的标签"),
 
     /**
      * 不存在指定名称的标签
      */
-    NOT_EXISTS(2, "不存在指定名称的标签"),
+    NOT_EXISTS("not_exists", "不存在指定名称的标签"),
 
     /**
      * 存在指定名称的标签且匹配指定值
      */
-    MUST_MATCH_VALUE(3, "存在指定名称的标签且匹配指定值"),
+    MUST_MATCH_VALUE("must_match_value", "存在指定名称的标签且匹配指定值"),
 
     /**
      * 存在指定名称的标签，且不匹配指定值
      */
-    MUST_NOT_MATCH_VALUE(4, "存在指定名称的标签，且不匹配指定值"),
+    MUST_NOT_MATCH_VALUE("must_not_match_value", "存在指定名称的标签，且不匹配指定值"),
 
     /**
      * 存在指定名称的标签且匹配正则表达式
      */
-    MUST_MATCH_VALUE_REGEX(5, "存在指定名称的标签且匹配正则表达式"),
+    MUST_MATCH_VALUE_REGEX("must_match_value_regex", "存在指定名称的标签且匹配正则表达式"),
     ;
 
     @JsonValue
-    public final int value;
+    public final String value;
 
     @Getter
     public final String desc;
 
-    TagFilterCondition(int value, String desc) {
+    TagFilterCondition(String value, String desc) {
         this.value = value;
         this.desc = desc;
     }
 
-    public boolean is(Number value) {
-        return value != null && value.intValue() == this.value;
+    public boolean is(String value) {
+        return this.value.equals(value);
     }
 
     @JsonCreator
-    public static TagFilterCondition parse(Number value) {
+    public static TagFilterCondition parse(String value) {
         for (TagFilterCondition v : values()) {
             if (v.is(value)) {
                 return v;

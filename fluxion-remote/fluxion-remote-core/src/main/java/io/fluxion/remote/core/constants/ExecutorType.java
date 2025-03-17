@@ -26,7 +26,7 @@ import io.fluxion.common.constants.CommonConstants;
  */
 public enum ExecutorType {
 
-    UNKNOWN(CommonConstants.UNKNOWN_STR),
+    UNKNOWN(CommonConstants.UNKNOWN),
     /**
      * 单机任务
      * 给一个节点下发的任务

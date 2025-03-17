@@ -16,14 +16,18 @@
 
 package io.fluxion.server.start.config;
 
+import io.fluxion.remote.core.client.server.AbstractClientServer;
+import io.fluxion.remote.core.client.server.ClientHandler;
+import io.fluxion.remote.core.client.server.ClientServerConfig;
+import io.fluxion.remote.core.client.server.ClientServerFactory;
 import io.fluxion.remote.core.utils.NetUtils;
 import io.fluxion.server.core.broker.Broker;
+import io.fluxion.server.core.broker.BrokerClientHandler;
 import io.fluxion.server.core.broker.BrokerManger;
 import io.fluxion.server.core.broker.DBBrokerRegistry;
 import io.fluxion.server.infrastructure.lock.DistributedLock;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -53,21 +57,25 @@ public class BrokerConfiguration {
     @Resource
     private BrokerManger brokerManger;
 
-    @Value("${server.port:8080}")
-    private Integer httpServerPort;
-
     @Bean
     public Broker broker() {
-        Integer port = brokerProperties.getPort() != null ? brokerProperties.getPort() : httpServerPort;
+        Integer port = brokerProperties.getPort();
         // 优先使用指定的 host，如未指定则自动寻找本机 IP
         String host = brokerProperties.getHost();
         if (StringUtils.isEmpty(host)) {
             host = NetUtils.getLocalIp();
         }
         Assert.isTrue(port > 0, "port must be a positive integer in range 1 ~ 65534");
+
+        // ClientServer
+        ClientServerFactory factory = ClientServerFactory.instance();
+        ClientHandler clientHandler = new BrokerClientHandler();
+        ClientServerConfig clientServerConfig = new ClientServerConfig(port, clientHandler);
+        AbstractClientServer clientServer = factory.create(clientServerConfig);
+
         Broker broker = new Broker(
             brokerProperties.getProtocol(), host, port,
-            brokerRegistry, brokerManger, distributedLock
+            brokerRegistry, brokerManger, clientServer, distributedLock
         );
         broker.start();
         return broker;

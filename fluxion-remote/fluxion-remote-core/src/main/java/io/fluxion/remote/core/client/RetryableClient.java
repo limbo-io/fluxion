@@ -46,7 +46,7 @@ public class RetryableClient implements Client {
     }
 
     @Override
-    public <R> R call(URL url, Request<Response<R>> request) {
+    public <R> Response<R> call(URL url, Request<R> request) {
         for (int i = 1; i <= retryTimes; i++) {
             try {
                 return client.call(url, request);

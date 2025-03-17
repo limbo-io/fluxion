@@ -17,7 +17,6 @@
 package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerExecutorDTO;
 import io.fluxion.remote.core.api.dto.WorkerTagDTO;
@@ -31,7 +30,7 @@ import java.util.List;
  * @author Devil
  * @since 2023/8/3
  */
-public class WorkerRegisterRequest implements Request<Response<WorkerRegisterResponse>> {
+public class WorkerRegisterRequest implements Request<WorkerRegisterResponse> {
 
     /**
      * 应用名称

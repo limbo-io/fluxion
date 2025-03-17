@@ -96,7 +96,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
         request.setTags(tagDTOS(workerContext.tags()));
         request.setExecutors(executorDTOS(workerContext));
 
-        WorkerRegisterResponse registerResponse = client.call(API_WORKER_REGISTER, request);
+        WorkerRegisterResponse registerResponse = client.call(API_WORKER_REGISTER, request).getData();
         workerContext.appId(registerResponse.getAppId());
         workerContext.broker(node(registerResponse.getBroker()));
         repository.updateServers(brokers(registerResponse.getBrokerTopology()));
@@ -112,7 +112,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
 
                 WorkerHeartbeatResponse heartbeatResponse = client.call(
                     API_WORKER_HEARTBEAT, request
-                );
+                ).getData();
                 workerContext.broker(node(heartbeatResponse.getBroker()));
                 if (heartbeatResponse.isElected()) {
                     repository.updateServers(brokers(heartbeatResponse.getBrokerTopology()));

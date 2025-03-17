@@ -16,6 +16,10 @@
 
 package io.fluxion.remote.core.api;
 
+import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
+
+import java.lang.reflect.Type;
+
 /**
  * @author Brozen
  * @since 2021-06-16
@@ -38,6 +42,12 @@ public class Response<T> {
      * 响应数据
      */
     private final T data;
+
+    Response() {
+        this.code = HttpStatus.OK;
+        this.message = SUCCESS_MSG;
+        this.data = null;
+    }
 
     Response(int code, String message, T data) {
         this.code = code;
@@ -235,6 +245,10 @@ public class Response<T> {
             return this;
         }
 
+    }
+
+    public static <R> Type r(Class<R> clazz) {
+        return new Response<R>() {}.getClass().getGenericSuperclass();
     }
 
 }

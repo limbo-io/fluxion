@@ -26,5 +26,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TaskEntityRepo extends JpaRepository<TaskEntity, String> {
 
-    TaskEntity findByExecutionIdAndRefIdAndType(String executionId, String refId, int type);
+    TaskEntity findByExecutionIdAndRefIdAndType(String executionId, String refId, String type);
 }

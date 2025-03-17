@@ -65,7 +65,7 @@ public class ScheduleDelay {
     }
 
     public enum Status {
-        UNKNOWN(CommonConstants.UNKNOWN_STR),
+        UNKNOWN(CommonConstants.UNKNOWN),
         /**
          * 刚创建
          */
