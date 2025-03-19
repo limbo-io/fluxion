@@ -18,20 +18,25 @@ package io.fluxion.server.start.config;
 
 import io.fluxion.remote.core.client.server.AbstractClientServer;
 import io.fluxion.remote.core.client.server.ClientHandler;
+import io.fluxion.remote.core.client.server.ClientServer;
 import io.fluxion.remote.core.client.server.ClientServerConfig;
 import io.fluxion.remote.core.client.server.ClientServerFactory;
+import io.fluxion.remote.core.cluster.NodeRegistry;
+import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.utils.NetUtils;
 import io.fluxion.server.core.broker.Broker;
 import io.fluxion.server.core.broker.BrokerClientHandler;
 import io.fluxion.server.core.broker.BrokerManger;
+import io.fluxion.server.core.broker.BrokerNode;
 import io.fluxion.server.core.broker.DBBrokerRegistry;
-import io.fluxion.server.infrastructure.lock.DistributedLock;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.axonframework.spring.event.AxonStartedEvent;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.EventListener;
 import org.springframework.util.Assert;
 
 import javax.annotation.Resource;
@@ -47,9 +52,6 @@ public class BrokerConfiguration {
 
     @Resource
     private BrokerProperties brokerProperties;
-
-    @Resource
-    private DistributedLock distributedLock;
 
     @Resource
     private DBBrokerRegistry brokerRegistry;
@@ -73,12 +75,24 @@ public class BrokerConfiguration {
         ClientServerConfig clientServerConfig = new ClientServerConfig(port, clientHandler);
         AbstractClientServer clientServer = factory.create(clientServerConfig);
 
-        Broker broker = new Broker(
+        return new BrokerStarter(
             brokerProperties.getProtocol(), host, port,
-            brokerRegistry, brokerManger, clientServer, distributedLock
+            brokerRegistry, brokerManger, clientServer
         );
-        broker.start();
-        return broker;
+    }
+
+    class BrokerStarter extends Broker {
+
+        BrokerStarter(Protocol protocol, String host, int port, NodeRegistry<BrokerNode> registry,
+                             BrokerManger manger, ClientServer clientServer) {
+            super(protocol, host, port, registry, manger, clientServer);
+        }
+
+        @Override
+        @EventListener(AxonStartedEvent.class)
+        public void start() {
+            super.start();
+        }
     }
 
 }

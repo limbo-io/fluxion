@@ -16,6 +16,8 @@
 
 package io.fluxion.worker.core.task;
 
+import io.fluxion.remote.core.constants.ExecuteMode;
+
 /**
  * @author Devil
  * @since 2021/7/24
@@ -28,10 +30,20 @@ public class Task {
      */
     private String brokerAddress;
 
+    private ExecuteMode executeMode;
+
     /**
      * 执行器的名称
      */
     private String executorName;
+
+    public ExecuteMode getExecuteMode() {
+        return executeMode;
+    }
+
+    public void setExecuteMode(ExecuteMode executeMode) {
+        this.executeMode = executeMode;
+    }
 
     public String getTaskId() {
         return taskId;

@@ -32,8 +32,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class DataCleaner extends CoreTask {
 
-    public DataCleaner(int interval, TimeUnit unit) {
-        super(interval, unit);
+    private static final int INTERVAL = 10;
+    private static final TimeUnit UNIT = TimeUnit.SECONDS;
+
+    public DataCleaner() {
+        super(0, INTERVAL, UNIT);
     }
 
     @Override

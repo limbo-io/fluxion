@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.schedule.cmd;
 
-import io.fluxion.server.core.schedule.Schedule;
+import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,16 +24,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 重新分配某个schedule
- *
  * @author Devil
  */
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ScheduleBrokerElectCmd implements ICmd<Void> {
+public class ScheduleDelayCreateCmd implements ICmd<Void> {
 
-    private Schedule schedule;
+    private ScheduleDelay delay;
 
 }

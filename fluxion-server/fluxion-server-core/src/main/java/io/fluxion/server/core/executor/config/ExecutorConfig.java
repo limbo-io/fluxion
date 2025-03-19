@@ -19,6 +19,7 @@ package io.fluxion.server.core.executor.config;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
 import io.fluxion.common.utils.json.JacksonTypeIdResolver;
+import io.fluxion.remote.core.constants.ExecuteMode;
 import io.fluxion.server.core.executor.option.DispatchOption;
 import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Data;
@@ -51,6 +52,11 @@ public abstract class ExecutorConfig implements ValidatableConfig {
      * 所属应用
      */
     private String appId;
+
+    /**
+     * 执行模式
+     */
+    private ExecuteMode executeMode;
 
     /**
      * 下发属性

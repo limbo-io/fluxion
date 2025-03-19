@@ -25,6 +25,8 @@ import javax.validation.constraints.NotNull;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
+import static io.fluxion.common.utils.time.TimeUtils.TIME_FOREVER;
+
 /**
  * 作业调度配置，值对象。
  *
@@ -85,7 +87,7 @@ public class ScheduleOption {
                           @JsonProperty("cronType") String cronType) {
         this.type = type;
         this.startTime = startTime == null ? TimeUtils.currentLocalDateTime() : startTime;
-        this.endTime = endTime;
+        this.endTime = endTime == null ? TIME_FOREVER : endTime;
         this.delay = delay == null ? Duration.ZERO : delay;
         this.interval = interval == null ? Duration.ZERO : interval;
         this.cron = cron;

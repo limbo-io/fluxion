@@ -38,11 +38,6 @@ public class ScheduleDelay {
 
     private Status status;
 
-    /**
-     * 分配的节点
-     */
-    private String brokerId;
-
     public String id() {
         return TimeUtils.toInstant(id.triggerAt).toEpochMilli() + "_" + id.scheduleId;
     }

@@ -18,7 +18,7 @@ package io.fluxion.server.core.execution.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.fluxion.server.core.execution.ExecuteConfig;
-import io.fluxion.server.core.execution.ExecuteType;
+import io.fluxion.server.core.execution.ExecutableType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -29,7 +29,7 @@ import lombok.EqualsAndHashCode;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-@JsonTypeName(ExecuteType.Val.FLOW)
+@JsonTypeName(ExecutableType.Val.FLOW)
 public class FlowExecuteConfig extends ExecuteConfig {
     /**
      * 流程ID
@@ -37,7 +37,7 @@ public class FlowExecuteConfig extends ExecuteConfig {
     private String flowId;
 
     @Override
-    public String executeId() {
+    public String executableId() {
         return flowId;
     }
 }

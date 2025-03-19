@@ -82,20 +82,4 @@ public class BrokerManger implements NodeManger<BrokerNode> {
         return new ArrayList<>(nodes.values());
     }
 
-
-    /**
-     * 为某个资源选择一个broker
-     *
-     * @param id 资源id
-     * @return broker信息
-     */
-    @Override
-    public BrokerNode elect(String id) {
-        if (CollectionUtils.isEmpty(nodes.values())) {
-            return null;
-        }
-        BrokerNode node = nodes.values().stream().min(Comparator.comparing(BrokerNode::load)).orElse(null);
-        log.info("id: {} find elect:{}", id, node == null ? null : node.id());
-        return node;
-    }
 }

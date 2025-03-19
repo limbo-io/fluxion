@@ -24,7 +24,7 @@ import io.fluxion.common.constants.CommonConstants;
  * @author Brozen
  * @since 2021-05-19
  */
-public enum ExecutorType {
+public enum ExecuteMode {
 
     UNKNOWN(CommonConstants.UNKNOWN),
     /**
@@ -45,10 +45,10 @@ public enum ExecutorType {
     ;
 
     @JsonValue
-    public final String type;
+    public final String mode;
 
-    ExecutorType(String type) {
-        this.type = type;
+    ExecuteMode(String mode) {
+        this.mode = mode;
     }
 
     /**
@@ -57,15 +57,15 @@ public enum ExecutorType {
      * @param type 待校验状态值
      */
     public boolean is(String type) {
-        return this.type.equals(type);
+        return this.mode.equals(type);
     }
 
     /**
      * 解析上下文状态值
      */
     @JsonCreator
-    public static ExecutorType parse(String type) {
-        for (ExecutorType t : values()) {
+    public static ExecuteMode parse(String type) {
+        for (ExecuteMode t : values()) {
             if (t.is(type)) {
                 return t;
             }

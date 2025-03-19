@@ -48,12 +48,4 @@ public interface NodeManger<T extends Node> {
      */
     List<T> allAlive();
 
-    /**
-     * 为某个资源选择一个节点
-     *
-     * @param id 资源id
-     * @return broker信息
-     */
-    T elect(String id);
-
 }

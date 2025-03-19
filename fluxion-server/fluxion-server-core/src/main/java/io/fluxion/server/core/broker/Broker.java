@@ -24,11 +24,11 @@ import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.server.ClientServer;
 import io.fluxion.remote.core.cluster.NodeRegistry;
 import io.fluxion.remote.core.constants.Protocol;
+import io.fluxion.server.core.broker.task.BucketChecker;
 import io.fluxion.server.core.broker.task.CoreTask;
 import io.fluxion.server.core.broker.task.DataCleaner;
-import io.fluxion.server.core.broker.task.ScheduleCheckTask;
-import io.fluxion.server.core.broker.task.ScheduleLoadTask;
-import io.fluxion.server.infrastructure.lock.DistributedLock;
+import io.fluxion.server.core.broker.task.ScheduleDelayLoader;
+import io.fluxion.server.core.broker.task.ScheduleLoader;
 import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.TimingWheelTimer;
 import lombok.extern.slf4j.Slf4j;
@@ -67,7 +67,7 @@ public class Broker {
     private final DelayedTaskScheduler delayedTaskScheduler;
 
     public Broker(Protocol protocol, String host, int port, NodeRegistry<BrokerNode> registry,
-                  BrokerManger manger, ClientServer clientServer, DistributedLock distributedLock) {
+                  BrokerManger manger, ClientServer clientServer) {
         Assert.isTrue(Protocol.UNKNOWN != protocol, "protocol is unknown");
         Assert.isTrue(StringUtils.isNotBlank(host), "host is null");
 
@@ -76,9 +76,10 @@ public class Broker {
         this.manger = manger;
         this.client = ClientFactory.create(protocol);
         this.coreTasks = Lists.newArrayList(
-            new ScheduleLoadTask(),
-            new ScheduleCheckTask(10, TimeUnit.SECONDS, distributedLock),
-            new DataCleaner(30, TimeUnit.DAYS)
+            new ScheduleLoader(),
+            new ScheduleDelayLoader(),
+            new BucketChecker(),
+            new DataCleaner()
         );
         this.clientServer = clientServer;
         this.coreThreadPool = new ScheduledThreadPoolExecutor(
@@ -92,6 +93,9 @@ public class Broker {
      * 启动节点
      */
     public void start() {
+        // 初始化上下文
+        BrokerContext.initialize(this);
+        // 启动服务处理请求
         clientServer.start();
         // 将自己上线管理
         manger.online(node);
@@ -122,15 +126,13 @@ public class Broker {
         for (CoreTask coreTask : coreTasks) {
             switch (coreTask.scheduleType()) {
                 case FIXED_DELAY:
-                    coreThreadPool.scheduleWithFixedDelay(coreTask, 0, coreTask.getInterval(), coreTask.getUnit());
+                    coreThreadPool.scheduleWithFixedDelay(coreTask, coreTask.getDelay(), coreTask.getInterval(), coreTask.getUnit());
                     break;
                 case FIXED_RATE:
-                    coreThreadPool.scheduleAtFixedRate(coreTask, 0, coreTask.getInterval(), coreTask.getUnit());
+                    coreThreadPool.scheduleAtFixedRate(coreTask, coreTask.getDelay(), coreTask.getInterval(), coreTask.getUnit());
                     break;
             }
         }
-
-        BrokerContext.initialize(this);
 
         log.info("FluxionBroker start!!!~~~");
     }

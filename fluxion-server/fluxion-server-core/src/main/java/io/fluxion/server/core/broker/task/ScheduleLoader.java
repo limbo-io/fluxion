@@ -16,8 +16,6 @@
 
 package io.fluxion.server.core.broker.task;
 
-import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.ScheduleConstants;
 import io.fluxion.server.core.schedule.cmd.ScheduleTriggerCmd;
@@ -28,7 +26,6 @@ import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -37,23 +34,22 @@ import java.util.List;
  * @author Devil
  */
 @Slf4j
-public class ScheduleLoadTask extends CoreTask {
+public class ScheduleLoader extends CoreTask {
 
-    public ScheduleLoadTask() {
-        super(ScheduleConstants.LOAD_INTERVAL, ScheduleConstants.LOAD_TIME_UNIT);
+    public ScheduleLoader() {
+        super(0, ScheduleConstants.LOAD_INTERVAL, ScheduleConstants.LOAD_TIME_UNIT);
     }
 
     @Override
     public void run() {
-        String brokerId = BrokerContext.broker().id();
         try {
-            List<Schedule> schedules = Query.query(new ScheduleNextTriggerQuery(brokerId, 100)).getSchedules();
+            List<Schedule> schedules = Query.query(new ScheduleNextTriggerQuery(100)).getSchedules();
             while (CollectionUtils.isNotEmpty(schedules)) {
                 for (Schedule schedule : schedules) {
                     Cmd.send(new ScheduleTriggerCmd(schedule));
                 }
                 // 拉取后续的
-                schedules = Query.query(new ScheduleNextTriggerQuery(brokerId, 100)).getSchedules();
+                schedules = Query.query(new ScheduleNextTriggerQuery(100)).getSchedules();
             }
         } catch (Exception e) {
             log.error("[{}] execute fail", this.getClass().getSimpleName(), e);

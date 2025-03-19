@@ -37,12 +37,12 @@ import java.time.LocalDateTime;
  * @author Devil
  * @since 2021/9/1
  */
-@Setter
-@Getter
-@Table(name = TableConstants.FLUXION_TASK_RECORD)
-@Entity
-@DynamicInsert
-@DynamicUpdate
+//@Setter
+//@Getter
+//@Table(name = TableConstants.FLUXION_TASK_RECORD)
+//@Entity
+//@DynamicInsert
+//@DynamicUpdate
 public class TaskRecordEntity extends BaseEntity {
 
     @EmbeddedId

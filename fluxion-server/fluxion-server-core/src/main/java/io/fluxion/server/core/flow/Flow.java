@@ -167,6 +167,7 @@ public class Flow implements Executable, ValidatableConfig {
             executorTask.setAppId(executorConfig.getAppId());
             executorTask.setExecutorName(executorConfig.executorName());
             executorTask.setDispatchOption(executorConfig.getDispatchOption());
+            executorTask.setExecuteMode(executorConfig.getExecuteMode());
         }
         task.setOvertimeOption(node.getOvertimeOption());
         task.setRetryOption(node.getRetryOption());

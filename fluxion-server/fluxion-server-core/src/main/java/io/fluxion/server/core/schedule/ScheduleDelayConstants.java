@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 limbo-io Team (https://github.com/limbo-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,16 @@
 
 package io.fluxion.server.core.schedule;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * @author Devil
  */
 public interface ScheduleDelayConstants {
+
+    int LOAD_INTERVAL = 1;
+
+    TimeUnit LOAD_TIME_UNIT = TimeUnit.MINUTES;
+
+    long LOAD_INTERVAL_SECONDS = LOAD_TIME_UNIT.toSeconds(LOAD_INTERVAL);
 }

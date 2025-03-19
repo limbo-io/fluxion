@@ -34,11 +34,6 @@ public class Schedule {
     private ScheduleOption option;
 
     /**
-     * 分配的节点
-     */
-    private String brokerId;
-
-    /**
      * 上次触发时间
      */
     private LocalDateTime lastTriggerAt;

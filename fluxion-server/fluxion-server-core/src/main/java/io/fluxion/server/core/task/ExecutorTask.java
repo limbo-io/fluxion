@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.task;
 
+import io.fluxion.remote.core.constants.ExecuteMode;
 import io.fluxion.server.core.executor.option.DispatchOption;
 import io.fluxion.server.core.executor.option.OvertimeOption;
 import lombok.Data;
@@ -32,6 +33,8 @@ public class ExecutorTask extends Task {
     private String appId;
 
     private String executorName;
+
+    private ExecuteMode executeMode;
 
     private DispatchOption dispatchOption;
 

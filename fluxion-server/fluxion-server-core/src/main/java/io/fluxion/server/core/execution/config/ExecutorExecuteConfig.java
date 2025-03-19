@@ -17,13 +17,11 @@
 package io.fluxion.server.core.execution.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.ExecuteConfig;
-import io.fluxion.server.core.execution.ExecuteType;
+import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.executor.option.OvertimeOption;
 import io.fluxion.server.core.executor.option.RetryOption;
-import io.fluxion.server.core.trigger.Trigger;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -34,23 +32,13 @@ import lombok.EqualsAndHashCode;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-@JsonTypeName(ExecuteType.Val.EXECUTOR)
+@JsonTypeName(ExecutableType.Val.EXECUTOR)
 public class ExecutorExecuteConfig extends ExecuteConfig {
 
     private ExecutorConfig executor;
 
-    /**
-     * 重试参数
-     */
-    private RetryOption retryOption;
-
-    /**
-     * 超时参数
-     */
-    private OvertimeOption overtimeOption;
-
     @Override
-    public String executeId() {
+    public String executableId() {
         return executor.executorName();
     }
 }

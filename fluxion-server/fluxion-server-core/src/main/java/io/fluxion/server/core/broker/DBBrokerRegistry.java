@@ -24,6 +24,8 @@ import io.fluxion.remote.core.cluster.NodeEvent;
 import io.fluxion.remote.core.cluster.NodeListener;
 import io.fluxion.remote.core.cluster.NodeRegistry;
 import io.fluxion.remote.core.constants.Protocol;
+import io.fluxion.server.core.broker.cmd.BucketRebalanceCmd;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.BrokerEntity;
 import io.fluxion.server.infrastructure.dao.repository.BrokerEntityRepo;
 import lombok.extern.slf4j.Slf4j;
@@ -83,6 +85,8 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
         broker.setLastHeartbeat(TimeUtils.currentLocalDateTime());
         brokerEntityRepo.saveAndFlush(broker);
 
+        // 处理bucket
+        Cmd.send(new BucketRebalanceCmd());
         // 开启定时任务 维持心跳
         scheduledExecutorService.scheduleAtFixedRate(
             new HeartbeatTask(node.id(), node), 0, heartbeatInterval.toMillis(), TimeUnit.MILLISECONDS
@@ -114,7 +118,7 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
         return new BrokerNode(
             Protocol.parse(entity.getProtocol()),
             entity.getId().getHost(), entity.getId().getPort(),
-            entity.getLoad()
+            entity.getBrokerLoad()
         );
     }
 
@@ -122,7 +126,7 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
         BrokerEntity entity = new BrokerEntity();
         entity.setId(new BrokerEntity.ID(node.host(), node.port()));
         entity.setProtocol(node.protocol().getValue());
-        entity.setLoad(node.load());
+        entity.setBrokerLoad(node.load());
         return entity;
     }
 

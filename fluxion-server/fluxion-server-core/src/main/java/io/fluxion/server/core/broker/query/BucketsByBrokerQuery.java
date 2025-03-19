@@ -14,36 +14,30 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.schedule.query;
+package io.fluxion.server.core.broker.query;
 
-import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.infrastructure.cqrs.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.util.Collections;
 import java.util.List;
 
 /**
- * 没有绑定broker或者broker下线的
- *
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ScheduleNotOwnerQuery implements IQuery<ScheduleNotOwnerQuery.Response> {
+public class BucketsByBrokerQuery implements IQuery<BucketsByBrokerQuery.Response> {
 
-    private int limit;
+    private String brokerId;
 
     @Getter
-    @NoArgsConstructor
     @AllArgsConstructor
     public static class Response {
-        private List<Schedule> schedules = Collections.emptyList();
+        private List<Integer> buckets;
     }
 
 }

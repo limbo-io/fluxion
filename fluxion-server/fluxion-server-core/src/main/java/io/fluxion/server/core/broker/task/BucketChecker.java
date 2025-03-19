@@ -16,26 +16,29 @@
 
 package io.fluxion.server.core.broker.task;
 
+import io.fluxion.server.core.broker.cmd.BucketRebalanceCmd;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 
 import java.util.concurrent.TimeUnit;
 
 /**
+ * bucket对应的broker无效的，重新进行数据绑定
+ *
  * @author Devil
  */
-public class ScheduleDelayLoadTask extends CoreTask {
+public class BucketChecker extends CoreTask {
 
-    public static final int LOAD_INTERVAL = 1;
+    private static final int INTERVAL = 30;
+    private static final TimeUnit UNIT = TimeUnit.DAYS;
 
-    public static final TimeUnit LOAD_TIME_UNIT = TimeUnit.MINUTES;
-
-    public ScheduleDelayLoadTask() {
-        super(LOAD_INTERVAL, LOAD_TIME_UNIT);
+    public BucketChecker() {
+        super(0, INTERVAL, UNIT);
     }
 
     @Override
     public void run() {
-
+        Cmd.send(new BucketRebalanceCmd());
     }
 
     @Override

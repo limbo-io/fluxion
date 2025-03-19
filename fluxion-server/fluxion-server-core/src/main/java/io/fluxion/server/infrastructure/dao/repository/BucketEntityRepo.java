@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.core.executor;
+package io.fluxion.server.infrastructure.dao.repository;
 
-import io.fluxion.remote.core.constants.ExecutorType;
-import io.fluxion.worker.core.task.Task;
+import io.fluxion.server.infrastructure.dao.entity.BucketEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
 
 /**
  * @author Devil
+ * @since 2022/7/18
  */
-public class StandaloneExecutor implements Executor {
-    @Override
-    public void run(Task task) {
+public interface BucketEntityRepo extends JpaRepository<BucketEntity, Integer> {
 
-    }
-
-    @Override
-    public ExecutorType type() {
-        return ExecutorType.MAP_REDUCE;
-    }
+    List<BucketEntity> findByBrokerId(String brokerId);
 }

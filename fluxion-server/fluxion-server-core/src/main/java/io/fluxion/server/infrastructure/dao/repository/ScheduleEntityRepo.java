@@ -17,15 +17,11 @@
 package io.fluxion.server.infrastructure.dao.repository;
 
 import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.util.Collection;
 
 /**
  * @author Devil
@@ -36,12 +32,6 @@ public interface ScheduleEntityRepo extends JpaRepository<ScheduleEntity, String
     @Modifying(clearAutomatically = true)
     @Query(value = "update ScheduleEntity set enabled = :enabled where scheduleId = :scheduleId ")
     int updateEnable(@Param("scheduleId") String scheduleId, @Param("enabled") boolean enabled);
-
-    @Modifying(clearAutomatically = true)
-    @Query(value = "update ScheduleEntity set brokerId = :brokerId where scheduleId = :scheduleId ")
-    int updateBrokerId(@Param("scheduleId") String scheduleId, @Param("brokerId") String brokerId);
-
-    Page<ScheduleEntity> findByBrokerIdNotInAndDeletedAndEnabled(Collection<String> brokerIds, boolean deleted, boolean enabled, Pageable pageable);
 
     ScheduleEntity findByScheduleIdAndDeleted(@Param("scheduleId") String scheduleId, @Param("deleted") boolean deleted);
 

@@ -40,6 +40,7 @@ import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -121,8 +122,9 @@ public class AppCommandService {
                     nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), failNodeId)).collect(Collectors.toList());
                 }
                 // 节点非存活状态，首次选举或者重新进行选举
-                BrokerNode elect = brokerManger.elect(appId);
+                BrokerNode elect = brokerManger.allAlive().stream().min(Comparator.comparing(BrokerNode::load)).orElse(null);
                 if (!BrokerContext.broker().id().equals(elect.id())) {
+                    // 没选中当前节点，则ping一下确认选中的节点存活
                     Boolean pong = BrokerContext.call(API_BROKER_PING, elect.host(), elect.port(), new BrokerPingRequest());
                     if (BooleanUtils.isNotTrue(pong)) {
                         nodes = nodes.stream().filter(n -> !Objects.equals(n.id(), elect.id())).collect(Collectors.toList());

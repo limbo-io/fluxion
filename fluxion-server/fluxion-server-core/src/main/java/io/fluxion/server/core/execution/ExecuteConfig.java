@@ -19,6 +19,8 @@ package io.fluxion.server.core.execution;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
 import io.fluxion.common.utils.json.JacksonTypeIdResolver;
+import io.fluxion.server.core.executor.option.OvertimeOption;
+import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Data;
 
@@ -39,13 +41,23 @@ public abstract class ExecuteConfig implements ValidatableConfig {
     /**
      * 触发方式
      *
-     * @see ExecuteType
+     * @see ExecutableType
      */
     private String type;
 
-    public ExecuteType type() {
-        return ExecuteType.parse(type);
+    /**
+     * 重试参数
+     */
+    private RetryOption retryOption;
+
+    /**
+     * 超时参数
+     */
+    private OvertimeOption overtimeOption;
+
+    public ExecutableType type() {
+        return ExecutableType.parse(type);
     }
 
-    public abstract String executeId();
+    public abstract String executableId();
 }

@@ -17,19 +17,15 @@
 package io.fluxion.server.core.schedule.service;
 
 import com.google.common.collect.Lists;
-import io.fluxion.common.utils.time.Formatters;
-import io.fluxion.common.utils.time.LocalDateTimeUtils;
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.server.core.broker.BrokerManger;
-import io.fluxion.server.core.broker.BrokerNode;
+import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.ScheduleConstants;
 import io.fluxion.server.core.schedule.ScheduleDelay;
-import io.fluxion.server.core.schedule.cmd.ScheduleBrokerElectCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleCreateCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleDelayCreateCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByScheduleCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayLoadCmd;
-import io.fluxion.server.core.schedule.cmd.ScheduleDelaySaveCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDeleteCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDisableCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleEnableCmd;
@@ -42,7 +38,6 @@ import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleEntityRepo;
-import io.fluxion.server.infrastructure.lock.DistributedLock;
 import io.fluxion.server.infrastructure.schedule.BasicCalculation;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
@@ -60,21 +55,11 @@ import java.time.LocalDateTime;
 @Service
 public class ScheduleCommandService {
 
-    private static final String ELECT_LOCK = "%s_schedule_elect";
-
     @Resource
     private ScheduleEntityRepo scheduleEntityRepo;
 
     @Resource
-    private BrokerManger brokerManger;
-
-    @Resource
-    private DistributedLock distributedLock;
-
-    @Resource
     private EntityManager entityManager;
-
-    private static final LocalDateTime FIXED_DELAY_TRIGGER_LIMIT = LocalDateTimeUtils.parse("2999-12-01 00:00:00", Formatters.YMD_HMS);
 
     @CommandHandler
     public void handle(ScheduleCreateCmd cmd) {
@@ -84,8 +69,8 @@ public class ScheduleCommandService {
         );
         schedule.setNextTriggerAt(calculation.triggerAt());
         ScheduleEntity entity = ScheduleEntityConverter.convert(cmd.getSchedule());
-        BrokerNode elect = brokerManger.elect(schedule.getId());
-        entity.setBrokerId(elect.id());
+        int bucket = Cmd.send(new BucketAllotCmd(entity.getScheduleId())).getBucket();
+        entity.setBucket(bucket);
         scheduleEntityRepo.saveAndFlush(entity);
         // 调度
         Cmd.send(new ScheduleTriggerCmd(schedule));
@@ -148,11 +133,10 @@ public class ScheduleCommandService {
         }
         ScheduleDelay delay = new ScheduleDelay(
             new ScheduleDelay.ID(schedule.getId(), schedule.getNextTriggerAt()),
-            ScheduleDelay.Status.INIT,
-            schedule.getBrokerId()
+            ScheduleDelay.Status.INIT
         );
         // 保存延迟任务
-        Cmd.send(new ScheduleDelaySaveCmd(delay));
+        Cmd.send(new ScheduleDelayCreateCmd(delay));
         // 加载
         Cmd.send(new ScheduleDelayLoadCmd(delay));
         // 更新上次触发时间
@@ -197,23 +181,6 @@ public class ScheduleCommandService {
         );
         schedule.setNextTriggerAt(calculation.triggerAt());
         Cmd.send(new ScheduleTriggerCmd(schedule));
-    }
-
-    @CommandHandler
-    public void handle(ScheduleBrokerElectCmd cmd) {
-        Schedule schedule = cmd.getSchedule();
-        String lock = String.format(ELECT_LOCK, schedule.getId());
-        try {
-            if (!distributedLock.lock(lock, 3)) {
-                return;
-            }
-            BrokerNode elect = brokerManger.elect(schedule.getId());
-            scheduleEntityRepo.updateBrokerId(schedule.getId(), elect.id());
-            distributedLock.unlock(lock);
-        } catch (Exception e) {
-            log.error("Schedule Elect Fail id:{}", schedule.getId(), e);
-            distributedLock.unlock(lock);
-        }
     }
 
 }

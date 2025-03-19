@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.api.request.worker;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.constants.ExecuteMode;
 
 /**
  * dispatch to worker
@@ -29,11 +30,25 @@ public class TaskDispatchRequest implements Request<Boolean> {
     private String taskId;
 
     private String brokerAddress;
+    /**
+     * 执行方式
+     *
+     * @see ExecuteMode
+     */
+    private String executeMode;
 
     /**
      * 执行器的名称
      */
     private String executorName;
+
+    public String getExecuteMode() {
+        return executeMode;
+    }
+
+    public void setExecuteMode(String executeMode) {
+        this.executeMode = executeMode;
+    }
 
     public String getTaskId() {
         return taskId;

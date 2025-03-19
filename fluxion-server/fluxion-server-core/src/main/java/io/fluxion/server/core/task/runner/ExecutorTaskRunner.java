@@ -76,6 +76,7 @@ public class ExecutorTaskRunner extends TaskRunner {
         request.setTaskId(task.getTaskId());
         request.setBrokerAddress(BrokerContext.broker().id());
         request.setExecutorName(executorTask.getExecutorName());
+        request.setExecuteMode(executorTask.getExecuteMode().mode);
         // call
         BrokerContext.call(
             WorkerRemoteConstant.API_TASK_DISPATCH, worker.getHost(), worker.getPort(), request

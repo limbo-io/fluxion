@@ -18,6 +18,7 @@ package io.fluxion.worker.core.remote;
 
 import io.fluxion.remote.core.api.request.worker.SubTaskDispatchRequest;
 import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
+import io.fluxion.remote.core.constants.ExecuteMode;
 import io.fluxion.worker.core.task.Task;
 
 /**
@@ -31,6 +32,7 @@ public class WorkerClientConverter {
         task.setTaskId(request.getTaskId());
         task.setBrokerAddress(request.getBrokerAddress());
         task.setExecutorName(request.getExecutorName());
+        task.setExecuteMode(ExecuteMode.parse(request.getExecuteMode()));
         return task;
     }
 
@@ -39,6 +41,7 @@ public class WorkerClientConverter {
         task.setTaskId(request.getTaskId());
         task.setBrokerAddress(request.getWorkerId());
         task.setExecutorName(request.getExecutorName());
+        task.setExecuteMode(ExecuteMode.parse(request.getExecuteType()));
         return task;
     }
 

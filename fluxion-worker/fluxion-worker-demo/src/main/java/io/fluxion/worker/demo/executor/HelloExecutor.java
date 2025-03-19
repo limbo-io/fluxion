@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 limbo-io Team (https://github.com/limbo-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,27 +14,19 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.start.api.trigger.request;
+package io.fluxion.worker.demo.executor;
 
-import io.fluxion.server.core.execution.ExecuteConfig;
-import io.fluxion.server.core.trigger.TriggerConfig;
-import lombok.Data;
-
-import javax.validation.constraints.NotBlank;
+import io.fluxion.worker.core.executor.Executor;
+import io.fluxion.worker.core.task.Task;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Devil
  */
-@Data
-public class TriggerCreateRequest {
-
-    @NotBlank
-    private String name;
-
-    private TriggerConfig triggerConfig;
-
-    private ExecuteConfig executeConfig;
-
-    private String description;
-
+@Component
+public class HelloExecutor implements Executor {
+    @Override
+    public void run(Task task) {
+        System.out.println("Hello");
+    }
 }

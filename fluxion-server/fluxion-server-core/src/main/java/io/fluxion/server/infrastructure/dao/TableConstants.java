@@ -28,6 +28,7 @@ public interface TableConstants {
     String FLUXION_VERSION = "fluxion_version";
     String FLUXION_TRIGGER = "fluxion_trigger";
     String FLUXION_BROKER = "fluxion_broker";
+    String FLUXION_BUCKET = "fluxion_bucket";
     String FLUXION_LOCK = "fluxion_lock";
     String FLUXION_EXECUTION = "fluxion_execution";
     String FLUXION_TASK = "fluxion_task";

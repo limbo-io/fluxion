@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.execution.query;
+package io.fluxion.server.core.schedule.query;
 
-import io.fluxion.server.core.execution.Executable;
-import io.fluxion.server.core.execution.ExecutableType;
+import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.infrastructure.cqrs.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Devil
@@ -31,16 +33,15 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ExecutableByIdQuery implements IQuery<ExecutableByIdQuery.Response> {
+public class ScheduleDelayNextTriggerQuery implements IQuery<ScheduleDelayNextTriggerQuery.Response> {
 
-    private String id;
-
-    private ExecutableType type;
+    private int limit;
 
     @Getter
+    @NoArgsConstructor
     @AllArgsConstructor
     public static class Response {
-        private Executable executable;
+        private List<ScheduleDelay> delays = Collections.emptyList();
     }
 
 }

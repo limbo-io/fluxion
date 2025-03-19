@@ -45,32 +45,24 @@ public class DatabaseDistributedLock implements DistributedLock {
 
         LockEntity lock = lockEntityRepo.findByName(name);
 
-        String current = BrokerContext.broker().id() + "_" + Thread.currentThread().getId();
+        // 防止同节点并发问题
+        String current = owner();
 
         // 如果锁未过期且当前节点非加锁节点，加锁失败
         if (lock != null && lock.getExpireAt().isBefore(TimeUtils.currentLocalDateTime()) && !lock.getOwner().equals(current)) {
             return false;
         }
-
         if (lock == null) {
             lock = new LockEntity();
-            lock.setName(name);
-            lock.setOwner(current);
-            lock.setExpireAt(TimeUtils.currentLocalDateTime().plus(expire, ChronoUnit.MILLIS));
-            return dbLock(lock);
-        } else {
-
-            // 如果锁未过期且当前节点非加锁节点，加锁失败
-            if (lock.getExpireAt().isBefore(TimeUtils.currentLocalDateTime()) && !lock.getOwner().equals(current)) {
-                return false;
-            }
-
-            // 尝试加锁
-            lock.setName(name);
-            lock.setOwner(current);
-            lock.setExpireAt(TimeUtils.currentLocalDateTime().plus(expire, ChronoUnit.MILLIS));
-            return dbLock(lock);
         }
+        lock.setName(name);
+        lock.setOwner(current);
+        lock.setExpireAt(TimeUtils.currentLocalDateTime().plus(expire, ChronoUnit.MILLIS));
+        return dbLock(lock);
+    }
+
+    private String owner() {
+        return BrokerContext.broker().id() + "_" + Thread.currentThread().getId();
     }
 
     private boolean dbLock(LockEntity lock) {
@@ -89,6 +81,6 @@ public class DatabaseDistributedLock implements DistributedLock {
     @Override
     @Transactional
     public boolean unlock(String name) {
-        return lockEntityRepo.deleteByName(name) > 0;
+        return lockEntityRepo.deleteByNameAndOwner(name, owner()) > 0;
     }
 }

@@ -25,6 +25,8 @@ public class TimeUtils {
 
     private static final Clock CLOCK = Clock.systemDefaultZone();
 
+    public static final LocalDateTime TIME_FOREVER = LocalDateTimeUtils.parse("2999-12-01 00:00:00", Formatters.YMD_HMS);
+
     private static ZoneOffset zoneOffset;
 
     public static ZoneOffset defaultZoneOffset() {

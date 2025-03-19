@@ -53,7 +53,6 @@ public class TriggerController {
     public String create(@RequestBody TriggerCreateRequest request) {
         Trigger trigger = new Trigger();
         trigger.setName(request.getName());
-        trigger.setType(TriggerType.parse(request.getType()));
         trigger.setTriggerConfig(request.getTriggerConfig());
         trigger.setExecuteConfig(request.getExecuteConfig());
         trigger.setDescription(request.getDescription());

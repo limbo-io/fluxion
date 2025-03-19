@@ -47,10 +47,7 @@ public class ScheduleDelayEntity extends BaseEntity {
     @EmbeddedId
     private ID id;
 
-    /**
-     * 分配的节点
-     */
-    private String brokerId;
+    private Integer bucket;
 
     /**
      * 计划作业调度方式

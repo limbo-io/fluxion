@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,29 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.core.executor;
+package io.fluxion.server.core.broker.cmd;
 
-import io.fluxion.remote.core.constants.ExecutorType;
-import io.fluxion.worker.core.task.Task;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * @author Devil
  */
-public class BroadcastExecutor implements Executor {
-    @Override
-    public void run(Task task) {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class BucketAllotCmd implements ICmd<BucketAllotCmd.Response> {
 
+    private String resourceId;
+
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private int bucket;
     }
 
-    @Override
-    public ExecutorType type() {
-        return ExecutorType.BROADCAST;
-    }
 }

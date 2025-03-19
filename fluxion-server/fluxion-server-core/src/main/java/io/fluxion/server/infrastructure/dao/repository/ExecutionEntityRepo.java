@@ -28,5 +28,5 @@ import java.time.LocalDateTime;
 @Repository
 public interface ExecutionEntityRepo extends JpaRepository<ExecutionEntity, String> {
 
-    ExecutionEntity findByRefIdAndRefTypeAndTriggerAt(String refId, String refType, LocalDateTime triggerAt);
+    ExecutionEntity findByExecutableIdAndExecutableTypeAndTriggerAt(String executableId, String executableType, LocalDateTime triggerAt);
 }

@@ -17,7 +17,7 @@
 package io.fluxion.server.start.api.trigger.request;
 
 import io.fluxion.server.core.execution.ExecuteConfig;
-import io.fluxion.server.core.execution.ExecuteType;
+import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.trigger.TriggerConfig;
 import lombok.Data;
 
@@ -33,17 +33,6 @@ public class TriggerUpdateRequest {
 
     @NotBlank
     private String name;
-
-    /**
-     * 关联类型
-     *
-     * @see ExecuteType
-     */
-    @NotBlank
-    private String refType;
-
-    @NotBlank
-    private String refId;
 
     private TriggerConfig triggerConfig;
 

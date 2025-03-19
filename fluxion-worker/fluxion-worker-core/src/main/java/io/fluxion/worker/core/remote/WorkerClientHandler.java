@@ -78,14 +78,14 @@ public class WorkerClientHandler implements ClientHandler {
         if (executor == null) {
             throw new IllegalArgumentException("unknown executor name:" + task.getExecutorName());
         }
-        switch (executor.type()) {
+        switch (task.getExecuteMode()) {
             case STANDALONE:
                 return new BasicTaskTracker(task, executor, workerContext);
             case BROADCAST:
             case MAP_REDUCE:
                 return new SubTaskTracker(task, workerContext);
             default:
-                throw new IllegalArgumentException("unknown execute type:" + executor.type());
+                throw new IllegalArgumentException("unknown execute mode:" + task.getExecuteMode());
         }
     }
 

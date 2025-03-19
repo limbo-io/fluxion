@@ -65,20 +65,20 @@ public class ExecutionCommandService {
             throw new PlatformException(ErrorCode.PARAM_ERROR, "executeConfig is null");
         }
         Executable executable = Query.query(new ExecutableByIdQuery(
-            executeConfig.executeId(), executeConfig.type()
+            executeConfig.executableId(), executeConfig.type()
         )).getExecutable();
         if (executable == null) {
             throw new PlatformException(ErrorCode.PARAM_ERROR, "executable not found by config:" + JacksonUtils.toJSONString(executeConfig) + " refT");
         }
         // 判断是否已经创建
-        ExecutionEntity entity = executionEntityRepo.findByRefIdAndRefTypeAndTriggerAt(executeConfig.executeId(), executeConfig.getType(), cmd.getTriggerAt());
+        ExecutionEntity entity = executionEntityRepo.findByExecutableIdAndExecutableTypeAndTriggerAt(executeConfig.executableId(), executeConfig.getType(), cmd.getTriggerAt());
         if (entity == null) {
             entity = new ExecutionEntity();
             entity.setExecutionId(Cmd.send(new IDGenerateCmd(IDType.EXECUTION)).getId());
             entity.setTriggerId(cmd.getTriggerId());
             entity.setTriggerType(cmd.getTriggerType().value);
-            entity.setRefId(executeConfig.executeId());
-            entity.setRefType(executeConfig.getType());
+            entity.setExecutionId(executeConfig.executableId());
+            entity.setExecutableType(executeConfig.getType());
             entity.setTriggerAt(cmd.getTriggerAt());
             entity.setStatus(ExecutionStatus.CREATED.value);
             executionEntityRepo.saveAndFlush(entity);

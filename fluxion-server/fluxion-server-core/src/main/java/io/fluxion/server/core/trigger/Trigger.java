@@ -33,8 +33,6 @@ public class Trigger {
 
     private String description;
 
-    private TriggerType type;
-
     private TriggerConfig triggerConfig;
 
     private ExecuteConfig executeConfig;

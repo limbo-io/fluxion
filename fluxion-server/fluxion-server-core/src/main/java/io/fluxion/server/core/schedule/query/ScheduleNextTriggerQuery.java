@@ -36,8 +36,6 @@ import java.util.List;
 @Builder
 public class ScheduleNextTriggerQuery implements IQuery<ScheduleNextTriggerQuery.Response> {
 
-    private String brokerId;
-
     private int limit;
 
     @Getter

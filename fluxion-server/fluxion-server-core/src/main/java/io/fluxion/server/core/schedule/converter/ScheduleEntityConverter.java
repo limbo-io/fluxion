@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.schedule.converter;
 
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
@@ -47,7 +48,7 @@ public class ScheduleEntityConverter {
         ScheduleEntity entity = new ScheduleEntity();
         entity.setScheduleId(schedule.getId());
         entity.setScheduleType(scheduleOption.getType().value);
-        entity.setStartTime(scheduleOption.getStartTime());
+        entity.setStartTime(scheduleOption.getStartTime() == null ? TimeUtils.currentLocalDateTime() : scheduleOption.getStartTime());
         entity.setEndTime(scheduleOption.getEndTime());
         entity.setScheduleDelay(scheduleOption.getDelay().getSeconds());
         entity.setScheduleInterval(scheduleOption.getInterval().getSeconds());
@@ -66,7 +67,6 @@ public class ScheduleEntityConverter {
         }
         Schedule schedule = new Schedule();
         schedule.setId(entity.getScheduleId());
-        schedule.setBrokerId(entity.getBrokerId());
         schedule.setOption(toOption(entity));
         schedule.setLastTriggerAt(entity.getLastTriggerAt());
         schedule.setLastFeedbackAt(entity.getLastFeedbackAt());

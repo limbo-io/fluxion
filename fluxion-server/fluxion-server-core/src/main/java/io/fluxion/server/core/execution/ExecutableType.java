@@ -23,7 +23,7 @@ import io.fluxion.common.constants.CommonConstants;
 /**
  * @author Devil
  */
-public enum ExecuteType {
+public enum ExecutableType {
     UNKNOWN(CommonConstants.UNKNOWN),
     FLOW(Val.FLOW),
     EXECUTOR(Val.EXECUTOR),
@@ -38,7 +38,7 @@ public enum ExecuteType {
     public final String value;
 
 
-    ExecuteType(String value) {
+    ExecutableType(String value) {
         this.value = value;
     }
 
@@ -47,8 +47,8 @@ public enum ExecuteType {
     }
 
     @JsonCreator
-    public static ExecuteType parse(String value) {
-        for (ExecuteType v : values()) {
+    public static ExecutableType parse(String value) {
+        for (ExecutableType v : values()) {
             if (v.is(value)) {
                 return v;
             }

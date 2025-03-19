@@ -44,10 +44,7 @@ public class ScheduleEntity extends BaseEntity {
     @Id
     private String scheduleId;
 
-    /**
-     * 分配的节点
-     */
-    private String brokerId;
+    private Integer bucket;
 
     /**
      * 计划作业调度方式

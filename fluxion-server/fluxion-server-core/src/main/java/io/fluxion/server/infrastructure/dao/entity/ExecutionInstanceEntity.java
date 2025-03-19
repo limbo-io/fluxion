@@ -31,18 +31,18 @@ import javax.persistence.Table;
 import java.time.LocalDateTime;
 
 /**
- * 一次执行
+ * 一次执行的记录 -- 重试
  *
  * @author Devil
  * @since 2021/9/1
  */
-@Setter
-@Getter
-@Table(name = TableConstants.FLUXION_EXECUTION)
-@Entity
-@DynamicInsert
-@DynamicUpdate
-public class ExecutionEntity extends BaseEntity {
+//@Setter
+//@Getter
+//@Table(name = TableConstants.FLUXION_EXECUTION)
+//@Entity
+//@DynamicInsert
+//@DynamicUpdate
+public class ExecutionInstanceEntity extends BaseEntity {
 
     @Id
     private String executionId;

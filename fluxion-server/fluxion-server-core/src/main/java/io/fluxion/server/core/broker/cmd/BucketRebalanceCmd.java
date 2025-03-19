@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,26 +14,15 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.schedule.cmd;
+package io.fluxion.server.core.broker.cmd;
 
-import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 /**
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class ScheduleDelaySaveCmd implements ICmd<Void> {
-
-    private ScheduleDelay delay;
+public class BucketRebalanceCmd implements ICmd<Void> {
 
 }

@@ -16,9 +16,6 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
-import io.fluxion.server.core.trigger.Trigger;
-import io.fluxion.server.core.execution.ExecuteType;
-import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.infrastructure.dao.TableConstants;
 import lombok.Getter;
 import lombok.Setter;
@@ -52,12 +49,6 @@ public class TriggerEntity extends BaseEntity {
      * 描述
      */
     private String description;
-
-    /**
-     * 触发方式
-     * @see TriggerType
-     */
-    private String type;
 
     /**
      * 触发配置

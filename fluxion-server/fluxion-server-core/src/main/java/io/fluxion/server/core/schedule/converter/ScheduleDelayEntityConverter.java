@@ -18,11 +18,42 @@ package io.fluxion.server.core.schedule.converter;
 
 import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
+import org.apache.commons.collections4.CollectionUtils;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Devil
  */
 public class ScheduleDelayEntityConverter {
+
+    public static ScheduleDelay convert(ScheduleDelayEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new ScheduleDelay(
+            convert(entity.getId()), ScheduleDelay.Status.parse(entity.getStatus())
+        );
+    }
+
+    public static List<ScheduleDelay> convert(List<ScheduleDelayEntity> entities) {
+        if (CollectionUtils.isEmpty(entities)) {
+            return Collections.emptyList();
+        }
+        return entities.stream().map(ScheduleDelayEntityConverter::convert).collect(Collectors.toList());
+    }
+
+    public static ScheduleDelayEntity convert(ScheduleDelay delay) {
+        if (delay == null) {
+            return null;
+        }
+        ScheduleDelayEntity entity = new ScheduleDelayEntity();
+        entity.setId(convert(delay.getId()));
+        entity.setStatus(delay.getStatus().value);
+        return entity;
+    }
 
     public static ScheduleDelay.ID convert(ScheduleDelayEntity.ID id) {
         return new ScheduleDelay.ID(

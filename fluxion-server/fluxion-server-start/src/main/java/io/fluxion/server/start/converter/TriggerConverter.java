@@ -42,7 +42,6 @@ public class TriggerConverter {
     public static TriggerView toView(TriggerEntity entity) {
         TriggerView triggerView = new TriggerView();
         triggerView.setId(entity.getTriggerId());
-        triggerView.setType(entity.getType());
         triggerView.setName(entity.getName());
         triggerView.setDescription(entity.getDescription());
         triggerView.setTriggerConfig(JacksonUtils.toType(entity.getTriggerConfig(), TriggerConfig.class));

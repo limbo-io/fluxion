@@ -24,6 +24,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 加载 delay 到内存
+ *
  * @author Devil
  */
 @Getter

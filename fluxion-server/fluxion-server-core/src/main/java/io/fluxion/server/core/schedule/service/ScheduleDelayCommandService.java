@@ -18,9 +18,12 @@ package io.fluxion.server.core.schedule.service;
 
 import io.fluxion.common.thread.CommonThreadPool;
 import io.fluxion.server.core.broker.BrokerContext;
+import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
+import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.schedule.ScheduleDelay;
+import io.fluxion.server.core.schedule.cmd.ScheduleDelayCreateCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayLoadCmd;
 import io.fluxion.server.core.schedule.converter.ScheduleDelayEntityConverter;
 import io.fluxion.server.core.trigger.Trigger;
@@ -28,6 +31,7 @@ import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
+import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleDelayEntityRepo;
 import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
@@ -37,7 +41,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
-import java.util.Objects;
+import java.util.List;
 
 /**
  * @author Devil
@@ -51,6 +55,15 @@ public class ScheduleDelayCommandService {
 
     @Resource
     private ScheduleDelayEntityRepo scheduleDelayEntityRepo;
+
+    @CommandHandler
+    public void handle(ScheduleDelayCreateCmd cmd) {
+        ScheduleDelay delay = cmd.getDelay();
+        ScheduleDelayEntity entity = ScheduleDelayEntityConverter.convert(delay);
+        int bucket = Cmd.send(new BucketAllotCmd(delay.id())).getBucket();
+        entity.setBucket(bucket);
+        scheduleDelayEntityRepo.saveAndFlush(entity);
+    }
 
     @CommandHandler
     public void handle(ScheduleDelayLoadCmd cmd) {
@@ -86,9 +99,12 @@ public class ScheduleDelayCommandService {
                     return;
                 }
                 // 非当前节点的，可能重新分配给其他了
-                if (!Objects.equals(BrokerContext.broker().id(), delay.getBrokerId())) {
-                    log.info("ScheduleDelay is not schedule by current broker scheduleId:{} brokerId:{} currentBrokerId:{}",
-                        scheduleId, delay.getBrokerId(), BrokerContext.broker().id()
+                ScheduleDelayEntity entity = scheduleDelayEntityRepo.findById(ScheduleDelayEntityConverter.convert(delay.getId())).get();
+                String brokerId = BrokerContext.broker().id();
+                List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+                if (!buckets.contains(entity.getBucket())) {
+                    log.info("ScheduleDelay is not schedule by current broker scheduleId:{} brokerId:{} bucket:{}",
+                        scheduleId, brokerId, entity.getBucket()
                     );
                     task.stop();
                     return;
