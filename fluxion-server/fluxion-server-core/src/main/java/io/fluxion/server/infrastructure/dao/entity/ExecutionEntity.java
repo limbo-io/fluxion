@@ -54,13 +54,19 @@ public class ExecutionEntity extends BaseEntity {
      */
     private String triggerType;
 
-    private String executableId;
-
     /**
      * @see ExecutableType
      */
     private String executableType;
 
+    /**
+     * flow -> flowId
+     * executor -> triggerId
+     */
+    private String executableId;
+    /**
+     * 版本
+     */
     private String executableVersion;
 
     /**

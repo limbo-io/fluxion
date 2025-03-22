@@ -40,44 +40,42 @@ public class ScheduledTaskScheduler extends TaskScheduler<ScheduledTask> {
     }
 
     @Override
-    protected Runnable run(ScheduledTask task) {
-        return () -> {
-            try {
-                String scheduleId = task.id();
+    protected void run(ScheduledTask task) {
+        try {
+            String scheduleId = task.id();
 
-                ScheduleOption scheduleOption = task.calculation().scheduleOption();
-                if (scheduleOption == null || scheduleOption.getType() == null || ScheduleType.UNKNOWN == scheduleOption.getType()) {
-                    log.error("{} scheduleType is {} scheduleOption={}", scheduleId, ScheduleType.UNKNOWN.name(), scheduleOption);
-                    return;
-                }
-
-                // 超过时间的不需要调度
-                LocalDateTime startTime = scheduleOption.getStartTime();
-                LocalDateTime endTime = scheduleOption.getEndTime();
-                LocalDateTime now = TimeUtils.currentLocalDateTime();
-                if ((startTime != null && startTime.isAfter(now))
-                    || (endTime != null && endTime.isBefore(now))) {
-                    stop(task.id());
-                    return;
-                }
-
-                switch (scheduleOption.getType()) {
-                    case FIXED_RATE:
-                    case CRON:
-                        reschedule(task);
-                        task.run();
-                        break;
-                    case FIXED_DELAY:
-                        task.run();
-                        reschedule(task);
-                        break;
-                    default:
-                        break;
-                }
-            } catch (Exception e) {
-                log.error("[ScheduledTaskScheduler] schedule fail id:{}", task.id(), e);
+            ScheduleOption scheduleOption = task.calculation().scheduleOption();
+            if (scheduleOption == null || scheduleOption.getType() == null || ScheduleType.UNKNOWN == scheduleOption.getType()) {
+                log.error("{} scheduleType is {} scheduleOption={}", scheduleId, ScheduleType.UNKNOWN.name(), scheduleOption);
+                return;
             }
-        };
+
+            // 超过时间的不需要调度
+            LocalDateTime startTime = scheduleOption.getStartTime();
+            LocalDateTime endTime = scheduleOption.getEndTime();
+            LocalDateTime now = TimeUtils.currentLocalDateTime();
+            if ((startTime != null && startTime.isAfter(now))
+                || (endTime != null && endTime.isBefore(now))) {
+                stop(task.id());
+                return;
+            }
+
+            switch (scheduleOption.getType()) {
+                case FIXED_RATE:
+                case CRON:
+                    reschedule(task);
+                    task.run();
+                    break;
+                case FIXED_DELAY:
+                    task.run();
+                    reschedule(task);
+                    break;
+                default:
+                    break;
+            }
+        } catch (Exception e) {
+            log.error("[ScheduledTaskScheduler] schedule fail id:{}", task.id(), e);
+        }
     }
 
     @Override

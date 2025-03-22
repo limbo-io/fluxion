@@ -19,9 +19,9 @@ package io.fluxion.server.core.flow;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.execution.Executable;
-import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.executor.config.ExecutorConfig;
+import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.core.flow.node.EndNode;
 import io.fluxion.server.core.flow.node.ExecutorNode;
 import io.fluxion.server.core.flow.node.FlowNode;
@@ -30,15 +30,12 @@ import io.fluxion.server.core.task.ExecutorTask;
 import io.fluxion.server.core.task.InputOutputTask;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskStatus;
-import io.fluxion.server.core.task.cmd.TaskFailCmd;
-import io.fluxion.server.core.task.cmd.TaskRetryCmd;
 import io.fluxion.server.core.task.cmd.TaskSuccessCmd;
 import io.fluxion.server.core.task.cmd.TasksCreateCmd;
 import io.fluxion.server.core.task.query.TaskCountByStatusQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dag.DAG;
-import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -53,7 +50,7 @@ import java.util.stream.Collectors;
  *
  * @author Devil
  */
-public class Flow implements Executable, ValidatableConfig {
+public class Flow implements Executable {
 
     @Getter
     private String id;
@@ -69,11 +66,13 @@ public class Flow implements Executable, ValidatableConfig {
     private Flow() {
     }
 
+    private Flow(String id, FlowConfig config) {
+        this.id = id;
+        this.dag = new DAG<>(config.getNodes(), config.getEdges());
+    }
+
     public static Flow of(String id, FlowConfig config) {
-        Flow flow = new Flow();
-        flow.id = id;
-        flow.dag = new DAG<>(config.getNodes(), config.getEdges());
-        return flow;
+        return new Flow(id, config);
     }
 
     @Override
@@ -84,19 +83,20 @@ public class Flow implements Executable, ValidatableConfig {
     /**
      * 某个 node 成功后执行的逻辑
      */
-    public boolean success(String nodeId, Task task, String workerAddress, LocalDateTime time) {
-        Boolean success = Cmd.send(new TaskSuccessCmd(task.getTaskId(), workerAddress, time));
+    @Override
+    public boolean success(String nodeId, String taskId, String executionId, String workerAddress, LocalDateTime time) {
+        Boolean success = Cmd.send(new TaskSuccessCmd(taskId, workerAddress, time));
         if (!success) {
             return false;
         }
         List<FlowNode> subNodes = dag.subNodes(nodeId);
         if (CollectionUtils.isEmpty(subNodes)) {
             // 最终节点 execution 完成
-            return Cmd.send(new ExecutionSuccessCmd(task.getExecutionId(), time));
+            return Cmd.send(new ExecutionSuccessCmd(executionId, time));
         }
         List<FlowNode> continueNodes = new ArrayList<>();
         for (FlowNode subNode : subNodes) {
-            if (preNodesSuccess(task.getExecutionId(), dag.preNodes(subNode.id()))) {
+            if (preNodesSuccess(executionId, dag.preNodes(subNode.id()))) {
                 // 前置节点都已经完成，下发
                 continueNodes.add(subNode);
             }
@@ -105,8 +105,14 @@ public class Flow implements Executable, ValidatableConfig {
         if (CollectionUtils.isEmpty(continueNodes)) {
             return true;
         }
-        createAndScheduleTasks(task.getExecutionId(), continueNodes);
+        createAndScheduleTasks(executionId, continueNodes);
         return true;
+    }
+
+    @Override
+    public RetryOption retryOption(String refId) {
+        FlowNode node = dag.node(refId);
+        return node.getRetryOption();
     }
 
     private void createAndScheduleTasks(String executionId, List<FlowNode> nodes) {
@@ -136,23 +142,6 @@ public class Flow implements Executable, ValidatableConfig {
         return count >= preNodes.size();
     }
 
-    /**
-     * 某个 node 失败后执行的逻辑
-     */
-    public boolean fail(String nodeId, Task task, String workerAddress, LocalDateTime time, String errorMsg) {
-        if (task.canRetry()) {
-            return Cmd.send(new TaskRetryCmd());
-        } else if (task.isSkipWhenFail()) {
-            return success(nodeId, task, workerAddress, time);
-        } else {
-            boolean failed = Cmd.send(new TaskFailCmd(task.getTaskId(), workerAddress, time, errorMsg));
-            if (!failed) {
-                return false;
-            }
-            return Cmd.send(new ExecutionFailCmd(task.getExecutionId(), time));
-        }
-    }
-
     private Task nodeTask(FlowNode node, String executionId, LocalDateTime triggerAt) {
         Task task = null;
         if (node instanceof StartNode) {
@@ -169,8 +158,6 @@ public class Flow implements Executable, ValidatableConfig {
             executorTask.setDispatchOption(executorConfig.getDispatchOption());
             executorTask.setExecuteMode(executorConfig.getExecuteMode());
         }
-        task.setOvertimeOption(node.getOvertimeOption());
-        task.setRetryOption(node.getRetryOption());
         task.setExecutionId(executionId);
         task.setTriggerAt(triggerAt);
         task.setRefId(node.id());

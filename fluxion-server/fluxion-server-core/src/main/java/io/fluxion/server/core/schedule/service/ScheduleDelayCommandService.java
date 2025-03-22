@@ -24,11 +24,13 @@ import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayCreateCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByScheduleCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayLoadCmd;
 import io.fluxion.server.core.schedule.converter.ScheduleDelayEntityConverter;
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
+import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
@@ -42,6 +44,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Devil
@@ -113,13 +116,26 @@ public class ScheduleDelayCommandService {
                 Execution execution = Cmd.send(new ExecutionCreateCmd(
                     trigger.getId(),
                     TriggerType.SCHEDULE,
-                    trigger.getExecuteConfig(),
+                    trigger.executableId(),
+                    trigger.getVersion(),
+                    trigger.getConfig().getExecuteConfig().type(),
                     task.triggerAt()
                 )).getExecution();
                 // 异步执行
-                CommonThreadPool.IO.submit(execution::execute);
+                CommonThreadPool.IO.submit(new LoggingTask(execution::execute));
             }
         ));
     }
 
+    @CommandHandler
+    public void handle(ScheduleDelayDeleteByScheduleCmd cmd) {
+        entityManager.createQuery("update ScheduleDelayEntity " +
+                "set deleted = :deleted " +
+                "where id.scheduleId = :scheduleId and status in :statuses"
+            )
+            .setParameter("statuses", cmd.getStatuses().stream().map(s -> s.value).collect(Collectors.toList()))
+            .setParameter("deleted", true)
+            .setParameter("scheduleId", cmd.getScheduleId())
+            .executeUpdate();
+    }
 }

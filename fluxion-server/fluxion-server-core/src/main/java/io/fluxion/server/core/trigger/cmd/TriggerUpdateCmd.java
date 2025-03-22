@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.trigger.cmd;
 
-import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,6 +31,10 @@ import lombok.NoArgsConstructor;
 @Builder
 public class TriggerUpdateCmd implements ICmd<Void> {
 
-    private Trigger trigger;
+    private String id;
+
+    private String name;
+
+    private String description;
 
 }

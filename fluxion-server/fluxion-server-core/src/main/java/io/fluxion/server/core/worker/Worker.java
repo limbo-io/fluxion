@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.worker;
 
-import io.fluxion.common.utils.MD5Utils;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.constants.WorkerStatus;
@@ -37,10 +36,6 @@ import java.util.Set;
  */
 @Getter
 public class Worker implements LBServer, Tagged {
-    /**
-     * worker id
-     */
-    private String id;
 
     private App app;
 
@@ -49,6 +44,8 @@ public class Worker implements LBServer, Tagged {
     private String host;
 
     private int port;
+
+    private String address;
 
     /**
      * 执行器
@@ -87,11 +84,11 @@ public class Worker implements LBServer, Tagged {
         this.host = host;
         this.port = port;
         this.protocol = protocol;
-        this.id = MD5Utils.md5(host + ":" + port);
+        this.address = host + ":" + port;
     }
 
     public String id() {
-        return id;
+        return address;
     }
 
     @Override

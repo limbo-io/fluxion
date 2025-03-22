@@ -32,18 +32,13 @@ import io.fluxion.server.core.app.App;
 import io.fluxion.server.core.app.cmd.AppBrokerElectCmd;
 import io.fluxion.server.core.app.cmd.AppRegisterCmd;
 import io.fluxion.server.core.broker.converter.BrokerClientConverter;
-import io.fluxion.server.core.execution.Executable;
-import io.fluxion.server.core.execution.Execution;
-import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
-import io.fluxion.server.core.flow.Flow;
-import io.fluxion.server.core.task.Task;
+import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
+import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
 import io.fluxion.server.core.task.cmd.TaskReportCmd;
 import io.fluxion.server.core.task.cmd.TaskStartCmd;
-import io.fluxion.server.core.task.query.TaskByIdQuery;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerRegisterCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
-import io.fluxion.server.infrastructure.cqrs.Query;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Objects;
@@ -81,26 +76,21 @@ public class BrokerClientHandler implements ClientHandler {
                 }
                 case BrokerRemoteConstant.API_TASK_SUCCESS: {
                     TaskSuccessRequest request = JacksonUtils.toType(data, TaskSuccessRequest.class);
-                    Task task = Query.query(new TaskByIdQuery(request.getTaskId())).getTask();
-                    Execution execution = Query.query(new ExecutionByIdQuery(task.getExecutionId())).getExecution();
-                    Executable executable = execution.getExecutable();
-                    boolean success = false;
-                    if (executable instanceof Flow) {
-                        Flow flow = (Flow) executable;
-                        success = flow.success(task.getRefId(), task, request.getWorkerAddress(), request.getReportAt());
-                    }
+                    boolean success = Cmd.send(new ExecutableSuccessCmd(
+                        request.getTaskId(),
+                        request.getWorkerAddress(),
+                        request.getReportAt()
+                    ));
                     return Response.ok(Response.ok(success));
                 }
                 case BrokerRemoteConstant.API_TASK_FAIL: {
                     TaskFailRequest request = JacksonUtils.toType(data, TaskFailRequest.class);
-                    Task task = Query.query(new TaskByIdQuery(request.getTaskId())).getTask();
-                    Execution execution = Query.query(new ExecutionByIdQuery(task.getExecutionId())).getExecution();
-                    Executable executable = execution.getExecutable();
-                    boolean success = false;
-                    if (executable instanceof Flow) {
-                        Flow flow = (Flow) executable;
-                        success = flow.fail(task.getRefId(), task, request.getWorkerAddress(), request.getReportAt(), request.getErrorMsg());
-                    }
+                    boolean success = Cmd.send(new ExecutableFailCmd(
+                        request.getTaskId(),
+                        request.getWorkerAddress(),
+                        request.getReportAt(),
+                        request.getErrorMsg()
+                    ));
                     return Response.ok(Response.ok(success));
                 }
             }

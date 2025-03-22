@@ -17,12 +17,11 @@
 package io.fluxion.server.core.execution.service;
 
 import io.fluxion.server.core.execution.Executable;
+import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
-import io.fluxion.server.core.flow.query.FlowByIdQuery;
-import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
 import io.fluxion.server.infrastructure.dao.repository.ExecutionEntityRepo;
@@ -47,26 +46,13 @@ public class ExecutionQueryService {
             return new ExecutionByIdQuery.Response(null);
         }
         Executable executable = Query.query(new ExecutableByIdQuery(
-            entity.getExecutionId(), ExecutableType.parse(entity.getExecutableType())
+            entity.getExecutionId(), entity.getExecutableVersion(), ExecutableType.parse(entity.getExecutableType())
         )).getExecutable();
         if (executable == null) {
             return new ExecutionByIdQuery.Response(null);
         }
         Execution execution = new Execution(entity.getExecutionId(), executable, ExecutionStatus.parse(entity.getStatus()));
         return new ExecutionByIdQuery.Response(execution);
-    }
-
-    @QueryHandler
-    public ExecutableByIdQuery.Response handle(ExecutableByIdQuery query) {
-        Executable executable = null;
-        switch (query.getType()) {
-            case FLOW:
-                executable = Query.query(new FlowByIdQuery(query.getId())).getFlow();
-                break;
-            case EXECUTOR:
-                break;
-        }
-        return new ExecutableByIdQuery.Response(executable);
     }
 
 }

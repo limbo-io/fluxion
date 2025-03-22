@@ -16,9 +16,6 @@
 
 package io.fluxion.server.start.api.trigger.request;
 
-import io.fluxion.server.core.execution.ExecuteConfig;
-import io.fluxion.server.core.execution.ExecutableType;
-import io.fluxion.server.core.trigger.TriggerConfig;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
@@ -33,10 +30,6 @@ public class TriggerUpdateRequest {
 
     @NotBlank
     private String name;
-
-    private TriggerConfig triggerConfig;
-
-    private ExecuteConfig executeConfig;
 
     private String description;
 

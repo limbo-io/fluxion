@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 limbo-io Team (https://github.com/limbo-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,25 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.dao.repository;
+package io.fluxion.server.infrastructure.concurrent;
 
-import io.fluxion.server.infrastructure.dao.entity.TaskEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author Devil
- */
-@Repository
-public interface TaskEntityRepo extends JpaRepository<TaskEntity, String> {
+@Slf4j
+public class LoggingTask implements Runnable {
 
-    TaskEntity findByExecutionIdAndRefIdAndTaskType(String executionId, String refId, String taskType);
+    private final Runnable task;
+
+    public LoggingTask(Runnable task) {
+        this.task = task;
+    }
+
+    @Override
+    public void run() {
+        try {
+            task.run();
+        } catch (Throwable t) {
+            log.error("[{}] run error", task.getClass().getSimpleName(), t);
+        }
+    }
 }

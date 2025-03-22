@@ -14,30 +14,24 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.version.cmd;
+package io.fluxion.server.core.task.cmd;
 
 import io.fluxion.server.infrastructure.cqrs.ICmd;
-import io.fluxion.server.infrastructure.version.model.VersionRefType;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * @author Devil
  */
 @Getter
+@NoArgsConstructor
 @AllArgsConstructor
-public class VersionUpdateCmd implements ICmd<VersionUpdateCmd.Response> {
+@Builder
+public class TaskDispatchedCmd implements ICmd<Boolean> {
 
-    private String refId;
+    private String taskId;
 
-    private VersionRefType refType;
-
-    private String version;
-
-    private String config;
-
-    @Getter
-    @AllArgsConstructor
-    public static class Response {
-    }
+    private String workerAddress;
 }

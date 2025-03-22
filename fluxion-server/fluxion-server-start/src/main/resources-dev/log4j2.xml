@@ -19,6 +19,8 @@
         <logger name="org.apache.http" level="INFO" />
         <logger name="org.apache.coyote.http11" level="INFO" />
         <logger name="sun.rmi.transport" level="INFO" />
+        <logger name="org.axonframework.messaging" level="INFO" />
+        <logger name="org.axonframework.commandhandling" level="INFO" />
         <!-- sql -->
         <logger name="com.zaxxer.hikari" level="INFO" />
         <logger name="org.hibernate" level="INFO" />

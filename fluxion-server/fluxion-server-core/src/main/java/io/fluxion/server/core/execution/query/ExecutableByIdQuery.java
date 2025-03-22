@@ -35,6 +35,8 @@ public class ExecutableByIdQuery implements IQuery<ExecutableByIdQuery.Response>
 
     private String id;
 
+    private String version;
+
     private ExecutableType type;
 
     @Getter

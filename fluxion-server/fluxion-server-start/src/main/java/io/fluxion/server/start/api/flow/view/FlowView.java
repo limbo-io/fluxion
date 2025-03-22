@@ -41,7 +41,7 @@ public class FlowView {
     /**
      * 运行版本
      */
-    private String runVersion;
+    private String publishVersion;
 
     /**
      * 草稿版本

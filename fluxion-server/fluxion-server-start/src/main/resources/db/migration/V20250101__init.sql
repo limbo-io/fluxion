@@ -16,7 +16,7 @@
 CREATE TABLE `fluxion_id`
 (
     `id`         bigint unsigned NOT NULL AUTO_INCREMENT,
-    `type`       varchar(64)     NOT NULL DEFAULT '',
+    `type`       varchar(64)     NOT NULL,
     `current_id` bigint unsigned NOT NULL DEFAULT 0,
     `step`       int             NOT NULL DEFAULT 0,
     `is_deleted` bit(1)          NOT NULL DEFAULT 0,
@@ -29,9 +29,9 @@ CREATE TABLE `fluxion_id`
 CREATE TABLE `fluxion_version`
 (
     `id`          bigint unsigned NOT NULL AUTO_INCREMENT,
-    `ref_id`      varchar(64)     NOT NULL DEFAULT '',
-    `ref_type`    varchar(64)     NOT NULL DEFAULT '',
-    `version`     varchar(64)     NOT NULL DEFAULT '',
+    `ref_id`      varchar(64)     NOT NULL,
+    `ref_type`    varchar(64)     NOT NULL,
+    `version`     varchar(64)     NOT NULL,
     `description` varchar(255)    NOT NULL DEFAULT '',
     `config`      MEDIUMTEXT,
     `is_deleted`  bit(1)          NOT NULL DEFAULT 0,
@@ -44,9 +44,9 @@ CREATE TABLE `fluxion_version`
 CREATE TABLE `fluxion_tag`
 (
     `id`         bigint unsigned NOT NULL AUTO_INCREMENT,
-    `ref_id`     varchar(64)     NOT NULL DEFAULT '',
-    `ref_type`   varchar(64)     NOT NULL DEFAULT '',
-    `tag_name`   varchar(128)    NOT NULL DEFAULT '',
+    `ref_id`     varchar(64)     NOT NULL,
+    `ref_type`   varchar(64)     NOT NULL,
+    `tag_name`   varchar(128)    NOT NULL,
     `tag_value`  varchar(255)    NOT NULL DEFAULT '',
     `is_deleted` bit(1)          NOT NULL DEFAULT 0,
     `created_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -58,8 +58,8 @@ CREATE TABLE `fluxion_tag`
 CREATE TABLE `fluxion_lock`
 (
     `id`         bigint unsigned NOT NULL AUTO_INCREMENT,
-    `name`       varchar(255)    NOT NULL DEFAULT '',
-    `owner`      varchar(255)    NOT NULL DEFAULT '',
+    `name`       varchar(255)    NOT NULL,
+    `owner`      varchar(255)    NOT NULL,
     `expire_at`  datetime(6)     NOT NULL,
     `is_deleted` bit(1)          NOT NULL DEFAULT 0,
     `created_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -71,9 +71,9 @@ CREATE TABLE `fluxion_lock`
 CREATE TABLE `fluxion_broker`
 (
     `id`             bigint unsigned NOT NULL AUTO_INCREMENT,
-    `host`           varchar(255)    NOT NULL DEFAULT '',
+    `host`           varchar(255)    NOT NULL,
     `port`           int                      DEFAULT 0,
-    `protocol`       varchar(64)     NOT NULL DEFAULT '',
+    `protocol`       varchar(64)     NOT NULL,
     `broker_load`    int                      DEFAULT 0,
     `last_heartbeat` datetime(6)              DEFAULT NULL,
     `is_deleted`     bit(1)          NOT NULL DEFAULT 0,
@@ -88,7 +88,7 @@ CREATE TABLE `fluxion_bucket`
 (
     `id`         bigint unsigned NOT NULL AUTO_INCREMENT,
     `bucket`     int unsigned    NOT NULL,
-    `broker_id`  varchar(64)     NOT NULL DEFAULT '',
+    `broker_id`  varchar(64)     NOT NULL,
     `is_deleted` bit(1)          NOT NULL DEFAULT 0,
     `created_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -100,9 +100,9 @@ CREATE TABLE `fluxion_bucket`
 CREATE TABLE `fluxion_app`
 (
     `id`         bigint unsigned NOT NULL AUTO_INCREMENT,
-    `app_id`     varchar(64)     NOT NULL DEFAULT '',
-    `app_name`   varchar(255)    NOT NULL DEFAULT '',
-    `broker_id`  varchar(64)     NOT NULL DEFAULT '',
+    `app_id`     varchar(64)     NOT NULL,
+    `app_name`   varchar(255)    NOT NULL,
+    `broker_id`  varchar(64)     NOT NULL,
     `is_deleted` bit(1)          NOT NULL DEFAULT 0,
     `created_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -113,31 +113,31 @@ CREATE TABLE `fluxion_app`
 
 CREATE TABLE `fluxion_flow`
 (
-    `id`            bigint unsigned NOT NULL AUTO_INCREMENT,
-    `flow_id`       varchar(64)     NOT NULL DEFAULT '',
-    `name`          varchar(255)    NOT NULL DEFAULT '',
-    `description`   varchar(255)    NOT NULL DEFAULT '',
-    `run_version`   varchar(255)    NOT NULL DEFAULT '',
-    `draft_version` varchar(255)    NOT NULL DEFAULT '',
-    `is_deleted`    bit(1)          NOT NULL DEFAULT 0,
-    `created_at`    datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at`    datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `id`              bigint unsigned NOT NULL AUTO_INCREMENT,
+    `flow_id`         varchar(64)     NOT NULL,
+    `name`            varchar(255)    NOT NULL,
+    `description`     varchar(255)    NOT NULL DEFAULT '',
+    `publish_version` varchar(64)     NOT NULL DEFAULT '',
+    `draft_version`   varchar(64)     NOT NULL DEFAULT '',
+    `is_deleted`      bit(1)          NOT NULL DEFAULT 0,
+    `created_at`      datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`      datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_flow` (`flow_id`)
 );
 
 CREATE TABLE `fluxion_trigger`
 (
-    `id`             bigint unsigned NOT NULL AUTO_INCREMENT,
-    `trigger_id`     varchar(64)     NOT NULL DEFAULT '',
-    `name`           varchar(255)    NOT NULL DEFAULT '',
-    `description`    varchar(255)    NOT NULL DEFAULT '',
-    `execute_config` MEDIUMTEXT,
-    `trigger_config` MEDIUMTEXT,
-    `is_enabled`     bit(1)          NOT NULL DEFAULT 0,
-    `is_deleted`     bit(1)          NOT NULL DEFAULT 0,
-    `created_at`     datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at`     datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `id`              bigint unsigned NOT NULL AUTO_INCREMENT,
+    `trigger_id`      varchar(64)     NOT NULL,
+    `name`            varchar(255)    NOT NULL,
+    `description`     varchar(255)    NOT NULL DEFAULT '',
+    `publish_version` varchar(64)     NOT NULL DEFAULT '',
+    `draft_version`   varchar(64)     NOT NULL DEFAULT '',
+    `is_enabled`      bit(1)          NOT NULL DEFAULT 0,
+    `is_deleted`      bit(1)          NOT NULL DEFAULT 0,
+    `created_at`      datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`      datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_trigger` (`trigger_id`)
 );
@@ -145,13 +145,13 @@ CREATE TABLE `fluxion_trigger`
 CREATE TABLE `fluxion_execution`
 (
     `id`                 bigint unsigned NOT NULL AUTO_INCREMENT,
-    `execution_id`       varchar(64)     NOT NULL DEFAULT '',
-    `trigger_id`         varchar(64)     NOT NULL DEFAULT '',
-    `trigger_type`       varchar(64)     NOT NULL DEFAULT '',
-    `executable_id`      varchar(64)     NOT NULL DEFAULT '',
-    `executable_type`    varchar(64)     NOT NULL DEFAULT '',
-    `executable_version` varchar(64)     NOT NULL DEFAULT '',
-    `status`             varchar(32)     NOT NULL DEFAULT '',
+    `execution_id`       varchar(64)     NOT NULL,
+    `trigger_id`         varchar(64)     NOT NULL,
+    `trigger_type`       varchar(64)     NOT NULL,
+    `executable_id`      varchar(64)     NOT NULL,
+    `executable_type`    varchar(64)     NOT NULL,
+    `executable_version` varchar(64)     NOT NULL,
+    `status`             varchar(32)     NOT NULL,
     `trigger_at`         datetime(6)              DEFAULT NULL,
     `start_at`           datetime(6)              DEFAULT NULL,
     `end_at`             datetime(6)              DEFAULT NULL,
@@ -159,15 +159,16 @@ CREATE TABLE `fluxion_execution`
     `created_at`         datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`         datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_execution` (`execution_id`)
+    UNIQUE KEY `uk_execution` (`execution_id`),
+    UNIQUE KEY `uk_executable_trigger` (`executable_id`, `trigger_at`, `executable_type`)
 );
 
 CREATE TABLE `fluxion_schedule`
 (
     `id`                 bigint unsigned NOT NULL AUTO_INCREMENT,
-    `schedule_id`        varchar(64)     NOT NULL DEFAULT '',
-    `bucket`     int unsigned    NOT NULL,
-    `schedule_type`      varchar(64)     NOT NULL DEFAULT '',
+    `schedule_id`        varchar(64)     NOT NULL,
+    `bucket`             int unsigned    NOT NULL,
+    `schedule_type`      varchar(64)     NOT NULL,
     `start_time`         datetime(6)              DEFAULT NULL,
     `end_time`           datetime(6)              DEFAULT NULL,
     `schedule_delay`     bigint                   DEFAULT 0,
@@ -189,15 +190,37 @@ CREATE TABLE `fluxion_schedule`
 CREATE TABLE `fluxion_schedule_delay`
 (
     `id`          bigint unsigned NOT NULL AUTO_INCREMENT,
-    `schedule_id` varchar(64)     NOT NULL DEFAULT '',
+    `schedule_id` varchar(64)     NOT NULL,
     `trigger_at`  datetime(6)     NOT NULL,
-    `bucket`     int unsigned    NOT NULL,
-    `status`      varchar(32)     NOT NULL DEFAULT '',
+    `bucket`      int unsigned    NOT NULL,
+    `status`      varchar(32)     NOT NULL,
     `is_deleted`  bit(1)          NOT NULL DEFAULT 0,
     `created_at`  datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`  datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_schedule_delay` (`schedule_id`, `trigger_at`),
     KEY `idx_trigger_bucket_status` (`trigger_at`, `bucket`, `status`)
+);
+
+CREATE TABLE `fluxion_task`
+(
+    `id`             bigint unsigned NOT NULL AUTO_INCREMENT,
+    `task_id`        varchar(64)     NOT NULL,
+    `execution_id`   varchar(64)     NOT NULL,
+    `task_type`      varchar(32)     NOT NULL,
+    `ref_id`         varchar(64)     NOT NULL,
+    `status`         varchar(32)     NOT NULL,
+    `trigger_at`     datetime(6)     NOT NULL,
+    `start_at`       datetime(6)              DEFAULT NULL,
+    `end_at`         datetime(6)              DEFAULT NULL,
+    `worker_address` varchar(64)     NOT NULL DEFAULT '',
+    `last_report_at` datetime(6)              DEFAULT NULL,
+    `retry_times`    int unsigned    NOT NULL,
+    `is_deleted`     bit(1)          NOT NULL DEFAULT 0,
+    `created_at`     datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`     datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_task` (`task_id`),
+    KEY `idx_execution_ref_type` (`execution_id`, `ref_id`, `task_type`)
 );
 

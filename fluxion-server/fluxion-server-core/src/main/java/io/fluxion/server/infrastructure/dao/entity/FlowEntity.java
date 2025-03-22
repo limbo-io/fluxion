@@ -54,7 +54,7 @@ public class FlowEntity extends BaseEntity {
     /**
      * 运行版本
      */
-    private String runVersion;
+    private String publishVersion;
 
     /**
      * 草稿版本

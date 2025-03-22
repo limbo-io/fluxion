@@ -18,14 +18,17 @@ package io.fluxion.server.infrastructure.version.service;
 
 import io.fluxion.server.infrastructure.dao.entity.VersionEntity;
 import io.fluxion.server.infrastructure.dao.repository.VersionEntityRepo;
-import io.fluxion.server.infrastructure.version.model.Version;
-import io.fluxion.server.infrastructure.version.model.VersionRefType;
+import io.fluxion.server.infrastructure.version.converter.VersionConverter;
 import io.fluxion.server.infrastructure.version.query.VersionByIdQuery;
+import io.fluxion.server.infrastructure.version.query.VersionByIdsQuery;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Devil
@@ -39,20 +42,18 @@ public class VersionQueryService {
 
     @QueryHandler
     public VersionByIdQuery.Response handle(VersionByIdQuery query) {
-        VersionEntity entity = versionEntityRepo.findById(new VersionEntity.ID(query.getRefId(), query.getRefType().value, query.getVersion())).orElse(null);
-        return new VersionByIdQuery.Response(to(entity));
+        VersionEntity entity = versionEntityRepo.findById(VersionConverter.convert(query.getId())).orElse(null);
+        return new VersionByIdQuery.Response(VersionConverter.convert(entity));
     }
 
-    private Version to(VersionEntity entity) {
-        if (entity == null) {
-            return null;
+    @QueryHandler
+    public VersionByIdsQuery.Response handle(VersionByIdsQuery query) {
+        if (CollectionUtils.isEmpty(query.getIds())) {
+            return new VersionByIdsQuery.Response();
         }
-        Version version = new Version();
-        version.setRefId(entity.getId().getRefId());
-        version.setRefType(VersionRefType.parse(entity.getId().getRefType()));
-        version.setVersion(entity.getId().getVersion());
-        version.setConfig(entity.getConfig());
-        return version;
+        List<VersionEntity.ID> ids = query.getIds().stream().map(VersionConverter::convert).collect(Collectors.toList());
+        List<VersionEntity> entities = versionEntityRepo.findAllById(ids);
+        return new VersionByIdsQuery.Response(VersionConverter.convertEntities(entities));
     }
 
 }

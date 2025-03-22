@@ -34,8 +34,8 @@ public class DelayedTaskScheduler extends TaskScheduler<DelayedTask> {
     }
 
     @Override
-    protected Runnable run(DelayedTask task) {
-        return task::run;
+    protected void run(DelayedTask task) {
+        task.run();
     }
 
     @Override

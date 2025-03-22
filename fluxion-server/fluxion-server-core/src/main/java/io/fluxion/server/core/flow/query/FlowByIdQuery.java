@@ -18,21 +18,35 @@ package io.fluxion.server.core.flow.query;
 
 import io.fluxion.server.core.flow.Flow;
 import io.fluxion.server.infrastructure.cqrs.IQuery;
+import io.fluxion.server.infrastructure.version.model.VersionMode;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 /**
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class FlowByIdQuery implements IQuery<FlowByIdQuery.Response> {
 
-    private String flowId;
+    private final String id;
+
+    private String version;
+
+    private VersionMode versionMode = VersionMode.PUBLISH;
+
+    public FlowByIdQuery(String id) {
+        this.id = id;
+    }
+
+    public FlowByIdQuery(String id, String version) {
+        this.id = id;
+        this.version = version;
+    }
+
+    public FlowByIdQuery(String id, VersionMode versionMode) {
+        this.id = id;
+        this.versionMode = versionMode;
+    }
 
     @Getter
     @AllArgsConstructor

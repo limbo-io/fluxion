@@ -17,11 +17,9 @@
 package io.fluxion.server.core.execution.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.core.execution.ExecutableType;
+import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.core.executor.config.ExecutorConfig;
-import io.fluxion.server.core.executor.option.OvertimeOption;
-import io.fluxion.server.core.executor.option.RetryOption;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -37,8 +35,4 @@ public class ExecutorExecuteConfig extends ExecuteConfig {
 
     private ExecutorConfig executor;
 
-    @Override
-    public String executableId() {
-        return executor.executorName();
-    }
 }

@@ -14,34 +14,31 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.execution;
+package io.fluxion.server.infrastructure.version.cmd;
 
-import io.fluxion.server.core.context.RunContext;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.fluxion.server.infrastructure.version.model.Version;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * 执行记录
- *
  * @author Devil
  */
 @Getter
-public class Execution {
+@AllArgsConstructor
+public class VersionSaveCmd implements ICmd<VersionSaveCmd.Response> {
 
-    private final String id;
+    /**
+     * version为空新增
+     * version有值修改
+     */
+    private final Version.ID id;
 
-    private final Executable executable;
+    private final String config;
 
-    private final ExecutionStatus status;
-
-    public Execution(String id, Executable executable, ExecutionStatus status) {
-        this.id = id;
-        this.executable = executable;
-        this.status = status;
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private String version;
     }
-
-    public void execute() {
-        RunContext runContext = RunContext.of(id);
-        executable.execute(runContext);
-    }
-
 }

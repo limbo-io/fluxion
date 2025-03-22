@@ -14,32 +14,34 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.task;
+package io.fluxion.server.core.schedule.cmd;
 
-import io.fluxion.remote.core.constants.ExecuteMode;
-import io.fluxion.server.core.executor.option.DispatchOption;
-import io.fluxion.server.core.executor.option.OvertimeOption;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.fluxion.server.infrastructure.schedule.ScheduleOption;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
- * @author PengQ
- * @since 0.0.1
+ * 只变更 配置信息，如果没有则创建
+ *
+ * @author Devil
  */
-@EqualsAndHashCode(callSuper = true)
-@Data
-public class ExecutorTask extends Task {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ScheduleSaveCmd implements ICmd<ScheduleSaveCmd.Response> {
 
-    private String appId;
+    private String id;
 
-    private String executorName;
+    private ScheduleOption option;
 
-    private ExecuteMode executeMode;
-
-    private DispatchOption dispatchOption = new DispatchOption();
-
-    @Override
-    public TaskType type() {
-        return TaskType.EXECUTOR;
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private String id;
     }
+
 }

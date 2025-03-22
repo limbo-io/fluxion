@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.execution.cmd;
 
+import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.trigger.TriggerType;
@@ -40,7 +41,11 @@ public class ExecutionCreateCmd implements ICmd<ExecutionCreateCmd.Response> {
 
     private TriggerType triggerType;
 
-    private ExecuteConfig executeConfig;
+    private String executableId;
+
+    private String executableVersion;
+
+    private ExecutableType executableType;
 
     private LocalDateTime triggerAt;
 

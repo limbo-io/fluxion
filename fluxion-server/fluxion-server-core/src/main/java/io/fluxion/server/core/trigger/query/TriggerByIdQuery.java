@@ -18,20 +18,35 @@ package io.fluxion.server.core.trigger.query;
 
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.infrastructure.cqrs.IQuery;
+import io.fluxion.server.infrastructure.version.model.VersionMode;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 /**
  * @author Devil
  */
 @Getter
-@AllArgsConstructor
-@Builder
 public class TriggerByIdQuery implements IQuery<TriggerByIdQuery.Response> {
 
-    private String id;
+    private final String id;
+
+    private String version;
+
+    private VersionMode versionMode = VersionMode.PUBLISH;
+
+    public TriggerByIdQuery(String id) {
+        this.id = id;
+    }
+
+    public TriggerByIdQuery(String id, String version) {
+        this.id = id;
+        this.version = version;
+    }
+
+    public TriggerByIdQuery(String id, VersionMode versionMode) {
+        this.id = id;
+        this.versionMode = versionMode;
+    }
 
     @Getter
     @AllArgsConstructor

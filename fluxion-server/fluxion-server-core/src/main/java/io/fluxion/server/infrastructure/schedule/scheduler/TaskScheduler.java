@@ -108,7 +108,7 @@ public abstract class TaskScheduler<T extends AbstractTask> implements Scheduler
         }
     }
 
-    protected abstract Runnable run(T task);
+    protected abstract void run(T task);
 
     protected abstract void afterExecute(T task, Throwable thrown);
 

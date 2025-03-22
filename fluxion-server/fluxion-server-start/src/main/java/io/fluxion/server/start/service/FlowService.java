@@ -19,12 +19,12 @@ package io.fluxion.server.start.service;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.PageResponse;
 import io.fluxion.server.core.flow.FlowConfig;
+import io.fluxion.server.core.flow.converter.FlowEntityConverter;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.FlowEntity;
 import io.fluxion.server.infrastructure.dao.repository.FlowEntityRepo;
 import io.fluxion.server.infrastructure.utils.JpaHelper;
 import io.fluxion.server.infrastructure.version.model.Version;
-import io.fluxion.server.infrastructure.version.model.VersionRefType;
 import io.fluxion.server.infrastructure.version.query.VersionByIdQuery;
 import io.fluxion.server.start.api.flow.request.FlowPageRequest;
 import io.fluxion.server.start.api.flow.view.FlowView;
@@ -80,13 +80,10 @@ public class FlowService {
             return null;
         }
         if (StringUtils.isBlank(versionId)) {
-            versionId = StringUtils.defaultIfBlank(flowEntity.getDraftVersion(), flowEntity.getRunVersion());
+            versionId = StringUtils.defaultIfBlank(flowEntity.getDraftVersion(), flowEntity.getPublishVersion());
         }
-        Version version = Query.query(VersionByIdQuery.builder()
-            .refId(flowId)
-            .refType(VersionRefType.FLOW)
-            .version(versionId)
-            .build()
+        Version version = Query.query(
+            new VersionByIdQuery(FlowEntityConverter.versionId(flowId, versionId))
         ).getVersion();
 
         FlowConfig flowConfig = JacksonUtils.toType(version.getConfig(), FlowConfig.class);

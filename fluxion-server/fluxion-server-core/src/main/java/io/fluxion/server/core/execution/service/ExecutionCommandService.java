@@ -16,9 +16,8 @@
 
 package io.fluxion.server.core.execution.service;
 
-import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.core.execution.Executable;
-import io.fluxion.server.core.execution.ExecuteConfig;
+import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
@@ -60,25 +59,22 @@ public class ExecutionCommandService {
 
     @CommandHandler
     public ExecutionCreateCmd.Response handle(ExecutionCreateCmd cmd) {
-        ExecuteConfig executeConfig = cmd.getExecuteConfig();
-        if (executeConfig == null) {
-            throw new PlatformException(ErrorCode.PARAM_ERROR, "executeConfig is null");
-        }
-        Executable executable = Query.query(new ExecutableByIdQuery(
-            executeConfig.executableId(), executeConfig.type()
-        )).getExecutable();
+        String executableId = cmd.getExecutableId();
+        ExecutableType executableType = cmd.getExecutableType();
+        Executable executable = Query.query(new ExecutableByIdQuery(executableId, cmd.getExecutableVersion(), executableType)).getExecutable();
         if (executable == null) {
-            throw new PlatformException(ErrorCode.PARAM_ERROR, "executable not found by config:" + JacksonUtils.toJSONString(executeConfig) + " refT");
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "executable not found by id:" + executableId + " type:" + executableType);
         }
         // 判断是否已经创建
-        ExecutionEntity entity = executionEntityRepo.findByExecutableIdAndExecutableTypeAndTriggerAt(executeConfig.executableId(), executeConfig.getType(), cmd.getTriggerAt());
+        ExecutionEntity entity = executionEntityRepo.findByExecutableIdAndExecutableTypeAndTriggerAt(executableId, executableType.value, cmd.getTriggerAt());
         if (entity == null) {
             entity = new ExecutionEntity();
             entity.setExecutionId(Cmd.send(new IDGenerateCmd(IDType.EXECUTION)).getId());
             entity.setTriggerId(cmd.getTriggerId());
             entity.setTriggerType(cmd.getTriggerType().value);
-            entity.setExecutionId(executeConfig.executableId());
-            entity.setExecutableType(executeConfig.getType());
+            entity.setExecutableId(executableId);
+            entity.setExecutableVersion(cmd.getExecutableVersion());
+            entity.setExecutableType(executableType.value);
             entity.setTriggerAt(cmd.getTriggerAt());
             entity.setStatus(ExecutionStatus.CREATED.value);
             executionEntityRepo.saveAndFlush(entity);

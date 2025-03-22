@@ -51,4 +51,8 @@ public class RetryOption {
      */
     private String retryType = RetryType.ALL.getValue();
 
+    public boolean canRetry(int retried) {
+        return retried < retryTimes;
+    }
+
 }

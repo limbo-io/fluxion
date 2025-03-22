@@ -16,31 +16,55 @@
 
 package io.fluxion.server.infrastructure.version.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
+
+import java.util.Objects;
 
 /**
  * @author Devil
  */
 @Data
 public class Version {
-    /**
-     * 关联的数据ID
-     */
-    private String refId;
-    /**
-     * 关联的数据类型
-     */
-    private VersionRefType refType;
+
+    private ID id;
     /**
      * 本次版本的描述信息
      */
     private String description;
     /**
-     * 版本号
-     */
-    private String version;
-    /**
      * 配置信息
      */
     private String config;
+
+    @Getter
+    @AllArgsConstructor
+    public static class ID {
+        /**
+         * 关联的数据ID
+         */
+        private String refId;
+        /**
+         * 关联的数据类型
+         */
+        private VersionRefType refType;
+
+        /**
+         * 版本号
+         */
+        private String version;
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+            ID id = (ID) o;
+            return Objects.equals(refId, id.refId) && refType == id.refType && Objects.equals(version, id.version);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(refId, refType, version);
+        }
+    }
 }

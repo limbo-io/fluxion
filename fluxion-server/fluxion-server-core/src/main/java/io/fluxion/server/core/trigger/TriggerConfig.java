@@ -19,11 +19,12 @@ package io.fluxion.server.core.trigger;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
 import io.fluxion.common.utils.json.JacksonTypeIdResolver;
+import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Data;
 
 /**
- * Trigger 配置态
+ * 触发器Trigger 配置态
  *
  * @author Devil
  */
@@ -42,6 +43,11 @@ public abstract class TriggerConfig implements ValidatableConfig {
      * @see TriggerType
      */
     private String type;
+
+    /**
+     * 执行配置
+     */
+    private ExecuteConfig executeConfig;
 
     public TriggerType type() {
         return TriggerType.parse(type);

@@ -24,5 +24,8 @@ import lombok.Getter;
  */
 @Getter
 public class BucketRebalanceCmd implements ICmd<Void> {
-
+    /**
+     * 防止由于没有字段导致转json string失败
+     */
+    private Integer invalid;
 }

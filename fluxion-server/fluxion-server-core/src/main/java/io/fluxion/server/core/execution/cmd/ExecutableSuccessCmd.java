@@ -14,34 +14,29 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.execution;
+package io.fluxion.server.core.execution.cmd;
 
-import io.fluxion.server.core.context.RunContext;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 /**
- * 执行记录
- *
  * @author Devil
  */
 @Getter
-public class Execution {
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ExecutableSuccessCmd implements ICmd<Boolean> {
 
-    private final String id;
+    private String taskId;
 
-    private final Executable executable;
+    private String workerAddress;
 
-    private final ExecutionStatus status;
-
-    public Execution(String id, Executable executable, ExecutionStatus status) {
-        this.id = id;
-        this.executable = executable;
-        this.status = status;
-    }
-
-    public void execute() {
-        RunContext runContext = RunContext.of(id);
-        executable.execute(runContext);
-    }
+    private LocalDateTime reportAt;
 
 }

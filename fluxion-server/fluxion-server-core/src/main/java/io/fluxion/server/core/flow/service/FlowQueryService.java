@@ -19,14 +19,13 @@ package io.fluxion.server.core.flow.service;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.core.flow.Flow;
 import io.fluxion.server.core.flow.FlowConfig;
+import io.fluxion.server.core.flow.converter.FlowEntityConverter;
 import io.fluxion.server.core.flow.query.FlowByIdQuery;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.FlowEntity;
 import io.fluxion.server.infrastructure.dao.repository.FlowEntityRepo;
-import io.fluxion.server.infrastructure.exception.ErrorCode;
-import io.fluxion.server.infrastructure.exception.PlatformException;
 import io.fluxion.server.infrastructure.version.model.Version;
-import io.fluxion.server.infrastructure.version.model.VersionRefType;
+import io.fluxion.server.infrastructure.version.model.VersionMode;
 import io.fluxion.server.infrastructure.version.query.VersionByIdQuery;
 import org.apache.commons.lang3.StringUtils;
 import org.axonframework.queryhandling.QueryHandler;
@@ -45,23 +44,32 @@ public class FlowQueryService {
 
     @QueryHandler
     public FlowByIdQuery.Response handle(FlowByIdQuery query) {
-        String flowId = query.getFlowId();
-        FlowEntity flowEntity = flowEntityRepo.findByFlowIdAndDeleted(flowId, false)
-            .orElseThrow(() -> new PlatformException(ErrorCode.PARAM_ERROR, "flow not found flowId:" + flowId));
-        if (StringUtils.isBlank(flowEntity.getRunVersion())) {
-            throw new PlatformException(ErrorCode.PARAM_ERROR, "flow does not have runVersion flowId:" + flowId);
+        String flowId = query.getId();
+        FlowEntity entity = flowEntityRepo.findByFlowIdAndDeleted(flowId, false).orElse(null);
+        if (entity == null) {
+            return new FlowByIdQuery.Response(null);
         }
-        Version version = Query.query(VersionByIdQuery.builder()
-            .refId(flowEntity.getFlowId())
-            .refType(VersionRefType.FLOW)
-            .version(flowEntity.getRunVersion())
-            .build()
-        ).getVersion();
-        if (version == null) {
-            throw new PlatformException(ErrorCode.PARAM_ERROR, "flow does not find runVersion flowId:" + flowId + " version:" + flowEntity.getRunVersion());
-
+        String vs = null;
+        if (StringUtils.isNotBlank(query.getVersion())) {
+            vs = query.getVersion();
+        } else {
+            if (VersionMode.PUBLISH == query.getVersionMode()) {
+                vs = entity.getPublishVersion();
+            } else if (VersionMode.DRAFT == query.getVersionMode()) {
+                vs = entity.getDraftVersion();
+            } else if (VersionMode.PUBLISH_FIRST == query.getVersionMode()) {
+                vs = StringUtils.isBlank(entity.getPublishVersion()) ? entity.getDraftVersion() : entity.getPublishVersion();
+            }
         }
-        FlowConfig flowConfig = JacksonUtils.toType(version.getConfig(), FlowConfig.class);
-        return new FlowByIdQuery.Response(Flow.of(flowEntity.getFlowId(), flowConfig));
+        FlowConfig flowConfig = null;
+        if (StringUtils.isNotBlank(vs)) {
+            Version version = Query.query(
+                new VersionByIdQuery(FlowEntityConverter.versionId(entity.getFlowId(), vs))
+            ).getVersion();
+            flowConfig = JacksonUtils.toType(version.getConfig(), FlowConfig.class);
+        }
+        return new FlowByIdQuery.Response(Flow.of(entity.getFlowId(), flowConfig));
     }
+
+
 }

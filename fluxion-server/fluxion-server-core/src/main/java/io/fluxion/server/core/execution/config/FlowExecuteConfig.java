@@ -36,8 +36,4 @@ public class FlowExecuteConfig extends ExecuteConfig {
      */
     private String flowId;
 
-    @Override
-    public String executableId() {
-        return flowId;
-    }
 }

@@ -14,29 +14,20 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.version.cmd;
+package io.fluxion.server.start.api.trigger.request;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
-import io.fluxion.server.infrastructure.version.model.VersionRefType;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import io.fluxion.server.core.trigger.TriggerConfig;
+import lombok.Data;
 
 /**
+ * 变更 trigger 的配置信息
  * @author Devil
  */
-@Getter
-@AllArgsConstructor
-public class VersionCreateCmd implements ICmd<VersionCreateCmd.Response> {
+@Data
+public class TriggerConfigRequest {
 
-    private String refId;
+    private String id;
 
-    private VersionRefType refType;
+    private TriggerConfig config;
 
-    private String config;
-
-    @Getter
-    @AllArgsConstructor
-    public static class Response {
-        private String version;
-    }
 }

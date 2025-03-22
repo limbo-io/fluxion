@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.schedule.cmd;
+package io.fluxion.server.core.trigger.cmd;
 
-import io.fluxion.server.core.schedule.ScheduleDelay;
+import io.fluxion.server.core.execution.ExecuteConfig;
+import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.TriggerConfig;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 /**
  * @author Devil
@@ -32,8 +32,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ScheduleDelayBatchSaveCmd implements ICmd<Void> {
+public class TriggerDraftCmd implements ICmd<Void> {
 
-    private List<ScheduleDelay> delays;
+    private String id;
+
+    private TriggerConfig triggerConfig;
 
 }

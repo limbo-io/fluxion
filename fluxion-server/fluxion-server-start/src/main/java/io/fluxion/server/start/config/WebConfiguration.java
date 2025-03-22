@@ -51,25 +51,25 @@ public class WebConfiguration implements WebMvcConfigurer {
         registry.addFormatter(new DateFormatter(Formatters.YMD_HMS));
     }
 
-    @Bean
-    public LoggingInterceptor<Message<?>> loggingInterceptor() {
-        return new LoggingInterceptor<>();
-    }
-
-    @Bean
-    public ConfigurerModule configurerModule(LoggingInterceptor<Message<?>> loggingInterceptor) {
-        return configurer -> configurer.eventProcessing(processingConfigurer ->
-                processingConfigurer.usingSubscribingEventProcessors()
-                    .registerDefaultHandlerInterceptor((config, processorName) -> loggingInterceptor)
-            )
-            .onInitialize(config -> config.onStart(Phase.INSTRUCTION_COMPONENTS + 1, () -> {
-                config.commandBus().registerHandlerInterceptor(loggingInterceptor);
-                config.commandBus().registerDispatchInterceptor(loggingInterceptor);
-                config.eventBus().registerDispatchInterceptor(loggingInterceptor);
-                config.queryBus().registerHandlerInterceptor(loggingInterceptor);
-                config.queryBus().registerDispatchInterceptor(loggingInterceptor);
-                config.queryUpdateEmitter().registerDispatchInterceptor(loggingInterceptor);
-            }));
-    }
+//    @Bean
+//    public LoggingInterceptor<Message<?>> loggingInterceptor() {
+//        return new LoggingInterceptor<>();
+//    }
+//
+//    @Bean
+//    public ConfigurerModule configurerModule(LoggingInterceptor<Message<?>> loggingInterceptor) {
+//        return configurer -> configurer.eventProcessing(processingConfigurer ->
+//                processingConfigurer.usingSubscribingEventProcessors()
+//                    .registerDefaultHandlerInterceptor((config, processorName) -> loggingInterceptor)
+//            )
+//            .onInitialize(config -> config.onStart(Phase.INSTRUCTION_COMPONENTS + 1, () -> {
+//                config.commandBus().registerHandlerInterceptor(loggingInterceptor);
+//                config.commandBus().registerDispatchInterceptor(loggingInterceptor);
+//                config.eventBus().registerDispatchInterceptor(loggingInterceptor);
+//                config.queryBus().registerHandlerInterceptor(loggingInterceptor);
+//                config.queryBus().registerDispatchInterceptor(loggingInterceptor);
+//                config.queryUpdateEmitter().registerDispatchInterceptor(loggingInterceptor);
+//            }));
+//    }
 
 }

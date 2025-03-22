@@ -19,6 +19,7 @@ package io.fluxion.server.core.task.service;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskStatus;
+import io.fluxion.server.core.task.cmd.TaskDispatchedCmd;
 import io.fluxion.server.core.task.cmd.TaskFailCmd;
 import io.fluxion.server.core.task.cmd.TaskReportCmd;
 import io.fluxion.server.core.task.cmd.TaskRunCmd;
@@ -64,7 +65,7 @@ public class TaskCommandService {
         List<Task> tasks = new ArrayList<>();
         for (Task task : cmd.getTasks()) {
             // 判断是否已经创建
-            TaskEntity entity = taskEntityRepo.findByExecutionIdAndRefIdAndType(task.getRefId(), task.getRefId(), task.type().value);
+            TaskEntity entity = taskEntityRepo.findByExecutionIdAndRefIdAndTaskType(task.getRefId(), task.getRefId(), task.type().value);
             if (entity == null) {
                 tasks.add(task);
             }
@@ -78,8 +79,10 @@ public class TaskCommandService {
             entity.setTaskId(id);
             entity.setExecutionId(task.getExecutionId());
             entity.setTriggerAt(task.getTriggerAt());
-            entity.setType(task.type().value);
+            entity.setStatus(task.getStatus().value);
+            entity.setTaskType(task.type().value);
             entity.setRefId(task.getRefId());
+            entity.setRetryTimes(task.getRetryTimes());
             return entity;
         }).collect(Collectors.toList());
         taskEntityRepo.saveAllAndFlush(entities);
@@ -106,6 +109,20 @@ public class TaskCommandService {
             .setParameter("startAt", TimeUtils.currentLocalDateTime())
             .setParameter("taskId", cmd.getTaskId())
             .setParameter("oldStatus", TaskStatus.QUEUED.value)
+            .setParameter("workerAddress", cmd.getWorkerAddress())
+            .executeUpdate();
+        return updated > 0;
+    }
+
+    @CommandHandler
+    public boolean handle(TaskDispatchedCmd cmd) {
+        int updated = entityManager.createQuery("update TaskEntity " +
+                "set status = :newStatus, workerAddress = :workerAddress " +
+                "where taskId = :taskId and status = :oldStatus"
+            )
+            .setParameter("newStatus", TaskStatus.QUEUED.value)
+            .setParameter("taskId", cmd.getTaskId())
+            .setParameter("oldStatus", TaskStatus.CREATED.value)
             .setParameter("workerAddress", cmd.getWorkerAddress())
             .executeUpdate();
         return updated > 0;
@@ -158,12 +175,11 @@ public class TaskCommandService {
             return false;
         }
         int updated = entityManager.createQuery("update TaskEntity " +
-                "set lastReportAt = :lastReportAt, status = :newStatus, endAt = :endAt, errorMsg = :errorMsg " +
+                "set lastReportAt = :lastReportAt, status = :newStatus, endAt = :endAt " +
                 "where taskId = :taskId and status = :oldStatus and lastReportAt < :lastReportAt " +
                 "and workerAddress = :workerAddress"
             )
             .setParameter("lastReportAt", cmd.getEndAt())
-            .setParameter("errorMsg", cmd.getErrorMsg())
             .setParameter("endAt", cmd.getEndAt())
             .setParameter("taskId", cmd.getTaskId())
             .setParameter("oldStatus", TaskStatus.RUNNING.value)

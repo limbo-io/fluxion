@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 limbo-io Team (https://github.com/limbo-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,27 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.dao.repository;
-
-import io.fluxion.server.infrastructure.dao.entity.TaskEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+package io.fluxion.server.infrastructure.version.model;
 
 /**
  * @author Devil
  */
-@Repository
-public interface TaskEntityRepo extends JpaRepository<TaskEntity, String> {
-
-    TaskEntity findByExecutionIdAndRefIdAndTaskType(String executionId, String refId, String taskType);
+public enum VersionMode {
+    /**
+     * 不获取版本数据
+     */
+    NONE,
+    /**
+     * 获取运行版本
+     */
+    PUBLISH,
+    /**
+     * 获取草稿版本
+     */
+    DRAFT,
+    /**
+     * 运行版本优先，没有获取草稿
+     */
+    PUBLISH_FIRST,
+    ;
 }

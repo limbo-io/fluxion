@@ -51,12 +51,12 @@ public class TaskEntity extends BaseEntity {
     /**
      * @see TaskType
      */
-    private String type;
+    private String taskType;
 
     /**
      * 关联的 id
      * flow 中是nodeId
-     * executor 则直接为其id
+     * executor 则直接为空
      */
     private String refId;
 
@@ -81,11 +81,6 @@ public class TaskEntity extends BaseEntity {
      * 结束时间
      */
     private LocalDateTime endAt;
-
-    /**
-     * 分配的负载节点 ip:host
-     */
-    private String brokerUrl;
 
     /**
      * 执行节点

@@ -14,30 +14,42 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.schedule.cmd;
+package io.fluxion.server.core.trigger.query;
 
-import io.fluxion.server.core.schedule.Schedule;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.infrastructure.cqrs.IQuery;
+import io.fluxion.server.infrastructure.version.model.VersionMode;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class ScheduleUpdateCmd implements ICmd<ScheduleUpdateCmd.Response> {
+public class TriggerByIdsQuery implements IQuery<TriggerByIdsQuery.Response> {
 
-    private Schedule schedule;
+    private final List<String> ids;
+
+    private VersionMode versionMode = VersionMode.PUBLISH;
+
+    public TriggerByIdsQuery(List<String> ids) {
+        this.ids = ids;
+    }
+
+    public TriggerByIdsQuery(List<String> ids, VersionMode versionMode) {
+        this.ids = ids;
+        this.versionMode = versionMode;
+    }
 
     @Getter
+    @NoArgsConstructor
     @AllArgsConstructor
     public static class Response {
-        private String id;
+        private List<Trigger> triggers = Collections.emptyList();
     }
 
 }

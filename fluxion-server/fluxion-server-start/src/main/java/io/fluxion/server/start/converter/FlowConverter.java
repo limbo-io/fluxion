@@ -41,7 +41,7 @@ public class FlowConverter {
         flowView.setId(entity.getFlowId());
         flowView.setName(entity.getName());
         flowView.setDescription(entity.getDescription());
-        flowView.setRunVersion(entity.getRunVersion());
+        flowView.setPublishVersion(entity.getPublishVersion());
         flowView.setDraftVersion(entity.getDraftVersion());
         return flowView;
     }

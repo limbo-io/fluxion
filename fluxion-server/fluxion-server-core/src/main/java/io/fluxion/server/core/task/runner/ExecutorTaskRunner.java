@@ -16,19 +16,23 @@
 
 package io.fluxion.server.core.task.runner;
 
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.broker.BrokerContext;
+import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
 import io.fluxion.server.core.executor.option.DispatchOption;
 import io.fluxion.server.core.task.ExecutorTask;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskType;
+import io.fluxion.server.core.task.cmd.TaskDispatchedCmd;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.WorkerRepository;
 import io.fluxion.server.core.worker.dispatch.WorkerFilter;
 import io.fluxion.server.core.worker.selector.WorkerSelectInvocation;
 import io.fluxion.server.core.worker.selector.WorkerSelector;
 import io.fluxion.server.core.worker.selector.WorkerSelectorFactory;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -70,17 +74,35 @@ public class ExecutorTaskRunner extends TaskRunner {
         WorkerSelectInvocation invocation = new WorkerSelectInvocation(executorTask.getExecutorName(), attributes);
         WorkerSelector workerSelector = workerSelectorFactory.newSelector(dispatchOption.getLoadBalanceType());
         Worker worker = workerSelector.select(invocation, workerFilter.get());
+        boolean dispatched = false;
+        if (worker != null) {
+            // 远程调用处理任务
+            TaskDispatchRequest request = new TaskDispatchRequest();
+            request.setTaskId(task.getTaskId());
+            request.setBrokerAddress(BrokerContext.broker().id());
+            request.setExecutorName(executorTask.getExecutorName());
+            request.setExecuteMode(executorTask.getExecuteMode().mode);
+            // call
+            dispatched = BrokerContext.call(
+                WorkerRemoteConstant.API_TASK_DISPATCH, worker.getHost(), worker.getPort(), request
+            );
+        }
 
-        // 远程调用处理任务
-        TaskDispatchRequest request = new TaskDispatchRequest();
-        request.setTaskId(task.getTaskId());
-        request.setBrokerAddress(BrokerContext.broker().id());
-        request.setExecutorName(executorTask.getExecutorName());
-        request.setExecuteMode(executorTask.getExecuteMode().mode);
-        // call
-        BrokerContext.call(
-            WorkerRemoteConstant.API_TASK_DISPATCH, worker.getHost(), worker.getPort(), request
-        );
+        String workerAddress = worker == null ? null : worker.getAddress();
+        if (dispatched) {
+            Cmd.send(new TaskDispatchedCmd(
+                task.getTaskId(),
+                workerAddress
+            ));
+        } else {
+            Cmd.send(new ExecutableFailCmd(
+                task.getTaskId(),
+                workerAddress,
+                TimeUtils.currentLocalDateTime(),
+                "dispatch fail worker:" + workerAddress
+            ));
+        }
+
     }
 
 

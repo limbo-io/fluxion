@@ -59,5 +59,4 @@ public abstract class ExecuteConfig implements ValidatableConfig {
         return ExecutableType.parse(type);
     }
 
-    public abstract String executableId();
 }

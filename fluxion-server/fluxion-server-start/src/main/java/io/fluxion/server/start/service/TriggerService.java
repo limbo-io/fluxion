@@ -17,12 +17,13 @@
 package io.fluxion.server.start.service;
 
 import io.fluxion.remote.core.api.PageResponse;
+import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.query.TriggerByIdsQuery;
+import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
 import io.fluxion.server.infrastructure.dao.repository.TriggerEntityRepo;
 import io.fluxion.server.infrastructure.utils.JpaHelper;
 import io.fluxion.server.start.api.trigger.request.TriggerPageRequest;
-import io.fluxion.server.start.api.trigger.view.TriggerView;
-import io.fluxion.server.start.converter.TriggerConverter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -32,6 +33,7 @@ import javax.annotation.Resource;
 import javax.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Devil
@@ -42,7 +44,7 @@ public class TriggerService {
     @Resource
     private TriggerEntityRepo triggerEntityRepo;
 
-    public PageResponse<TriggerView> page(TriggerPageRequest request) {
+    public PageResponse<Trigger> page(TriggerPageRequest request) {
         // 查询条件
         Specification<TriggerEntity> condition = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -52,22 +54,18 @@ public class TriggerService {
             query.where(predicates.toArray(new Predicate[0]));
             // 排序
             query.orderBy(JpaHelper.desc(root, cb, TriggerEntity::getTriggerId));
+            // 只查询固定字段
+            query.select(root.get("triggerId"));
             return query.getRestriction();
         };
         // 分页条件
         Pageable pageable = JpaHelper.pageable(request);
         Page<TriggerEntity> queryResult = triggerEntityRepo.findAll(condition, pageable);
         List<TriggerEntity> entities = queryResult.getContent();
+        List<String> ids = entities.stream().map(TriggerEntity::getTriggerId).collect(Collectors.toList());
+        List<Trigger> triggers = Query.query(new TriggerByIdsQuery(ids)).getTriggers();
         // 封装分页返回结果
-        return request.response(queryResult.getTotalElements(), TriggerConverter.toView(entities));
-    }
-
-    public TriggerView get(String id) {
-        TriggerEntity entity = triggerEntityRepo.findById(id).orElse(null);
-        if (entity == null) {
-            return null;
-        }
-        return TriggerConverter.toView(entity);
+        return request.response(queryResult.getTotalElements(), triggers);
     }
 
 }

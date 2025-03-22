@@ -43,7 +43,7 @@ public class ReflectionTest {
         Class<io.fluxion.remote.core.api.Response<WorkerRegisterResponse>> responseType = ReflectionUtils.refType(request);
         System.out.println(responseType);
 
-        FlowByIdQuery query = new FlowByIdQuery();
+        FlowByIdQuery query = new FlowByIdQuery("");
         Class<FlowByIdQuery.Response> queryResponseType = ReflectionUtils.refType(query);
         System.out.println(queryResponseType);
 

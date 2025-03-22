@@ -17,23 +17,22 @@
 package io.fluxion.server.core.trigger.service;
 
 import io.fluxion.common.utils.Lambda;
-import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.server.core.schedule.Schedule;
-import io.fluxion.server.core.schedule.cmd.ScheduleCreateCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDeleteCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDisableCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleEnableCmd;
-import io.fluxion.server.core.schedule.cmd.ScheduleUpdateCmd;
-import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
+import io.fluxion.server.core.schedule.cmd.ScheduleSaveCmd;
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.TriggerConfig;
 import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.core.trigger.cmd.TriggerCreateCmd;
 import io.fluxion.server.core.trigger.cmd.TriggerDeleteCmd;
 import io.fluxion.server.core.trigger.cmd.TriggerDisableCmd;
+import io.fluxion.server.core.trigger.cmd.TriggerDraftCmd;
 import io.fluxion.server.core.trigger.cmd.TriggerEnableCmd;
+import io.fluxion.server.core.trigger.cmd.TriggerPublishCmd;
 import io.fluxion.server.core.trigger.cmd.TriggerUpdateCmd;
 import io.fluxion.server.core.trigger.config.ScheduleTriggerConfig;
+import io.fluxion.server.core.trigger.converter.TriggerEntityConverter;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
@@ -45,6 +44,7 @@ import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
+import io.fluxion.server.infrastructure.version.cmd.VersionSaveCmd;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;
@@ -71,89 +71,81 @@ public class TriggerCommandService {
 
     @CommandHandler
     public TriggerCreateCmd.Response handle(TriggerCreateCmd cmd) {
-        Trigger trigger = cmd.getTrigger();
-        triggerSaveCheck(trigger);
         String id = Cmd.send(new IDGenerateCmd(IDType.TRIGGER)).getId();
         TriggerEntity entity = new TriggerEntity();
         entity.setTriggerId(id);
-        entity.setExecuteConfig(JacksonUtils.toJSONString(trigger.getExecuteConfig()));
-        entity.setName(trigger.getName());
-        entity.setDescription(trigger.getDescription());
-        entity.setTriggerConfig(JacksonUtils.toJSONString(trigger.getTriggerConfig()));
+        entity.setName(cmd.getName());
+        entity.setDescription(cmd.getDescription());
         entity.setEnabled(false);
         triggerEntityRepo.saveAndFlush(entity);
-
-        // 后续逻辑
-        TriggerType type = trigger.getTriggerConfig().type();
-        switch (type) {
-            case SCHEDULE:
-                ScheduleTriggerConfig scheduleTrigger = (ScheduleTriggerConfig) trigger.getTriggerConfig();
-                ScheduleOption scheduleOption = scheduleTrigger.getScheduleOption();
-                Schedule schedule = new Schedule();
-                schedule.setEnabled(false);
-                schedule.setId(id);
-                schedule.setOption(scheduleOption);
-                Cmd.send(new ScheduleCreateCmd(schedule));
-                break;
-        }
-
         return new TriggerCreateCmd.Response(id);
     }
 
     @CommandHandler
     public void handle(TriggerUpdateCmd cmd) {
-        Trigger trigger = cmd.getTrigger();
-        triggerSaveCheck(trigger);
-        // todo 触发方式不能修改??? 否则 schedule等得先删后增
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaUpdate<TriggerEntity> update = cb.createCriteriaUpdate(TriggerEntity.class);
         Root<TriggerEntity> root = update.from(TriggerEntity.class);
 
-        update.set(Lambda.name(TriggerEntity::getExecuteConfig), JacksonUtils.toJSONString(trigger.getExecuteConfig()));
-        update.set(Lambda.name(TriggerEntity::getDescription), StringUtils.defaultIfBlank(trigger.getDescription(), StringUtils.EMPTY));
-        update.set(Lambda.name(TriggerEntity::getTriggerConfig), JacksonUtils.toJSONString(trigger.getTriggerConfig()));
-        update.set(Lambda.name(TriggerEntity::getName), trigger.getName());
+        update.set(Lambda.name(TriggerEntity::getDescription), StringUtils.defaultIfBlank(cmd.getDescription(), StringUtils.EMPTY));
+        update.set(Lambda.name(TriggerEntity::getName), cmd.getName());
 
-        update.where(cb.equal(root.get(Lambda.name(TriggerEntity::getTriggerId)), trigger.getId()));
-        int rows = entityManager.createQuery(update).executeUpdate();
-        if (rows <= 0) {
-            return;
-        }
+        update.where(cb.equal(root.get(Lambda.name(TriggerEntity::getTriggerId)), cmd.getId()));
+        entityManager.createQuery(update).executeUpdate();
+    }
 
-        // 后续逻辑
-        TriggerType type = trigger.getTriggerConfig().type();
-        switch (type) {
-            case SCHEDULE:
-                ScheduleTriggerConfig scheduleTrigger = (ScheduleTriggerConfig) trigger.getTriggerConfig();
-                ScheduleOption scheduleOption = scheduleTrigger.getScheduleOption();
-                Schedule schedule = Query.query(new ScheduleByIdQuery(trigger.getId())).getSchedule();
-                schedule.setOption(scheduleOption);
-                Cmd.send(new ScheduleUpdateCmd(schedule));
-                break;
+    @CommandHandler
+    public void handle(TriggerDraftCmd cmd) {
+        TriggerEntity entity = triggerEntityRepo.findById(cmd.getId()).orElseThrow(
+            PlatformException.supplier(ErrorCode.PARAM_ERROR, "can't find trigger by id:" + cmd.getId())
+        );
+        String config = TriggerEntityConverter.config(cmd.getTriggerConfig());
+        if (StringUtils.isBlank(entity.getDraftVersion())) {
+            String version = Cmd.send(new VersionSaveCmd(TriggerEntityConverter.versionId(entity.getTriggerId()), config)).getVersion();
+            entity.setDraftVersion(version);
+            triggerEntityRepo.saveAndFlush(entity);
+        } else {
+            Cmd.send(new VersionSaveCmd(TriggerEntityConverter.versionId(entity.getTriggerId(), entity.getDraftVersion()), config));
         }
     }
 
-    private void triggerSaveCheck(Trigger trigger) {
-        TriggerConfig config = trigger.getTriggerConfig();
+    @CommandHandler
+    public void handle(TriggerPublishCmd cmd) {
+        TriggerConfig config = cmd.getTriggerConfig();
         if (config == null) {
             throw new PlatformException(ErrorCode.PARAM_ERROR, "config is null");
         }
-//        if (trigger.getType() != config.type()) {
-//            throw new PlatformException(ErrorCode.PARAM_ERROR, "config type not match");
-//        }
         List<ValidateSuppressInfo> suppressInfos = config.validate();
         if (CollectionUtils.isNotEmpty(suppressInfos)) {
             throw new PlatformException(ErrorCode.PARAM_ERROR, suppressInfos.get(0).getCode());
+        }
+        TriggerEntity entity = triggerEntityRepo.findById(cmd.getId()).orElseThrow(
+            PlatformException.supplier(ErrorCode.PARAM_ERROR, "can't find trigger by id:" + cmd.getId())
+        );
+        String configJson = TriggerEntityConverter.config(cmd.getTriggerConfig());
+        String publishVersion = Cmd.send(new VersionSaveCmd(TriggerEntityConverter.versionId(entity.getTriggerId(), entity.getDraftVersion()), configJson)).getVersion();
+        entity.setPublishVersion(publishVersion);
+        entity.setDraftVersion(StringUtils.EMPTY);
+        triggerEntityRepo.saveAndFlush(entity);
+
+        // 后续逻辑
+        TriggerType type = config.type();
+        switch (type) {
+            case SCHEDULE:
+                ScheduleTriggerConfig scheduleTrigger = (ScheduleTriggerConfig) config;
+                ScheduleOption scheduleOption = scheduleTrigger.getScheduleOption();
+                Cmd.send(new ScheduleSaveCmd(cmd.getId(), scheduleOption));
+                break;
         }
     }
 
 
     @CommandHandler
     public void handle(TriggerEnableCmd cmd) {
-        Trigger trigger = findByIdWithNullError(cmd.getId());
+        Trigger trigger = findByIdWithNullError(cmd.getId(), true);
         triggerEntityRepo.updateEnable(cmd.getId(), true);
         // 后续逻辑
-        TriggerType type = trigger.getTriggerConfig().type();
+        TriggerType type = trigger.getConfig().type();
         switch (type) {
             case SCHEDULE:
                 Cmd.send(new ScheduleEnableCmd(trigger.getId()));
@@ -163,10 +155,10 @@ public class TriggerCommandService {
 
     @CommandHandler
     public void handle(TriggerDisableCmd cmd) {
-        Trigger trigger = findByIdWithNullError(cmd.getId());
+        Trigger trigger = findByIdWithNullError(cmd.getId(), true);
         triggerEntityRepo.updateEnable(cmd.getId(), false);
         // 后续逻辑
-        TriggerType type = trigger.getTriggerConfig().type();
+        TriggerType type = trigger.getConfig().type();
         switch (type) {
             case SCHEDULE:
                 Cmd.send(new ScheduleDisableCmd(trigger.getId()));
@@ -176,7 +168,7 @@ public class TriggerCommandService {
 
     @CommandHandler
     public void handle(TriggerDeleteCmd cmd) {
-        Trigger trigger = findByIdWithNullError(cmd.getId());
+        Trigger trigger = findByIdWithNullError(cmd.getId(), false);
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaUpdate<TriggerEntity> update = cb.createCriteriaUpdate(TriggerEntity.class);
         Root<TriggerEntity> root = update.from(TriggerEntity.class);
@@ -188,7 +180,7 @@ public class TriggerCommandService {
         entityManager.createQuery(update).executeUpdate();
 
         // 后续逻辑
-        TriggerType type = trigger.getTriggerConfig().type();
+        TriggerType type = trigger.getConfig().type();
         switch (type) {
             case SCHEDULE:
                 Cmd.send(new ScheduleDeleteCmd(trigger.getId()));
@@ -196,10 +188,13 @@ public class TriggerCommandService {
         }
     }
 
-    private Trigger findByIdWithNullError(String triggerId) {
+    private Trigger findByIdWithNullError(String triggerId, boolean checkPublished) {
         Trigger trigger = Query.query(new TriggerByIdQuery(triggerId)).getTrigger();
         if (trigger == null) {
             throw new PlatformException(ErrorCode.PARAM_ERROR, "can't find trigger by id:" + triggerId);
+        }
+        if (checkPublished && StringUtils.isBlank(trigger.getVersion())) {
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "trigger id:" + triggerId + " not published");
         }
         return trigger;
     }

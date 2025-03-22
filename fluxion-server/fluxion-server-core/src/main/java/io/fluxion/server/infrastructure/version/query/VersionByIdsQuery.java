@@ -14,34 +14,34 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.execution;
+package io.fluxion.server.infrastructure.version.query;
 
-import io.fluxion.server.core.context.RunContext;
+import io.fluxion.server.infrastructure.cqrs.IQuery;
+import io.fluxion.server.infrastructure.version.model.Version;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
- * 执行记录
- *
  * @author Devil
  */
 @Getter
-public class Execution {
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class VersionByIdsQuery implements IQuery<VersionByIdsQuery.Response> {
 
-    private final String id;
+    private List<Version.ID> ids = Collections.emptyList();
 
-    private final Executable executable;
-
-    private final ExecutionStatus status;
-
-    public Execution(String id, Executable executable, ExecutionStatus status) {
-        this.id = id;
-        this.executable = executable;
-        this.status = status;
-    }
-
-    public void execute() {
-        RunContext runContext = RunContext.of(id);
-        executable.execute(runContext);
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Response {
+        private List<Version> versions = Collections.emptyList();
     }
 
 }

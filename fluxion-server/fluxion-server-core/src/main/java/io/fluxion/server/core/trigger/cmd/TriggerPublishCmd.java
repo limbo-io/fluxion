@@ -14,50 +14,26 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.start.api.trigger.view;
+package io.fluxion.server.core.trigger.cmd;
 
-import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.core.trigger.TriggerConfig;
-import io.fluxion.server.core.trigger.TriggerType;
-import lombok.Data;
-
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * @author Devil
  */
-@Data
-public class TriggerView {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class TriggerPublishCmd implements ICmd<Void> {
 
     private String id;
 
-    /**
-     * 触发方式
-     * @see TriggerType
-     */
-    private String type;
-
-    /**
-     * 描述
-     */
-    private String name;
-
-    /**
-     * 描述
-     */
-    private String description;
-
-    /**
-     * 触发配置
-     */
     private TriggerConfig triggerConfig;
 
-    /**
-     * 执行配置
-     */
-    private ExecuteConfig executeConfig;
-
-    /**
-     * 是否启动
-     */
-    private boolean enabled;
 }

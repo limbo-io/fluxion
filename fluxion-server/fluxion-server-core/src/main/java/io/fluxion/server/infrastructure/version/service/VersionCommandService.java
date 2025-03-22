@@ -21,11 +21,13 @@ import io.fluxion.server.infrastructure.dao.entity.VersionEntity;
 import io.fluxion.server.infrastructure.dao.repository.VersionEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
-import io.fluxion.server.infrastructure.version.cmd.VersionCreateCmd;
-import io.fluxion.server.infrastructure.version.cmd.VersionUpdateCmd;
+import io.fluxion.server.infrastructure.version.cmd.VersionSaveCmd;
+import io.fluxion.server.infrastructure.version.converter.VersionConverter;
+import io.fluxion.server.infrastructure.version.model.Version;
 import io.fluxion.server.infrastructure.version.model.VersionGenerateType;
 import io.fluxion.server.infrastructure.version.model.VersionRefType;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
@@ -51,43 +53,35 @@ public class VersionCommandService {
 
     static {
         REF_GENERATE_TYPES.put(VersionRefType.FLOW, VersionGenerateType.INCR);
+        REF_GENERATE_TYPES.put(VersionRefType.TRIGGER, VersionGenerateType.INCR);
     }
 
     @CommandHandler
-    public VersionCreateCmd.Response handle(VersionCreateCmd cmd) {
+    public VersionSaveCmd.Response handle(VersionSaveCmd cmd) {
         VersionEntity entity = new VersionEntity();
-        String version = nextVersion(cmd);
-        entity.setId(new VersionEntity.ID(cmd.getRefId(), cmd.getRefType().value, version));
-        entity.setConfig(cmd.getConfig());
-        versionEntityRepo.saveAndFlush(entity);
-        return new VersionCreateCmd.Response(version);
-    }
-
-    @CommandHandler
-    public VersionUpdateCmd.Response handle(VersionUpdateCmd cmd) {
-        VersionEntity entity = versionEntityRepo.findById(new VersionEntity.ID(cmd.getRefId(), cmd.getRefType().value, cmd.getVersion())).orElse(null);
-        if (entity == null) {
-            throw new PlatformException(
-                ErrorCode.PARAM_ERROR,
-                "can't find version by refId:" + cmd.getRefId() + " refType:" + cmd.getRefType() + " version:" + cmd.getVersion()
-            );
+        Version.ID id = cmd.getId();
+        String version = id.getVersion();
+        if (StringUtils.isBlank(version)) {
+            version = nextVersion(id);
         }
+        VersionEntity.ID entityId = new VersionEntity.ID(id.getRefId(), id.getRefType().value, version);
+        entity.setId(entityId);
         entity.setConfig(cmd.getConfig());
         versionEntityRepo.saveAndFlush(entity);
-        return new VersionUpdateCmd.Response();
+        return new VersionSaveCmd.Response(version);
     }
 
-    private String nextVersion(VersionCreateCmd cmd) {
-        VersionGenerateType generateType = REF_GENERATE_TYPES.get(cmd.getRefType());
+    private String nextVersion(Version.ID id) {
+        VersionGenerateType generateType = REF_GENERATE_TYPES.get(id.getRefType());
         switch (generateType) {
             case INCR:
-                return incrVersion(cmd.getRefId(), cmd.getRefType().name());
+                return incrVersion(id.getRefId(), id.getRefType().name());
             case RANDOM:
                 return randomVersion();
             default:
                 throw new PlatformException(
                     ErrorCode.PARAM_ERROR,
-                    "can't match refType:" + cmd.getRefType() + " generateType:" + generateType
+                    "can't match refType:" + id.getRefType() + " generateType:" + generateType
                 );
         }
     }

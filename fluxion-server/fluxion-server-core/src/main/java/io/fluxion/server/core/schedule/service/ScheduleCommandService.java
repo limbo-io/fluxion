@@ -22,7 +22,6 @@ import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.ScheduleConstants;
 import io.fluxion.server.core.schedule.ScheduleDelay;
-import io.fluxion.server.core.schedule.cmd.ScheduleCreateCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayCreateCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByScheduleCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayLoadCmd;
@@ -30,8 +29,8 @@ import io.fluxion.server.core.schedule.cmd.ScheduleDeleteCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDisableCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleEnableCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleFeedbackCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleSaveCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleTriggerCmd;
-import io.fluxion.server.core.schedule.cmd.ScheduleUpdateCmd;
 import io.fluxion.server.core.schedule.converter.ScheduleEntityConverter;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
@@ -62,31 +61,30 @@ public class ScheduleCommandService {
     private EntityManager entityManager;
 
     @CommandHandler
-    public void handle(ScheduleCreateCmd cmd) {
-        Schedule schedule = cmd.getSchedule();
-        BasicCalculation calculation = new BasicCalculation(
-            null, null, schedule.getOption()
-        );
-        schedule.setNextTriggerAt(calculation.triggerAt());
-        ScheduleEntity entity = ScheduleEntityConverter.convert(cmd.getSchedule());
-        int bucket = Cmd.send(new BucketAllotCmd(entity.getScheduleId())).getBucket();
-        entity.setBucket(bucket);
-        scheduleEntityRepo.saveAndFlush(entity);
-        // 调度
-        Cmd.send(new ScheduleTriggerCmd(schedule));
-    }
+    public void handle(ScheduleSaveCmd cmd) {
+        Schedule newSchedule = new Schedule();
+        newSchedule.setId(cmd.getId());
+        newSchedule.setOption(cmd.getOption());
 
-    @CommandHandler
-    public void handle(ScheduleUpdateCmd cmd) {
-        Schedule newSchedule = cmd.getSchedule();
-        Schedule oldSchedule = Query.query(new ScheduleByIdQuery(newSchedule.getId())).getSchedule();
+        Schedule oldSchedule = Query.query(new ScheduleByIdQuery(cmd.getId())).getSchedule();
+        // 触发时间设置
         if (oldSchedule == null) {
-            return;
+            BasicCalculation calculation = new BasicCalculation(
+                null, null, newSchedule.getOption()
+            );
+            newSchedule.setNextTriggerAt(calculation.triggerAt());
+
         }
+        // bucket分配
         ScheduleEntity entity = ScheduleEntityConverter.convert(newSchedule);
+        if (oldSchedule == null) {
+            int bucket = Cmd.send(new BucketAllotCmd(entity.getScheduleId())).getBucket();
+            entity.setBucket(bucket);
+        }
+
         scheduleEntityRepo.saveAndFlush(entity);
         // 判断版本是否变化 变化就要先删delay(等待状态) 后创建新的并调度
-        if (!newSchedule.version().equals(oldSchedule.version())) {
+        if (oldSchedule == null || !newSchedule.version().equals(oldSchedule.version())) {
             Cmd.send(new ScheduleDelayDeleteByScheduleCmd(newSchedule.getId(), Lists.newArrayList(
                 ScheduleDelay.Status.INIT, ScheduleDelay.Status.LOADED
             )));
@@ -124,7 +122,7 @@ public class ScheduleCommandService {
             return;
         }
         LocalDateTime now = TimeUtils.currentLocalDateTime();
-        if (schedule.getNextTriggerAt().isBefore(now) || schedule.getNextTriggerAt().isBefore(schedule.getOption().getStartTime())) {
+        if (schedule.getNextTriggerAt().isAfter(now) || schedule.getNextTriggerAt().isBefore(schedule.getOption().getStartTime())) {
             return;
         }
         if (schedule.getNextTriggerAt().isAfter(schedule.getOption().getEndTime())

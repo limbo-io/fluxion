@@ -58,7 +58,7 @@ public class BucketCommandService {
     @CommandHandler
     public BucketAllotCmd.Response handle(BucketAllotCmd cmd) {
         // hash获取id对应的值
-        int bucket = cmd.getResourceId().hashCode() % BUCKET_SIZE;
+        int bucket = Math.abs(cmd.getResourceId().hashCode()) % BUCKET_SIZE + 1;
         return new BucketAllotCmd.Response(bucket);
     }
 
@@ -78,7 +78,7 @@ public class BucketCommandService {
                 if (brokerIds.contains(entity.getBrokerId())) {
                     continue;
                 }
-                // hash获取id对应的值
+                // 为bucket分配新的broker
                 int idx = entity.getBucket() % brokerIds.size();
                 entity.setBrokerId(brokerIds.get(idx));
                 entities.add(entity);

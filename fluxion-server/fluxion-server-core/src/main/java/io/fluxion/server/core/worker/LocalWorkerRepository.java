@@ -32,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class LocalWorkerRepository implements WorkerRepository {
     /**
-     * appId - workerId - Worker
+     * appId - workerAddress - Worker
      */
     private final Map<String, Map<String, Worker>> APP_WORKERS = new ConcurrentHashMap<>();
 
@@ -41,11 +41,11 @@ public class LocalWorkerRepository implements WorkerRepository {
     @Override
     public void save(Worker worker) {
         Map<String, Worker> workers = APP_WORKERS.computeIfAbsent(worker.getApp().getId(), s -> new ConcurrentHashMap<>());
-        if (!WORKERS.containsKey(worker.getId())) {
+        if (!WORKERS.containsKey(worker.id())) {
             BrokerContext.broker().node().loadIncr(BrokerNode.LoadType.WORKER);
         }
-        workers.put(worker.getId(), worker);
-        WORKERS.put(worker.getId(), worker);
+        workers.put(worker.id(), worker);
+        WORKERS.put(worker.id(), worker);
     }
 
     @Override

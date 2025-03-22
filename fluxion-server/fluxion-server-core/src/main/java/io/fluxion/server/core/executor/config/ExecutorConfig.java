@@ -61,7 +61,7 @@ public abstract class ExecutorConfig implements ValidatableConfig {
     /**
      * 下发属性
      */
-    private DispatchOption dispatchOption;
+    private DispatchOption dispatchOption = new DispatchOption();
 
     public abstract String executorName();
 
