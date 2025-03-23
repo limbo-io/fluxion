@@ -42,20 +42,20 @@ public class Executor implements Executable {
     /**
      * 重试参数
      */
-    private RetryOption retryOption;
+    private RetryOption retryOption = new RetryOption();
 
     /**
      * 超时参数
      */
-    private OvertimeOption overtimeOption;
+    private OvertimeOption overtimeOption = new OvertimeOption();
 
     private Executor() {
     }
 
     private Executor(ExecutorConfig config, RetryOption retryOption, OvertimeOption overtimeOption) {
         this.config = config;
-        this.retryOption = retryOption;
-        this.overtimeOption = overtimeOption;
+        this.retryOption = retryOption == null ? new RetryOption() : retryOption;
+        this.overtimeOption = overtimeOption == null ? new OvertimeOption() : overtimeOption;
     }
 
     public static Executor of(ExecutorConfig config, RetryOption retryOption, OvertimeOption overtimeOption) {

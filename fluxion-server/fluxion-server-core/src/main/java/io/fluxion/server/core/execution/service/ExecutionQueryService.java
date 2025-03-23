@@ -46,7 +46,7 @@ public class ExecutionQueryService {
             return new ExecutionByIdQuery.Response(null);
         }
         Executable executable = Query.query(new ExecutableByIdQuery(
-            entity.getExecutionId(), entity.getExecutableVersion(), ExecutableType.parse(entity.getExecutableType())
+            entity.getExecutableId(), entity.getExecutableVersion(), ExecutableType.parse(entity.getExecutableType())
         )).getExecutable();
         if (executable == null) {
             return new ExecutionByIdQuery.Response(null);

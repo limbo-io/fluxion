@@ -17,15 +17,9 @@
 package io.fluxion.server.core.broker.cmd;
 
 import io.fluxion.server.infrastructure.cqrs.ICmd;
-import lombok.Getter;
 
 /**
  * @author Devil
  */
-@Getter
 public class BucketRebalanceCmd implements ICmd<Void> {
-    /**
-     * 防止由于没有字段导致转json string失败
-     */
-    private Integer invalid;
 }

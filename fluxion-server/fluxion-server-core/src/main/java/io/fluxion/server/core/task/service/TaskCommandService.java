@@ -75,8 +75,11 @@ public class TaskCommandService {
         }
         List<TaskEntity> entities = tasks.stream().map(task -> {
             String id = Cmd.send(new IDGenerateCmd(IDType.TASK)).getId();
+            task.setTaskId(id);
+            return task;
+        }).map(task -> {
             TaskEntity entity = new TaskEntity();
-            entity.setTaskId(id);
+            entity.setTaskId(task.getTaskId());
             entity.setExecutionId(task.getExecutionId());
             entity.setTriggerAt(task.getTriggerAt());
             entity.setStatus(task.getStatus().value);
