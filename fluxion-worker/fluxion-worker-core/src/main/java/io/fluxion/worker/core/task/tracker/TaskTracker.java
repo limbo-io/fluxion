@@ -17,6 +17,7 @@
 package io.fluxion.worker.core.task.tracker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.request.broker.TaskFailRequest;
 import io.fluxion.remote.core.api.request.broker.TaskStartRequest;
 import io.fluxion.remote.core.api.request.broker.TaskSuccessRequest;
@@ -25,7 +26,6 @@ import io.fluxion.worker.core.task.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -72,7 +72,7 @@ public abstract class TaskTracker {
             return false;
         }
 
-        if (!save(this)) {
+        if (!workerContext.saveTask(this)) {
             log.info("Receive task [{}], but already in repository", task.getTaskId());
             return false;
         }
@@ -91,22 +91,6 @@ public abstract class TaskTracker {
         }
     }
 
-    /**
-     * 尝试新增任务到仓库中：如果已存在相同 taskId 的任务，则不添加新的任务，返回 false；如不存在，则添加成功，返回 true。
-     *
-     * @param tracker 任务执行上下文
-     */
-    public boolean save(TaskTracker tracker) {
-        Map<String, TaskTracker> tasks = workerContext.tasks();
-        // 剩余可分配任务数
-        int availableQueueSize = workerContext.queueSize() - tasks.size();
-        if (availableQueueSize <= 0) {
-            log.info("Worker's queue is full, limit: {}", availableQueueSize);
-            return false;
-        }
-        return tasks.putIfAbsent(tracker.task().getTaskId(), tracker) == null;
-    }
-
     public abstract void run();
 
     public void destroy() {
@@ -120,7 +104,7 @@ public abstract class TaskTracker {
         if (processFuture != null) {
             processFuture.cancel(true);
         }
-        workerContext.tasks().remove(task.getTaskId());
+        workerContext.removeTask(task.getTaskId());
         log.info("TaskTracker taskId: {} destroyed success", task.getTaskId());
     }
 
@@ -136,27 +120,30 @@ public abstract class TaskTracker {
         }
     }
 
-    protected boolean reportSuccess(Task task) {
+    protected void reportSuccess(Task task) {
         try {
             TaskSuccessRequest request = new TaskSuccessRequest();
             request.setTaskId(task.getTaskId());
-            return workerContext.call(API_TASK_SUCCESS, request);
+            request.setReportAt(TimeUtils.currentLocalDateTime());
+            request.setWorkerAddress(workerContext.address());
+            workerContext.call(API_TASK_SUCCESS, request); // todo @d later 如果上报失败需要记录，定时重试
         } catch (Exception e) {
             log.error("reportSuccess fail task={}", task.getTaskId(), e);
             // todo @d later 如果上报失败需要记录，定时重试
-            return false;
         }
     }
 
-    protected boolean reportFail(Task task) {
+    protected void reportFail(Task task, Throwable throwable) {
         try {
             TaskFailRequest request = new TaskFailRequest();
             request.setTaskId(task.getTaskId());
-            return workerContext.call(API_TASK_FAIL, request);
+            request.setReportAt(TimeUtils.currentLocalDateTime());
+            request.setWorkerAddress(workerContext.address());
+            request.setErrorMsg(throwable.getMessage());
+            workerContext.call(API_TASK_FAIL, request); // todo @d later 如果上报失败需要记录，定时重试
         } catch (Exception e) {
             log.error("reportFail fail task={}", task.getTaskId(), e);
             // todo @d later 如果上报失败需要记录，定时重试
-            return false;
         }
     }
 

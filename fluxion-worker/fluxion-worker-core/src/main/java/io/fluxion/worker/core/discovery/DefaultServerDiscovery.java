@@ -16,6 +16,7 @@
 
 package io.fluxion.worker.core.discovery;
 
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
@@ -97,6 +98,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
         request.setSystemInfo(systemInfoDTO());
         request.setTags(tagDTOS(workerContext.tags()));
         request.setExecutors(executorDTOS(workerContext));
+        request.setAvailableQueueNum(workerContext.availableQueueNum());
 
         WorkerRegisterResponse registerResponse = client.call(API_WORKER_REGISTER, request).getData();
         workerContext.appId(registerResponse.getAppId());
@@ -112,6 +114,8 @@ public class DefaultServerDiscovery implements ServerDiscovery {
                 request.setWorkerId(workerContext.address());
                 request.setSystemInfo(systemInfoDTO());
                 request.setTopologyVersion(topologyVersion);
+                request.setHeartbeatAt(TimeUtils.currentLocalDateTime());
+                request.setAvailableQueueNum(workerContext.availableQueueNum());
 
                 WorkerHeartbeatResponse heartbeatResponse = client.call(
                     API_WORKER_HEARTBEAT, request
@@ -157,7 +161,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
         }
         return topologyDTO.getBrokers().stream().map(dto -> {
             Node node = node(dto);
-            return new BaseLBServer(node); // todo ! 可以设计成失败了记录失败时间，isAlive根据时间计算，10s后才使用
+            return new BaseLBServer(node);
         }).collect(Collectors.toList());
     }
 

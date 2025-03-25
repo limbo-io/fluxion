@@ -52,9 +52,9 @@ public class BasicTaskTracker extends TaskTracker {
                 executor.run(task);
                 // 执行成功
                 reportSuccess(task);
-            } catch (Exception e) {
-                log.error("[BasicTaskTracker] run error", e);
-                reportFail(task);
+            } catch (Throwable throwable) {
+                log.error("[BasicTaskTracker] run error", throwable);
+                reportFail(task, throwable);
             } finally {
                 destroy();
             }

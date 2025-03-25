@@ -40,6 +40,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -121,12 +122,14 @@ public class TaskCommandService {
 
     @CommandHandler
     public boolean handle(TaskStartCmd cmd) {
+        LocalDateTime now = TimeUtils.currentLocalDateTime();
         int updated = entityManager.createQuery("update TaskEntity " +
-                "set status = :newStatus, startAt = :startAt " +
+                "set status = :newStatus, startAt = :startAt, lastReportAt = :lastReportAt " +
                 "where taskId = :taskId and status = :oldStatus and workerAddress = :workerAddress"
             )
             .setParameter("newStatus", TaskStatus.RUNNING.value)
-            .setParameter("startAt", TimeUtils.currentLocalDateTime())
+            .setParameter("startAt", now)
+            .setParameter("lastReportAt", now)
             .setParameter("taskId", cmd.getTaskId())
             .setParameter("oldStatus", TaskStatus.DISPATCHED.value)
             .setParameter("workerAddress", cmd.getWorkerAddress())
@@ -157,8 +160,7 @@ public class TaskCommandService {
         }
         int updated = entityManager.createQuery("update TaskEntity " +
                 "set lastReportAt = :lastReportAt, status = :newStatus, endAt = :endAt " +
-                "where taskId = :taskId and status = :oldStatus and lastReportAt < :lastReportAt " +
-                "and workerAddress = :workerAddress"
+                "where taskId = :taskId and status = :oldStatus and workerAddress = :workerAddress "
             )
             .setParameter("lastReportAt", cmd.getEndAt())
             .setParameter("endAt", cmd.getEndAt())
@@ -182,8 +184,7 @@ public class TaskCommandService {
         }
         int updated = entityManager.createQuery("update TaskEntity " +
                 "set lastReportAt = :lastReportAt, status = :newStatus, endAt = :endAt " +
-                "where taskId = :taskId and status = :oldStatus and lastReportAt < :lastReportAt " +
-                "and workerAddress = :workerAddress"
+                "where taskId = :taskId and status = :oldStatus and workerAddress = :workerAddress "
             )
             .setParameter("lastReportAt", cmd.getEndAt())
             .setParameter("endAt", cmd.getEndAt())

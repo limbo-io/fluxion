@@ -23,6 +23,8 @@ import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.tracker.TaskTracker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,6 +48,8 @@ import java.util.stream.Collectors;
  * @since 0.0.1
  */
 public class WorkerContext {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private String appId;
 
@@ -152,10 +156,6 @@ public class WorkerContext {
         return status.get();
     }
 
-    public Map<String, TaskTracker> tasks() {
-        return tasks;
-    }
-
     public ExecutorService taskProcessExecutor() {
         return taskProcessExecutor;
     }
@@ -184,8 +184,27 @@ public class WorkerContext {
         return address;
     }
 
-    public int queueSize() {
-        return queueSize;
+    public int availableQueueNum() {
+        return queueSize - tasks.size();
+    }
+
+    /**
+     * 尝试新增任务到仓库中：如果已存在相同 taskId 的任务，则不添加新的任务，返回 false；如不存在，则添加成功，返回 true。
+     *
+     * @param tracker 任务执行上下文
+     */
+    public boolean saveTask(TaskTracker tracker) {
+        // 剩余可分配任务数
+        int availableQueueNum = availableQueueNum();
+        if (availableQueueNum <= 0) {
+            log.info("Worker's queue is full, limit: {}", availableQueueNum);
+            return false;
+        }
+        return tasks.putIfAbsent(tracker.task().getTaskId(), tracker) == null;
+    }
+
+    public void removeTask(String taskId) {
+        tasks.remove(taskId);
     }
 
     public String appId() {
