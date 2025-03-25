@@ -18,6 +18,7 @@ package io.fluxion.server.core.broker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
+import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 import io.fluxion.remote.core.api.request.broker.TaskFailRequest;
 import io.fluxion.remote.core.api.request.broker.TaskReportRequest;
 import io.fluxion.remote.core.api.request.broker.TaskStartRequest;
@@ -28,20 +29,18 @@ import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
 import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.BrokerRemoteConstant;
-import io.fluxion.server.core.app.App;
-import io.fluxion.server.core.app.cmd.AppBrokerElectCmd;
-import io.fluxion.server.core.app.cmd.AppRegisterCmd;
+import io.fluxion.server.core.app.cmd.AppSaveCmd;
 import io.fluxion.server.core.broker.converter.BrokerClientConverter;
+import io.fluxion.server.core.broker.query.BrokersQuery;
 import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
 import io.fluxion.server.core.task.cmd.TaskReportCmd;
 import io.fluxion.server.core.task.cmd.TaskStartCmd;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
-import io.fluxion.server.core.worker.cmd.WorkerRegisterCmd;
+import io.fluxion.server.core.worker.cmd.WorkerSaveCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.cqrs.Query;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Objects;
 
 /**
  * @author Devil
@@ -60,19 +59,19 @@ public class BrokerClientHandler implements ClientHandler {
                     return Response.ok(heartbeat(JacksonUtils.toType(data, WorkerHeartbeatRequest.class)));
                 }
                 case BrokerRemoteConstant.API_BROKER_PING: {
-                    return Response.ok(Response.ok(true));
+                    return Response.ok(true);
                 }
                 case BrokerRemoteConstant.API_TASK_START: {
                     TaskStartRequest request = JacksonUtils.toType(data, TaskStartRequest.class);
                     Boolean success = Cmd.send(new TaskStartCmd(request.getTaskId(), request.getWorkerAddress()));
-                    return Response.ok(Response.ok(success));
+                    return Response.ok(success);
                 }
                 case BrokerRemoteConstant.API_TASK_REPORT: {
                     TaskReportRequest request = JacksonUtils.toType(data, TaskReportRequest.class);
                     Boolean success = Cmd.send(new TaskReportCmd(
                         request.getTaskId(), request.getWorkerAddress(), request.getReportAt()
                     ));
-                    return Response.ok(Response.ok(success));
+                    return Response.ok(success);
                 }
                 case BrokerRemoteConstant.API_TASK_SUCCESS: {
                     TaskSuccessRequest request = JacksonUtils.toType(data, TaskSuccessRequest.class);
@@ -81,7 +80,7 @@ public class BrokerClientHandler implements ClientHandler {
                         request.getWorkerAddress(),
                         request.getReportAt()
                     ));
-                    return Response.ok(Response.ok(success));
+                    return Response.ok(success);
                 }
                 case BrokerRemoteConstant.API_TASK_FAIL: {
                     TaskFailRequest request = JacksonUtils.toType(data, TaskFailRequest.class);
@@ -91,7 +90,7 @@ public class BrokerClientHandler implements ClientHandler {
                         request.getReportAt(),
                         request.getErrorMsg()
                     ));
-                    return Response.ok(Response.ok(success));
+                    return Response.ok(success);
                 }
             }
             String msg = "Invalid request, Path NotFound.";
@@ -105,41 +104,36 @@ public class BrokerClientHandler implements ClientHandler {
 
     private WorkerRegisterResponse register(WorkerRegisterRequest request) {
         // 注册app
-        App app = Cmd.send(new AppRegisterCmd(request.getAppName())).getApp();
-        if (Objects.equals(BrokerContext.broker().id(), app.getBroker().id())) {
-            // 如果是当前节点则注册
-            String workerId = Cmd.send(new WorkerRegisterCmd(
-                BrokerClientConverter.toWorker(app, request)
-            )).getWorkerId();
-            WorkerRegisterResponse response = new WorkerRegisterResponse();
-            response.setAppId(app.getId());
-            response.setWorkerId(workerId);
-            response.setBroker(BrokerClientConverter.toDTO(app.getBroker()));
-            response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(app.getBrokers()));
-            return response;
-        } else {
-            // 如果是其它节点转发请求
-            return BrokerContext.call(BrokerRemoteConstant.API_WORKER_REGISTER, app.getBroker().host(), app.getBroker().port(), request);
-        }
+        String appId = Cmd.send(new AppSaveCmd(request.getAppName())).getAppId();
+        String workerId = Cmd.send(new WorkerSaveCmd(
+            BrokerClientConverter.toWorker(appId, request)
+        )).getWorkerId();
+        BrokersQuery.Response brokersRes = Query.query(new BrokersQuery());
+        BrokerTopologyDTO brokerTopologyDTO = new BrokerTopologyDTO();
+        brokerTopologyDTO.setVersion(brokersRes.getVersion());
+        brokerTopologyDTO.setBrokers(BrokerClientConverter.toBrokerNodeDTO(brokersRes.getBrokerNodes()));
+        WorkerRegisterResponse response = new WorkerRegisterResponse();
+        response.setAppId(appId);
+        response.setWorkerId(workerId);
+        response.setBrokerTopology(brokerTopologyDTO);
+        return response;
     }
 
     private WorkerHeartbeatResponse heartbeat(WorkerHeartbeatRequest request) {
-        // 尝试选举
-        AppBrokerElectCmd.Response brokerElect = Cmd.send(new AppBrokerElectCmd());
         // 心跳
         Cmd.send(new WorkerHeartbeatCmd(
             request.getWorkerId(),
             BrokerClientConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), request.getHeartbeatAt())
         ));
-        WorkerHeartbeatResponse response = new WorkerHeartbeatResponse();
-        response.setBroker(BrokerClientConverter.toDTO(brokerElect.getBroker()));
-        response.setElected(brokerElect.isElected());
-        // 不需要每次心跳返回所有节点信息
-        if (brokerElect.isElected()) {
-            response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(null));
-        } else {
-            response.setBrokerTopology(BrokerClientConverter.toBrokerTopologyDTO(brokerElect.getBrokers()));
+        BrokersQuery.Response brokersRes = Query.query(new BrokersQuery());
+        BrokerTopologyDTO brokerTopologyDTO = new BrokerTopologyDTO();
+        brokerTopologyDTO.setVersion(brokersRes.getVersion());
+        if (!brokersRes.getVersion().equals(request.getTopologyVersion())) {
+            brokerTopologyDTO.setBrokers(BrokerClientConverter.toBrokerNodeDTO(brokersRes.getBrokerNodes()));
         }
+        WorkerHeartbeatResponse response = new WorkerHeartbeatResponse();
+        // 不需要每次心跳返回所有节点信息
+        response.setBrokerTopology(brokerTopologyDTO);
         return response;
     }
 

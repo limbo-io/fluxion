@@ -17,6 +17,9 @@
 package io.fluxion.server.core.broker;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.request.broker.BrokerPingRequest;
+
+import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_BROKER_PING;
 
 /**
  * @author Devil
@@ -36,6 +39,14 @@ public class BrokerContext {
 
     public static <R> R call(String path, String host, int port, Request<R> request) {
         return broker().client().call(path, host, port, request).getData();
+    }
+
+    public static Boolean ping(String host, int port) {
+        BrokerNode node = broker().node();
+        if (node.host().equals(host) && node.port() == port) {
+            return true; // 当前节点直接返回
+        }
+        return call(API_BROKER_PING, host, port, new BrokerPingRequest());
     }
 
 }

@@ -16,17 +16,20 @@
 
 package io.fluxion.server.core.execution.service;
 
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
+import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.cmd.ScheduleFeedbackCmd;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
+import io.fluxion.server.core.task.TaskStatus;
 import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
@@ -81,6 +84,19 @@ public class ExecutionCommandService {
         }
         Execution execution = new Execution(entity.getExecutionId(), executable, ExecutionStatus.parse(entity.getStatus()));
         return new ExecutionCreateCmd.Response(execution);
+    }
+
+    @CommandHandler
+    public void handle(ExecutionRunningCmd cmd) {
+        entityManager.createQuery("update ExecutionEntity " +
+                "set status = :newStatus, startAt = :startAt " +
+                "where executionId = :executionId and status = :oldStatus"
+            )
+            .setParameter("newStatus", ExecutionStatus.RUNNING.value)
+            .setParameter("executionId", cmd.getExecutionId())
+            .setParameter("oldStatus", ExecutionStatus.CREATED.value)
+            .setParameter("startAt", TimeUtils.currentLocalDateTime())
+            .executeUpdate();
     }
 
     @CommandHandler

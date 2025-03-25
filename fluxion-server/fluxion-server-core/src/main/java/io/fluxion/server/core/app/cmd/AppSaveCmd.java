@@ -14,45 +14,29 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.worker.metric;
+package io.fluxion.server.core.app.cmd;
 
-import lombok.AccessLevel;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.Setter;
-
-import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
- * worker的指标信息。
- *
- * @author Brozen
- * @since 2021-05-17
+ * @author Devil
  */
-@Data
-@Setter(AccessLevel.NONE)
+@Getter
+@NoArgsConstructor
 @AllArgsConstructor
-@Builder(builderClassName = "Builder", toBuilder = true)
-public class WorkerMetric {
+@Builder
+public class AppSaveCmd implements ICmd<AppSaveCmd.Response> {
 
-    /**
-     * cpu 核心数
-     */
-    private int cpuProcessors;
+    private String appName;
 
-    private double cpuLoad;
-
-    private long freeMemory;
-
-    /**
-     * 任务队列剩余可排队数
-     */
-    private int availableQueueNum;
-
-    /**
-     * 上次心跳上报时间戳，毫秒
-     */
-    private LocalDateTime lastHeartbeatAt;
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private String appId;
+    }
 
 }

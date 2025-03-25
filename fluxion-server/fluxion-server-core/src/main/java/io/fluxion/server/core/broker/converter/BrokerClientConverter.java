@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.broker.converter;
 
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
@@ -23,13 +24,14 @@ import io.fluxion.remote.core.api.dto.WorkerTagDTO;
 import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
-import io.fluxion.server.core.app.App;
+import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.server.core.broker.BrokerNode;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
 import org.apache.commons.collections4.CollectionUtils;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -44,27 +46,22 @@ import static java.util.stream.Collectors.toSet;
  */
 public class BrokerClientConverter {
 
-    public static Worker toWorker(App app, WorkerRegisterRequest request) {
-        Worker worker = new Worker(app, request.getHost(), request.getPort(), Protocol.parse(request.getProtocol()));
-
-        WorkerMetric metric = toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), System.currentTimeMillis());
-        worker.setMetric(metric);
-
+    public static Worker toWorker(String appId, WorkerRegisterRequest request) {
+        WorkerMetric metric = toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), TimeUtils.currentLocalDateTime());
         Map<String, Set<String>> tags = CollectionUtils.isEmpty(request.getTags()) ? Collections.emptyMap() : request.getTags().stream()
             .collect(Collectors.groupingBy(WorkerTagDTO::getName, mapping(WorkerTagDTO::getValue, toSet())));
-        worker.setTags(tags);
-
         List<WorkerExecutor> executors = request.getExecutors().stream()
             .map(e -> WorkerExecutor.builder()
                 .name(e.getName())
                 .build()
             ).collect(Collectors.toList());
-        worker.setExecutors(executors);
-
-        return worker;
+        return new Worker(
+            appId, request.getHost(), request.getPort(), Protocol.parse(request.getProtocol()),
+            executors, tags, metric, WorkerStatus.RUNNING, true
+        );
     }
 
-    public static WorkerMetric toMetric(SystemInfoDTO systemInfoDTO, int availableQueueNum, long lastHeartbeatAt) {
+    public static WorkerMetric toMetric(SystemInfoDTO systemInfoDTO, int availableQueueNum, LocalDateTime lastHeartbeatAt) {
         return new WorkerMetric(
             systemInfoDTO.getCpuProcessors(),
             systemInfoDTO.getCpuLoad(),
@@ -85,12 +82,11 @@ public class BrokerClientConverter {
         return dto;
     }
 
-    public static BrokerTopologyDTO toBrokerTopologyDTO(List<BrokerNode> nodes) {
-        BrokerTopologyDTO brokerTopologyDTO = new BrokerTopologyDTO();
-        if (CollectionUtils.isNotEmpty(nodes)) {
-            brokerTopologyDTO.setBrokers(nodes.stream().map(BrokerClientConverter::toDTO).collect(Collectors.toList()));
+    public static List<NodeDTO> toBrokerNodeDTO(List<BrokerNode> nodes) {
+        if (CollectionUtils.isEmpty(nodes)) {
+            return Collections.emptyList();
         }
-        return brokerTopologyDTO;
+        return nodes.stream().map(BrokerClientConverter::toDTO).collect(Collectors.toList());
     }
 
 }

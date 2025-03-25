@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2020-2024 Limbo Team (https://github.com/limbo-world).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,38 +17,47 @@
 package io.fluxion.server.infrastructure.dao.entity;
 
 import io.fluxion.server.infrastructure.dao.TableConstants;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
+import javax.persistence.Embeddable;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serializable;
 
 /**
- * 应用
- *
- * @author Devil
+ * @author Brozen
+ * @since 2021-07-05
  */
 @Setter
 @Getter
-@Table(name = TableConstants.FLUXION_APP)
+@Table(name = TableConstants.FLUXION_WORKER_EXECUTOR)
 @Entity
 @DynamicInsert
 @DynamicUpdate
-public class AppEntity extends BaseEntity {
+public class WorkerExecutorEntity extends BaseEntity {
 
-    @Id
-    private String appId;
-
-    /**
-     * 应用名
-     */
-    private String appName;
+    @EmbeddedId
+    private ID id;
 
     @Override
     public Object getUid() {
-        return appId;
+        return id;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Embeddable
+    public static class ID implements Serializable {
+
+        private String workerId;
+
+        private String name;
     }
 }

@@ -25,6 +25,7 @@ import java.util.List;
  */
 public class BrokerTopologyDTO {
 
+    private String version;
     /**
      * broker节点列表，主从模式下，列表中仅包括一个主节点
      */
@@ -36,5 +37,13 @@ public class BrokerTopologyDTO {
 
     public void setBrokers(List<NodeDTO> brokers) {
         this.brokers = brokers;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
     }
 }

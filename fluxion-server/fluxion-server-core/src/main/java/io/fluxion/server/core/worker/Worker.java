@@ -16,16 +16,13 @@
 
 package io.fluxion.server.core.worker;
 
-import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.remote.core.lb.LBServer;
-import io.fluxion.server.core.app.App;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
 import io.fluxion.server.infrastructure.tag.Tagged;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.util.List;
 import java.util.Map;
@@ -37,7 +34,7 @@ import java.util.Set;
 @Getter
 public class Worker implements LBServer, Tagged {
 
-    private App app;
+    private String appId;
 
     private Protocol protocol;
 
@@ -50,41 +47,38 @@ public class Worker implements LBServer, Tagged {
     /**
      * 执行器
      */
-    @Setter
     private List<WorkerExecutor> executors;
 
     /**
      * 标签
      */
-    @Setter
     private Map<String, Set<String>> tags;
 
     /**
      * Worker 状态指标
      */
-    @Setter
     private WorkerMetric metric;
 
-    /**
-     * 通信
-     */
-    @Setter
-    private Client client;
-
-    @Setter
     private WorkerStatus status;
 
     /**
      * 是否启用 不启用则无法下发任务
      */
-    private boolean enabled = true;
+    private boolean enabled;
 
-    public Worker(App app, String host, int port, Protocol protocol) {
-        this.app = app;
+    public Worker(String appId, String host, int port, Protocol protocol,
+                  List<WorkerExecutor> executors, Map<String, Set<String>> tags, WorkerMetric metric,
+                  WorkerStatus status, boolean enabled) {
+        this.appId = appId;
         this.host = host;
         this.port = port;
         this.protocol = protocol;
         this.address = host + ":" + port;
+        this.executors = executors;
+        this.tags = tags;
+        this.metric = metric;
+        this.status = status;
+        this.enabled = enabled;
     }
 
     public String id() {

@@ -102,13 +102,11 @@ CREATE TABLE `fluxion_app`
     `id`         bigint unsigned NOT NULL AUTO_INCREMENT,
     `app_id`     varchar(64)     NOT NULL,
     `app_name`   varchar(255)    NOT NULL,
-    `broker_id`  varchar(64)     NOT NULL,
     `is_deleted` bit(1)          NOT NULL DEFAULT 0,
     `created_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_app` (`app_id`),
-    KEY `idx_broker` (`broker_id`)
+    UNIQUE KEY `uk_app` (`app_id`)
 );
 
 CREATE TABLE `fluxion_flow`
@@ -222,5 +220,51 @@ CREATE TABLE `fluxion_task`
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_task` (`task_id`),
     KEY `idx_execution_ref_type` (`execution_id`, `ref_id`, `task_type`)
+);
+
+CREATE TABLE `fluxion_worker`
+(
+    `id`         bigint unsigned NOT NULL AUTO_INCREMENT,
+    `worker_id`  varchar(64)     NOT NULL,
+    `app_id`     varchar(64)     NOT NULL,
+    `host`       varchar(255)    NOT NULL,
+    `port`       int                      DEFAULT 0,
+    `protocol`   varchar(64)     NOT NULL,
+    `status`     varchar(32)     NOT NULL,
+    `is_enabled` bit(1)          NOT NULL DEFAULT 0,
+    `is_deleted` bit(1)          NOT NULL DEFAULT 0,
+    `created_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_worker` (`worker_id`),
+    KEY `idx_app` (`app_id`)
+);
+
+CREATE TABLE `fluxion_worker_executor`
+(
+    `id`         bigint unsigned NOT NULL AUTO_INCREMENT,
+    `worker_id`  varchar(64)     NOT NULL,
+    `name`       varchar(255)    NOT NULL,
+    `is_deleted` bit(1)          NOT NULL DEFAULT 0,
+    `created_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_worker_executor` (`worker_id`, `name`)
+);
+
+CREATE TABLE `fluxion_worker_metric`
+(
+    `id`                  bigint unsigned NOT NULL AUTO_INCREMENT,
+    `worker_id`           varchar(64)     NOT NULL,
+    `cpu_processors`      int             NOT NULL,
+    `cpu_load`            float           NOT NULL,
+    `free_memory`         bigint          NOT NULL,
+    `available_queue_num` int             NOT NULL,
+    `last_heartbeat_at`   datetime(6)     NOT NULL,
+    `is_deleted`          bit(1)          NOT NULL DEFAULT 0,
+    `created_at`          datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`          datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_worker_metric` (`worker_id`)
 );
 

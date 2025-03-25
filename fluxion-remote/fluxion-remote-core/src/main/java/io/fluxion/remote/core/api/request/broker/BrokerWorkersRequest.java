@@ -14,38 +14,27 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.worker;
+package io.fluxion.remote.core.api.request.broker;
 
-import java.util.List;
+import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.response.broker.BrokerWorkersResponse;
 
 /**
+ * ping broker
+ *
  * @author Devil
+ * @since 2023/8/3
  */
-public interface WorkerRepository {
+public class BrokerWorkersRequest implements Request<BrokerWorkersResponse> {
 
-    /**
-     * 新增一个worker
-     *
-     * @param worker worker节点
-     */
-    void save(Worker worker);
+    private String appId;
 
-    /**
-     * 根据id查询worker
-     *
-     * @param id workerId
-     * @return worker节点
-     */
-    Worker get(String id);
+    public String getAppId() {
+        return appId;
+    }
 
-
-    /**
-     * 删除一个worker，软删除
-     *
-     * @param id 需要被移除的workerId
-     */
-    void delete(String id);
-
-    List<Worker> allByApp(String appId);
+    public void setAppId(String appId) {
+        this.appId = appId;
+    }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,30 +14,31 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.app.cmd;
+package io.fluxion.server.core.broker.query;
 
-import io.fluxion.server.core.app.App;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.fluxion.server.core.broker.BrokerNode;
+import io.fluxion.server.infrastructure.cqrs.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 /**
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AppRegisterCmd implements ICmd<AppRegisterCmd.Response> {
-
-    private String appName;
+public class BrokersQuery implements IQuery<BrokersQuery.Response> {
 
     @Getter
     @AllArgsConstructor
     public static class Response {
-        private App app;
+
+        private String version;
+
+        private List<BrokerNode> brokerNodes;
     }
 
 }

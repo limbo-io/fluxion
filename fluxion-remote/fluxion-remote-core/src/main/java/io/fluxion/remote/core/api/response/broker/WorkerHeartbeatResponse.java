@@ -25,24 +25,10 @@ import io.fluxion.remote.core.api.dto.NodeDTO;
  */
 public class WorkerHeartbeatResponse {
 
-    private NodeDTO broker;
-
     /**
      * broker拓扑信息
      */
     private BrokerTopologyDTO brokerTopology;
-    /**
-     * 是否发生重新选举
-     */
-    private boolean elected;
-
-    public boolean isElected() {
-        return elected;
-    }
-
-    public void setElected(boolean elected) {
-        this.elected = elected;
-    }
 
     public BrokerTopologyDTO getBrokerTopology() {
         return brokerTopology;
@@ -52,11 +38,5 @@ public class WorkerHeartbeatResponse {
         this.brokerTopology = brokerTopology;
     }
 
-    public NodeDTO getBroker() {
-        return broker;
-    }
 
-    public void setBroker(NodeDTO broker) {
-        this.broker = broker;
-    }
 }

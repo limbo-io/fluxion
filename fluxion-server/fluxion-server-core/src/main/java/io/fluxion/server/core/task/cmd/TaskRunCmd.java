@@ -24,6 +24,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 基于不同的TaskRunner做不同处理
+ *
  * @author Devil
  */
 @Getter

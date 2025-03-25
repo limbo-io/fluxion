@@ -33,8 +33,6 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.timeout.IdleStateHandler;
 
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -47,8 +45,6 @@ public class NettyHttpClientServer extends AbstractClientServer {
 
     private static final int MAX_CONTENT_LENGTH = 5 * 1024 * 1024;
 
-    private static final int QUEUE_SIZE = 2000;
-
     public NettyHttpClientServer(ClientServerConfig config) {
         super(config);
     }
@@ -59,18 +55,6 @@ public class NettyHttpClientServer extends AbstractClientServer {
         thread = new Thread(() -> {
             EventLoopGroup bossGroup = new NioEventLoopGroup();
             EventLoopGroup workerGroup = new NioEventLoopGroup();
-            ThreadPoolExecutor serverThreadPool = new ThreadPoolExecutor(
-                0,
-                200,
-                60L,
-                TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(QUEUE_SIZE),
-                r -> new Thread(r, "Fluxion-RpcServer-ThreadPool-" + r.hashCode()),
-                (r, executor) -> {
-                    throw new RuntimeException("Http Server ThreadPool is EXHAUSTED!");
-                });
-
-
             try {
                 ServerBootstrap bootstrap = new ServerBootstrap();
                 bootstrap.group(bossGroup, workerGroup)
@@ -82,7 +66,7 @@ public class NettyHttpClientServer extends AbstractClientServer {
                                 .addLast(new IdleStateHandler(0, 0, 60, TimeUnit.SECONDS))
                                 .addLast(new HttpServerCodec())
                                 .addLast(new HttpObjectAggregator(MAX_CONTENT_LENGTH))
-                                .addLast(new EmbedHttpServerHandler(serverThreadPool, config.clientHandler()));
+                                .addLast(new EmbedHttpServerHandler(config.clientHandler()));
                         }
                     })
                     .childOption(ChannelOption.SO_KEEPALIVE, true);

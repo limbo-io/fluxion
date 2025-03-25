@@ -27,15 +27,15 @@ import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskType;
 import io.fluxion.server.core.task.cmd.TaskDispatchedCmd;
 import io.fluxion.server.core.worker.Worker;
-import io.fluxion.server.core.worker.WorkerRepository;
 import io.fluxion.server.core.worker.dispatch.WorkerFilter;
+import io.fluxion.server.core.worker.query.WorkerByAppQuery;
 import io.fluxion.server.core.worker.selector.WorkerSelectInvocation;
 import io.fluxion.server.core.worker.selector.WorkerSelector;
 import io.fluxion.server.core.worker.selector.WorkerSelectorFactory;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.cqrs.Query;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,9 +49,6 @@ public class ExecutorTaskRunner extends TaskRunner {
 
     private static final WorkerSelectorFactory workerSelectorFactory = new WorkerSelectorFactory();
 
-    @Resource
-    private WorkerRepository workerRepository;
-
     @Override
     public TaskType type() {
         return TaskType.EXECUTOR;
@@ -61,7 +58,7 @@ public class ExecutorTaskRunner extends TaskRunner {
     public void run(Task task) {
         ExecutorTask executorTask = (ExecutorTask) task;
         Map<String, Object> attributes = new HashMap<>();
-        List<Worker> workers = workerRepository.allByApp(executorTask.getAppId()).stream()
+        List<Worker> workers = Query.query(new WorkerByAppQuery(executorTask.getAppId())).getWorkers().stream()
             .filter(Worker::isEnabled)
             .collect(Collectors.toList());
         DispatchOption dispatchOption = executorTask.getDispatchOption();

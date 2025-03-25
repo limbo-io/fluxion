@@ -18,21 +18,29 @@ package io.fluxion.server.core.worker.service;
 
 import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.server.core.worker.Worker;
-import io.fluxion.server.core.worker.WorkerRepository;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
-import io.fluxion.server.core.worker.cmd.WorkerRegisterCmd;
+import io.fluxion.server.core.worker.cmd.WorkerSaveCmd;
+import io.fluxion.server.core.worker.converter.WorkerConverter;
+import io.fluxion.server.core.worker.metric.WorkerMetric;
+import io.fluxion.server.infrastructure.dao.entity.TagEntity;
+import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
+import io.fluxion.server.infrastructure.dao.entity.WorkerExecutorEntity;
+import io.fluxion.server.infrastructure.dao.entity.WorkerMetricEntity;
+import io.fluxion.server.infrastructure.dao.repository.TagEntityRepo;
+import io.fluxion.server.infrastructure.dao.repository.WorkerEntityRepo;
+import io.fluxion.server.infrastructure.dao.repository.WorkerExecutorEntityRepo;
+import io.fluxion.server.infrastructure.dao.repository.WorkerMetricEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
-import io.fluxion.server.infrastructure.tag.Tag;
-import org.apache.commons.lang3.StringUtils;
+import io.fluxion.server.infrastructure.tag.TagRefType;
+import org.apache.commons.collections4.CollectionUtils;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.persistence.EntityManager;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  * @author Devil
@@ -41,35 +49,64 @@ import java.util.stream.Collectors;
 public class WorkerCommandService {
 
     @Resource
-    private WorkerRepository workerRepository;
+    private WorkerEntityRepo workerEntityRepo;
+    @Resource
+    private WorkerExecutorEntityRepo workerExecutorEntityRepo;
+    @Resource
+    private WorkerMetricEntityRepo workerMetricEntityRepo;
+    @Resource
+    private TagEntityRepo tagEntityRepo;
+    @Resource
+    private EntityManager entityManager;
 
     @CommandHandler
-    public WorkerRegisterCmd.Response handle(WorkerRegisterCmd cmd) {
+    public WorkerSaveCmd.Response handle(WorkerSaveCmd cmd) {
         Worker worker = cmd.getWorker();
-        if (StringUtils.isNotBlank(worker.id())) {
-            return new WorkerRegisterCmd.Response(worker.id());
+        String workerId = worker.id();
+
+        WorkerEntity entity = WorkerConverter.toWorkerEntity(worker);
+        Objects.requireNonNull(entity);
+        workerEntityRepo.saveAndFlush(entity);
+
+        // Metric 存储
+        WorkerMetric metric = worker.getMetric();
+        WorkerMetricEntity metricEntity = WorkerConverter.toMetricEntity(workerId, metric);
+        workerMetricEntityRepo.saveAndFlush(Objects.requireNonNull(metricEntity));
+
+        // Executors 存储
+        workerExecutorEntityRepo.deleteByWorkerId(workerId);
+        List<WorkerExecutorEntity> executorEntities = WorkerConverter.toExecutorEntities(workerId, worker);
+        if (CollectionUtils.isNotEmpty(executorEntities)) {
+            workerExecutorEntityRepo.saveAllAndFlush(executorEntities);
         }
-        workerRepository.save(worker);
-        return new WorkerRegisterCmd.Response(worker.id());
+
+        // Tags 存储
+        tagEntityRepo.deleteById_RefIdAndId_RefType(workerId, TagRefType.WORKER.value);
+        List<TagEntity> tagEntities = WorkerConverter.toTagEntities(workerId, worker);
+        if (CollectionUtils.isNotEmpty(tagEntities)) {
+            tagEntityRepo.saveAllAndFlush(tagEntities);
+        }
+
+        return new WorkerSaveCmd.Response(worker.id());
     }
 
     @CommandHandler
     public void handle(WorkerHeartbeatCmd cmd) {
-        Worker worker = workerRepository.get(cmd.getWorkerId());
-        if (worker == null) {
+        WorkerEntity entity = workerEntityRepo.findById(cmd.getWorkerId()).orElse(null);
+        if (entity == null) {
             throw new PlatformException(ErrorCode.PARAM_ERROR, "worker not found by id:" + cmd.getWorkerId());
         }
-        worker.setMetric(cmd.getMetric());
-        worker.setStatus(WorkerStatus.RUNNING);
-        workerRepository.save(worker);
-    }
+        entityManager.createQuery("update WorkerEntity " +
+                "set status = :status " +
+                "where workerId = :workerId"
+            )
+            .setParameter("status", WorkerStatus.RUNNING.status)
+            .setParameter("workerId", cmd.getWorkerId())
+            .executeUpdate();
 
-    private List<Tag> tags(Worker worker) {
-        Map<String, Set<String>> tags = worker.tags();
-        return tags.entrySet().stream().flatMap(entry -> {
-            String name = entry.getKey();
-            return entry.getValue().stream().map(v -> new Tag(name, v));
-        }).collect(Collectors.toList());
+
+        WorkerMetricEntity metricEntity = WorkerConverter.toMetricEntity(cmd.getWorkerId(), cmd.getMetric());
+        workerMetricEntityRepo.saveAndFlush(metricEntity);
     }
 
 }

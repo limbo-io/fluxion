@@ -20,6 +20,8 @@ import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
 
+import java.time.LocalDateTime;
+
 /**
  * worker send heartbeat to broker
  *
@@ -36,7 +38,9 @@ public class WorkerHeartbeatRequest implements Request<WorkerHeartbeatResponse> 
 
     private int availableQueueNum;
 
-    private long heartbeatAt;
+    private LocalDateTime heartbeatAt;
+
+    private String topologyVersion;
 
     public String getAppId() {
         return appId;
@@ -70,11 +74,19 @@ public class WorkerHeartbeatRequest implements Request<WorkerHeartbeatResponse> 
         this.availableQueueNum = availableQueueNum;
     }
 
-    public long getHeartbeatAt() {
+    public LocalDateTime getHeartbeatAt() {
         return heartbeatAt;
     }
 
-    public void setHeartbeatAt(long heartbeatAt) {
+    public void setHeartbeatAt(LocalDateTime heartbeatAt) {
         this.heartbeatAt = heartbeatAt;
+    }
+
+    public String getTopologyVersion() {
+        return topologyVersion;
+    }
+
+    public void setTopologyVersion(String topologyVersion) {
+        this.topologyVersion = topologyVersion;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2020-2024 Limbo Team (https://github.com/limbo-world).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,39 +16,70 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
+import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.server.infrastructure.dao.TableConstants;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
 /**
- * 应用
+ * 应用中的一个工作节点
  *
- * @author Devil
+ * @author Brozen
+ * @since 2021-06-02
  */
 @Setter
 @Getter
-@Table(name = TableConstants.FLUXION_APP)
+@Table(name = TableConstants.FLUXION_WORKER)
 @Entity
 @DynamicInsert
 @DynamicUpdate
-public class AppEntity extends BaseEntity {
+public class WorkerEntity extends BaseEntity {
 
     @Id
+    private String workerId;
+
+    /**
+     * 所属应用
+     */
     private String appId;
 
     /**
-     * 应用名
+     * worker服务使用的通信协议
      */
-    private String appName;
+    private String protocol;
+
+    /**
+     * worker服务的通信 host
+     */
+    private String host;
+
+    /**
+     * worker服务的通信端口
+     */
+    private Integer port;
+
+    /**
+     * worker节点状态
+     *
+     * @see WorkerStatus
+     */
+    private String status;
+
+    /**
+     * 是否启用 不启用则不会进行任务下发
+     */
+    @Column(name = "is_enabled")
+    private boolean enabled;
 
     @Override
     public Object getUid() {
-        return appId;
+        return workerId;
     }
 }

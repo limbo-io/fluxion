@@ -17,6 +17,7 @@
 package io.fluxion.server.core.task.service;
 
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskStatus;
 import io.fluxion.server.core.task.cmd.TaskDispatchedCmd;
@@ -103,6 +104,22 @@ public class TaskCommandService {
     }
 
     @CommandHandler
+    public boolean handle(TaskDispatchedCmd cmd) {
+        TaskEntity entity = taskEntityRepo.findById(cmd.getTaskId()).orElse(null);
+        int updated = entityManager.createQuery("update TaskEntity " +
+                "set status = :newStatus, workerAddress = :workerAddress " +
+                "where taskId = :taskId and status = :oldStatus"
+            )
+            .setParameter("newStatus", TaskStatus.DISPATCHED.value)
+            .setParameter("taskId", cmd.getTaskId())
+            .setParameter("oldStatus", TaskStatus.CREATED.value)
+            .setParameter("workerAddress", cmd.getWorkerAddress())
+            .executeUpdate();
+        Cmd.send(new ExecutionRunningCmd(entity.getExecutionId()));
+        return updated > 0;
+    }
+
+    @CommandHandler
     public boolean handle(TaskStartCmd cmd) {
         int updated = entityManager.createQuery("update TaskEntity " +
                 "set status = :newStatus, startAt = :startAt " +
@@ -111,21 +128,7 @@ public class TaskCommandService {
             .setParameter("newStatus", TaskStatus.RUNNING.value)
             .setParameter("startAt", TimeUtils.currentLocalDateTime())
             .setParameter("taskId", cmd.getTaskId())
-            .setParameter("oldStatus", TaskStatus.QUEUED.value)
-            .setParameter("workerAddress", cmd.getWorkerAddress())
-            .executeUpdate();
-        return updated > 0;
-    }
-
-    @CommandHandler
-    public boolean handle(TaskDispatchedCmd cmd) {
-        int updated = entityManager.createQuery("update TaskEntity " +
-                "set status = :newStatus, workerAddress = :workerAddress " +
-                "where taskId = :taskId and status = :oldStatus"
-            )
-            .setParameter("newStatus", TaskStatus.QUEUED.value)
-            .setParameter("taskId", cmd.getTaskId())
-            .setParameter("oldStatus", TaskStatus.CREATED.value)
+            .setParameter("oldStatus", TaskStatus.DISPATCHED.value)
             .setParameter("workerAddress", cmd.getWorkerAddress())
             .executeUpdate();
         return updated > 0;

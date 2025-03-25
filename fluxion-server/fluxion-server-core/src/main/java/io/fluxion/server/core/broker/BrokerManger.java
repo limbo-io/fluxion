@@ -16,16 +16,16 @@
 
 package io.fluxion.server.core.broker;
 
+import io.fluxion.common.utils.MD5Utils;
 import io.fluxion.remote.core.cluster.NodeManger;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * 内存中缓存的 broker节点信息
@@ -37,6 +37,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class BrokerManger implements NodeManger<BrokerNode> {
 
+    private String version = "";
+
     private static final Map<String, BrokerNode> nodes = new ConcurrentHashMap<>();
 
     /**
@@ -44,6 +46,7 @@ public class BrokerManger implements NodeManger<BrokerNode> {
      */
     public void online(BrokerNode node) {
         nodes.putIfAbsent(node.id(), node);
+        changeVersion();
         if (log.isDebugEnabled()) {
             log.debug("[BrokerManger] online {}", nodes);
         }
@@ -54,9 +57,19 @@ public class BrokerManger implements NodeManger<BrokerNode> {
      */
     public void offline(BrokerNode node) {
         nodes.remove(node.id());
+        changeVersion();
         if (log.isDebugEnabled()) {
             log.debug("[BrokerManger] offline {}", nodes);
         }
+    }
+
+    private void changeVersion() {
+        String brokerIdStr = allAlive().stream().map(BrokerNode::id).sorted().collect(Collectors.joining(","));
+        version = MD5Utils.md5(brokerIdStr);
+    }
+
+    public String version() {
+        return version;
     }
 
     /**

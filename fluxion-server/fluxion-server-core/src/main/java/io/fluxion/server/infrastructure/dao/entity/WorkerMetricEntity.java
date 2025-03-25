@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2020-2024 Limbo Team (https://github.com/limbo-world).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,30 +25,48 @@ import org.hibernate.annotations.DynamicUpdate;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.time.LocalDateTime;
 
 /**
- * 应用
- *
- * @author Devil
+ * @author Brozen
+ * @since 2021-06-02
  */
 @Setter
 @Getter
-@Table(name = TableConstants.FLUXION_APP)
+@Table(name = TableConstants.FLUXION_WORKER_METRIC)
 @Entity
 @DynamicInsert
 @DynamicUpdate
-public class AppEntity extends BaseEntity {
+public class WorkerMetricEntity extends BaseEntity {
 
     @Id
-    private String appId;
+    private String workerId;
 
     /**
-     * 应用名
+     * cpu 核心数
      */
-    private String appName;
+    private Integer cpuProcessors;
+
+    private Double cpuLoad;
+
+    /**
+     * 可用的内存空间，单位字节
+     */
+    private Long freeMemory;
+
+    /**
+     * 任务队列剩余可排队数
+     */
+    private Integer availableQueueNum;
+
+    /**
+     * 上次心跳上报时间戳，毫秒
+     */
+    private LocalDateTime lastHeartbeatAt;
 
     @Override
     public Object getUid() {
-        return appId;
+        return workerId;
     }
+
 }

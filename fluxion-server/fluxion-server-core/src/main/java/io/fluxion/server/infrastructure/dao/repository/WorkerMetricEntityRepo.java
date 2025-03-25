@@ -14,31 +14,19 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.app.query;
+package io.fluxion.server.infrastructure.dao.repository;
 
-import io.fluxion.server.core.app.App;
-import io.fluxion.server.infrastructure.cqrs.IQuery;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import io.fluxion.server.infrastructure.dao.entity.WorkerMetricEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  * @author Devil
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class AppByIdQuery implements IQuery<AppByIdQuery.Response> {
-
-    private String appId;
-
-    @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Response {
-        private App app;
-    }
-
+@Repository
+public interface WorkerMetricEntityRepo extends JpaRepository<WorkerMetricEntity, String> {
+    List<WorkerMetricEntity> findByWorkerIdIn(Collection<String> workerIds);
 }

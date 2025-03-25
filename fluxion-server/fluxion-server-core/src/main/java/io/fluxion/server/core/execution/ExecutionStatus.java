@@ -31,11 +31,6 @@ public enum ExecutionStatus {
      */
     CREATED("created"),
     /**
-     * 队列中
-     * 已下发给worker
-     */
-    QUEUED("queued"),
-    /**
      * 运行中
      */
     RUNNING("running"),

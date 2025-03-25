@@ -25,9 +25,7 @@ import io.fluxion.remote.core.api.request.broker.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
 import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
 import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
-import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.LBClient;
-import io.fluxion.remote.core.client.RetryableLBClient;
 import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
@@ -36,7 +34,6 @@ import io.fluxion.remote.core.heartbeat.HeartbeatPacemaker;
 import io.fluxion.remote.core.lb.BaseLBServer;
 import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.remote.core.lb.repository.LBServerRepository;
-import io.fluxion.remote.core.lb.strategies.RoundRobinLBStrategy;
 import io.fluxion.worker.core.SystemInfo;
 import io.fluxion.worker.core.WorkerContext;
 import org.apache.commons.collections4.CollectionUtils;
@@ -55,6 +52,10 @@ import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_WORKER_R
 import static io.fluxion.remote.core.constants.WorkerRemoteConstant.HEARTBEAT_TIMEOUT_SECOND;
 
 /**
+ * 服务注册发现
+ * 用于和broker建立连接管理broker信息
+ *
+ *
  * @author PengQ
  * @since 0.0.1
  */
@@ -68,19 +69,17 @@ public class DefaultServerDiscovery implements ServerDiscovery {
 
     private final WorkerContext workerContext;
 
+    private String topologyVersion;
+
     /**
      * manage heartbeat
      */
     private HeartbeatPacemaker heartbeatPacemaker;
 
-    public DefaultServerDiscovery(WorkerContext workerContext, LBServerRepository repository) {
+    public DefaultServerDiscovery(WorkerContext workerContext, LBClient client, LBServerRepository repository) {
         this.repository = repository;
         this.workerContext = workerContext;
-        this.client = RetryableLBClient.builder()
-            .client(ClientFactory.create(workerContext.protocol()))
-            .repository(repository)
-            .strategy(new RoundRobinLBStrategy<>())
-            .build();
+        this.client = client;
     }
 
     @Override
@@ -91,6 +90,9 @@ public class DefaultServerDiscovery implements ServerDiscovery {
 
     private void register() {
         WorkerRegisterRequest request = new WorkerRegisterRequest();
+        request.setHost(workerContext.host());
+        request.setPort(workerContext.port());
+        request.setProtocol(workerContext.protocol().getValue());
         request.setAppName(workerContext.appName());
         request.setSystemInfo(systemInfoDTO());
         request.setTags(tagDTOS(workerContext.tags()));
@@ -98,8 +100,8 @@ public class DefaultServerDiscovery implements ServerDiscovery {
 
         WorkerRegisterResponse registerResponse = client.call(API_WORKER_REGISTER, request).getData();
         workerContext.appId(registerResponse.getAppId());
-        workerContext.broker(node(registerResponse.getBroker()));
         repository.updateServers(brokers(registerResponse.getBrokerTopology()));
+        topologyVersion = registerResponse.getBrokerTopology().getVersion();
     }
 
     private void startHeartbeat() {
@@ -109,13 +111,15 @@ public class DefaultServerDiscovery implements ServerDiscovery {
                 request.setAppId(workerContext.appId());
                 request.setWorkerId(workerContext.address());
                 request.setSystemInfo(systemInfoDTO());
+                request.setTopologyVersion(topologyVersion);
 
                 WorkerHeartbeatResponse heartbeatResponse = client.call(
                     API_WORKER_HEARTBEAT, request
                 ).getData();
-                workerContext.broker(node(heartbeatResponse.getBroker()));
-                if (heartbeatResponse.isElected()) {
-                    repository.updateServers(brokers(heartbeatResponse.getBrokerTopology()));
+                BrokerTopologyDTO brokerTopology = heartbeatResponse.getBrokerTopology();
+                if (!topologyVersion.equals(brokerTopology.getVersion())) {
+                    repository.updateServers(brokers(brokerTopology));
+                    topologyVersion = brokerTopology.getVersion();
                 }
             } catch (RpcException e) {
                 log.warn("[DefaultServerDiscovery] send heartbeat failed e:{}", e.getMessage());
@@ -153,7 +157,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
         }
         return topologyDTO.getBrokers().stream().map(dto -> {
             Node node = node(dto);
-            return new BaseLBServer(node);
+            return new BaseLBServer(node); // todo ! 可以设计成失败了记录失败时间，isAlive根据时间计算，10s后才使用
         }).collect(Collectors.toList());
     }
 

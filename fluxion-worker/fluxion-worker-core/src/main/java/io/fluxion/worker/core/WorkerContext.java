@@ -18,10 +18,7 @@ package io.fluxion.worker.core;
 
 import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.client.Client;
-import io.fluxion.remote.core.client.ClientFactory;
-import io.fluxion.remote.core.client.RetryableClient;
-import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.remote.core.client.LBClient;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.worker.core.executor.Executor;
@@ -52,15 +49,15 @@ public class WorkerContext {
 
     private String appId;
 
-    private String appName;
+    private final String appName;
 
-    private Protocol protocol;
+    private final Protocol protocol;
 
     private String address;
 
-    private String host;
+    private final String host;
 
-    private int port;
+    private final int port;
 
     /**
      * 执行器
@@ -79,13 +76,9 @@ public class WorkerContext {
 
     private int concurrency;
 
-    private Client client;
+    private LBClient client;
 
     // ========== Runtime ==========
-    /**
-     * 当前访问节点
-     */
-    private Node broker;
 
     private final AtomicReference<WorkerStatus> status;
 
@@ -105,7 +98,7 @@ public class WorkerContext {
     private ScheduledExecutorService taskStatusReportExecutor;
 
     public WorkerContext(String appName, Protocol protocol, String host, int port,
-                         int queueSize, int concurrency,
+                         int queueSize, int concurrency, LBClient client,
                          List<Executor> executors, Map<String, Set<String>> tags) {
         this.appName = appName;
         this.protocol = protocol;
@@ -115,9 +108,7 @@ public class WorkerContext {
         this.tags = tags == null ? Collections.emptyMap() : tags;
         this.queueSize = queueSize;
         this.concurrency = concurrency;
-        this.client = RetryableClient.builder()
-            .client(ClientFactory.create(protocol))
-            .build();
+        this.client = client;
         this.status = new AtomicReference<>(WorkerStatus.IDLE);
         this.address = host + ":" + port;
     }
@@ -210,10 +201,15 @@ public class WorkerContext {
     }
 
     public <R> R call(String path, Request<R> request) {
-        return client.call(path, broker.host(), broker.port(), request).getData();
+        return client.call(path, request).getData();
     }
 
-    public void broker(Node broker) {
-        this.broker = broker;
+    public String host() {
+        return host;
     }
+
+    public int port() {
+        return port;
+    }
+
 }

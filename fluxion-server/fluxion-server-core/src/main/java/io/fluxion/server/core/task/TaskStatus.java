@@ -33,7 +33,7 @@ public enum TaskStatus {
      * 队列中
      * 已下发给worker
      */
-    QUEUED("queued"),
+    DISPATCHED("dispatched"),
     /**
      * 运行中
      */

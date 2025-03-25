@@ -34,4 +34,7 @@ public interface TableConstants {
     String FLUXION_TASK = "fluxion_task";
     String FLUXION_TASK_RECORD = "fluxion_task_record";
     String FLUXION_APP = "fluxion_app";
+    String FLUXION_WORKER = "fluxion_worker";
+    String FLUXION_WORKER_EXECUTOR = "fluxion_worker_executor";
+    String FLUXION_WORKER_METRIC = "fluxion_worker_metric";
 }

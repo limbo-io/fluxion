@@ -14,25 +14,25 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.app.converter;
+package io.fluxion.remote.core.api.response.broker;
 
-import io.fluxion.server.core.app.App;
-import io.fluxion.server.core.broker.BrokerNode;
-import io.fluxion.server.infrastructure.dao.entity.AppEntity;
+import io.fluxion.remote.core.api.dto.WorkerDTO;
 
 import java.util.List;
 
 /**
- * @author Devil
+ * @author PengQ
+ * @since 0.0.1
  */
-public class AppEntityConverter {
+public class BrokerWorkersResponse {
 
-    public static App convert(AppEntity entity, BrokerNode broker, List<BrokerNode> brokers) {
-        App app = new App();
-        app.setId(entity.getAppId());
-        app.setBroker(broker);
-        app.setBrokers(brokers);
-        return app;
+    private List<WorkerDTO> workers;
+
+    public List<WorkerDTO> getWorkers() {
+        return workers;
     }
 
+    public void setWorkers(List<WorkerDTO> workers) {
+        this.workers = workers;
+    }
 }

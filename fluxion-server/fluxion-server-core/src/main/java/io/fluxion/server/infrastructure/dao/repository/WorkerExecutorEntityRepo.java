@@ -16,18 +16,25 @@
 
 package io.fluxion.server.infrastructure.dao.repository;
 
-import io.fluxion.server.infrastructure.dao.entity.TagEntity;
+import io.fluxion.server.core.worker.executor.WorkerExecutor;
+import io.fluxion.server.infrastructure.dao.entity.WorkerExecutorEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 /**
  * @author Devil
- * @since 2022/7/18
  */
-public interface TagEntityRepo extends JpaRepository<TagEntity, TagEntity.ID> {
+@Repository
+public interface WorkerExecutorEntityRepo extends JpaRepository<WorkerExecutorEntity, WorkerExecutorEntity.ID> {
 
-    void deleteById_RefIdAndId_RefType(String refId, String refType);
+    @Modifying(clearAutomatically = true)
+    @Query("delete from WorkerExecutorEntity where id.workerId = :workerId")
+    int deleteByWorkerId(@Param("workerId") String workerId);
 
-    List<TagEntity> findById_RefIdInAndId_RefType(List<String> refIds, String refType);
+    List<WorkerExecutorEntity> findById_WorkerIdIn(List<String> workerIds);
 }
