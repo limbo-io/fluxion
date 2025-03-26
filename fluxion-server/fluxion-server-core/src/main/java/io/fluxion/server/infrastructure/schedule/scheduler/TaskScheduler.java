@@ -16,13 +16,11 @@
 
 package io.fluxion.server.infrastructure.schedule.scheduler;
 
-import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.schedule.Scheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.Timer;
 import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -73,7 +71,7 @@ public abstract class TaskScheduler<T extends AbstractTask> implements Scheduler
      * 计算调度延时
      */
     private long calDelay(T task) {
-        long delay = Duration.between(TimeUtils.currentLocalDateTime(), task.triggerAt()).toMillis();
+        long delay = task.triggerAt() - System.currentTimeMillis();
         return delay < 0 ? 0 : delay;
     }
 

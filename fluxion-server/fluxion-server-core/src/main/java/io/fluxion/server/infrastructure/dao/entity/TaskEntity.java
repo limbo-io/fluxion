@@ -27,7 +27,6 @@ import org.hibernate.annotations.DynamicUpdate;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import java.time.LocalDateTime;
 
 /**
  * 一个任务 实例 存储运行数据
@@ -70,17 +69,17 @@ public class TaskEntity extends BaseEntity {
     /**
      * 应该触发的时间
      */
-    private LocalDateTime triggerAt;
+    private Long triggerAt;
 
     /**
      * 开始时间
      */
-    private LocalDateTime startAt;
+    private Long startAt;
 
     /**
      * 结束时间
      */
-    private LocalDateTime endAt;
+    private Long endAt;
 
     /**
      * 执行节点
@@ -90,7 +89,7 @@ public class TaskEntity extends BaseEntity {
     /**
      * 上次上报时间戳，毫秒
      */
-    private LocalDateTime lastReportAt;
+    private Long lastReportAt;
 
     /**
      * 当前是第几次重试

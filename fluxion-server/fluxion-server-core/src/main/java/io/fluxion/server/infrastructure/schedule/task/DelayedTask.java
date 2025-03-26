@@ -18,7 +18,6 @@ package io.fluxion.server.infrastructure.schedule.task;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
 import java.util.function.Consumer;
 
 /**
@@ -30,14 +29,14 @@ import java.util.function.Consumer;
 @Slf4j
 public class DelayedTask extends AbstractTask {
 
-    private final LocalDateTime triggerAt;
+    private final Long triggerAt;
 
     /**
      * 业务逻辑
      */
     private final Consumer<DelayedTask> consumer;
 
-    public DelayedTask(String id, LocalDateTime triggerAt, Consumer<DelayedTask> consumer) {
+    public DelayedTask(String id, Long triggerAt, Consumer<DelayedTask> consumer) {
         super(id);
         this.triggerAt = triggerAt;
         this.consumer = consumer;
@@ -49,7 +48,7 @@ public class DelayedTask extends AbstractTask {
     }
 
     @Override
-    public LocalDateTime triggerAt() {
+    public Long triggerAt() {
         return triggerAt;
     }
 

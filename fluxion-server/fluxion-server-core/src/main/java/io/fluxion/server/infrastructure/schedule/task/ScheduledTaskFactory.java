@@ -22,7 +22,6 @@ import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.function.Consumer;
 
 /**
@@ -43,7 +42,7 @@ public class ScheduledTaskFactory {
      * @param cron     cron表达式
      * @param cronType cron表达式类型 {@link CronType}
      */
-    public static ScheduledTask cron(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+    public static ScheduledTask cron(String id, Long lastTriggerAt, Long lastFeedbackAt,
                                      Duration delay, String cron, String cronType, Consumer<ScheduledTask> consumer) {
         return task(id, lastTriggerAt, lastFeedbackAt,
             new ScheduleOption(ScheduleType.CRON, null, null, delay, null, cron, cronType),
@@ -55,7 +54,7 @@ public class ScheduledTaskFactory {
         return fixDelay(id, null, null, Duration.ZERO, interval, consumer);
     }
 
-    public static ScheduledTask fixDelay(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+    public static ScheduledTask fixDelay(String id, Long lastTriggerAt, Long lastFeedbackAt,
                                          Duration delay, Duration interval, Consumer<ScheduledTask> consumer) {
         return task(id, lastTriggerAt, lastFeedbackAt,
             new ScheduleOption(ScheduleType.FIXED_DELAY, null, null, delay, interval, null, null),
@@ -67,7 +66,7 @@ public class ScheduledTaskFactory {
         return fixRate(id, null, null, Duration.ZERO, interval, consumer);
     }
 
-    public static ScheduledTask fixRate(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+    public static ScheduledTask fixRate(String id, Long lastTriggerAt, Long lastFeedbackAt,
                                         Duration delay, Duration interval, Consumer<ScheduledTask> consumer) {
         return task(id, lastTriggerAt, lastFeedbackAt,
             new ScheduleOption(ScheduleType.FIXED_RATE, null, null, delay, interval, null, null),
@@ -75,7 +74,7 @@ public class ScheduledTaskFactory {
         );
     }
 
-    public static ScheduledTask task(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+    public static ScheduledTask task(String id, Long lastTriggerAt, Long lastFeedbackAt,
                                      ScheduleOption scheduleOption, Consumer<ScheduledTask> consumer) {
         return new ScheduledTask(id, new BasicCalculation(
             lastTriggerAt, lastFeedbackAt, scheduleOption

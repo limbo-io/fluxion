@@ -16,7 +16,7 @@
 
 package io.fluxion.server.start.controller;
 
-import io.fluxion.server.core.flow.cmd.FlowCreateCmd;
+import io.fluxion.server.core.workflow.cmd.WorkflowCreateCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,8 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class WebHookController {
 
     @RequestMapping("/api/v1/webhook")
-    public String trigger(@RequestBody FlowCreateCmd cmd) {
-        FlowCreateCmd.Response response = Cmd.send(cmd);
+    public String trigger(@RequestBody WorkflowCreateCmd cmd) {
+        WorkflowCreateCmd.Response response = Cmd.send(cmd);
         return response.getId();
     }
 

@@ -36,7 +36,6 @@ import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.time.LocalDateTime;
 
 /**
  * @author Devil
@@ -67,7 +66,7 @@ public class ExecutableCommandService {
         }
         Execution execution = Query.query(new ExecutionByIdQuery(task.getExecutionId())).getExecution();
         Executable executable = execution.getExecutable();
-        LocalDateTime time = cmd.getReportAt();
+        Long time = cmd.getReportAt();
         RetryOption retryOption = executable.retryOption(task.getRefId());
         if (retryOption.canRetry(task.getRetryTimes())) {
             return Cmd.send(new TaskRetryCmd());

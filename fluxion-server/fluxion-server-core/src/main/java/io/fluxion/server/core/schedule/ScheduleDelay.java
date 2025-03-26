@@ -19,11 +19,8 @@ package io.fluxion.server.core.schedule;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.fluxion.common.constants.CommonConstants;
-import io.fluxion.common.utils.time.TimeUtils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
 
 /**
  * scheduleId + triggerAt 唯一
@@ -39,7 +36,7 @@ public class ScheduleDelay {
     private Status status;
 
     public String id() {
-        return TimeUtils.toInstant(id.triggerAt).toEpochMilli() + "_" + id.scheduleId;
+        return id.triggerAt + "_" + id.scheduleId;
     }
 
     public void status(Status status) {
@@ -56,7 +53,7 @@ public class ScheduleDelay {
         /**
          * 触发时间
          */
-        private LocalDateTime triggerAt;
+        private Long triggerAt;
     }
 
     public enum Status {

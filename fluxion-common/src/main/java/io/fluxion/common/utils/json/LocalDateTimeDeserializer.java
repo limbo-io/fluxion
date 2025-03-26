@@ -24,6 +24,8 @@ import io.fluxion.common.utils.time.LocalDateTimeUtils;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.List;
 
 /**
  * @author Brozen
@@ -33,18 +35,25 @@ public class LocalDateTimeDeserializer extends JsonDeserializer<LocalDateTime> {
     /**
      * 反序列化时，从JSON字符串中读取到的日期格式
      */
-    private final String pattern;
+    private final List<String> patterns;
 
-    public LocalDateTimeDeserializer(String pattern) {
-        this.pattern = pattern;
+    public LocalDateTimeDeserializer(List<String> patterns) {
+        this.patterns = patterns;
     }
 
 
     @Override
     public LocalDateTime deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
             throws IOException, JsonProcessingException {
-
-        return LocalDateTimeUtils.parse(jsonParser.getValueAsString(), pattern);
+        Exception ex = null;
+        for (String pattern : patterns) {
+            try {
+                return LocalDateTimeUtils.parse(jsonParser.getValueAsString(), pattern);
+            } catch (DateTimeParseException e) {
+                ex = e;
+            }
+        }
+        throw new RuntimeException(ex.getMessage());
     }
 
 }

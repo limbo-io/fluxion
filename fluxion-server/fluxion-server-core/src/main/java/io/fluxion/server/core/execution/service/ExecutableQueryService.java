@@ -21,7 +21,7 @@ import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.core.execution.config.ExecutorExecuteConfig;
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.executor.Executor;
-import io.fluxion.server.core.flow.query.FlowByIdQuery;
+import io.fluxion.server.core.workflow.query.WorkflowByIdQuery;
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
 import io.fluxion.server.infrastructure.cqrs.Query;
@@ -39,7 +39,7 @@ public class ExecutableQueryService {
         Executable executable = null;
         switch (query.getType()) {
             case FLOW:
-                executable = Query.query(new FlowByIdQuery(query.getId(), query.getVersion())).getFlow();
+                executable = Query.query(new WorkflowByIdQuery(query.getId(), query.getVersion())).getWorkflow();
                 break;
             case EXECUTOR:
                 Trigger trigger = Query.query(new TriggerByIdQuery(query.getId())).getTrigger();

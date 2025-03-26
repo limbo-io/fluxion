@@ -17,7 +17,7 @@
 package io.fluxion.server.core.executor.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import io.fluxion.server.core.flow.FlowConstants;
+import io.fluxion.server.core.workflow.WorkflowConstants;
 import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -42,7 +42,7 @@ public class ShellScriptExecutorConfig extends ExecutorConfig {
     public List<ValidateSuppressInfo> validate() {
         List<ValidateSuppressInfo> infos = new ArrayList<>();
         if (StringUtils.isBlank(script)) {
-            infos.add(new ValidateSuppressInfo(FlowConstants.SCRIPT_IS_EMPTY));
+            infos.add(new ValidateSuppressInfo(WorkflowConstants.SCRIPT_IS_EMPTY));
         }
         return infos;
     }

@@ -85,5 +85,9 @@ public class TimeUtils {
         return LocalTime.of(23, 59, 59, 999_999_999);
     }
 
+    public static String format(Long time, String pattern) {
+        return Formatters.getFormatter(pattern).format(toLocalDateTime(time));
+    }
+
 
 }

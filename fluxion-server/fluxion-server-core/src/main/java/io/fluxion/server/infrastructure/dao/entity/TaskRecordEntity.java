@@ -16,20 +16,13 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
-import io.fluxion.server.infrastructure.dao.TableConstants;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.hibernate.annotations.DynamicInsert;
-import org.hibernate.annotations.DynamicUpdate;
 
 import javax.persistence.Embeddable;
 import javax.persistence.EmbeddedId;
-import javax.persistence.Entity;
-import javax.persistence.Table;
 import java.io.Serializable;
-import java.time.LocalDateTime;
 
 /**
  * 一个任务运行记录
@@ -51,12 +44,12 @@ public class TaskRecordEntity extends BaseEntity {
     /**
      * 开始时间
      */
-    private LocalDateTime startAt;
+    private Long startAt;
 
     /**
      * 结束时间
      */
-    private LocalDateTime endAt;
+    private Long endAt;
 
     /**
      * 下发节点

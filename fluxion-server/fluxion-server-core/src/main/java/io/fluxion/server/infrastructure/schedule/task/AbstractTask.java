@@ -16,8 +16,6 @@
 
 package io.fluxion.server.infrastructure.schedule.task;
 
-import java.time.LocalDateTime;
-
 /**
  * @author Brozen
  * @since 2022-10-11
@@ -40,7 +38,7 @@ public abstract class AbstractTask {
      */
     public abstract void run();
 
-    public abstract LocalDateTime triggerAt();
+    public abstract Long triggerAt();
 
     public String id() {
         return id;

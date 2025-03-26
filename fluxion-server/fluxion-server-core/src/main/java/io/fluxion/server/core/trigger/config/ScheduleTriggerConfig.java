@@ -17,7 +17,7 @@
 package io.fluxion.server.core.trigger.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import io.fluxion.server.core.flow.FlowConstants;
+import io.fluxion.server.core.workflow.WorkflowConstants;
 import io.fluxion.server.core.trigger.TriggerConfig;
 import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
@@ -49,22 +49,22 @@ public class ScheduleTriggerConfig extends TriggerConfig {
     @Override
     public List<ValidateSuppressInfo> validate() {
         if (scheduleOption == null) {
-            return Collections.singletonList(new ValidateSuppressInfo(FlowConstants.SCHEDULE_CONFIG_ERROR));
+            return Collections.singletonList(new ValidateSuppressInfo(WorkflowConstants.SCHEDULE_CONFIG_ERROR));
         }
         List<ValidateSuppressInfo> infos = new ArrayList<>();
         if (scheduleOption.getType() == null || ScheduleType.UNKNOWN == scheduleOption.getType()) {
-            infos.add(new ValidateSuppressInfo(FlowConstants.SCHEDULE_CONFIG_ERROR));
+            infos.add(new ValidateSuppressInfo(WorkflowConstants.SCHEDULE_CONFIG_ERROR));
         }
         switch (scheduleOption.getType()) {
             case CRON:
                 if (StringUtils.isBlank(scheduleOption.getCron())) {
-                    infos.add(new ValidateSuppressInfo(FlowConstants.SCHEDULE_CONFIG_ERROR));
+                    infos.add(new ValidateSuppressInfo(WorkflowConstants.SCHEDULE_CONFIG_ERROR));
                 }
                 break;
             case FIXED_RATE:
             case FIXED_DELAY:
                 if (scheduleOption.getInterval() == null) {
-                    infos.add(new ValidateSuppressInfo(FlowConstants.SCHEDULE_CONFIG_ERROR));
+                    infos.add(new ValidateSuppressInfo(WorkflowConstants.SCHEDULE_CONFIG_ERROR));
                 }
                 break;
         }

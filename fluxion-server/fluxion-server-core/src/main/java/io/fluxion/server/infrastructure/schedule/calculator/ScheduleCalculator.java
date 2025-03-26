@@ -16,13 +16,11 @@
 
 package io.fluxion.server.infrastructure.schedule.calculator;
 
-import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.fluxion.server.infrastructure.schedule.Calculable;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 
 /**
  * 调度时间计算策略，用于计算下次触发调度时间戳
@@ -55,10 +53,9 @@ public interface ScheduleCalculator {
      * @return 作业开始进行调度计算的时间
      */
     default long calculateStartScheduleTimestamp(ScheduleOption scheduleOption) {
-        LocalDateTime startTime = scheduleOption.getStartTime();
         Duration delay = scheduleOption.getDelay();
-        long startScheduleAt = startTime.toInstant(TimeUtils.defaultZoneOffset()).toEpochMilli();
-        return delay != null ? startScheduleAt + delay.toMillis() : startScheduleAt;
+        long startTime = scheduleOption.getStartTime();
+        return delay != null ? startTime + delay.toMillis() : startTime;
     }
 
 }

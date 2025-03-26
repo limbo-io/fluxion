@@ -29,7 +29,6 @@ import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.cmd.ScheduleFeedbackCmd;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
-import io.fluxion.server.core.task.TaskStatus;
 import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
@@ -45,7 +44,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
-import java.time.LocalDateTime;
 
 /**
  * @author Devil
@@ -95,7 +93,7 @@ public class ExecutionCommandService {
             .setParameter("newStatus", ExecutionStatus.RUNNING.value)
             .setParameter("executionId", cmd.getExecutionId())
             .setParameter("oldStatus", ExecutionStatus.CREATED.value)
-            .setParameter("startAt", TimeUtils.currentLocalDateTime())
+            .setParameter("startAt", System.currentTimeMillis())
             .executeUpdate();
     }
 
@@ -121,7 +119,7 @@ public class ExecutionCommandService {
         return true;
     }
 
-    private boolean updateToFinish(String executionId, ExecutionStatus status, LocalDateTime endTime) {
+    private boolean updateToFinish(String executionId, ExecutionStatus status, Long endTime) {
         return entityManager.createQuery("update ExecutionEntity " +
                 "set status = :newStatus, endAt = :endAt " +
                 "where executionId = :executionId and status = :oldStatus "

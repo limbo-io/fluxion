@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.collect.Lists;
 import io.fluxion.common.utils.time.Formatters;
 import org.apache.commons.lang3.StringUtils;
 
@@ -43,7 +44,7 @@ public class JacksonUtils {
     public static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<Map<String, Object>>() {
     };
 
-    public static final ObjectMapper MAPPER = newObjectMapper();
+    public static final ObjectMapper MAPPER = newObjectMapper(Formatters.YMD_HMS_SSS);
 
     public static final String DEFAULT_NONE_OBJECT = "{}";
 
@@ -52,15 +53,14 @@ public class JacksonUtils {
     /**
      * 生成新的{@link ObjectMapper}
      */
-    public static ObjectMapper newObjectMapper() {
+    public static ObjectMapper newObjectMapper(String dateTimePattern) {
         ObjectMapper mapper = new ObjectMapper();
 
         // 注册JDK8的日期API处理模块
         JavaTimeModule javaTimeModule = new JavaTimeModule();
-        // 注册LocalDateTime的类型处理，可以通过fluxion.jackson.date-time-pattern环境变量指定
-        String dateTimePattern = System.getProperty("fluxion.jackson.date-time-pattern", Formatters.YMD_HMS);
+        // 注册LocalDateTime的类型处理
         javaTimeModule.addSerializer(new LocalDateTimeSerializer(dateTimePattern));
-        javaTimeModule.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer(dateTimePattern));
+        javaTimeModule.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer(Lists.newArrayList(dateTimePattern, Formatters.YMD_HMS)));
 //        javaTimeModule.addSerializer(LocalDateTime.class, new com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer(DateTimeFormatter.ofPattern(Formatters.YMD_HMS)));
 //        javaTimeModule.addDeserializer(LocalDateTime.class, new com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer(DateTimeFormatter.ofPattern(Formatters.YMD_HMS)));
 //        javaTimeModule.addSerializer(LocalDate.class, new LocalDateSerializer(DateTimeFormatter.ofPattern(Formatters.YMD_HMS)));
@@ -73,8 +73,8 @@ public class JacksonUtils {
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
 
         //在序列化时日期格式默认为 yyyy-MM-dd HH:mm:ss
-        mapper.setDateFormat(new SimpleDateFormat(Formatters.YMD_HMS));
-        mapper.getDeserializationConfig().with(new SimpleDateFormat(Formatters.YMD_HMS));
+        mapper.setDateFormat(new SimpleDateFormat(dateTimePattern));
+        mapper.getDeserializationConfig().with(new SimpleDateFormat(dateTimePattern));
 
         //在序列化时忽略值为 null 的属性
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);

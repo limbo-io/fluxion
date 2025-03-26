@@ -63,7 +63,7 @@ public class BrokerClientHandler implements ClientHandler {
                 }
                 case BrokerRemoteConstant.API_TASK_START: {
                     TaskStartRequest request = JacksonUtils.toType(data, TaskStartRequest.class);
-                    Boolean success = Cmd.send(new TaskStartCmd(request.getTaskId(), request.getWorkerAddress()));
+                    Boolean success = Cmd.send(new TaskStartCmd(request.getTaskId(), request.getWorkerAddress(), request.getReportAt()));
                     return Response.ok(success);
                 }
                 case BrokerRemoteConstant.API_TASK_REPORT: {

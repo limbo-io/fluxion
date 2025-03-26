@@ -22,8 +22,11 @@ import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
-import javax.persistence.*;
-import java.time.LocalDateTime;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
 
 /**
  * @author Devil
@@ -57,7 +60,7 @@ public class LockEntity extends BaseEntity {
     /**
      * 超时时间
      */
-    private LocalDateTime expireAt;
+    private Long expireAt;
 
 
     @Override

@@ -22,8 +22,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 /**
  * @author Devil
  */
@@ -37,7 +35,7 @@ public class TaskFailCmd implements ICmd<Boolean> {
 
     private String workerAddress;
 
-    private LocalDateTime endAt;
+    private Long reportAt;
 
     /**
      * 执行失败时候返回的信息

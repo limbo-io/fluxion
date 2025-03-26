@@ -34,4 +34,6 @@ public class TaskStartCmd implements ICmd<Boolean> {
     private String taskId;
 
     private String workerAddress;
+
+    private Long reportAt;
 }

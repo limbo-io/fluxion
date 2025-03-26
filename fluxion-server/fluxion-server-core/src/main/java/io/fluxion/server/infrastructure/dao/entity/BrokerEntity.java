@@ -24,9 +24,11 @@ import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
-import javax.persistence.*;
+import javax.persistence.Embeddable;
+import javax.persistence.EmbeddedId;
+import javax.persistence.Entity;
+import javax.persistence.Table;
 import java.io.Serializable;
-import java.time.LocalDateTime;
 
 /**
  * @author Devil
@@ -56,7 +58,7 @@ public class BrokerEntity extends BaseEntity {
     /**
      * 上次心跳时间
      */
-    private LocalDateTime lastHeartbeat;
+    private Long lastHeartbeat;
 
     @Override
     public Object getUid() {

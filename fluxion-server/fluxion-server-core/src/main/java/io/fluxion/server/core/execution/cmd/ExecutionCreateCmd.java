@@ -17,7 +17,6 @@
 package io.fluxion.server.core.execution.cmd;
 
 import io.fluxion.server.core.execution.ExecutableType;
-import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
@@ -25,8 +24,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 /**
  * @author Devil
@@ -47,7 +44,7 @@ public class ExecutionCreateCmd implements ICmd<ExecutionCreateCmd.Response> {
 
     private ExecutableType executableType;
 
-    private LocalDateTime triggerAt;
+    private Long triggerAt;
 
     @Getter
     @AllArgsConstructor

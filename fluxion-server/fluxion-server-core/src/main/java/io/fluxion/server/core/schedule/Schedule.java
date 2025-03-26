@@ -21,8 +21,6 @@ import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 /**
  * @author Devil
  */
@@ -36,17 +34,17 @@ public class Schedule {
     /**
      * 上次触发时间
      */
-    private LocalDateTime lastTriggerAt;
+    private Long lastTriggerAt;
 
     /**
      * 上次回调时间
      */
-    private LocalDateTime lastFeedbackAt;
+    private Long lastFeedbackAt;
 
     /**
      * 下次触发时间
      */
-    private LocalDateTime nextTriggerAt;
+    private Long nextTriggerAt;
 
     private boolean enabled;
 

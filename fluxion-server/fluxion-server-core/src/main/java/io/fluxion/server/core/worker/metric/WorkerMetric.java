@@ -22,8 +22,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
 /**
  * worker的指标信息。
  *
@@ -51,8 +49,8 @@ public class WorkerMetric {
     private int availableQueueNum;
 
     /**
-     * 上次心跳上报时间戳，毫秒
+     * 上次心跳上报时间戳
      */
-    private LocalDateTime lastHeartbeatAt;
+    private Long lastHeartbeatAt;
 
 }

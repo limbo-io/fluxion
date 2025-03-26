@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.executor;
 
-import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
@@ -29,7 +28,6 @@ import io.fluxion.server.core.task.cmd.TaskSuccessCmd;
 import io.fluxion.server.core.task.cmd.TasksCreateCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 
-import java.time.LocalDateTime;
 import java.util.Collections;
 
 /**
@@ -64,7 +62,7 @@ public class Executor implements Executable {
 
     @Override
     public void execute(RunContext context) {
-        Task task = task(context.executionId(), TimeUtils.currentLocalDateTime());
+        Task task = task(context.executionId(), System.currentTimeMillis());
         // 保存数据
         Cmd.send(new TasksCreateCmd(Collections.singletonList(task)));
         // 执行
@@ -72,7 +70,7 @@ public class Executor implements Executable {
     }
 
     @Override
-    public boolean success(String refId, String taskId, String executionId, String workerAddress, LocalDateTime time) {
+    public boolean success(String refId, String taskId, String executionId, String workerAddress, Long time) {
         Boolean success = Cmd.send(new TaskSuccessCmd(taskId, workerAddress, time));
         if (!success) {
             return false;
@@ -85,7 +83,7 @@ public class Executor implements Executable {
         return retryOption;
     }
 
-    private Task task(String executionId, LocalDateTime triggerAt) {
+    private Task task(String executionId, Long triggerAt) {
         ExecutorTask task = new ExecutorTask();
         task.setAppId(config.getAppId());
         task.setExecutorName(config.executorName());

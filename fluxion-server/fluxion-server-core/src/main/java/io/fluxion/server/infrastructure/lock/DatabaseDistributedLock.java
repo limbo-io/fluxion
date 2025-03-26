@@ -16,7 +16,6 @@
 
 package io.fluxion.server.infrastructure.lock;
 
-import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.infrastructure.dao.entity.LockEntity;
 import io.fluxion.server.infrastructure.dao.repository.LockEntityRepo;
@@ -26,7 +25,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import javax.transaction.Transactional;
-import java.time.temporal.ChronoUnit;
 
 /**
  * @author Devil
@@ -49,7 +47,7 @@ public class DatabaseDistributedLock implements DistributedLock {
         String current = owner();
 
         // 如果锁未过期且当前节点非加锁节点，加锁失败
-        if (lock != null && lock.getExpireAt().isBefore(TimeUtils.currentLocalDateTime()) && !lock.getOwner().equals(current)) {
+        if (lock != null && lock.getExpireAt() < System.currentTimeMillis() && !lock.getOwner().equals(current)) {
             return false;
         }
         if (lock == null) {
@@ -57,7 +55,7 @@ public class DatabaseDistributedLock implements DistributedLock {
         }
         lock.setName(name);
         lock.setOwner(current);
-        lock.setExpireAt(TimeUtils.currentLocalDateTime().plus(expire, ChronoUnit.MILLIS));
+        lock.setExpireAt(System.currentTimeMillis());
         return dbLock(lock);
     }
 

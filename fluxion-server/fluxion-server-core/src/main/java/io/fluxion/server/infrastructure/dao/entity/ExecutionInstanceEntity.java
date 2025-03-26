@@ -19,16 +19,8 @@ package io.fluxion.server.infrastructure.dao.entity;
 import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.trigger.TriggerType;
-import io.fluxion.server.infrastructure.dao.TableConstants;
-import lombok.Getter;
-import lombok.Setter;
-import org.hibernate.annotations.DynamicInsert;
-import org.hibernate.annotations.DynamicUpdate;
 
-import javax.persistence.Entity;
 import javax.persistence.Id;
-import javax.persistence.Table;
-import java.time.LocalDateTime;
 
 /**
  * 一次执行的记录 -- 重试
@@ -73,17 +65,17 @@ public class ExecutionInstanceEntity extends BaseEntity {
     /**
      * 期望的调度触发时间
      */
-    private LocalDateTime triggerAt;
+    private Long triggerAt;
 
     /**
      * 执行开始时间
      */
-    private LocalDateTime startAt;
+    private Long startAt;
 
     /**
      * 执行结束时间
      */
-    private LocalDateTime endAt;
+    private Long endAt;
 
     @Override
     public Object getUid() {

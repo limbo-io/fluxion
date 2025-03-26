@@ -25,7 +25,7 @@ import io.fluxion.common.constants.CommonConstants;
  */
 public enum VersionRefType {
     UNKNOWN(CommonConstants.UNKNOWN),
-    FLOW("flow"),
+    WORKFLOW("workflow"),
     TRIGGER("trigger"),
     ;
 

@@ -22,8 +22,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 /**
  * @author Devil
  */
@@ -35,6 +33,6 @@ public class ExecutionSuccessCmd implements ICmd<Boolean> {
 
     private String executionId;
 
-    private LocalDateTime endAt;
+    private Long endAt;
 
 }

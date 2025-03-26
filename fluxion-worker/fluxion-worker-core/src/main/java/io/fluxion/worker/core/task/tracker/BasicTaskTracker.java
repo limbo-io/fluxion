@@ -63,7 +63,7 @@ public class BasicTaskTracker extends TaskTracker {
         this.statusReportFuture = workerContext.taskStatusReportExecutor().submit(() -> {
             TaskReportRequest request = new TaskReportRequest();
             request.setTaskId(task.getTaskId());
-            request.setReportAt(TimeUtils.currentLocalDateTime());
+            request.setReportAt(System.currentTimeMillis());
             request.setWorkerAddress(workerContext.address());
             workerContext.call(API_TASK_REPORT, request);
         });

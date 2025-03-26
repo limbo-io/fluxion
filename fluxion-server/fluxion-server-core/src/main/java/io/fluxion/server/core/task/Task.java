@@ -25,8 +25,6 @@ import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 /**
  * @author Devil
  */
@@ -46,7 +44,7 @@ public abstract class Task {
 
     private TaskStatus status = TaskStatus.CREATED;
 
-    private LocalDateTime triggerAt;
+    private Long triggerAt;
 
     /**
      * 当前是第几次重试

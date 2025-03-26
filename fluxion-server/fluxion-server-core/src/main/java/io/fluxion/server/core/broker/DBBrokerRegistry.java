@@ -18,7 +18,6 @@ package io.fluxion.server.core.broker;
 
 import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.common.utils.time.Formatters;
-import io.fluxion.common.utils.time.LocalTimeUtils;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.cluster.NodeEvent;
 import io.fluxion.remote.core.cluster.NodeListener;
@@ -33,7 +32,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimerTask;
@@ -82,7 +80,7 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
     public void register(BrokerNode node) {
         // 新建
         BrokerEntity broker = entity(node);
-        broker.setLastHeartbeat(TimeUtils.currentLocalDateTime());
+        broker.setLastHeartbeat(System.currentTimeMillis());
         brokerEntityRepo.saveAndFlush(broker);
 
         // 处理bucket
@@ -143,12 +141,12 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
         @Override
         public void run() {
             try {
-                LocalDateTime now = TimeUtils.currentLocalDateTime();
+                long now = System.currentTimeMillis();
                 BrokerEntity broker = entity(node);
                 broker.setLastHeartbeat(now);
                 brokerEntityRepo.saveAndFlush(broker);
                 if (log.isDebugEnabled()) {
-                    log.debug("{} send heartbeat id: {} time:{}", TASK_NAME, id, LocalTimeUtils.format(now, Formatters.YMD_HMS));
+                    log.debug("{} send heartbeat id: {} time:{}", TASK_NAME, id, TimeUtils.format(now, Formatters.YMD_HMS));
                 }
             } catch (Exception e) {
                 log.error("{} send heartbeat fail", TASK_NAME, e);
@@ -161,21 +159,21 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
 
         private static final String TASK_NAME = "[NodeOnlineCheckTask]";
 
-        LocalDateTime lastCheckAt = TimeUtils.currentLocalDateTime().plusSeconds(-heartbeatTimeout.getSeconds());
+        Long lastCheckAt = System.currentTimeMillis() - heartbeatTimeout.toMillis();
 
         @Override
         public void run() {
             try {
-                LocalDateTime startTime = lastCheckAt;
-                LocalDateTime endTime = TimeUtils.currentLocalDateTime();
+                Long startTime = lastCheckAt;
+                Long endTime = System.currentTimeMillis();
                 if (log.isDebugEnabled()) {
-                    log.info("{} checkOnline start:{} end:{}", TASK_NAME, LocalTimeUtils.format(startTime, Formatters.YMD_HMS), LocalTimeUtils.format(endTime, Formatters.YMD_HMS));
+                    log.info("{} checkOnline start:{} end:{}", TASK_NAME, TimeUtils.format(startTime, Formatters.YMD_HMS), TimeUtils.format(endTime, Formatters.YMD_HMS));
                 }
                 List<BrokerEntity> onlineBrokers = brokerEntityRepo.findByCreatedAtBetween(startTime, endTime);
                 if (CollectionUtils.isNotEmpty(onlineBrokers)) {
                     for (BrokerEntity entity : onlineBrokers) {
                         if (log.isDebugEnabled()) {
-                            log.debug("{} find online broker id: {}, lastHeartbeat:{}", TASK_NAME, entity.getId(), LocalTimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
+                            log.debug("{} find online broker id: {}, lastHeartbeat:{}", TASK_NAME, entity.getId(), TimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
                         }
                         for (NodeListener<BrokerNode> listener : listeners) {
                             listener.event(new NodeEvent<>(node(entity), NodeEvent.Type.ONLINE));
@@ -194,21 +192,21 @@ public class DBBrokerRegistry implements NodeRegistry<BrokerNode> {
 
         private static final String TASK_NAME = "[NodeOfflineCheckTask]";
 
-        LocalDateTime lastCheckAt = TimeUtils.currentLocalDateTime().plusSeconds(-2 * heartbeatTimeout.getSeconds());
+        Long lastCheckAt = System.currentTimeMillis() - (2L * heartbeatTimeout.toMillis());
 
         @Override
         public void run() {
             try {
-                LocalDateTime startTime = lastCheckAt;
-                LocalDateTime endTime = TimeUtils.currentLocalDateTime().plusSeconds(-heartbeatTimeout.getSeconds());
+                Long startTime = lastCheckAt;
+                Long endTime = System.currentTimeMillis() - heartbeatTimeout.toMillis();
                 if (log.isDebugEnabled()) {
-                    log.debug("{} checkOffline start:{} end:{}", TASK_NAME, LocalTimeUtils.format(startTime, Formatters.YMD_HMS), LocalTimeUtils.format(endTime, Formatters.YMD_HMS));
+                    log.debug("{} checkOffline start:{} end:{}", TASK_NAME, TimeUtils.format(startTime, Formatters.YMD_HMS), TimeUtils.format(endTime, Formatters.YMD_HMS));
                 }
                 List<BrokerEntity> offlineBrokers = brokerEntityRepo.findByLastHeartbeatBetween(startTime, endTime);
                 if (CollectionUtils.isNotEmpty(offlineBrokers)) {
                     for (BrokerEntity entity : offlineBrokers) {
                         if (log.isDebugEnabled()) {
-                            log.debug("{} find offline broker id: {}, lastHeartbeat:{}", TASK_NAME, entity.getId(), LocalTimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
+                            log.debug("{} find offline broker id: {}, lastHeartbeat:{}", TASK_NAME, entity.getId(), TimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
                         }
                         for (NodeListener<BrokerNode> listener : listeners) {
                             listener.event(new NodeEvent<>(node(entity), NodeEvent.Type.OFFLINE));

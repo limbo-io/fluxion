@@ -19,9 +19,7 @@ package io.fluxion.server.core.task.cmd;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -29,9 +27,7 @@ import java.util.List;
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class TasksCreateCmd implements ICmd<Void> {
 
     private List<Task> tasks;

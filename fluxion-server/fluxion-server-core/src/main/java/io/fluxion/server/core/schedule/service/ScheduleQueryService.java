@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.schedule.service;
 
-import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.broker.BrokerManger;
 import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
@@ -33,7 +32,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -62,8 +60,8 @@ public class ScheduleQueryService {
     public ScheduleNextTriggerQuery.Response handle(ScheduleNextTriggerQuery query) {
         String brokerId = BrokerContext.broker().id();
         List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
-        LocalDateTime nextTriggerAt = TimeUtils.currentLocalDateTime().plusSeconds(ScheduleConstants.LOAD_INTERVAL_SECONDS);
-        LocalDateTime startTime = TimeUtils.currentLocalDateTime().plusSeconds(-ScheduleConstants.LOAD_INTERVAL_SECONDS);
+        Long nextTriggerAt = System.currentTimeMillis() + ScheduleConstants.LOAD_INTERVAL_MS;
+        Long startTime = System.currentTimeMillis() - ScheduleConstants.LOAD_INTERVAL_MS;
         List<ScheduleEntity> entities = entityManager.createQuery("select e from ScheduleEntity e" +
                 " where e.bucket in :buckets and e.nextTriggerAt <= :nextTriggerAt " +
                 "and e.startTime <= :startTime and e.endTime >= :nextTriggerAt " +

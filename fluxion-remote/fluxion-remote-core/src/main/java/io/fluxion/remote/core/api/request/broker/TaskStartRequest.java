@@ -28,6 +28,8 @@ public class TaskStartRequest implements Request<Boolean> {
 
     private String workerAddress;
 
+    private Long reportAt;
+
     public String getTaskId() {
         return taskId;
     }
@@ -42,5 +44,13 @@ public class TaskStartRequest implements Request<Boolean> {
 
     public void setWorkerAddress(String workerAddress) {
         this.workerAddress = workerAddress;
+    }
+
+    public Long getReportAt() {
+        return reportAt;
+    }
+
+    public void setReportAt(Long reportAt) {
+        this.reportAt = reportAt;
     }
 }

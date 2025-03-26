@@ -16,11 +16,8 @@
 
 package io.fluxion.server.infrastructure.schedule;
 
-import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculator;
 import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculatorFactory;
-
-import java.time.LocalDateTime;
 
 /**
  * 计算过程
@@ -33,12 +30,12 @@ public class BasicCalculation implements Calculable {
     /**
      * 上次任务触发时间
      */
-    private final LocalDateTime lastTriggerAt;
+    private final Long lastTriggerAt;
 
     /**
      * 上次调度反馈的时间
      */
-    private final LocalDateTime lastFeedbackAt;
+    private final Long lastFeedbackAt;
 
     /**
      * 调度配置
@@ -53,26 +50,18 @@ public class BasicCalculation implements Calculable {
     /**
      * 计算结果，执行时间
      */
-    private final LocalDateTime triggerAt;
+    private final Long triggerAt;
 
-    public BasicCalculation(LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+    public BasicCalculation(Long lastTriggerAt, Long lastFeedbackAt,
                             ScheduleOption scheduleOption) {
         this.lastTriggerAt = lastTriggerAt;
         this.lastFeedbackAt = lastFeedbackAt;
         this.scheduleOption = scheduleOption;
         this.calculator = ScheduleCalculatorFactory.create(scheduleOption.getType());
-        this.triggerAt = calTriggerAt();
+        this.triggerAt = calculator.calculate(this);
     }
 
-    /**
-     * 下次触发时间
-     */
-    private LocalDateTime calTriggerAt() {
-        Long calculate = calculator.calculate(this);
-        return TimeUtils.toLocalDateTime(calculate);
-    }
-
-    public LocalDateTime triggerAt() {
+    public Long triggerAt() {
         return triggerAt;
     }
 
@@ -83,12 +72,12 @@ public class BasicCalculation implements Calculable {
     }
 
     @Override
-    public LocalDateTime lastTriggerAt() {
+    public Long lastTriggerAt() {
         return lastTriggerAt;
     }
 
     @Override
-    public LocalDateTime lastFeedbackAt() {
+    public Long lastFeedbackAt() {
         return lastFeedbackAt;
     }
 }

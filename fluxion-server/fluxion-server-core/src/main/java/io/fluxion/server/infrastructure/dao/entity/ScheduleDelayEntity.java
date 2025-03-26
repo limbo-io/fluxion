@@ -30,7 +30,6 @@ import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import java.io.Serializable;
-import java.time.LocalDateTime;
 
 /**
  * @author Devil
@@ -69,7 +68,7 @@ public class ScheduleDelayEntity extends BaseEntity {
 
         private String scheduleId;
 
-        private LocalDateTime triggerAt;
+        private Long triggerAt;
     }
 
 }

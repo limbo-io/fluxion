@@ -17,7 +17,6 @@
 package io.fluxion.server.core.schedule.service;
 
 import com.google.common.collect.Lists;
-import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.ScheduleConstants;
@@ -45,7 +44,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
-import java.time.LocalDateTime;
 
 /**
  * @author Devil
@@ -121,12 +119,12 @@ public class ScheduleCommandService {
         if (!schedule.isEnabled()) {
             return;
         }
-        LocalDateTime now = TimeUtils.currentLocalDateTime();
-        if (schedule.getNextTriggerAt().isAfter(now) || schedule.getNextTriggerAt().isBefore(schedule.getOption().getStartTime())) {
+        Long now = System.currentTimeMillis();
+        if (schedule.getNextTriggerAt() > now || schedule.getNextTriggerAt() < schedule.getOption().getStartTime()) {
             return;
         }
-        if (schedule.getNextTriggerAt().isAfter(schedule.getOption().getEndTime())
-            || schedule.getNextTriggerAt().isAfter(now.plusSeconds(ScheduleConstants.LOAD_INTERVAL_SECONDS))) {
+        if (schedule.getNextTriggerAt() > schedule.getOption().getEndTime()
+            || schedule.getNextTriggerAt() > now + ScheduleConstants.LOAD_INTERVAL_MS) {
             return;
         }
         ScheduleDelay delay = new ScheduleDelay(
@@ -162,7 +160,7 @@ public class ScheduleCommandService {
     @CommandHandler
     public void handle(ScheduleFeedbackCmd cmd) {
         Schedule schedule = cmd.getSchedule();
-        LocalDateTime now = TimeUtils.currentLocalDateTime();
+        long now = System.currentTimeMillis();
         int rows = entityManager.createQuery("update ScheduleEntity " +
                 " set lastFeedbackAt = :lastFeedbackAt " +
                 " where id = :id"

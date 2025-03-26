@@ -24,8 +24,6 @@ import io.fluxion.server.infrastructure.schedule.scheduler.TaskScheduler;
 import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
-
 /**
  * 可循环调度的task调度器
  *
@@ -51,11 +49,11 @@ public class ScheduledTaskScheduler extends TaskScheduler<ScheduledTask> {
             }
 
             // 超过时间的不需要调度
-            LocalDateTime startTime = scheduleOption.getStartTime();
-            LocalDateTime endTime = scheduleOption.getEndTime();
-            LocalDateTime now = TimeUtils.currentLocalDateTime();
-            if ((startTime != null && startTime.isAfter(now))
-                || (endTime != null && endTime.isBefore(now))) {
+            Long startTime = scheduleOption.getStartTime();
+            Long endTime = scheduleOption.getEndTime();
+            long now = System.currentTimeMillis();
+            if ((startTime != null && startTime > now)
+                || (endTime != null && endTime < now)) {
                 stop(task.id());
                 return;
             }
@@ -88,7 +86,7 @@ public class ScheduledTaskScheduler extends TaskScheduler<ScheduledTask> {
     private void reschedule(ScheduledTask task) {
         String scheduleId = task.id();
         try {
-            log.info("reschedule task at:{}", task.triggerAt().format(Formatters.getFormatter(Formatters.YMD_HMS_SSS)));
+            log.info("reschedule task at:{}", TimeUtils.format(task.triggerAt(), Formatters.YMD_HMS_SSS));
             doSchedule(task.nextTrigger());
         } catch (Exception e) {
             log.error("ScheduledTask [{}] reschedule failed", scheduleId, e);

@@ -16,7 +16,6 @@
 
 package io.fluxion.server.infrastructure.dao.tx;
 
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**

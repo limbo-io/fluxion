@@ -19,12 +19,9 @@ package io.fluxion.server.infrastructure.schedule.calculator;
 import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.fluxion.common.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDateTime;
 
 /**
  * 固定间隔作业调度时间计算器
@@ -44,14 +41,13 @@ public class FixDelayScheduleCalculator implements ScheduleCalculator {
     @Override
     public Long calculate(Calculable calculable) {
         ScheduleOption scheduleOption = calculable.scheduleOption();
-        LocalDateTime lastFeedbackAt = calculable.lastFeedbackAt();
+        Long lastFeedbackAt = calculable.lastFeedbackAt();
         // 如果为空，表示此次上次任务还没反馈，等待反馈后重新调度
         if (lastFeedbackAt == null) {
             // 如果上次触发为空表示这是第一次
             if (calculable.lastTriggerAt() == null) {
-                Instant nowInstant = TimeUtils.currentInstant();
                 long startScheduleAt = calculateStartScheduleTimestamp(calculable.scheduleOption());
-                return Math.max(startScheduleAt, nowInstant.toEpochMilli());
+                return Math.max(startScheduleAt, System.currentTimeMillis());
             } else {
                 return ScheduleCalculator.NOT_TRIGGER;
             }
@@ -63,9 +59,8 @@ public class FixDelayScheduleCalculator implements ScheduleCalculator {
             return ScheduleCalculator.NOT_TRIGGER;
         }
 
-        long now = TimeUtils.currentInstant().toEpochMilli();
-        long scheduleAt = TimeUtils.toInstant(lastFeedbackAt).toEpochMilli() + interval.toMillis();
-        return Math.max(scheduleAt, now);
+        long scheduleAt = lastFeedbackAt + interval.toMillis();
+        return Math.max(scheduleAt, System.currentTimeMillis());
     }
 
     @Override

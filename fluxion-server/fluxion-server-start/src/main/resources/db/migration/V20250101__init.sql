@@ -109,10 +109,10 @@ CREATE TABLE `fluxion_app`
     UNIQUE KEY `uk_app` (`app_id`)
 );
 
-CREATE TABLE `fluxion_flow`
+CREATE TABLE `fluxion_workflow`
 (
     `id`              bigint unsigned NOT NULL AUTO_INCREMENT,
-    `flow_id`         varchar(64)     NOT NULL,
+    `workflow_id`         varchar(64)     NOT NULL,
     `name`            varchar(255)    NOT NULL,
     `description`     varchar(255)    NOT NULL DEFAULT '',
     `publish_version` varchar(64)     NOT NULL DEFAULT '',
@@ -121,7 +121,7 @@ CREATE TABLE `fluxion_flow`
     `created_at`      datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`      datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_flow` (`flow_id`)
+    UNIQUE KEY `uk_workflow` (`workflow_id`)
 );
 
 CREATE TABLE `fluxion_trigger`

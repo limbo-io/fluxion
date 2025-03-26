@@ -24,13 +24,10 @@ import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
 import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
-import io.fluxion.server.core.flow.query.FlowByIdQuery;
-import org.jetbrains.annotations.NotNull;
+import io.fluxion.server.core.workflow.query.WorkflowByIdQuery;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.net.URL;
 
 /**
  * @author Devil
@@ -43,8 +40,8 @@ public class ReflectionTest {
         Class<io.fluxion.remote.core.api.Response<WorkerRegisterResponse>> responseType = ReflectionUtils.refType(request);
         System.out.println(responseType);
 
-        FlowByIdQuery query = new FlowByIdQuery("");
-        Class<FlowByIdQuery.Response> queryResponseType = ReflectionUtils.refType(query);
+        WorkflowByIdQuery query = new WorkflowByIdQuery("");
+        Class<WorkflowByIdQuery.Response> queryResponseType = ReflectionUtils.refType(query);
         System.out.println(queryResponseType);
 
         Type superclass = Response.r(WorkerRegisterResponse.class);

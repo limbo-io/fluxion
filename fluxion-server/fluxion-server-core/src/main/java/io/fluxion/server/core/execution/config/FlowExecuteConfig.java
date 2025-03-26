@@ -34,6 +34,6 @@ public class FlowExecuteConfig extends ExecuteConfig {
     /**
      * 流程ID
      */
-    private String flowId;
+    private String workflowId;
 
 }

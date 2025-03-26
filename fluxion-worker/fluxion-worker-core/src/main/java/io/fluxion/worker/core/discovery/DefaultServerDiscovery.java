@@ -114,7 +114,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
                 request.setWorkerId(workerContext.address());
                 request.setSystemInfo(systemInfoDTO());
                 request.setTopologyVersion(topologyVersion);
-                request.setHeartbeatAt(TimeUtils.currentLocalDateTime());
+                request.setHeartbeatAt(System.currentTimeMillis());
                 request.setAvailableQueueNum(workerContext.availableQueueNum());
 
                 WorkerHeartbeatResponse heartbeatResponse = client.call(

@@ -22,8 +22,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 /**
  * @author Devil
  */
@@ -37,6 +35,6 @@ public class TaskReportCmd implements ICmd<Boolean> {
 
     private String workerAddress;
 
-    private LocalDateTime reportAt;
+    private Long reportAt;
 
 }

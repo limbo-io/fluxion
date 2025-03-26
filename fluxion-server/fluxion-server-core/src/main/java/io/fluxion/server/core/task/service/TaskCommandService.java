@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.task.service;
 
-import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskStatus;
@@ -40,7 +39,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -122,14 +120,13 @@ public class TaskCommandService {
 
     @CommandHandler
     public boolean handle(TaskStartCmd cmd) {
-        LocalDateTime now = TimeUtils.currentLocalDateTime();
         int updated = entityManager.createQuery("update TaskEntity " +
                 "set status = :newStatus, startAt = :startAt, lastReportAt = :lastReportAt " +
                 "where taskId = :taskId and status = :oldStatus and workerAddress = :workerAddress"
             )
             .setParameter("newStatus", TaskStatus.RUNNING.value)
-            .setParameter("startAt", now)
-            .setParameter("lastReportAt", now)
+            .setParameter("startAt", cmd.getReportAt())
+            .setParameter("lastReportAt", cmd.getReportAt())
             .setParameter("taskId", cmd.getTaskId())
             .setParameter("oldStatus", TaskStatus.DISPATCHED.value)
             .setParameter("workerAddress", cmd.getWorkerAddress())
@@ -162,8 +159,8 @@ public class TaskCommandService {
                 "set lastReportAt = :lastReportAt, status = :newStatus, endAt = :endAt " +
                 "where taskId = :taskId and status = :oldStatus and workerAddress = :workerAddress "
             )
-            .setParameter("lastReportAt", cmd.getEndAt())
-            .setParameter("endAt", cmd.getEndAt())
+            .setParameter("lastReportAt", cmd.getReportAt())
+            .setParameter("endAt", cmd.getReportAt())
             .setParameter("taskId", cmd.getTaskId())
             .setParameter("oldStatus", TaskStatus.RUNNING.value)
             .setParameter("newStatus", TaskStatus.SUCCEED.value)
@@ -186,8 +183,8 @@ public class TaskCommandService {
                 "set lastReportAt = :lastReportAt, status = :newStatus, endAt = :endAt " +
                 "where taskId = :taskId and status = :oldStatus and workerAddress = :workerAddress "
             )
-            .setParameter("lastReportAt", cmd.getEndAt())
-            .setParameter("endAt", cmd.getEndAt())
+            .setParameter("lastReportAt", cmd.getReportAt())
+            .setParameter("endAt", cmd.getReportAt())
             .setParameter("taskId", cmd.getTaskId())
             .setParameter("oldStatus", TaskStatus.RUNNING.value)
             .setParameter("newStatus", TaskStatus.FAILED.value)

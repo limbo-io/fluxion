@@ -22,12 +22,13 @@ import com.cronutils.model.definition.CronDefinition;
 import com.cronutils.model.definition.CronDefinitionBuilder;
 import com.cronutils.model.time.ExecutionTime;
 import com.cronutils.parser.CronParser;
-import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.fluxion.server.infrastructure.schedule.Calculable;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 
@@ -65,7 +66,7 @@ public class CronScheduleCalculator implements ScheduleCalculator {
             // 解析下次触发时间
             Optional<ZonedDateTime> nextSchedule = executionTime.nextExecution(
                 calculable.lastTriggerAt() == null ? ZonedDateTime.now()
-                    : calculable.lastTriggerAt().atZone(TimeUtils.defaultZoneOffset())
+                    : Instant.ofEpochMilli(calculable.lastTriggerAt()).atZone(ZoneId.systemDefault())
             );
             if (!nextSchedule.isPresent()) {
                 log.error("cron expression {} {} next schedule is null", cron, cronType);

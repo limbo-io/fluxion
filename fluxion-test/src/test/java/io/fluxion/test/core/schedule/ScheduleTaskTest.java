@@ -78,18 +78,18 @@ class ScheduleTaskTest {
                 }
 
                 @Override
-                public LocalDateTime lastTriggerAt() {
-                    return lastTriggerAt.get() != 0 ? LocalDateTime.ofEpochSecond(lastTriggerAt.get() / 1000, 0, TimeUtils.defaultZoneOffset()) : null;
+                public Long lastTriggerAt() {
+                    return lastTriggerAt.get() != 0 ? lastTriggerAt.get() : null;
                 }
 
                 @Override
-                public LocalDateTime lastFeedbackAt() {
+                public Long lastFeedbackAt() {
                     return null;
                 }
             });
             lastTriggerAt.set(time);
             log.info("times:{} time:{}", i, lastTriggerAt.get());
-            log.info("times:{} time format:{}", i, LocalDateTime.ofEpochSecond(lastTriggerAt.get() / 1000, 0, TimeUtils.defaultZoneOffset()).format(Formatters.getFormatter(Formatters.YMD_HMS_SSS)));
+            log.info("times:{} time format:{}", i, LocalDateTime.ofEpochSecond(lastTriggerAt.get(), 0, TimeUtils.defaultZoneOffset()).format(Formatters.getFormatter(Formatters.YMD_HMS_SSS)));
         }
     }
 

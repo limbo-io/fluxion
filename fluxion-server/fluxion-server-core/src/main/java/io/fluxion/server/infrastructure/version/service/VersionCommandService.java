@@ -22,7 +22,6 @@ import io.fluxion.server.infrastructure.dao.repository.VersionEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
 import io.fluxion.server.infrastructure.version.cmd.VersionSaveCmd;
-import io.fluxion.server.infrastructure.version.converter.VersionConverter;
 import io.fluxion.server.infrastructure.version.model.Version;
 import io.fluxion.server.infrastructure.version.model.VersionGenerateType;
 import io.fluxion.server.infrastructure.version.model.VersionRefType;
@@ -52,7 +51,7 @@ public class VersionCommandService {
     private static final Map<VersionRefType, VersionGenerateType> REF_GENERATE_TYPES = new EnumMap<>(VersionRefType.class);
 
     static {
-        REF_GENERATE_TYPES.put(VersionRefType.FLOW, VersionGenerateType.INCR);
+        REF_GENERATE_TYPES.put(VersionRefType.WORKFLOW, VersionGenerateType.INCR);
         REF_GENERATE_TYPES.put(VersionRefType.TRIGGER, VersionGenerateType.INCR);
     }
 

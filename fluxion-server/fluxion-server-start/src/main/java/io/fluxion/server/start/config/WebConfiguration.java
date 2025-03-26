@@ -20,10 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.common.utils.time.Formatters;
 import lombok.extern.slf4j.Slf4j;
-import org.axonframework.config.ConfigurerModule;
-import org.axonframework.lifecycle.Phase;
-import org.axonframework.messaging.Message;
-import org.axonframework.messaging.interceptors.LoggingInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.format.FormatterRegistry;
@@ -43,33 +39,12 @@ public class WebConfiguration implements WebMvcConfigurer {
      */
     @Bean
     public ObjectMapper jacksonObjectMapper() {
-        return JacksonUtils.MAPPER;
+        return JacksonUtils.newObjectMapper(Formatters.YMD_HMS);
     }
 
     @Override
     public void addFormatters(FormatterRegistry registry) {
         registry.addFormatter(new DateFormatter(Formatters.YMD_HMS));
     }
-
-//    @Bean
-//    public LoggingInterceptor<Message<?>> loggingInterceptor() {
-//        return new LoggingInterceptor<>();
-//    }
-//
-//    @Bean
-//    public ConfigurerModule configurerModule(LoggingInterceptor<Message<?>> loggingInterceptor) {
-//        return configurer -> configurer.eventProcessing(processingConfigurer ->
-//                processingConfigurer.usingSubscribingEventProcessors()
-//                    .registerDefaultHandlerInterceptor((config, processorName) -> loggingInterceptor)
-//            )
-//            .onInitialize(config -> config.onStart(Phase.INSTRUCTION_COMPONENTS + 1, () -> {
-//                config.commandBus().registerHandlerInterceptor(loggingInterceptor);
-//                config.commandBus().registerDispatchInterceptor(loggingInterceptor);
-//                config.eventBus().registerDispatchInterceptor(loggingInterceptor);
-//                config.queryBus().registerHandlerInterceptor(loggingInterceptor);
-//                config.queryBus().registerDispatchInterceptor(loggingInterceptor);
-//                config.queryUpdateEmitter().registerDispatchInterceptor(loggingInterceptor);
-//            }));
-//    }
 
 }

@@ -47,7 +47,7 @@ public class Trigger {
             return null;
         } else if (executeConfig instanceof FlowExecuteConfig) {
             FlowExecuteConfig flowExecuteConfig = (FlowExecuteConfig) executeConfig;
-            return flowExecuteConfig.getFlowId();
+            return flowExecuteConfig.getWorkflowId();
         } else if (executeConfig instanceof ExecutorExecuteConfig) {
             return id;
         } else {

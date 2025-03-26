@@ -20,7 +20,7 @@ package io.fluxion.server.infrastructure.dao;
  * @author Devil
  */
 public interface TableConstants {
-    String FLUXION_FLOW = "fluxion_flow";
+    String FLUXION_WORKFLOW = "fluxion_workflow";
     String FLUXION_SCHEDULE = "fluxion_schedule";
     String FLUXION_SCHEDULE_DELAY = "fluxion_schedule_delay";
     String FLUXION_ID = "fluxion_id";
