@@ -3,6 +3,8 @@ package io.fluxion.server.core.execution;
 import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.executor.option.RetryOption;
 
+import java.time.LocalDateTime;
+
 /**
  * @author Devil
  */
@@ -10,7 +12,7 @@ public interface Executable {
 
     void execute(RunContext context);
 
-    boolean success(String refId, String taskId, String executionId, String workerAddress, Long time);
+    boolean success(String refId, String taskId, String executionId, String workerAddress, LocalDateTime time);
 
     RetryOption retryOption(String refId);
 

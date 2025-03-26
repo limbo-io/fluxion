@@ -17,6 +17,7 @@
 package io.fluxion.server.core.schedule.service;
 
 import com.google.common.collect.Lists;
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
 import io.fluxion.server.core.schedule.ScheduleDelay;
@@ -31,6 +32,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -47,7 +49,7 @@ public class ScheduleDelayQueryService {
     public ScheduleDelayNextTriggerQuery.Response handle(ScheduleDelayNextTriggerQuery query) {
         String brokerId = BrokerContext.broker().id();
         List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
-        Long nextTriggerAt = System.currentTimeMillis() + ScheduleDelayConstants.LOAD_INTERVAL_MS;
+        LocalDateTime nextTriggerAt = TimeUtils.currentLocalDateTime().plusSeconds(ScheduleDelayConstants.LOAD_INTERVAL_SECONDS);
         List<ScheduleDelayEntity> entities = entityManager.createQuery("select e from ScheduleDelayEntity e" +
                 " where e.bucket in :buckets and e.id.triggerAt <= :triggerAt " +
                 "and e.status in :status and e.deleted = false order by id.triggerAt", ScheduleDelayEntity.class

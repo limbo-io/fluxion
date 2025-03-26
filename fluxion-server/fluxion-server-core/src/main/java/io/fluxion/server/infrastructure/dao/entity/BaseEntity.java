@@ -23,6 +23,7 @@ import org.hibernate.Hibernate;
 
 import javax.persistence.Column;
 import javax.persistence.MappedSuperclass;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
@@ -37,13 +38,13 @@ public abstract class BaseEntity {
      * 记录创建时间
      */
     @Column(insertable = false, updatable = false)
-    private Long createdAt;
+    private LocalDateTime createdAt;
 
     /**
      * 记录更新时间
      */
     @Column(insertable = false, updatable = false)
-    private Long updatedAt;
+    private LocalDateTime updatedAt;
 
     /**
      * 是否删除

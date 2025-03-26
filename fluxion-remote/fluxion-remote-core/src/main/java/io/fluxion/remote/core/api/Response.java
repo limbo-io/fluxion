@@ -16,8 +16,6 @@
 
 package io.fluxion.remote.core.api;
 
-import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
-
 import java.lang.reflect.Type;
 
 /**

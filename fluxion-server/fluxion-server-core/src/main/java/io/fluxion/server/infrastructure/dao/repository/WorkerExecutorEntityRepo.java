@@ -16,7 +16,6 @@
 
 package io.fluxion.server.infrastructure.dao.repository;
 
-import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.infrastructure.dao.entity.WorkerExecutorEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

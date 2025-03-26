@@ -16,11 +16,13 @@
 
 package io.fluxion.server.infrastructure.schedule.scheduler;
 
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.schedule.Scheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.Timer;
 import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -70,8 +72,11 @@ public abstract class TaskScheduler<T extends AbstractTask> implements Scheduler
     /**
      * 计算调度延时
      */
-    private long calDelay(T task) {
-        long delay = task.triggerAt() - System.currentTimeMillis();
+    private Long calDelay(T task) {
+        if (task.triggerAt() == null) {
+            return null;
+        }
+        long delay = Duration.between(TimeUtils.currentLocalDateTime(), task.triggerAt()).toMillis();
         return delay < 0 ? 0 : delay;
     }
 
@@ -80,6 +85,11 @@ public abstract class TaskScheduler<T extends AbstractTask> implements Scheduler
      */
     protected void doSchedule(T task) {
         TaskScheduler<T> scheduler = this;
+        Long delay = calDelay(task);
+        if (delay == null) {
+            scheduling.remove(task.id());
+            return;
+        }
         timer.schedule(() -> {
             // 已经取消调度了，则不再重新调度作业
             if (task.stopped()) {
@@ -95,7 +105,7 @@ public abstract class TaskScheduler<T extends AbstractTask> implements Scheduler
             } finally {
                 afterExecute(task, thrown);
             }
-        }, calDelay(task), SCHEDULE_UNIT);
+        }, delay, SCHEDULE_UNIT);
     }
 
     @Override

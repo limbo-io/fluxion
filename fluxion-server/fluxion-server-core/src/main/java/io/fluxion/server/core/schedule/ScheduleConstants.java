@@ -29,4 +29,6 @@ public interface ScheduleConstants {
 
     long LOAD_INTERVAL_MS = LOAD_TIME_UNIT.toMillis(LOAD_INTERVAL);
 
+    long LOAD_INTERVAL_SECONDS = LOAD_TIME_UNIT.toSeconds(LOAD_INTERVAL);
+
 }

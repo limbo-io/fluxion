@@ -19,6 +19,7 @@ package io.fluxion.server.infrastructure.schedule.task;
 import io.fluxion.server.infrastructure.schedule.BasicCalculation;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 
+import java.time.LocalDateTime;
 import java.util.function.Consumer;
 
 /**
@@ -26,7 +27,7 @@ import java.util.function.Consumer;
  */
 public class DelayedTaskFactory {
 
-    public static DelayedTask create(String id, Long lastFeedbackAt,
+    public static DelayedTask create(String id, LocalDateTime lastFeedbackAt,
                                      ScheduleOption scheduleOption, Consumer<DelayedTask> consumer) {
         BasicCalculation calculation = new BasicCalculation(
             null, lastFeedbackAt, scheduleOption
@@ -34,7 +35,7 @@ public class DelayedTaskFactory {
         return new DelayedTask(id, calculation.triggerAt(), consumer);
     }
 
-    public static DelayedTask create(String id, Long triggerAt, Consumer<DelayedTask> consumer) {
+    public static DelayedTask create(String id, LocalDateTime triggerAt, Consumer<DelayedTask> consumer) {
         return new DelayedTask(id, triggerAt, consumer);
     }
 

@@ -25,6 +25,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 /**
  * @author Devil
  */
@@ -44,7 +46,7 @@ public class ExecutionCreateCmd implements ICmd<ExecutionCreateCmd.Response> {
 
     private ExecutableType executableType;
 
-    private Long triggerAt;
+    private LocalDateTime triggerAt;
 
     @Getter
     @AllArgsConstructor

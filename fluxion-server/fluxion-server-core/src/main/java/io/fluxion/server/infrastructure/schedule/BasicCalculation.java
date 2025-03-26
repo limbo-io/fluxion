@@ -16,8 +16,9 @@
 
 package io.fluxion.server.infrastructure.schedule;
 
-import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculator;
 import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculatorFactory;
+
+import java.time.LocalDateTime;
 
 /**
  * 计算过程
@@ -30,12 +31,12 @@ public class BasicCalculation implements Calculable {
     /**
      * 上次任务触发时间
      */
-    private final Long lastTriggerAt;
+    private final LocalDateTime lastTriggerAt;
 
     /**
      * 上次调度反馈的时间
      */
-    private final Long lastFeedbackAt;
+    private final LocalDateTime lastFeedbackAt;
 
     /**
      * 调度配置
@@ -43,25 +44,19 @@ public class BasicCalculation implements Calculable {
     private final ScheduleOption scheduleOption;
 
     /**
-     * 计算器
-     */
-    private final ScheduleCalculator calculator;
-
-    /**
      * 计算结果，执行时间
      */
-    private final Long triggerAt;
+    private final LocalDateTime triggerAt;
 
-    public BasicCalculation(Long lastTriggerAt, Long lastFeedbackAt,
+    public BasicCalculation(LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
                             ScheduleOption scheduleOption) {
         this.lastTriggerAt = lastTriggerAt;
         this.lastFeedbackAt = lastFeedbackAt;
         this.scheduleOption = scheduleOption;
-        this.calculator = ScheduleCalculatorFactory.create(scheduleOption.getType());
-        this.triggerAt = calculator.calculate(this);
+        this.triggerAt = ScheduleCalculatorFactory.create(scheduleOption.getType()).calculate(this);
     }
 
-    public Long triggerAt() {
+    public LocalDateTime triggerAt() {
         return triggerAt;
     }
 
@@ -72,12 +67,12 @@ public class BasicCalculation implements Calculable {
     }
 
     @Override
-    public Long lastTriggerAt() {
+    public LocalDateTime lastTriggerAt() {
         return lastTriggerAt;
     }
 
     @Override
-    public Long lastFeedbackAt() {
+    public LocalDateTime lastFeedbackAt() {
         return lastFeedbackAt;
     }
 }

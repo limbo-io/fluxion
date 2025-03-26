@@ -44,6 +44,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
+import java.time.LocalDateTime;
 
 /**
  * @author Devil
@@ -93,7 +94,7 @@ public class ExecutionCommandService {
             .setParameter("newStatus", ExecutionStatus.RUNNING.value)
             .setParameter("executionId", cmd.getExecutionId())
             .setParameter("oldStatus", ExecutionStatus.CREATED.value)
-            .setParameter("startAt", System.currentTimeMillis())
+            .setParameter("startAt", TimeUtils.currentLocalDateTime())
             .executeUpdate();
     }
 
@@ -119,7 +120,7 @@ public class ExecutionCommandService {
         return true;
     }
 
-    private boolean updateToFinish(String executionId, ExecutionStatus status, Long endTime) {
+    private boolean updateToFinish(String executionId, ExecutionStatus status, LocalDateTime endTime) {
         return entityManager.createQuery("update ExecutionEntity " +
                 "set status = :newStatus, endAt = :endAt " +
                 "where executionId = :executionId and status = :oldStatus "

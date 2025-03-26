@@ -27,7 +27,7 @@ import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Optional;
@@ -55,7 +55,7 @@ public class CronScheduleCalculator implements ScheduleCalculator {
      * @return 下次触发调度的时间戳，当返回非正数时，表示作业不会有触发时间。
      */
     @Override
-    public Long calculate(Calculable calculable) {
+    public LocalDateTime calculate(Calculable calculable) {
         ScheduleOption scheduleOption = calculable.scheduleOption();
         // 计算下一次调度
         String cron = scheduleOption.getCron();
@@ -66,16 +66,16 @@ public class CronScheduleCalculator implements ScheduleCalculator {
             // 解析下次触发时间
             Optional<ZonedDateTime> nextSchedule = executionTime.nextExecution(
                 calculable.lastTriggerAt() == null ? ZonedDateTime.now()
-                    : Instant.ofEpochMilli(calculable.lastTriggerAt()).atZone(ZoneId.systemDefault())
+                    : calculable.lastTriggerAt().atZone(ZoneId.systemDefault())
             );
             if (!nextSchedule.isPresent()) {
                 log.error("cron expression {} {} next schedule is null", cron, cronType);
-                return ScheduleCalculator.NOT_TRIGGER;
+                return null;
             }
-            return nextSchedule.get().toInstant().toEpochMilli();
+            return nextSchedule.get().toLocalDateTime();
         } catch (Exception e) {
             log.error("parse cron expression {} {} failed!", cron, cronType, e);
-            return ScheduleCalculator.NOT_TRIGGER;
+            return null;
         }
     }
 

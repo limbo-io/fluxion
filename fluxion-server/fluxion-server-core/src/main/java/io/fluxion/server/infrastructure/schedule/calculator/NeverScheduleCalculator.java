@@ -19,6 +19,8 @@ package io.fluxion.server.infrastructure.schedule.calculator;
 import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 
+import java.time.LocalDateTime;
+
 /**
  * @author Brozen
  * @since 2022-12-22
@@ -31,8 +33,8 @@ public class NeverScheduleCalculator implements ScheduleCalculator {
      * @return
      */
     @Override
-    public Long calculate(Calculable calculable) {
-        return Long.MAX_VALUE;
+    public LocalDateTime calculate(Calculable calculable) {
+        return null;
     }
 
     @Override

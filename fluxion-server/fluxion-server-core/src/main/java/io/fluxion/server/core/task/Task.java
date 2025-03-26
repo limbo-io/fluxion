@@ -25,6 +25,8 @@ import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 /**
  * @author Devil
  */
@@ -37,14 +39,14 @@ public abstract class Task {
 
     /**
      * 关联的 id
-     * flow -> nodeId
+     * workflow -> nodeId
      * executor -> 空
      */
     private String refId;
 
     private TaskStatus status = TaskStatus.CREATED;
 
-    private Long triggerAt;
+    private LocalDateTime triggerAt;
 
     /**
      * 当前是第几次重试

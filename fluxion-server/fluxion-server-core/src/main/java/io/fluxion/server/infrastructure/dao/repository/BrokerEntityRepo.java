@@ -19,6 +19,7 @@ package io.fluxion.server.infrastructure.dao.repository;
 import io.fluxion.server.infrastructure.dao.entity.BrokerEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -27,8 +28,6 @@ import java.util.List;
  */
 public interface BrokerEntityRepo extends JpaRepository<BrokerEntity, BrokerEntity.ID> {
 
-    List<BrokerEntity> findByLastHeartbeatBetween(Long startTime, Long endTime);
-
-    List<BrokerEntity> findByCreatedAtBetween(Long startTime, Long endTime);
+    List<BrokerEntity> findByLastHeartbeatBetween(LocalDateTime startTime, LocalDateTime endTime);
 
 }

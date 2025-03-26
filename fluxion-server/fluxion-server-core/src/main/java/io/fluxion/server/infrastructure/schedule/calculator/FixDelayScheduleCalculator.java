@@ -16,12 +16,14 @@
 
 package io.fluxion.server.infrastructure.schedule.calculator;
 
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 
 /**
  * 固定间隔作业调度时间计算器
@@ -39,32 +41,33 @@ public class FixDelayScheduleCalculator implements ScheduleCalculator {
      * @return 下次触发调度的时间戳，当返回非正数时，表示作业不会有触发时间。
      */
     @Override
-    public Long calculate(Calculable calculable) {
+    public LocalDateTime calculate(Calculable calculable) {
         ScheduleOption scheduleOption = calculable.scheduleOption();
-        Long lastFeedbackAt = calculable.lastFeedbackAt();
+        LocalDateTime lastFeedbackAt = calculable.lastFeedbackAt();
         // 如果为空，表示此次上次任务还没反馈，等待反馈后重新调度
         if (lastFeedbackAt == null) {
             // 如果上次触发为空表示这是第一次
             if (calculable.lastTriggerAt() == null) {
-                long startScheduleAt = calculateStartScheduleTimestamp(calculable.scheduleOption());
-                return Math.max(startScheduleAt, System.currentTimeMillis());
+                LocalDateTime startScheduleAt = calculateStartScheduleTime(calculable.scheduleOption());
+                return laterTime(startScheduleAt, TimeUtils.currentLocalDateTime());
             } else {
-                return ScheduleCalculator.NOT_TRIGGER;
+                return null;
             }
         }
 
         Duration interval = scheduleOption.getInterval();
         if (interval == null) {
-            log.error("cannot calculate next trigger timestamp of {} because interval is not assigned!", calculable);
-            return ScheduleCalculator.NOT_TRIGGER;
+            return TimeUtils.currentLocalDateTime();
         }
 
-        long scheduleAt = lastFeedbackAt + interval.toMillis();
-        return Math.max(scheduleAt, System.currentTimeMillis());
+        LocalDateTime startScheduleAt = lastFeedbackAt.plus(interval);
+        return laterTime(startScheduleAt, TimeUtils.currentLocalDateTime());
     }
 
     @Override
     public ScheduleType scheduleType() {
         return ScheduleType.FIXED_DELAY;
     }
+
+
 }

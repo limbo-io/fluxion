@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.task.runner;
 
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.broker.BrokerContext;
@@ -94,7 +95,7 @@ public class ExecutorTaskRunner extends TaskRunner {
             Cmd.send(new ExecutableFailCmd(
                 task.getTaskId(),
                 workerAddress,
-                System.currentTimeMillis(),
+                TimeUtils.currentLocalDateTime(),
                 "dispatch fail worker:" + workerAddress
             ));
         }

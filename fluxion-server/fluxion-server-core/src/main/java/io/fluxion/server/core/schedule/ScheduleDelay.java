@@ -22,6 +22,8 @@ import io.fluxion.common.constants.CommonConstants;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+
 /**
  * scheduleId + triggerAt 唯一
  *
@@ -53,7 +55,7 @@ public class ScheduleDelay {
         /**
          * 触发时间
          */
-        private Long triggerAt;
+        private LocalDateTime triggerAt;
     }
 
     public enum Status {

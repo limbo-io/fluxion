@@ -18,6 +18,8 @@ package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
 
+import java.time.LocalDateTime;
+
 /**
  * @author Devil
  * @since 2023/8/3
@@ -28,7 +30,7 @@ public class TaskReportRequest implements Request<Boolean> {
 
     private String workerAddress;
 
-    private Long reportAt;
+    private LocalDateTime reportAt;
 
     public String getWorkerAddress() {
         return workerAddress;
@@ -46,11 +48,11 @@ public class TaskReportRequest implements Request<Boolean> {
         this.taskId = taskId;
     }
 
-    public Long getReportAt() {
+    public LocalDateTime getReportAt() {
         return reportAt;
     }
 
-    public void setReportAt(Long reportAt) {
+    public void setReportAt(LocalDateTime reportAt) {
         this.reportAt = reportAt;
     }
 }

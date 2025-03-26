@@ -28,6 +28,7 @@ import org.hibernate.annotations.DynamicUpdate;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.time.LocalDateTime;
 
 /**
  * 一次执行
@@ -78,17 +79,17 @@ public class ExecutionEntity extends BaseEntity {
     /**
      * 期望的调度触发时间
      */
-    private Long triggerAt;
+    private LocalDateTime triggerAt;
 
     /**
      * 执行开始时间
      */
-    private Long startAt;
+    private LocalDateTime startAt;
 
     /**
      * 执行结束时间
      */
-    private Long endAt;
+    private LocalDateTime endAt;
 
     @Override
     public Object getUid() {

@@ -27,6 +27,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.time.LocalDateTime;
 
 /**
  * @author Devil
@@ -60,7 +61,7 @@ public class LockEntity extends BaseEntity {
     /**
      * 超时时间
      */
-    private Long expireAt;
+    private LocalDateTime expireAt;
 
 
     @Override

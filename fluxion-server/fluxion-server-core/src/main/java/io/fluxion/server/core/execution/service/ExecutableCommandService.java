@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.execution.service;
 
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
@@ -36,6 +37,7 @@ import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.time.LocalDateTime;
 
 /**
  * @author Devil
@@ -66,7 +68,7 @@ public class ExecutableCommandService {
         }
         Execution execution = Query.query(new ExecutionByIdQuery(task.getExecutionId())).getExecution();
         Executable executable = execution.getExecutable();
-        Long time = cmd.getReportAt();
+        LocalDateTime time = cmd.getReportAt();
         RetryOption retryOption = executable.retryOption(task.getRefId());
         if (retryOption.canRetry(task.getRetryTimes())) {
             return Cmd.send(new TaskRetryCmd());

@@ -71,23 +71,23 @@ class ScheduleTaskTest {
         log.info("times:0 time:{}", System.currentTimeMillis());
         ScheduleCalculator calculator = ScheduleCalculatorFactory.create(ScheduleType.CRON);
         for (int i = 1; i <= 5; i++) {
-            Long time = calculator.calculate(new Calculable() {
+            LocalDateTime time = calculator.calculate(new Calculable() {
                 @Override
                 public ScheduleOption scheduleOption() {
                     return scheduleOption;
                 }
 
                 @Override
-                public Long lastTriggerAt() {
-                    return lastTriggerAt.get() != 0 ? lastTriggerAt.get() : null;
+                public LocalDateTime lastTriggerAt() {
+                    return lastTriggerAt.get() != 0 ? LocalDateTime.ofEpochSecond(lastTriggerAt.get() / 1000, 0, TimeUtils.defaultZoneOffset()) : null;
                 }
 
                 @Override
-                public Long lastFeedbackAt() {
+                public LocalDateTime lastFeedbackAt() {
                     return null;
                 }
             });
-            lastTriggerAt.set(time);
+            lastTriggerAt.set(TimeUtils.toTimestamp(time));
             log.info("times:{} time:{}", i, lastTriggerAt.get());
             log.info("times:{} time format:{}", i, LocalDateTime.ofEpochSecond(lastTriggerAt.get(), 0, TimeUtils.defaultZoneOffset()).format(Formatters.getFormatter(Formatters.YMD_HMS_SSS)));
         }

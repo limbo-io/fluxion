@@ -18,10 +18,12 @@ package io.fluxion.server.infrastructure.schedule;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.fluxion.common.utils.time.TimeUtils;
 import lombok.Getter;
 
 import javax.validation.constraints.NotNull;
 import java.time.Duration;
+import java.time.LocalDateTime;
 
 import static io.fluxion.common.utils.time.TimeUtils.TIME_FOREVER;
 
@@ -44,12 +46,12 @@ public class ScheduleOption {
      * 调度开始时间，从此时间开始执行调度。
      */
     @NotNull
-    private final Long startTime;
+    private final LocalDateTime startTime;
 
     /**
      * 调度结束时间，从此时间结束执行调度。
      */
-    private final Long endTime;
+    private final LocalDateTime endTime;
 
     /**
      * 延迟时间 -- 当前时间多久后调度
@@ -77,16 +79,15 @@ public class ScheduleOption {
 
     @JsonCreator
     public ScheduleOption(@JsonProperty("type") ScheduleType type,
-                          @JsonProperty("startTime") Long startTime,
-                          @JsonProperty("endTime") Long endTime,
+                          @JsonProperty("startTime") LocalDateTime startTime,
+                          @JsonProperty("endTime") LocalDateTime endTime,
                           @JsonProperty("scheduleDelay") Duration delay,
                           @JsonProperty("scheduleInterval") Duration interval,
                           @JsonProperty("cron") String cron,
                           @JsonProperty("cronType") String cronType) {
         this.type = type;
-        this.startTime = startTime == null ? System.currentTimeMillis() : startTime;
-        this.endTime = endTime == null ? null : endTime; // todo !
-//        this.endTime = endTime == null ? TIME_FOREVER : endTime; // todo !
+        this.startTime = startTime == null ? TimeUtils.currentLocalDateTime() : startTime;
+        this.endTime = endTime == null ? TIME_FOREVER : endTime;
         this.delay = delay == null ? Duration.ZERO : delay;
         this.interval = interval == null ? Duration.ZERO : interval;
         this.cron = cron;

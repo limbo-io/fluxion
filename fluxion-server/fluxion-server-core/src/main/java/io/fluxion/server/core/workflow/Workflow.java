@@ -16,15 +16,12 @@
 
 package io.fluxion.server.core.workflow;
 
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.executor.option.RetryOption;
-import io.fluxion.server.core.workflow.node.EndNode;
-import io.fluxion.server.core.workflow.node.ExecutorNode;
-import io.fluxion.server.core.workflow.node.WorkflowNode;
-import io.fluxion.server.core.workflow.node.StartNode;
 import io.fluxion.server.core.task.ExecutorTask;
 import io.fluxion.server.core.task.InputOutputTask;
 import io.fluxion.server.core.task.Task;
@@ -32,12 +29,17 @@ import io.fluxion.server.core.task.TaskStatus;
 import io.fluxion.server.core.task.cmd.TaskSuccessCmd;
 import io.fluxion.server.core.task.cmd.TasksCreateCmd;
 import io.fluxion.server.core.task.query.TaskCountByStatusQuery;
+import io.fluxion.server.core.workflow.node.EndNode;
+import io.fluxion.server.core.workflow.node.ExecutorNode;
+import io.fluxion.server.core.workflow.node.StartNode;
+import io.fluxion.server.core.workflow.node.WorkflowNode;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dag.DAG;
 import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -82,7 +84,7 @@ public class Workflow implements Executable {
      * 某个 node 成功后执行的逻辑
      */
     @Override
-    public boolean success(String nodeId, String taskId, String executionId, String workerAddress, Long time) {
+    public boolean success(String nodeId, String taskId, String executionId, String workerAddress, LocalDateTime time) {
         Boolean success = Cmd.send(new TaskSuccessCmd(taskId, workerAddress, time));
         if (!success) {
             return false;
@@ -114,7 +116,7 @@ public class Workflow implements Executable {
     }
 
     private void createAndScheduleTasks(String executionId, List<WorkflowNode> nodes) {
-        long now = System.currentTimeMillis();
+        LocalDateTime now = TimeUtils.currentLocalDateTime();
         List<Task> tasks = nodes.stream()
             .map(n -> nodeTask(n, executionId, now))
             .collect(Collectors.toList());
@@ -140,7 +142,7 @@ public class Workflow implements Executable {
         return count >= preNodes.size();
     }
 
-    private Task nodeTask(WorkflowNode node, String executionId, Long triggerAt) {
+    private Task nodeTask(WorkflowNode node, String executionId, LocalDateTime triggerAt) {
         Task task = null;
         if (node instanceof StartNode) {
             task = new InputOutputTask();

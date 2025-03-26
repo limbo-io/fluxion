@@ -21,6 +21,7 @@ import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 
 /**
  * 调度时间计算策略，用于计算下次触发调度时间戳
@@ -31,17 +32,13 @@ import java.time.Duration;
 public interface ScheduleCalculator {
 
     /**
-     * 没有下次触发时间时，返回负数
-     */
-    long NOT_TRIGGER = -1;
-
-
-    /**
      * 通过此策略计算下一次触发调度的时间戳。如果不应该被触发，返回负数。
+     *
      * @param calculable 可计算的对象
      * @return 下次触发调度的时间戳，当返回负数时，表示作业不会有触发时间。
      */
-    Long calculate(Calculable calculable);
+    LocalDateTime calculate(Calculable calculable);
+
     /**
      * 此策略适用的调度类型
      */
@@ -49,13 +46,26 @@ public interface ScheduleCalculator {
 
     /**
      * 计算作业的开始调度时间，从作业创建时间开始，加上delay。
+     *
      * @param scheduleOption 作业调度配置
      * @return 作业开始进行调度计算的时间
      */
-    default long calculateStartScheduleTimestamp(ScheduleOption scheduleOption) {
+    default LocalDateTime calculateStartScheduleTime(ScheduleOption scheduleOption) {
+        LocalDateTime startTime = scheduleOption.getStartTime();
         Duration delay = scheduleOption.getDelay();
-        long startTime = scheduleOption.getStartTime();
-        return delay != null ? startTime + delay.toMillis() : startTime;
+        return delay != null ? startTime.plusSeconds(delay.getSeconds()) : startTime;
+    }
+
+    default LocalDateTime laterTime(LocalDateTime a, LocalDateTime b) {
+        if (a == null) {
+            return b;
+        } else if (b == null) {
+            return a;
+        } else if (a.isBefore(b)) {
+            return b;
+        } else {
+            return a;
+        }
     }
 
 }
