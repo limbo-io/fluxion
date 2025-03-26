@@ -25,7 +25,6 @@ import io.fluxion.server.core.executor.option.DispatchOption;
 import io.fluxion.server.core.task.ExecutorTask;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskType;
-import io.fluxion.server.core.task.cmd.TaskDispatchedCmd;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.dispatch.WorkerFilter;
 import io.fluxion.server.core.worker.query.WorkerByAppQuery;
@@ -86,12 +85,7 @@ public class ExecutorTaskRunner extends TaskRunner {
         }
 
         String workerAddress = worker == null ? null : worker.getAddress();
-        if (dispatched) {
-            Cmd.send(new TaskDispatchedCmd(
-                task.getTaskId(),
-                workerAddress
-            ));
-        } else {
+        if (!dispatched) {
             Cmd.send(new ExecutableFailCmd(
                 task.getTaskId(),
                 workerAddress,
@@ -99,7 +93,6 @@ public class ExecutorTaskRunner extends TaskRunner {
                 "dispatch fail worker:" + workerAddress
             ));
         }
-
     }
 
 

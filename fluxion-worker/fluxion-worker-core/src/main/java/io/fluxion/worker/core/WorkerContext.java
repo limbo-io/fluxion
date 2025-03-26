@@ -17,6 +17,7 @@
 package io.fluxion.worker.core;
 
 import io.fluxion.common.thread.NamedThreadFactory;
+import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.client.LBClient;
 import io.fluxion.remote.core.constants.Protocol;
@@ -220,7 +221,11 @@ public class WorkerContext {
     }
 
     public <R> R call(String path, Request<R> request) {
-        return client.call(path, request).getData();
+        R data = client.call(path, request).getData();
+        if (log.isDebugEnabled()) {
+            log.debug("Remote Call request:{} result:{}", JacksonUtils.toJSONString(request), data);
+        }
+        return data;
     }
 
     public String host() {

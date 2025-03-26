@@ -44,7 +44,7 @@ public class JacksonUtils {
     public static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<Map<String, Object>>() {
     };
 
-    public static final ObjectMapper MAPPER = newObjectMapper(Formatters.YMD_HMS_SSS);
+    public static final ObjectMapper MAPPER = defaultObjectMapper();
 
     public static final String DEFAULT_NONE_OBJECT = "{}";
 
@@ -53,14 +53,15 @@ public class JacksonUtils {
     /**
      * 生成新的{@link ObjectMapper}
      */
-    public static ObjectMapper newObjectMapper(String dateTimePattern) {
+    public static ObjectMapper defaultObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
 
         // 注册JDK8的日期API处理模块
         JavaTimeModule javaTimeModule = new JavaTimeModule();
         // 注册LocalDateTime的类型处理
-        javaTimeModule.addSerializer(new LocalDateTimeSerializer(dateTimePattern));
-        javaTimeModule.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer(Lists.newArrayList(dateTimePattern, Formatters.YMD_HMS)));
+        String dateTimePattern = Formatters.YMD_HMS_SSS;
+        javaTimeModule.addSerializer(new LocalDateTimePatternSerializer(dateTimePattern));
+        javaTimeModule.addDeserializer(LocalDateTime.class, new LocalDateTimePatternDeserializer(Lists.newArrayList(dateTimePattern, Formatters.YMD_HMS)));
 //        javaTimeModule.addSerializer(LocalDateTime.class, new com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer(DateTimeFormatter.ofPattern(Formatters.YMD_HMS)));
 //        javaTimeModule.addDeserializer(LocalDateTime.class, new com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer(DateTimeFormatter.ofPattern(Formatters.YMD_HMS)));
 //        javaTimeModule.addSerializer(LocalDate.class, new LocalDateSerializer(DateTimeFormatter.ofPattern(Formatters.YMD_HMS)));

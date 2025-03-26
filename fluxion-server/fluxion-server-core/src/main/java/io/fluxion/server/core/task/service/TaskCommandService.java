@@ -105,6 +105,9 @@ public class TaskCommandService {
     @CommandHandler
     public boolean handle(TaskDispatchedCmd cmd) {
         TaskEntity entity = taskEntityRepo.findById(cmd.getTaskId()).orElse(null);
+        if (entity == null) {
+            return false;
+        }
         int updated = entityManager.createQuery("update TaskEntity " +
                 "set status = :newStatus, workerAddress = :workerAddress " +
                 "where taskId = :taskId and status = :oldStatus"
@@ -131,6 +134,8 @@ public class TaskCommandService {
             .setParameter("oldStatus", TaskStatus.DISPATCHED.value)
             .setParameter("workerAddress", cmd.getWorkerAddress())
             .executeUpdate();
+        TaskEntity entity = taskEntityRepo.findById(cmd.getTaskId()).orElse(null);
+        Cmd.send(new ExecutionRunningCmd(entity.getExecutionId()));
         return updated > 0;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,34 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.task.cmd;
+package io.fluxion.remote.core.api.request.broker;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-import java.time.LocalDateTime;
+import io.fluxion.remote.core.api.Request;
 
 /**
  * @author Devil
+ * @since 2023/8/3
  */
-@Getter
-@AllArgsConstructor
-public class TaskStartCmd implements ICmd<Boolean> {
+public class TaskDispatchedRequest implements Request<Boolean> {
 
     private String taskId;
 
     private String workerAddress;
 
-    private LocalDateTime reportAt;
+    public String getTaskId() {
+        return taskId;
+    }
+
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
+    }
+
+    public String getWorkerAddress() {
+        return workerAddress;
+    }
+
+    public void setWorkerAddress(String workerAddress) {
+        this.workerAddress = workerAddress;
+    }
+
 }

@@ -18,6 +18,7 @@ package io.fluxion.worker.core.task.tracker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.remote.core.api.request.broker.TaskDispatchedRequest;
 import io.fluxion.remote.core.api.request.broker.TaskFailRequest;
 import io.fluxion.remote.core.api.request.broker.TaskStartRequest;
 import io.fluxion.remote.core.api.request.broker.TaskSuccessRequest;
@@ -30,6 +31,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_TASK_DISPATCHED;
 import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_TASK_FAIL;
 import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_TASK_START;
 import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_TASK_SUCCESS;
@@ -74,10 +76,14 @@ public abstract class TaskTracker {
 
         if (!workerContext.saveTask(this)) {
             log.info("Receive task [{}], but already in repository", task.getTaskId());
-            return false;
+            return true;
         }
 
         try {
+            if (!reportDispatched(task)) {
+                destroy();
+                return true;
+            }
             run();
             return true;
         } catch (RejectedExecutionException e) {
@@ -106,6 +112,18 @@ public abstract class TaskTracker {
         }
         workerContext.removeTask(task.getTaskId());
         log.info("TaskTracker taskId: {} destroyed success", task.getTaskId());
+    }
+
+    protected boolean reportDispatched(Task task) {
+        try {
+            TaskDispatchedRequest request = new TaskDispatchedRequest();
+            request.setTaskId(task.getTaskId());
+            request.setWorkerAddress(workerContext.address());
+            return workerContext.call(API_TASK_DISPATCHED, request);
+        } catch (Exception e) {
+            log.error("reportDispatched fail task={}", task.getTaskId(), e);
+            return false;
+        }
     }
 
     protected boolean reportStart(Task task) {

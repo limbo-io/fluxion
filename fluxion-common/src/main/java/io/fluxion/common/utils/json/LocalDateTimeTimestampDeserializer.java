@@ -17,43 +17,22 @@
 package io.fluxion.common.utils.json;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import io.fluxion.common.utils.time.LocalDateTimeUtils;
+import io.fluxion.common.utils.time.TimeUtils;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
-import java.util.List;
 
 /**
  * @author Brozen
  */
-public class LocalDateTimeDeserializer extends JsonDeserializer<LocalDateTime> {
-
-    /**
-     * 反序列化时，从JSON字符串中读取到的日期格式
-     */
-    private final List<String> patterns;
-
-    public LocalDateTimeDeserializer(List<String> patterns) {
-        this.patterns = patterns;
-    }
-
+public class LocalDateTimeTimestampDeserializer extends JsonDeserializer<LocalDateTime> {
 
     @Override
     public LocalDateTime deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
-            throws IOException, JsonProcessingException {
-        Exception ex = null;
-        for (String pattern : patterns) {
-            try {
-                return LocalDateTimeUtils.parse(jsonParser.getValueAsString(), pattern);
-            } catch (DateTimeParseException e) {
-                ex = e;
-            }
-        }
-        throw new RuntimeException(ex.getMessage());
+        throws IOException {
+        return TimeUtils.toLocalDateTime(jsonParser.getValueAsLong());
     }
 
 }

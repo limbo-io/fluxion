@@ -19,6 +19,7 @@ package io.fluxion.server.core.broker;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
+import io.fluxion.remote.core.api.request.broker.TaskDispatchedRequest;
 import io.fluxion.remote.core.api.request.broker.TaskFailRequest;
 import io.fluxion.remote.core.api.request.broker.TaskReportRequest;
 import io.fluxion.remote.core.api.request.broker.TaskStartRequest;
@@ -34,6 +35,7 @@ import io.fluxion.server.core.broker.converter.BrokerClientConverter;
 import io.fluxion.server.core.broker.query.BrokersQuery;
 import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
+import io.fluxion.server.core.task.cmd.TaskDispatchedCmd;
 import io.fluxion.server.core.task.cmd.TaskReportCmd;
 import io.fluxion.server.core.task.cmd.TaskStartCmd;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
@@ -61,9 +63,18 @@ public class BrokerClientHandler implements ClientHandler {
                 case BrokerRemoteConstant.API_BROKER_PING: {
                     return Response.ok(true);
                 }
+                case BrokerRemoteConstant.API_TASK_DISPATCHED: {
+                    TaskDispatchedRequest request = JacksonUtils.toType(data, TaskDispatchedRequest.class);
+                    Boolean success = Cmd.send(new TaskDispatchedCmd(
+                        request.getTaskId(), request.getWorkerAddress()
+                    ));
+                    return Response.ok(success);
+                }
                 case BrokerRemoteConstant.API_TASK_START: {
                     TaskStartRequest request = JacksonUtils.toType(data, TaskStartRequest.class);
-                    Boolean success = Cmd.send(new TaskStartCmd(request.getTaskId(), request.getWorkerAddress(), request.getReportAt()));
+                    Boolean success = Cmd.send(new TaskStartCmd(
+                        request.getTaskId(), request.getWorkerAddress(), request.getReportAt()
+                    ));
                     return Response.ok(success);
                 }
                 case BrokerRemoteConstant.API_TASK_REPORT: {

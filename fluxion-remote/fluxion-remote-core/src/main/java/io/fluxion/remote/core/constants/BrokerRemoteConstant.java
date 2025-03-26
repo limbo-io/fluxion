@@ -28,6 +28,8 @@ public interface BrokerRemoteConstant {
 
     String API_BROKER_PING = "/api/v1/broker/ping";
 
+    String API_TASK_DISPATCHED = "/api/v1/task/dispatched";
+
     String API_TASK_START = "/api/v1/task/start";
 
     String API_TASK_REPORT = "/api/v1/task/report";

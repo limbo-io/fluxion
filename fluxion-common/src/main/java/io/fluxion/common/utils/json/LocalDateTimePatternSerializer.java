@@ -27,14 +27,14 @@ import java.time.LocalDateTime;
 /**
  * @author Brozen
  */
-public class LocalDateTimeSerializer extends JsonSerializer<LocalDateTime> {
+public class LocalDateTimePatternSerializer extends JsonSerializer<LocalDateTime> {
 
     /**
      * 序列化时，写出到JSON字符串中的日期的格式
      */
     private final String pattern;
 
-    public LocalDateTimeSerializer(String pattern) {
+    public LocalDateTimePatternSerializer(String pattern) {
         this.pattern = pattern;
     }
 
