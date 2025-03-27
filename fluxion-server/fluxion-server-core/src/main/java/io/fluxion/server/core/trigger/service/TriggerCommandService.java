@@ -193,7 +193,7 @@ public class TriggerCommandService {
         if (trigger == null) {
             throw new PlatformException(ErrorCode.PARAM_ERROR, "can't find trigger by id:" + triggerId);
         }
-        if (checkPublished && StringUtils.isBlank(trigger.getVersion())) {
+        if (checkPublished && !trigger.isPublished()) {
             throw new PlatformException(ErrorCode.PARAM_ERROR, "trigger id:" + triggerId + " not published");
         }
         return trigger;

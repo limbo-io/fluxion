@@ -16,15 +16,16 @@
 
 package io.fluxion.server.core.task.service;
 
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.task.TaskStatus;
-import io.fluxion.server.core.task.cmd.TaskDispatchedCmd;
 import io.fluxion.server.core.task.cmd.TaskFailCmd;
 import io.fluxion.server.core.task.cmd.TaskReportCmd;
+import io.fluxion.server.core.task.cmd.TaskSuccessCmd;
+import io.fluxion.server.core.task.cmd.TaskDispatchedCmd;
 import io.fluxion.server.core.task.cmd.TaskRunCmd;
 import io.fluxion.server.core.task.cmd.TaskStartCmd;
-import io.fluxion.server.core.task.cmd.TaskSuccessCmd;
 import io.fluxion.server.core.task.cmd.TasksCreateCmd;
 import io.fluxion.server.core.task.runner.TaskRunner;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
@@ -34,14 +35,15 @@ import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -65,7 +67,7 @@ public class TaskCommandService {
         List<Task> tasks = new ArrayList<>();
         for (Task task : cmd.getTasks()) {
             // 判断是否已经创建
-            TaskEntity entity = taskEntityRepo.findByExecutionIdAndRefIdAndTaskType(task.getRefId(), task.getRefId(), task.type().value);
+            TaskEntity entity = taskEntityRepo.findByExecutionIdAndRefIdAndTaskType(task.getExecutionId(), task.getRefId(), task.type().value);
             if (entity == null) {
                 tasks.add(task);
             }
@@ -109,10 +111,11 @@ public class TaskCommandService {
             return false;
         }
         int updated = entityManager.createQuery("update TaskEntity " +
-                "set status = :newStatus, workerAddress = :workerAddress " +
+                "set status = :newStatus, workerAddress = :workerAddress, lastReportAt = :lastReportAt " +
                 "where taskId = :taskId and status = :oldStatus"
             )
             .setParameter("newStatus", TaskStatus.DISPATCHED.value)
+            .setParameter("lastReportAt", TimeUtils.currentLocalDateTime())
             .setParameter("taskId", cmd.getTaskId())
             .setParameter("oldStatus", TaskStatus.CREATED.value)
             .setParameter("workerAddress", cmd.getWorkerAddress())
@@ -123,17 +126,27 @@ public class TaskCommandService {
 
     @CommandHandler
     public boolean handle(TaskStartCmd cmd) {
-        int updated = entityManager.createQuery("update TaskEntity " +
-                "set status = :newStatus, startAt = :startAt, lastReportAt = :lastReportAt " +
-                "where taskId = :taskId and status = :oldStatus and workerAddress = :workerAddress"
-            )
-            .setParameter("newStatus", TaskStatus.RUNNING.value)
+        StringBuilder sqlSb = new StringBuilder("update TaskEntity ");
+        sqlSb.append("set status = :newStatus, startAt = :startAt, lastReportAt = :lastReportAt ");
+        sqlSb.append("where taskId = :taskId and status = :oldStatus ");
+        if (StringUtils.isNotBlank(cmd.getWorkerAddress())) {
+            sqlSb.append("and workerAddress = :workerAddress ");
+        }
+
+        Query query = entityManager.createQuery(sqlSb.toString())
             .setParameter("startAt", cmd.getReportAt())
             .setParameter("lastReportAt", cmd.getReportAt())
-            .setParameter("taskId", cmd.getTaskId())
-            .setParameter("oldStatus", TaskStatus.DISPATCHED.value)
-            .setParameter("workerAddress", cmd.getWorkerAddress())
-            .executeUpdate();
+            .setParameter("taskId", cmd.getTaskId());
+        if (StringUtils.isBlank(cmd.getWorkerAddress())) {
+            query.setParameter("newStatus", TaskStatus.RUNNING.value)
+                .setParameter("oldStatus", TaskStatus.CREATED.value);
+        } else {
+            query.setParameter("newStatus", TaskStatus.RUNNING.value)
+                .setParameter("oldStatus", TaskStatus.DISPATCHED.value)
+                .setParameter("workerAddress", cmd.getWorkerAddress());
+        }
+
+        int updated = query.executeUpdate();
         TaskEntity entity = taskEntityRepo.findById(cmd.getTaskId()).orElse(null);
         Cmd.send(new ExecutionRunningCmd(entity.getExecutionId()));
         return updated > 0;
@@ -157,19 +170,18 @@ public class TaskCommandService {
     @CommandHandler
     public boolean handle(TaskSuccessCmd cmd) {
         TaskEntity entity = taskEntityRepo.findById(cmd.getTaskId()).orElse(null);
-        if (!taskFinishCheck(cmd.getTaskId(), cmd.getWorkerAddress(), entity)) {
+        if (!taskFinishCheck(cmd.getTaskId(), entity)) {
             return false;
         }
         int updated = entityManager.createQuery("update TaskEntity " +
                 "set lastReportAt = :lastReportAt, status = :newStatus, endAt = :endAt " +
-                "where taskId = :taskId and status = :oldStatus and workerAddress = :workerAddress "
+                "where taskId = :taskId and status = :oldStatus "
             )
             .setParameter("lastReportAt", cmd.getReportAt())
             .setParameter("endAt", cmd.getReportAt())
             .setParameter("taskId", cmd.getTaskId())
             .setParameter("oldStatus", TaskStatus.RUNNING.value)
             .setParameter("newStatus", TaskStatus.SUCCEED.value)
-            .setParameter("workerAddress", cmd.getWorkerAddress())
             .executeUpdate();
         if (updated <= 0) {
             log.warn("TaskSuccessCmd update fail taskId:{}", cmd.getTaskId());
@@ -181,19 +193,18 @@ public class TaskCommandService {
     @CommandHandler
     public boolean handle(TaskFailCmd cmd) {
         TaskEntity entity = taskEntityRepo.findById(cmd.getTaskId()).orElse(null);
-        if (!taskFinishCheck(cmd.getTaskId(), cmd.getWorkerAddress(), entity)) {
+        if (!taskFinishCheck(cmd.getTaskId(), entity)) {
             return false;
         }
         int updated = entityManager.createQuery("update TaskEntity " +
                 "set lastReportAt = :lastReportAt, status = :newStatus, endAt = :endAt " +
-                "where taskId = :taskId and status = :oldStatus and workerAddress = :workerAddress "
+                "where taskId = :taskId and status = :oldStatus "
             )
             .setParameter("lastReportAt", cmd.getReportAt())
             .setParameter("endAt", cmd.getReportAt())
             .setParameter("taskId", cmd.getTaskId())
             .setParameter("oldStatus", TaskStatus.RUNNING.value)
             .setParameter("newStatus", TaskStatus.FAILED.value)
-            .setParameter("workerAddress", cmd.getWorkerAddress())
             .executeUpdate();
         if (updated <= 0) {
             log.warn("TaskFailCmd update fail taskId:{}", cmd.getTaskId());
@@ -202,15 +213,9 @@ public class TaskCommandService {
         return true;
     }
 
-    private boolean taskFinishCheck(String taskId, String workerAddress, TaskEntity entity) {
+    private boolean taskFinishCheck(String taskId, TaskEntity entity) {
         if (entity == null) {
             log.warn("TaskFinishCheck not found task id:{}", taskId);
-            return false;
-        }
-        if (!Objects.equals(entity.getWorkerAddress(), workerAddress)) {
-            log.warn("TaskFinishCheck workerAddress not match taskId:{} workerAddress:{} requestAddress:{}",
-                taskId, entity.getWorkerAddress(), workerAddress
-            );
             return false;
         }
         if (TaskStatus.parse(entity.getStatus()) != TaskStatus.RUNNING) {

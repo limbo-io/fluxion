@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.execution.service;
 
-import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
@@ -32,12 +31,14 @@ import io.fluxion.server.infrastructure.dao.entity.TaskEntity;
 import io.fluxion.server.infrastructure.dao.repository.TaskEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
+import io.fluxion.server.infrastructure.lock.DistributedLock;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 /**
  * @author Devil
@@ -49,6 +50,11 @@ public class ExecutableCommandService {
     @Resource
     private TaskEntityRepo taskEntityRepo;
 
+    @Resource
+    private DistributedLock distributedLock;
+
+    private static final String LOCK_SUFFIX = "_Execution_LOCK";
+
     @CommandHandler
     public boolean handle(ExecutableSuccessCmd cmd) {
         TaskEntity task = taskEntityRepo.findById(cmd.getTaskId()).orElse(null);
@@ -57,7 +63,17 @@ public class ExecutableCommandService {
         }
         Execution execution = Query.query(new ExecutionByIdQuery(task.getExecutionId())).getExecution();
         Executable executable = execution.getExecutable();
-        return executable.success(task.getRefId(), task.getTaskId(), task.getExecutionId(), cmd.getWorkerAddress(), cmd.getReportAt());
+        boolean locked = false;
+        String lockName = execution.getId() + LOCK_SUFFIX;
+        try {
+            distributedLock.lock(lockName, 2000, 3000);
+            locked = true;
+            return executable.success(task.getRefId(), task.getTaskId(), task.getExecutionId(), cmd.getReportAt());
+        } finally {
+            if (locked) {
+                distributedLock.unlock(lockName);
+            }
+        }
     }
 
     @CommandHandler
@@ -69,17 +85,27 @@ public class ExecutableCommandService {
         Execution execution = Query.query(new ExecutionByIdQuery(task.getExecutionId())).getExecution();
         Executable executable = execution.getExecutable();
         LocalDateTime time = cmd.getReportAt();
-        RetryOption retryOption = executable.retryOption(task.getRefId());
-        if (retryOption.canRetry(task.getRetryTimes())) {
-            return Cmd.send(new TaskRetryCmd());
-        } else if (executable.skipWhenFail(task.getRefId())) {
-            return executable.success(task.getRefId(), task.getTaskId(), task.getExecutionId(), cmd.getWorkerAddress(), time);
-        } else {
-            boolean failed = Cmd.send(new TaskFailCmd(task.getTaskId(), cmd.getWorkerAddress(), time, cmd.getErrorMsg()));
-            if (!failed) {
-                return false;
+        RetryOption retryOption = Optional.ofNullable(executable.retryOption(task.getRefId())).orElse(new RetryOption());
+        boolean locked = false;
+        String lockName = execution.getId() + LOCK_SUFFIX;
+        try {
+            distributedLock.lock(lockName, 2000, 3000);
+            locked = true;
+            if (retryOption.canRetry(task.getRetryTimes())) {
+                return Cmd.send(new TaskRetryCmd());
+            } else if (executable.skipWhenFail(task.getRefId())) {
+                return executable.success(task.getRefId(), task.getTaskId(), task.getExecutionId(), time);
+            } else {
+                boolean failed = Cmd.send(new TaskFailCmd(task.getTaskId(), time, cmd.getErrorMsg()));
+                if (!failed) {
+                    return false;
+                }
+                return Cmd.send(new ExecutionFailCmd(task.getExecutionId(), time));
             }
-            return Cmd.send(new ExecutionFailCmd(task.getExecutionId(), time));
+        } finally {
+            if (locked) {
+                distributedLock.unlock(lockName);
+            }
         }
     }
 

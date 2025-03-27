@@ -20,7 +20,6 @@ import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -28,7 +27,6 @@ import java.time.LocalDateTime;
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class TaskReportCmd implements ICmd<Boolean> {

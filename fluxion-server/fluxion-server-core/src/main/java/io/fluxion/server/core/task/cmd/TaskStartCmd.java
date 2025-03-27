@@ -17,8 +17,11 @@
 package io.fluxion.server.core.task.cmd;
 
 import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.fluxion.server.infrastructure.exception.ErrorCode;
+import io.fluxion.server.infrastructure.exception.PlatformException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDateTime;
 
@@ -26,12 +29,25 @@ import java.time.LocalDateTime;
  * @author Devil
  */
 @Getter
-@AllArgsConstructor
 public class TaskStartCmd implements ICmd<Boolean> {
 
-    private String taskId;
+    private final String taskId;
+
+    private final LocalDateTime reportAt;
 
     private String workerAddress;
 
-    private LocalDateTime reportAt;
+    public TaskStartCmd(String taskId, LocalDateTime reportAt) {
+        this.taskId = taskId;
+        this.reportAt = reportAt;
+    }
+
+    public TaskStartCmd(String taskId, LocalDateTime reportAt, String workerAddress) {
+        if (StringUtils.isBlank(workerAddress)) {
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "[TaskStartCmd] taskId:" + taskId +" workerAddress is blank");
+        }
+        this.taskId = taskId;
+        this.reportAt = reportAt;
+        this.workerAddress = workerAddress;
+    }
 }

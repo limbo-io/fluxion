@@ -19,10 +19,13 @@ package io.fluxion.server.infrastructure.version.service;
 import io.fluxion.server.infrastructure.dao.entity.VersionEntity;
 import io.fluxion.server.infrastructure.dao.repository.VersionEntityRepo;
 import io.fluxion.server.infrastructure.version.converter.VersionConverter;
+import io.fluxion.server.infrastructure.version.model.Version;
+import io.fluxion.server.infrastructure.version.model.VersionRefType;
 import io.fluxion.server.infrastructure.version.query.VersionByIdQuery;
 import io.fluxion.server.infrastructure.version.query.VersionByIdsQuery;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.stereotype.Component;
 
@@ -42,7 +45,12 @@ public class VersionQueryService {
 
     @QueryHandler
     public VersionByIdQuery.Response handle(VersionByIdQuery query) {
-        VersionEntity entity = versionEntityRepo.findById(VersionConverter.convert(query.getId())).orElse(null);
+        Version.ID versionId = query.getId();
+        if (StringUtils.isBlank(versionId.getRefId()) || StringUtils.isBlank(versionId.getVersion())
+            || versionId.getRefType() == null || versionId.getRefType() == VersionRefType.UNKNOWN) {
+            return new VersionByIdQuery.Response(null);
+        }
+        VersionEntity entity = versionEntityRepo.findById(VersionConverter.convert(versionId)).orElse(null);
         return new VersionByIdQuery.Response(VersionConverter.convert(entity));
     }
 

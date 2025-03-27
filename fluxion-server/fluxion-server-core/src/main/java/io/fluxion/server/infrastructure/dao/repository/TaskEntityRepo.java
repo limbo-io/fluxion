@@ -20,6 +20,8 @@ import io.fluxion.server.infrastructure.dao.entity.TaskEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+
 /**
  * @author Devil
  */
@@ -27,4 +29,6 @@ import org.springframework.stereotype.Repository;
 public interface TaskEntityRepo extends JpaRepository<TaskEntity, String> {
 
     TaskEntity findByExecutionIdAndRefIdAndTaskType(String executionId, String refId, String taskType);
+
+    long countByExecutionIdAndRefIdInAndStatusIn(String executionId, Collection<String> refIds, Collection<String> statuses);
 }

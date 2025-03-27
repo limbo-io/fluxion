@@ -38,14 +38,18 @@ public class ExecutableQueryService {
     public ExecutableByIdQuery.Response handle(ExecutableByIdQuery query) {
         Executable executable = null;
         switch (query.getType()) {
-            case FLOW:
+            case WORKFLOW:
                 executable = Query.query(new WorkflowByIdQuery(query.getId(), query.getVersion())).getWorkflow();
                 break;
             case EXECUTOR:
                 Trigger trigger = Query.query(new TriggerByIdQuery(query.getId())).getTrigger();
                 ExecuteConfig executeConfig = trigger.getConfig().getExecuteConfig();
                 ExecutorExecuteConfig executorExecuteConfig = (ExecutorExecuteConfig) executeConfig;
-                executable = Executor.of(executorExecuteConfig.getExecutor(), executorExecuteConfig.getRetryOption(), executorExecuteConfig.getOvertimeOption());
+                executable = Executor.of(
+                    executorExecuteConfig.getExecutor().executorName(),
+                    executorExecuteConfig.getExecutor(), executorExecuteConfig.getRetryOption(),
+                    executorExecuteConfig.getOvertimeOption()
+                );
                 break;
         }
         return new ExecutableByIdQuery.Response(executable);

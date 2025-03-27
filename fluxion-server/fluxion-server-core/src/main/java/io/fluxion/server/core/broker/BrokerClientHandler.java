@@ -73,7 +73,7 @@ public class BrokerClientHandler implements ClientHandler {
                 case BrokerRemoteConstant.API_TASK_START: {
                     TaskStartRequest request = JacksonUtils.toType(data, TaskStartRequest.class);
                     Boolean success = Cmd.send(new TaskStartCmd(
-                        request.getTaskId(), request.getWorkerAddress(), request.getReportAt()
+                        request.getTaskId(), request.getReportAt(), request.getWorkerAddress()
                     ));
                     return Response.ok(success);
                 }
@@ -88,7 +88,6 @@ public class BrokerClientHandler implements ClientHandler {
                     TaskSuccessRequest request = JacksonUtils.toType(data, TaskSuccessRequest.class);
                     boolean success = Cmd.send(new ExecutableSuccessCmd(
                         request.getTaskId(),
-                        request.getWorkerAddress(),
                         request.getReportAt()
                     ));
                     return Response.ok(success);
@@ -97,7 +96,6 @@ public class BrokerClientHandler implements ClientHandler {
                     TaskFailRequest request = JacksonUtils.toType(data, TaskFailRequest.class);
                     boolean success = Cmd.send(new ExecutableFailCmd(
                         request.getTaskId(),
-                        request.getWorkerAddress(),
                         request.getReportAt(),
                         request.getErrorMsg()
                     ));

@@ -28,14 +28,10 @@ import java.time.LocalDateTime;
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class ExecutableFailCmd implements ICmd<Boolean> {
 
     private String taskId;
-
-    private String workerAddress;
 
     private LocalDateTime reportAt;
 

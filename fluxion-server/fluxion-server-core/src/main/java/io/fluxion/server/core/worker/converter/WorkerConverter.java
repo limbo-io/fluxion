@@ -158,8 +158,7 @@ public class WorkerConverter {
     /**
      * 提取 Worker 中的 executors，转为持久化对象列表
      */
-    public static List<WorkerExecutorEntity> toExecutorEntities(String workerId, Worker worker) {
-        List<WorkerExecutor> executors = worker.getExecutors();
+    public static List<WorkerExecutorEntity> toExecutorEntities(String workerId, List<WorkerExecutor> executors) {
         if (CollectionUtils.isEmpty(executors)) {
             return Collections.emptyList();
         }

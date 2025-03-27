@@ -18,14 +18,12 @@ package io.fluxion.server.core.execution.service;
 
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.execution.Executable;
-import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
-import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.cmd.ScheduleFeedbackCmd;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
@@ -34,8 +32,6 @@ import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
 import io.fluxion.server.infrastructure.dao.repository.ExecutionEntityRepo;
-import io.fluxion.server.infrastructure.exception.ErrorCode;
-import io.fluxion.server.infrastructure.exception.PlatformException;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
 import lombok.extern.slf4j.Slf4j;
@@ -61,22 +57,17 @@ public class ExecutionCommandService {
 
     @CommandHandler
     public ExecutionCreateCmd.Response handle(ExecutionCreateCmd cmd) {
-        String executableId = cmd.getExecutableId();
-        ExecutableType executableType = cmd.getExecutableType();
-        Executable executable = Query.query(new ExecutableByIdQuery(executableId, cmd.getExecutableVersion(), executableType)).getExecutable();
-        if (executable == null) {
-            throw new PlatformException(ErrorCode.PARAM_ERROR, "executable not found by id:" + executableId + " type:" + executableType);
-        }
+        Executable executable = cmd.getExecutable();
         // 判断是否已经创建
-        ExecutionEntity entity = executionEntityRepo.findByExecutableIdAndExecutableTypeAndTriggerAt(executableId, executableType.value, cmd.getTriggerAt());
+        ExecutionEntity entity = executionEntityRepo.findByExecutableIdAndExecutableTypeAndTriggerAt(executable.id(), executable.type().value, cmd.getTriggerAt());
         if (entity == null) {
             entity = new ExecutionEntity();
             entity.setExecutionId(Cmd.send(new IDGenerateCmd(IDType.EXECUTION)).getId());
             entity.setTriggerId(cmd.getTriggerId());
             entity.setTriggerType(cmd.getTriggerType().value);
-            entity.setExecutableId(executableId);
-            entity.setExecutableVersion(cmd.getExecutableVersion());
-            entity.setExecutableType(executableType.value);
+            entity.setExecutableId(executable.id());
+            entity.setExecutableVersion(executable.version());
+            entity.setExecutableType(executable.type().value);
             entity.setTriggerAt(cmd.getTriggerAt());
             entity.setStatus(ExecutionStatus.CREATED.value);
             executionEntityRepo.saveAndFlush(entity);

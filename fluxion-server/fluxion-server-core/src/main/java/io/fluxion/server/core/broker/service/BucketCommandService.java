@@ -64,7 +64,7 @@ public class BucketCommandService {
 
     @CommandHandler
     public void handle(BucketRebalanceCmd cmd) {
-        boolean locked = distributedLock.lock(REBALANCE_LOCK, 10000);
+        boolean locked = distributedLock.tryLock(REBALANCE_LOCK, 10000);
         if (!locked) {
             return;
         }

@@ -86,9 +86,11 @@ public class WorkflowService {
             new VersionByIdQuery(WorkflowEntityConverter.versionId(id, versionId))
         ).getVersion();
 
-        WorkflowConfig workflowConfig = JacksonUtils.toType(version.getConfig(), WorkflowConfig.class);
         WorkflowView view = WorkflowConverter.toView(workflowEntity);
-        view.setConfig(workflowConfig);
+        if (version != null) {
+            WorkflowConfig workflowConfig = JacksonUtils.toType(version.getConfig(), WorkflowConfig.class);
+            view.setConfig(workflowConfig);
+        }
         return view;
     }
 

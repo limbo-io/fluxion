@@ -60,14 +60,15 @@ public class WorkflowQueryService {
                 vs = StringUtils.isBlank(entity.getPublishVersion()) ? entity.getDraftVersion() : entity.getPublishVersion();
             }
         }
+        Version version = Query.query(
+            new VersionByIdQuery(WorkflowEntityConverter.versionId(entity.getWorkflowId(), vs))
+        ).getVersion();
         WorkflowConfig workflowConfig = null;
-        if (StringUtils.isNotBlank(vs)) {
-            Version version = Query.query(
-                new VersionByIdQuery(WorkflowEntityConverter.versionId(entity.getWorkflowId(), vs))
-            ).getVersion();
+        if (version != null) {
             workflowConfig = JacksonUtils.toType(version.getConfig(), WorkflowConfig.class);
         }
-        return new WorkflowByIdQuery.Response(Workflow.of(entity.getWorkflowId(), workflowConfig));
+        Workflow workflow = Workflow.of(entity.getWorkflowId(), vs, workflowConfig);
+        return new WorkflowByIdQuery.Response(workflow);
     }
 
 

@@ -58,7 +58,7 @@ public class WorkerContext {
 
     private final Protocol protocol;
 
-    private String address;
+    private final String address;
 
     private final String host;
 

@@ -21,6 +21,13 @@ package io.fluxion.server.infrastructure.lock;
  * @since 2024/1/13
  */
 public interface DistributedLock {
+    /**
+     * 阻塞 直到获取到锁
+     * @param name 锁名
+     * @param expire 加锁时间/毫秒
+     * @param wait 等待时间
+     */
+    void lock(String name, long expire, long wait);
 
     /**
      * 尝试加锁，如果锁被占有返回失败
@@ -30,7 +37,7 @@ public interface DistributedLock {
      * @param expire 加锁时间/毫秒
      * @return 是否成功
      */
-    boolean lock(String name, long expire);
+    boolean tryLock(String name, long expire);
 
     /**
      * 释放锁

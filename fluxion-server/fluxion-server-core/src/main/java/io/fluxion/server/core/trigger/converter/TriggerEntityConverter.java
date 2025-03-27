@@ -23,6 +23,7 @@ import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
 import io.fluxion.server.infrastructure.version.model.Version;
 import io.fluxion.server.infrastructure.version.model.VersionRefType;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -55,7 +56,7 @@ public class TriggerEntityConverter {
         trigger.setDescription(entity.getDescription());
         trigger.setEnabled(entity.isEnabled());
         if (version != null) {
-            trigger.setVersion(version.getId().getVersion());
+            trigger.setPublished(StringUtils.isNotBlank(version.getId().getVersion()));
             trigger.setConfig(JacksonUtils.toType(version.getConfig(), TriggerConfig.class));
         }
         return trigger;

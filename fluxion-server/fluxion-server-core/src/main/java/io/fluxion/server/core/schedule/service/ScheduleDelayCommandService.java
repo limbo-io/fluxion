@@ -21,8 +21,10 @@ import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
 import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
+import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
+import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayCreateCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByScheduleCmd;
@@ -119,13 +121,14 @@ public class ScheduleDelayCommandService {
                 return;
             }
             try {
+                Executable executable = Query.query(new ExecutableByIdQuery(
+                    trigger.getId(), trigger.getConfig().getExecuteConfig().type()
+                )).getExecutable();
                 // 创建执行记录
                 Execution execution = Cmd.send(new ExecutionCreateCmd(
                     trigger.getId(),
                     TriggerType.SCHEDULE,
-                    trigger.executableId(),
-                    trigger.getVersion(),
-                    trigger.getConfig().getExecuteConfig().type(),
+                    executable,
                     task.triggerAt()
                 )).getExecution();
                 // 异步执行

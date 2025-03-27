@@ -10,9 +10,15 @@ import java.time.LocalDateTime;
  */
 public interface Executable {
 
+    String id();
+
+    String version();
+
+    ExecutableType type();
+
     void execute(RunContext context);
 
-    boolean success(String refId, String taskId, String executionId, String workerAddress, LocalDateTime time);
+    boolean success(String refId, String taskId, String executionId, LocalDateTime time);
 
     RetryOption retryOption(String refId);
 

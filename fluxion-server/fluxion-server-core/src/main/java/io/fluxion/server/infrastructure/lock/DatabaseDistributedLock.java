@@ -41,8 +41,7 @@ public class DatabaseDistributedLock implements DistributedLock {
 
     @Override
     @Transactional
-    public boolean lock(String name, long expire) {
-
+    public boolean tryLock(String name, long expire) {
         LockEntity lock = lockEntityRepo.findByName(name);
 
         // 防止同节点并发问题
@@ -59,6 +58,12 @@ public class DatabaseDistributedLock implements DistributedLock {
         lock.setOwner(current);
         lock.setExpireAt(TimeUtils.currentLocalDateTime().plus(expire, ChronoUnit.MILLIS));
         return dbLock(lock);
+    }
+
+    @Override
+    @Transactional
+    public void lock(String name, long expire, long wait) {
+
     }
 
     private String owner() {

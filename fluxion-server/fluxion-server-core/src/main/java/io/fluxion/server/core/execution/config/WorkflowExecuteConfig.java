@@ -29,8 +29,8 @@ import lombok.EqualsAndHashCode;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-@JsonTypeName(ExecutableType.Val.FLOW)
-public class FlowExecuteConfig extends ExecuteConfig {
+@JsonTypeName(ExecutableType.Val.WORKFLOW)
+public class WorkflowExecuteConfig extends ExecuteConfig {
     /**
      * 流程ID
      */

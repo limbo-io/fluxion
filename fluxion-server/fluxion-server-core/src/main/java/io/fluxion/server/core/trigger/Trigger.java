@@ -18,7 +18,7 @@ package io.fluxion.server.core.trigger;
 
 import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.core.execution.config.ExecutorExecuteConfig;
-import io.fluxion.server.core.execution.config.FlowExecuteConfig;
+import io.fluxion.server.core.execution.config.WorkflowExecuteConfig;
 import lombok.Data;
 
 /**
@@ -31,8 +31,6 @@ public class Trigger {
 
     private String id;
 
-    private String version;
-
     private String name;
 
     private String description;
@@ -41,13 +39,15 @@ public class Trigger {
 
     private boolean enabled;
 
+    private boolean published;
+
     public String executableId() {
         ExecuteConfig executeConfig = config.getExecuteConfig();
         if (executeConfig == null) {
             return null;
-        } else if (executeConfig instanceof FlowExecuteConfig) {
-            FlowExecuteConfig flowExecuteConfig = (FlowExecuteConfig) executeConfig;
-            return flowExecuteConfig.getWorkflowId();
+        } else if (executeConfig instanceof WorkflowExecuteConfig) {
+            WorkflowExecuteConfig workflowExecuteConfig = (WorkflowExecuteConfig) executeConfig;
+            return workflowExecuteConfig.getWorkflowId();
         } else if (executeConfig instanceof ExecutorExecuteConfig) {
             return id;
         } else {

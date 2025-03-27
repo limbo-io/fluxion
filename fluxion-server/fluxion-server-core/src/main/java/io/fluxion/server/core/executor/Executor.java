@@ -19,6 +19,7 @@ package io.fluxion.server.core.executor;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.execution.Executable;
+import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.executor.option.OvertimeOption;
@@ -37,6 +38,8 @@ import java.util.Collections;
  */
 public class Executor implements Executable {
 
+    private String id;
+
     private ExecutorConfig config;
 
     /**
@@ -52,14 +55,30 @@ public class Executor implements Executable {
     private Executor() {
     }
 
-    private Executor(ExecutorConfig config, RetryOption retryOption, OvertimeOption overtimeOption) {
+    private Executor(String id, ExecutorConfig config, RetryOption retryOption, OvertimeOption overtimeOption) {
+        this.id = id;
         this.config = config;
         this.retryOption = retryOption == null ? new RetryOption() : retryOption;
         this.overtimeOption = overtimeOption == null ? new OvertimeOption() : overtimeOption;
     }
 
-    public static Executor of(ExecutorConfig config, RetryOption retryOption, OvertimeOption overtimeOption) {
-        return new Executor(config, retryOption, overtimeOption);
+    public static Executor of(String id, ExecutorConfig config, RetryOption retryOption, OvertimeOption overtimeOption) {
+        return new Executor(id, config, retryOption, overtimeOption);
+    }
+
+    @Override
+    public String id() {
+        return id;
+    }
+
+    @Override
+    public String version() {
+        return "";
+    }
+
+    @Override
+    public ExecutableType type() {
+        return ExecutableType.EXECUTOR;
     }
 
     @Override
@@ -72,8 +91,8 @@ public class Executor implements Executable {
     }
 
     @Override
-    public boolean success(String refId, String taskId, String executionId, String workerAddress, LocalDateTime time) {
-        Boolean success = Cmd.send(new TaskSuccessCmd(taskId, workerAddress, time));
+    public boolean success(String refId, String taskId, String executionId, LocalDateTime time) {
+        Boolean success = Cmd.send(new TaskSuccessCmd(taskId, time));
         if (!success) {
             return false;
         }

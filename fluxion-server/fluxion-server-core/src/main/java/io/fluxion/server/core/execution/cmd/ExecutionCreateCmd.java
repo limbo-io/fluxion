@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.execution.cmd;
 
-import io.fluxion.server.core.execution.ExecutableType;
+import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
@@ -31,20 +31,14 @@ import java.time.LocalDateTime;
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class ExecutionCreateCmd implements ICmd<ExecutionCreateCmd.Response> {
 
     private String triggerId;
 
     private TriggerType triggerType;
 
-    private String executableId;
-
-    private String executableVersion;
-
-    private ExecutableType executableType;
+    private Executable executable;
 
     private LocalDateTime triggerAt;
 

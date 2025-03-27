@@ -29,20 +29,18 @@ import java.util.List;
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class TaskCountByStatusQuery implements IQuery<TaskCountByStatusQuery.Response> {
-
-    private List<TaskStatus> statuses;
 
     private String executionId;
 
     private List<String> refIds;
 
+    private List<TaskStatus> statuses;
+
     @Getter
     @AllArgsConstructor
     public static class Response {
-        private int count;
+        private long count;
     }
 }

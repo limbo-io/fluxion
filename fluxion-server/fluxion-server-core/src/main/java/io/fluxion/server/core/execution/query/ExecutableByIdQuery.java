@@ -28,16 +28,24 @@ import lombok.NoArgsConstructor;
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class ExecutableByIdQuery implements IQuery<ExecutableByIdQuery.Response> {
 
-    private String id;
+    private final String id;
+
+    private final ExecutableType type;
 
     private String version;
 
-    private ExecutableType type;
+    public ExecutableByIdQuery(String id, ExecutableType type) {
+        this.id = id;
+        this.type = type;
+    }
+
+    public ExecutableByIdQuery(String id, ExecutableType type, String version) {
+        this.id = id;
+        this.type = type;
+        this.version = version;
+    }
 
     @Getter
     @AllArgsConstructor

@@ -57,13 +57,13 @@ public class VersionCommandService {
 
     @CommandHandler
     public VersionSaveCmd.Response handle(VersionSaveCmd cmd) {
-        VersionEntity entity = new VersionEntity();
         Version.ID id = cmd.getId();
         String version = id.getVersion();
         if (StringUtils.isBlank(version)) {
             version = nextVersion(id);
         }
         VersionEntity.ID entityId = new VersionEntity.ID(id.getRefId(), id.getRefType().value, version);
+        VersionEntity entity = versionEntityRepo.findById(entityId).orElse(new VersionEntity());
         entity.setId(entityId);
         entity.setConfig(cmd.getConfig());
         versionEntityRepo.saveAndFlush(entity);

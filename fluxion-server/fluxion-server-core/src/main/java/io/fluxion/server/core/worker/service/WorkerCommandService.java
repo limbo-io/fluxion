@@ -75,7 +75,7 @@ public class WorkerCommandService {
 
         // Executors 存储
         workerExecutorEntityRepo.deleteByWorkerId(workerId);
-        List<WorkerExecutorEntity> executorEntities = WorkerConverter.toExecutorEntities(workerId, worker);
+        List<WorkerExecutorEntity> executorEntities = WorkerConverter.toExecutorEntities(workerId, worker.getExecutors());
         if (CollectionUtils.isNotEmpty(executorEntities)) {
             workerExecutorEntityRepo.saveAllAndFlush(executorEntities);
         }

@@ -25,12 +25,12 @@ import io.fluxion.common.constants.CommonConstants;
  */
 public enum ExecutableType {
     UNKNOWN(CommonConstants.UNKNOWN),
-    FLOW(Val.FLOW),
+    WORKFLOW(Val.WORKFLOW),
     EXECUTOR(Val.EXECUTOR),
     ;
 
     public interface Val {
-        String FLOW = "flow";
+        String WORKFLOW = "workflow";
         String EXECUTOR = "executor";
     }
 

@@ -33,7 +33,7 @@ public interface WorkerExecutorEntityRepo extends JpaRepository<WorkerExecutorEn
 
     @Modifying(clearAutomatically = true)
     @Query("delete from WorkerExecutorEntity where id.workerId = :workerId")
-    int deleteByWorkerId(@Param("workerId") String workerId);
+    void deleteByWorkerId(@Param("workerId") String workerId);
 
     List<WorkerExecutorEntity> findById_WorkerIdIn(List<String> workerIds);
 }

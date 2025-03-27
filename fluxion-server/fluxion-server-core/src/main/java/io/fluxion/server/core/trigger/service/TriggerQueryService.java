@@ -57,12 +57,9 @@ public class TriggerQueryService {
         } else {
             vs = getVersion(entity, query.getVersionMode());
         }
-        Version version = null;
-        if (StringUtils.isNotBlank(vs)) {
-            version = Query.query(new VersionByIdQuery(
-                TriggerEntityConverter.versionId(entity.getTriggerId(), vs)
-            )).getVersion();
-        }
+        Version version = Query.query(new VersionByIdQuery(
+            TriggerEntityConverter.versionId(entity.getTriggerId(), vs)
+        )).getVersion();
         Trigger trigger = TriggerEntityConverter.convert(entity, version);
         return new TriggerByIdQuery.Response(trigger);
     }

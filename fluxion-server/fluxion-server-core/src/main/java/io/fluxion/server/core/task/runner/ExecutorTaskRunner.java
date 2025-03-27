@@ -88,7 +88,6 @@ public class ExecutorTaskRunner extends TaskRunner {
         if (!dispatched) {
             Cmd.send(new ExecutableFailCmd(
                 task.getTaskId(),
-                workerAddress,
                 TimeUtils.currentLocalDateTime(),
                 "dispatch fail worker:" + workerAddress
             ));

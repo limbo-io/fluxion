@@ -19,6 +19,7 @@ package io.fluxion.server.core.workflow;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.execution.Executable;
+import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.executor.option.RetryOption;
@@ -36,7 +37,6 @@ import io.fluxion.server.core.workflow.node.WorkflowNode;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dag.DAG;
-import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.time.LocalDateTime;
@@ -52,8 +52,9 @@ import java.util.stream.Collectors;
  */
 public class Workflow implements Executable {
 
-    @Getter
     private String id;
+
+    private String version;
 
     /**
      * 使用 dag()
@@ -66,13 +67,29 @@ public class Workflow implements Executable {
     private Workflow() {
     }
 
-    private Workflow(String id, WorkflowConfig config) {
+    private Workflow(String id, String version, WorkflowConfig config) {
         this.id = id;
+        this.version = version;
         this.dag = new DAG<>(config.getNodes(), config.getEdges());
     }
 
-    public static Workflow of(String id, WorkflowConfig config) {
-        return new Workflow(id, config);
+    public static Workflow of(String id, String version, WorkflowConfig config) {
+        return new Workflow(id, version, config);
+    }
+
+    @Override
+    public String id() {
+        return id;
+    }
+
+    @Override
+    public String version() {
+        return version;
+    }
+
+    @Override
+    public ExecutableType type() {
+        return ExecutableType.WORKFLOW;
     }
 
     @Override
@@ -84,8 +101,8 @@ public class Workflow implements Executable {
      * 某个 node 成功后执行的逻辑
      */
     @Override
-    public boolean success(String nodeId, String taskId, String executionId, String workerAddress, LocalDateTime time) {
-        Boolean success = Cmd.send(new TaskSuccessCmd(taskId, workerAddress, time));
+    public boolean success(String nodeId, String taskId, String executionId, LocalDateTime time) {
+        Boolean success = Cmd.send(new TaskSuccessCmd(taskId, time));
         if (!success) {
             return false;
         }
@@ -135,9 +152,9 @@ public class Workflow implements Executable {
         if (preNodes.size() == 1) {
             return true; // 之前的节点完成了，没有其它节点了
         }
-        int count = Query.query(new TaskCountByStatusQuery(
-            Collections.singletonList(TaskStatus.SUCCEED),
-            executionId, preNodes.stream().map(WorkflowNode::getId).collect(Collectors.toList())
+        long count = Query.query(new TaskCountByStatusQuery(
+            executionId, preNodes.stream().map(WorkflowNode::getId).collect(Collectors.toList()),
+            Collections.singletonList(TaskStatus.SUCCEED)
         )).getCount();
         return count >= preNodes.size();
     }
