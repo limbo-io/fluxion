@@ -23,6 +23,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * 加载 delay 到内存
  *
@@ -32,8 +34,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ScheduleDelayLoadCmd implements ICmd<Void> {
+public class ScheduleDelaysLoadCmd implements ICmd<Void> {
 
-    private ScheduleDelay delay;
+    private List<ScheduleDelay> delays;
 
 }

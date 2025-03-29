@@ -28,7 +28,7 @@ import java.util.List;
  */
 public interface BrokerEntityRepo extends JpaRepository<BrokerEntity, BrokerEntity.ID> {
 
-    List<BrokerEntity> findByLastHeartbeatBetween(LocalDateTime startTime, LocalDateTime endTime);
+    List<BrokerEntity> findByLastHeartbeatAtBetween(LocalDateTime startTime, LocalDateTime endTime);
 
     List<BrokerEntity> findByCreatedAtBetween(LocalDateTime startTime, LocalDateTime endTime);
 }

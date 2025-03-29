@@ -45,6 +45,13 @@ public class ScheduleDelayEntityConverter {
         return entities.stream().map(ScheduleDelayEntityConverter::convert).collect(Collectors.toList());
     }
 
+    public static List<ScheduleDelayEntity> convertToEntities(List<ScheduleDelay> delays) {
+        if (CollectionUtils.isEmpty(delays)) {
+            return Collections.emptyList();
+        }
+        return delays.stream().map(ScheduleDelayEntityConverter::convert).collect(Collectors.toList());
+    }
+
     public static ScheduleDelayEntity convert(ScheduleDelay delay) {
         if (delay == null) {
             return null;
@@ -53,6 +60,13 @@ public class ScheduleDelayEntityConverter {
         entity.setId(convert(delay.getId()));
         entity.setStatus(delay.getStatus().value);
         return entity;
+    }
+
+    public static List<ScheduleDelayEntity.ID> convertToEntityIds(List<ScheduleDelay.ID> ids) {
+        if (CollectionUtils.isEmpty(ids)) {
+            return Collections.emptyList();
+        }
+        return ids.stream().map(ScheduleDelayEntityConverter::convert).collect(Collectors.toList());
     }
 
     public static ScheduleDelay.ID convert(ScheduleDelayEntity.ID id) {

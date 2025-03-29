@@ -25,9 +25,9 @@ import java.util.concurrent.TimeUnit;
  *
  * todo @d later
  *
- * 1. delay_task
- * 2. broker
- * 3. worker
+ * 1. delay_task 超过7天
+ * 2. broker 超过1天
+ * 3. worker 超过1天
  *
  * @author Devil
  * @date 2025/1/9

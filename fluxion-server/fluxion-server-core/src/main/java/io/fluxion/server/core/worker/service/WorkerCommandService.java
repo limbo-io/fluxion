@@ -19,6 +19,7 @@ package io.fluxion.server.core.worker.service;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerSaveCmd;
+import io.fluxion.server.core.worker.cmd.WorkerSliceOfflineCmd;
 import io.fluxion.server.core.worker.converter.WorkerConverter;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
 import io.fluxion.server.infrastructure.dao.entity.TagEntity;
@@ -32,6 +33,7 @@ import io.fluxion.server.infrastructure.dao.repository.WorkerMetricEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
 import io.fluxion.server.infrastructure.tag.TagRefType;
+import io.fluxion.server.infrastructure.utils.JpaHelper;
 import org.apache.commons.collections4.CollectionUtils;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
@@ -40,6 +42,7 @@ import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Devil
@@ -106,6 +109,27 @@ public class WorkerCommandService {
 
         WorkerMetricEntity metricEntity = WorkerConverter.toMetricEntity(cmd.getWorkerId(), cmd.getMetric());
         workerMetricEntityRepo.saveAndFlush(metricEntity);
+    }
+
+    @CommandHandler
+    public WorkerSliceOfflineCmd.Response handle(WorkerSliceOfflineCmd cmd) {
+        List<WorkerMetricEntity> metricEntities = workerMetricEntityRepo.findByLastHeartbeatAtBetween(
+            cmd.getStartTime(), cmd.getEndTime(), JpaHelper.pageable(0, cmd.getLimit())
+        );
+        if (CollectionUtils.isEmpty(metricEntities)) {
+            return new WorkerSliceOfflineCmd.Response(0);
+        }
+        entityManager.createQuery("update WorkerEntity " +
+                "set status = :status " +
+                "where workerId in :workerIds"
+            )
+            .setParameter("status", Worker.Status.OFFLINE.status)
+            .setParameter("workerIds", metricEntities.stream()
+                .map(WorkerMetricEntity::getWorkerId)
+                .collect(Collectors.toList())
+            )
+            .executeUpdate();
+        return new WorkerSliceOfflineCmd.Response(metricEntities.size());
     }
 
 }

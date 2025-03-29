@@ -22,9 +22,9 @@ import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.ScheduleConstants;
 import io.fluxion.server.core.schedule.ScheduleDelay;
-import io.fluxion.server.core.schedule.cmd.ScheduleDelayCreateCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByScheduleCmd;
-import io.fluxion.server.core.schedule.cmd.ScheduleDelayLoadCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleDelaysCreateCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleDelaysLoadCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDeleteCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDisableCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleEnableCmd;
@@ -38,6 +38,7 @@ import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleEntityRepo;
 import io.fluxion.server.infrastructure.schedule.BasicCalculation;
+import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.CommandHandler;
@@ -46,6 +47,8 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Devil
@@ -122,41 +125,69 @@ public class ScheduleCommandService {
             return;
         }
         LocalDateTime now = TimeUtils.currentLocalDateTime();
-        if (schedule.getNextTriggerAt().isAfter(now) || schedule.getNextTriggerAt().isBefore(schedule.getOption().getStartTime())) {
-            return;
+        // 创建一批 ScheduleDelay
+        List<ScheduleDelay> delays = new ArrayList<>();
+        LocalDateTime lastTriggerAt = schedule.getLastTriggerAt();
+        LocalDateTime nextTriggerAt = schedule.getNextTriggerAt();
+        if (nextTriggerAt.isBefore(now)) {
+            nextTriggerAt = new BasicCalculation(
+                lastTriggerAt, lastTriggerAt, schedule.getOption()
+            ).triggerAt();
         }
-        if (schedule.getNextTriggerAt().isAfter(schedule.getOption().getEndTime())
-            || schedule.getNextTriggerAt().isAfter(now.plusSeconds(ScheduleConstants.LOAD_INTERVAL_SECONDS))) {
-            return;
-        }
-        ScheduleDelay delay = new ScheduleDelay(
-            new ScheduleDelay.ID(schedule.getId(), schedule.getNextTriggerAt()),
-            ScheduleDelay.Status.INIT
-        );
-        // 保存延迟任务
-        Cmd.send(new ScheduleDelayCreateCmd(delay));
-        // 加载
-        Cmd.send(new ScheduleDelayLoadCmd(delay));
-        // 更新上次触发时间
-        schedule.setLastTriggerAt(schedule.getNextTriggerAt());
-        // 更新下次触发时间
         if (ScheduleType.FIXED_DELAY == schedule.getOption().getType()) {
-            schedule.setNextTriggerAt(null); // 反馈的时候计算下次触发时间，先置空
-        } else {
-            BasicCalculation calculation = new BasicCalculation(
-                schedule.getLastTriggerAt(), schedule.getLastFeedbackAt(), schedule.getOption()
+            // FIXED_DELAY 只创建一个
+            if (!scheduleTriggerCheck(nextTriggerAt, now, schedule.getOption())) {
+                return;
+            }
+            ScheduleDelay delay = new ScheduleDelay(
+                new ScheduleDelay.ID(schedule.getId(), nextTriggerAt),
+                ScheduleDelay.Status.INIT
             );
-            schedule.setNextTriggerAt(calculation.triggerAt());
+            delays.add(delay);
+            lastTriggerAt = nextTriggerAt; // 更新上次触发时间
+            nextTriggerAt = null; // 反馈的时候计算下次触发时间，先置空
+        } else {
+            // CRON FIXED_RATE 创建后续多个
+            while (scheduleTriggerCheck(nextTriggerAt, now, schedule.getOption())) {
+                ScheduleDelay delay = new ScheduleDelay(
+                    new ScheduleDelay.ID(schedule.getId(), nextTriggerAt),
+                    ScheduleDelay.Status.INIT
+                );
+                delays.add(delay);
+                lastTriggerAt = nextTriggerAt; // 更新上次触发时间
+                BasicCalculation calculation = new BasicCalculation(
+                    lastTriggerAt, lastTriggerAt, schedule.getOption()
+                );
+                nextTriggerAt = calculation.triggerAt();
+            }
         }
+
+        // 保存延迟任务
+        Cmd.send(new ScheduleDelaysCreateCmd(delays));
+        // 加载
+        Cmd.send(new ScheduleDelaysLoadCmd(delays));
+
         // 更新上次触发时间和下次触发时间
         entityManager.createQuery("update ScheduleEntity " +
                 "set lastTriggerAt = :lastTriggerAt, nextTriggerAt = :nextTriggerAt " +
                 "where id = :id"
             )
-            .setParameter("lastTriggerAt", schedule.getLastTriggerAt())
-            .setParameter("nextTriggerAt", schedule.getNextTriggerAt())
+            .setParameter("lastTriggerAt", lastTriggerAt)
+            .setParameter("nextTriggerAt", nextTriggerAt)
             .setParameter("id", schedule.getId())
             .executeUpdate();
+    }
+
+    private boolean scheduleTriggerCheck(LocalDateTime nextTriggerAt, LocalDateTime now, ScheduleOption option) {
+        if (nextTriggerAt.isBefore(now)
+            || nextTriggerAt.isBefore(option.getStartTime())) {
+            return false;
+        }
+        if (nextTriggerAt.isAfter(option.getEndTime())
+            || nextTriggerAt.isAfter(now.plusSeconds(ScheduleConstants.LOAD_INTERVAL_SECONDS))) {
+            return false;
+        }
+        return true;
     }
 
     @CommandHandler

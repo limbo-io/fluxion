@@ -16,43 +16,44 @@
 
 package io.fluxion.server.core.broker.task;
 
-import io.fluxion.server.core.schedule.ScheduleDelay;
-import io.fluxion.server.core.schedule.ScheduleDelayConstants;
-import io.fluxion.server.core.schedule.cmd.ScheduleDelayLoadCmd;
-import io.fluxion.server.core.schedule.query.ScheduleDelayNextTriggerQuery;
+import io.fluxion.common.utils.time.Formatters;
+import io.fluxion.common.utils.time.LocalDateTimeUtils;
+import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.remote.core.constants.WorkerRemoteConstant;
+import io.fluxion.server.core.worker.cmd.WorkerSliceOfflineCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
-import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 /**
- * 1. 加载 create 状态执行TaskRunCmd
- * 2. 加载 dispatched + running 状态比较久的 判断超时
- * todo !
+ * 检查worker是否下线
  *
  * @author Devil
  */
 @Slf4j
 public class WorkerChecker extends CoreTask {
 
+    private static final int limit = 100;
+
+    private LocalDateTime lastCheckAt = LocalDateTimeUtils.parse("2000-01-01 00:00:00", Formatters.YMD_HMS);
+
     public WorkerChecker() {
-        super(0, ScheduleDelayConstants.LOAD_INTERVAL, ScheduleDelayConstants.LOAD_TIME_UNIT);
+        super(0, WorkerRemoteConstant.HEARTBEAT_TIMEOUT_SECOND, TimeUnit.SECONDS);
     }
 
     @Override
     public void run() {
         try {
-            List<ScheduleDelay> delays = Query.query(new ScheduleDelayNextTriggerQuery(100)).getDelays();
-            while (CollectionUtils.isNotEmpty(delays)) {
-                for (ScheduleDelay delay : delays) {
-                    Cmd.send(new ScheduleDelayLoadCmd(delay));
-                }
+            LocalDateTime endTime = TimeUtils.currentLocalDateTime().plusSeconds(-WorkerRemoteConstant.HEARTBEAT_TIMEOUT_SECOND * 2);
+            long num = Cmd.send(new WorkerSliceOfflineCmd(lastCheckAt, endTime, limit)).getNum();
+            while (num >= limit) {
                 // 拉取后续的
-                delays = Query.query(new ScheduleDelayNextTriggerQuery(100)).getDelays();
+                num = Cmd.send(new WorkerSliceOfflineCmd(lastCheckAt, endTime, limit)).getNum();
             }
+            lastCheckAt = endTime;
         } catch (Exception e) {
             log.error("[{}] execute fail", this.getClass().getSimpleName(), e);
         }

@@ -59,7 +59,7 @@ public class BrokerEntity extends BaseEntity {
     /**
      * 上次心跳时间
      */
-    private LocalDateTime lastHeartbeat;
+    private LocalDateTime lastHeartbeatAt;
 
     @Override
     public Object getUid() {

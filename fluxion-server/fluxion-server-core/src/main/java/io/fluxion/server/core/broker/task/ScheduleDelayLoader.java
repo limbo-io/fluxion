@@ -18,7 +18,7 @@ package io.fluxion.server.core.broker.task;
 
 import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.core.schedule.ScheduleDelayConstants;
-import io.fluxion.server.core.schedule.cmd.ScheduleDelayLoadCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleDelaysLoadCmd;
 import io.fluxion.server.core.schedule.query.ScheduleDelayNextTriggerQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
@@ -26,6 +26,7 @@ import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 
+import javax.sound.midi.Soundbank;
 import java.util.List;
 
 /**
@@ -43,9 +44,8 @@ public class ScheduleDelayLoader extends CoreTask {
         try {
             List<ScheduleDelay> delays = Query.query(new ScheduleDelayNextTriggerQuery(100)).getDelays();
             while (CollectionUtils.isNotEmpty(delays)) {
-                for (ScheduleDelay delay : delays) {
-                    Cmd.send(new ScheduleDelayLoadCmd(delay));
-                }
+                System.out.println("ScheduleDelayLoader " + delays.size());
+                Cmd.send(new ScheduleDelaysLoadCmd(delays));
                 // 拉取后续的
                 delays = Query.query(new ScheduleDelayNextTriggerQuery(100)).getDelays();
             }

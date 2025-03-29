@@ -23,6 +23,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * @author Devil
  */
@@ -30,8 +32,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ScheduleDelayCreateCmd implements ICmd<Void> {
+public class ScheduleDelaysCreateCmd implements ICmd<Void> {
 
-    private ScheduleDelay delay;
+    private List<ScheduleDelay> delays;
 
 }

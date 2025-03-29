@@ -17,9 +17,11 @@
 package io.fluxion.server.infrastructure.dao.repository;
 
 import io.fluxion.server.infrastructure.dao.entity.WorkerMetricEntity;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -29,4 +31,6 @@ import java.util.List;
 @Repository
 public interface WorkerMetricEntityRepo extends JpaRepository<WorkerMetricEntity, String> {
     List<WorkerMetricEntity> findByWorkerIdIn(Collection<String> workerIds);
+
+    List<WorkerMetricEntity> findByLastHeartbeatAtBetween(LocalDateTime lastHeartbeatAtAfter, LocalDateTime lastHeartbeatAtBefore, Pageable pageable);
 }

@@ -18,7 +18,6 @@ package io.fluxion.server.core.schedule.service;
 
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.BrokerContext;
-import io.fluxion.server.core.broker.BrokerManger;
 import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
 import io.fluxion.server.core.schedule.ScheduleConstants;
 import io.fluxion.server.core.schedule.converter.ScheduleEntityConverter;
@@ -45,9 +44,6 @@ public class ScheduleQueryService {
 
     @Resource
     private ScheduleEntityRepo scheduleEntityRepo;
-
-    @Resource
-    private BrokerManger brokerManger;
 
     @Resource
     private EntityManager entityManager;

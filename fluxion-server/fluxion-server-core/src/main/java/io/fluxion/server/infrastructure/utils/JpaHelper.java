@@ -32,13 +32,13 @@ public class JpaHelper {
      * PageParam 转换为 Pageable
      */
     public static Pageable pageable(PageRequest page) {
-        // PageParam 从 1 开始 Pageable 从 0 开始
+        // PageRequest 从 1 开始 Pageable 从 0 开始
         return org.springframework.data.domain.PageRequest.of(page.getCurrent() - 1, page.getPageSize());
     }
 
-    public static Pageable pageable(int page, int size) {
-        // PageParam 从 1 开始 Pageable 从 0 开始
-        return org.springframework.data.domain.PageRequest.of(page, size);
+    public static Pageable pageable(int pageFromZero, int size) {
+        // PageRequest 从 1 开始 Pageable 从 0 开始
+        return org.springframework.data.domain.PageRequest.of(pageFromZero, size);
     }
 
     private static <T, R> Expression<R> expression(Root<T> root, Lambda.Func<T, R> func) {

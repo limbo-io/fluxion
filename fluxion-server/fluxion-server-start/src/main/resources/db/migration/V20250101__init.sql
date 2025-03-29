@@ -75,13 +75,13 @@ CREATE TABLE `fluxion_broker`
     `port`           int                      DEFAULT 0,
     `protocol`       varchar(64)     NOT NULL,
     `broker_load`    int                      DEFAULT 0,
-    `last_heartbeat` datetime(6)              DEFAULT NULL,
+    `last_heartbeat_at` datetime(6)              DEFAULT NULL,
     `is_deleted`     bit(1)          NOT NULL DEFAULT 0,
     `created_at`     datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`     datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_broker` (`host`, `port`),
-    KEY `idx_last_heartbeat` (`last_heartbeat`),
+    KEY `idx_last_heartbeat` (`last_heartbeat_at`),
     KEY `idx_create` (`created_at`)
 );
 
@@ -266,6 +266,7 @@ CREATE TABLE `fluxion_worker_metric`
     `created_at`          datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`          datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_worker_metric` (`worker_id`)
+    UNIQUE KEY `uk_worker_metric` (`worker_id`),
+    KEY `idx_last_heartbeat` (`last_heartbeat_at`)
 );
 

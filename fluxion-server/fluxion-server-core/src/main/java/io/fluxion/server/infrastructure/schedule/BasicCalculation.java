@@ -60,7 +60,6 @@ public class BasicCalculation implements Calculable {
         return triggerAt;
     }
 
-
     @Override
     public ScheduleOption scheduleOption() {
         return scheduleOption;

@@ -27,6 +27,7 @@ import io.fluxion.server.core.broker.task.CoreTask;
 import io.fluxion.server.core.broker.task.DataCleaner;
 import io.fluxion.server.core.broker.task.ScheduleDelayLoader;
 import io.fluxion.server.core.broker.task.ScheduleLoader;
+import io.fluxion.server.core.broker.task.WorkerChecker;
 import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.TimingWheelTimer;
 import lombok.extern.slf4j.Slf4j;
@@ -74,7 +75,8 @@ public class Broker {
             new ScheduleLoader(),
             new ScheduleDelayLoader(),
             new BucketChecker(),
-            new DataCleaner()
+            new DataCleaner(),
+            new WorkerChecker()
         );
         this.clientServer = clientServer;
         this.coreThreadPool = new ScheduledThreadPoolExecutor(

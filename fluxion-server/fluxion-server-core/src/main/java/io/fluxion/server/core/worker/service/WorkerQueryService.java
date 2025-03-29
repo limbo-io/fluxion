@@ -53,7 +53,9 @@ public class WorkerQueryService {
 
     @QueryHandler
     public WorkerByAppQuery.Response handle(WorkerByAppQuery query) {
-        List<WorkerEntity> workerEntities = workerEntityRepo.findByAppId(query.getAppId());
+        List<WorkerEntity> workerEntities = workerEntityRepo.findByAppIdAndStatusIn(
+            query.getAppId(), query.getStatuses().stream().map(s -> s.status).collect(Collectors.toList())
+        );
         if (CollectionUtils.isEmpty(workerEntities)) {
             return new WorkerByAppQuery.Response(Collections.emptyList());
         }

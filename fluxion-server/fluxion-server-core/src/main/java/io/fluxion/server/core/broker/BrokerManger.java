@@ -81,10 +81,9 @@ public class BrokerManger {
             NamedThreadFactory.newInstance("FluxionBrokerManger")
         );
 
-        // 新建
-        BrokerEntity broker = entity(BrokerContext.broker().node());
-        broker.setLastHeartbeat(TimeUtils.currentLocalDateTime());
-        brokerEntityRepo.saveAndFlush(broker);
+        // 放入本地
+        BrokerNode node = BrokerContext.broker().node();
+        NODES.put(node.id(), node);
 
         // 处理bucket
         Cmd.send(new BucketRebalanceCmd());
@@ -164,6 +163,7 @@ public class BrokerManger {
         entity.setId(new BrokerEntity.ID(node.host(), node.port()));
         entity.setProtocol(node.protocol().getValue());
         entity.setBrokerLoad(node.load());
+        entity.setLastHeartbeatAt(TimeUtils.currentLocalDateTime());
         return entity;
     }
 
@@ -175,11 +175,11 @@ public class BrokerManger {
             BrokerNode node = BrokerContext.broker().node();
             BrokerEntity entity = entity(node);
             try {
-                LocalDateTime now = TimeUtils.currentLocalDateTime();
-                entity.setLastHeartbeat(now);
                 brokerEntityRepo.saveAndFlush(entity);
                 if (log.isDebugEnabled()) {
-                    log.debug("{} send heartbeat id: {} time:{}", TASK_NAME, node.id(), LocalTimeUtils.format(now, Formatters.YMD_HMS));
+                    log.debug("{} send heartbeat id: {} time:{}",
+                        TASK_NAME, node.id(), LocalTimeUtils.format(entity.getLastHeartbeatAt(), Formatters.YMD_HMS)
+                    );
                 }
             } catch (Exception e) {
                 log.error("{} send heartbeat fail", TASK_NAME, e);
@@ -206,7 +206,9 @@ public class BrokerManger {
                 if (CollectionUtils.isNotEmpty(onlineBrokers)) {
                     for (BrokerEntity entity : onlineBrokers) {
                         if (log.isDebugEnabled()) {
-                            log.debug("{} find online broker id: {}, lastHeartbeat:{}", TASK_NAME, entity.getId(), LocalTimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
+                            log.debug("{} find online broker id: {}, lastHeartbeat:{}",
+                                TASK_NAME, entity.getId(), LocalTimeUtils.format(entity.getLastHeartbeatAt(), Formatters.YMD_HMS)
+                            );
                         }
                         online(node(entity));
                     }
@@ -233,11 +235,13 @@ public class BrokerManger {
                 if (log.isDebugEnabled()) {
                     log.debug("{} checkOffline start:{} end:{}", TASK_NAME, LocalTimeUtils.format(startTime, Formatters.YMD_HMS), LocalTimeUtils.format(endTime, Formatters.YMD_HMS));
                 }
-                List<BrokerEntity> offlineBrokers = brokerEntityRepo.findByLastHeartbeatBetween(startTime, endTime);
+                List<BrokerEntity> offlineBrokers = brokerEntityRepo.findByLastHeartbeatAtBetween(startTime, endTime);
                 if (CollectionUtils.isNotEmpty(offlineBrokers)) {
                     for (BrokerEntity entity : offlineBrokers) {
                         if (log.isDebugEnabled()) {
-                            log.debug("{} find offline broker id: {}, lastHeartbeat:{}", TASK_NAME, entity.getId(), LocalTimeUtils.format(entity.getLastHeartbeat(), Formatters.YMD_HMS));
+                            log.debug("{} find offline broker id: {}, lastHeartbeat:{}",
+                                TASK_NAME, entity.getId(), LocalTimeUtils.format(entity.getLastHeartbeatAt(), Formatters.YMD_HMS)
+                            );
                         }
                         offline(node(entity));
                     }

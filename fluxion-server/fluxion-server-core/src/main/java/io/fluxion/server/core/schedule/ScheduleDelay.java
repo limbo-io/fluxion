@@ -37,10 +37,6 @@ public class ScheduleDelay {
 
     private Status status;
 
-    public String id() {
-        return id.triggerAt + "_" + id.scheduleId;
-    }
-
     public void status(Status status) {
         this.status = status;
     }
@@ -56,6 +52,12 @@ public class ScheduleDelay {
          * 触发时间
          */
         private LocalDateTime triggerAt;
+
+        @Override
+        public String toString() {
+            return triggerAt + "_" + scheduleId;
+        }
+
     }
 
     public enum Status {

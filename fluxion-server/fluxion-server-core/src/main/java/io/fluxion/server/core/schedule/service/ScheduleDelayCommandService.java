@@ -26,9 +26,9 @@ import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.schedule.ScheduleDelay;
-import io.fluxion.server.core.schedule.cmd.ScheduleDelayCreateCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByScheduleCmd;
-import io.fluxion.server.core.schedule.cmd.ScheduleDelayLoadCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleDelaysCreateCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleDelaysLoadCmd;
 import io.fluxion.server.core.schedule.converter.ScheduleDelayEntityConverter;
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.TriggerType;
@@ -43,11 +43,13 @@ import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.task.DelayedTask;
 import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -69,33 +71,42 @@ public class ScheduleDelayCommandService {
     private TransactionService transactionService;
 
     @CommandHandler
-    public void handle(ScheduleDelayCreateCmd cmd) {
-        ScheduleDelay delay = cmd.getDelay();
-        ScheduleDelayEntity entity = ScheduleDelayEntityConverter.convert(delay);
-        int bucket = Cmd.send(new BucketAllotCmd(delay.id())).getBucket();
-        entity.setBucket(bucket);
-        scheduleDelayEntityRepo.saveAndFlush(entity);
+    public void handle(ScheduleDelaysCreateCmd cmd) {
+        List<ScheduleDelay> delays = cmd.getDelays();
+        List<ScheduleDelayEntity> entities = ScheduleDelayEntityConverter.convertToEntities(delays);
+        if (CollectionUtils.isEmpty(entities)) {
+            return;
+        }
+        for (ScheduleDelayEntity entity : entities) {
+            int bucket = Cmd.send(new BucketAllotCmd(entity.getId().toString())).getBucket();
+            entity.setBucket(bucket);
+        }
+        scheduleDelayEntityRepo.saveAllAndFlush(entities);
     }
 
     @CommandHandler
-    public void handle(ScheduleDelayLoadCmd cmd) {
-        ScheduleDelay delay = cmd.getDelay();
-        if (ScheduleDelay.Status.INIT != delay.getStatus()) {
+    public void handle(ScheduleDelaysLoadCmd cmd) {
+        List<ScheduleDelay> delays = cmd.getDelays();
+        if (CollectionUtils.isEmpty(delays)) {
             return;
         }
-        delay.status(ScheduleDelay.Status.LOADED);
-        // 更新状态
-        if (!changeDelayStatus(delay.getId(), ScheduleDelay.Status.INIT, ScheduleDelay.Status.LOADED)) {
-            return;
+        List<ScheduleDelay.ID> delayIds = delays.stream()
+            .filter(delay -> ScheduleDelay.Status.INIT == delay.getStatus())
+            .map(ScheduleDelay::getId)
+            .collect(Collectors.toList());
+
+        changeDelayStatus(delayIds, ScheduleDelay.Status.INIT, ScheduleDelay.Status.LOADED);
+
+        for (ScheduleDelay.ID delayId : delayIds) {
+            // 加载到内存 todo ! 加载到内存，但是宕机了状态无法修改
+            String scheduleId = delayId.getScheduleId();
+            DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
+            delayedTaskScheduler.schedule(DelayedTaskFactory.create(
+                delayId.toString(),
+                delayId.getTriggerAt(),
+                consumer(scheduleId, delayId)
+            ));
         }
-        // 加载到内存
-        String scheduleId = delay.getId().getScheduleId();
-        DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
-        delayedTaskScheduler.schedule(DelayedTaskFactory.create(
-            delay.id(),
-            delay.getId().getTriggerAt(),
-            consumer(scheduleId, delay.getId())
-        ));
     }
 
     private Consumer<DelayedTask> consumer(String scheduleId, ScheduleDelay.ID delayId) {
@@ -122,7 +133,7 @@ public class ScheduleDelayCommandService {
             }
             try {
                 Executable executable = Query.query(new ExecutableByIdQuery(
-                    trigger.getId(), trigger.getConfig().getExecuteConfig().type()
+                    trigger.executableId(), trigger.getConfig().getExecuteConfig().type()
                 )).getExecutable();
                 // 创建执行记录
                 Execution execution = Cmd.send(new ExecutionCreateCmd(
@@ -141,16 +152,22 @@ public class ScheduleDelayCommandService {
         };
     }
 
-    private boolean changeDelayStatus(ScheduleDelay.ID delayId, ScheduleDelay.Status oldStatus, ScheduleDelay.Status newStatus) {
+    private int changeDelayStatus(List<ScheduleDelay.ID> delayIds, ScheduleDelay.Status oldStatus, ScheduleDelay.Status newStatus) {
         return transactionService.transactional(() -> entityManager.createQuery(
                 "update ScheduleDelayEntity " +
                     "set status = :newStatus " +
-                    "where id = :id and status = :oldStatus"
+                    "where id in :ids and status = :oldStatus"
             )
             .setParameter("newStatus", newStatus.value)
             .setParameter("oldStatus", oldStatus.value)
-            .setParameter("id", ScheduleDelayEntityConverter.convert(delayId))
-            .executeUpdate() > 0);
+            .setParameter("ids", ScheduleDelayEntityConverter.convertToEntityIds(delayIds))
+            .executeUpdate());
+    }
+
+    private boolean changeDelayStatus(ScheduleDelay.ID delayId, ScheduleDelay.Status oldStatus, ScheduleDelay.Status newStatus) {
+        return transactionService.transactional(() ->
+            changeDelayStatus(Collections.singletonList(delayId), oldStatus, newStatus) > 0
+        );
     }
 
     @CommandHandler

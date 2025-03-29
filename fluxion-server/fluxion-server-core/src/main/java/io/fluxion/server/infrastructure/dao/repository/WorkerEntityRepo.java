@@ -20,6 +20,7 @@ import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -27,5 +28,5 @@ import java.util.List;
  */
 @Repository
 public interface WorkerEntityRepo extends JpaRepository<WorkerEntity, String> {
-    List<WorkerEntity> findByAppId(String appId);
+    List<WorkerEntity> findByAppIdAndStatusIn(String appId, Collection<String> statuses);
 }

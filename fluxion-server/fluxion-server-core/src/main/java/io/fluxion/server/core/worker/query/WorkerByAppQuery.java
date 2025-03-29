@@ -32,6 +32,8 @@ public class WorkerByAppQuery implements IQuery<WorkerByAppQuery.Response> {
 
     private final String appId;
 
+    private final List<Worker.Status> statuses;
+
     @Getter
     @AllArgsConstructor
     public static class Response {

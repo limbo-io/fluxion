@@ -70,6 +70,12 @@ public class ScheduleDelayEntity extends BaseEntity {
         private String scheduleId;
 
         private LocalDateTime triggerAt;
+
+        @Override
+        public String toString() {
+            return triggerAt + "_" + scheduleId;
+        }
+
     }
 
 }

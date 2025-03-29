@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,33 +14,31 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.cluster;
+package io.fluxion.server.core.worker.cmd;
+
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+import java.time.LocalDateTime;
 
 /**
  * @author Devil
- * @since 2022/7/18
  */
-public class NodeEvent<T extends Node> {
+@Getter
+@AllArgsConstructor
+public class WorkerSliceOfflineCmd implements ICmd<WorkerSliceOfflineCmd.Response> {
 
-    private final T node;
+    private LocalDateTime startTime;
 
-    private final Type type;
+    private LocalDateTime endTime;
 
-    public NodeEvent(T node, Type type) {
-        this.node = node;
-        this.type = type;
+    private int limit;
+
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private long num;
     }
 
-    public T getNode() {
-        return node;
-    }
-
-    public Type getType() {
-        return type;
-    }
-
-    public enum Type {
-        ONLINE,
-        OFFLINE
-    }
 }

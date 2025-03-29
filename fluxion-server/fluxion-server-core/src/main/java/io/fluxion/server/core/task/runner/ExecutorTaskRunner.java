@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.task.runner;
 
+import com.google.common.collect.Lists;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
@@ -57,7 +58,9 @@ public class ExecutorTaskRunner extends TaskRunner {
     public void run(Task task) {
         ExecutorTask executorTask = (ExecutorTask) task;
         Map<String, Object> attributes = new HashMap<>();
-        List<Worker> workers = Query.query(new WorkerByAppQuery(executorTask.getAppId())).getWorkers().stream()
+        List<Worker> workers = Query.query(new WorkerByAppQuery(
+                executorTask.getAppId(), Lists.newArrayList(Worker.Status.ONLINE)
+            )).getWorkers().stream()
             .filter(Worker::isEnabled)
             .collect(Collectors.toList());
         DispatchOption dispatchOption = executorTask.getDispatchOption();
