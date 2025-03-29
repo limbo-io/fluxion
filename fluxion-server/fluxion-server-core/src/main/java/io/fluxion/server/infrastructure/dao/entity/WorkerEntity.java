@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
-import io.fluxion.remote.core.constants.WorkerStatus;
+import io.fluxion.server.core.worker.Worker.Status;
 import io.fluxion.server.infrastructure.dao.TableConstants;
 import lombok.Getter;
 import lombok.Setter;
@@ -68,7 +68,7 @@ public class WorkerEntity extends BaseEntity {
     /**
      * worker节点状态
      *
-     * @see WorkerStatus
+     * @see Status
      */
     private String status;
 

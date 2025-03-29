@@ -53,7 +53,7 @@ public class ExecutableCommandService {
     @Resource
     private DistributedLock distributedLock;
 
-    private static final String LOCK_SUFFIX = "_Execution_LOCK";
+    private static final String LOCK_SUFFIX = "_Execution_Lock";
 
     @CommandHandler
     public boolean handle(ExecutableSuccessCmd cmd) {
@@ -63,17 +63,10 @@ public class ExecutableCommandService {
         }
         Execution execution = Query.query(new ExecutionByIdQuery(task.getExecutionId())).getExecution();
         Executable executable = execution.getExecutable();
-        boolean locked = false;
         String lockName = execution.getId() + LOCK_SUFFIX;
-        try {
-            distributedLock.lock(lockName, 2000, 3000);
-            locked = true;
-            return executable.success(task.getRefId(), task.getTaskId(), task.getExecutionId(), cmd.getReportAt());
-        } finally {
-            if (locked) {
-                distributedLock.unlock(lockName);
-            }
-        }
+        return distributedLock.lock(lockName, 2000, 3000,
+            () -> executable.success(task.getRefId(), task.getTaskId(), task.getExecutionId(), cmd.getReportAt())
+        );
     }
 
     @CommandHandler
@@ -86,27 +79,22 @@ public class ExecutableCommandService {
         Executable executable = execution.getExecutable();
         LocalDateTime time = cmd.getReportAt();
         RetryOption retryOption = Optional.ofNullable(executable.retryOption(task.getRefId())).orElse(new RetryOption());
-        boolean locked = false;
         String lockName = execution.getId() + LOCK_SUFFIX;
-        try {
-            distributedLock.lock(lockName, 2000, 3000);
-            locked = true;
-            if (retryOption.canRetry(task.getRetryTimes())) {
-                return Cmd.send(new TaskRetryCmd());
-            } else if (executable.skipWhenFail(task.getRefId())) {
-                return executable.success(task.getRefId(), task.getTaskId(), task.getExecutionId(), time);
-            } else {
-                boolean failed = Cmd.send(new TaskFailCmd(task.getTaskId(), time, cmd.getErrorMsg()));
-                if (!failed) {
-                    return false;
+        return distributedLock.lock(lockName, 2000, 3000,
+            () -> {
+                if (retryOption.canRetry(task.getRetryTimes())) {
+                    return Cmd.send(new TaskRetryCmd());
+                } else if (executable.skipWhenFail(task.getRefId())) {
+                    return executable.success(task.getRefId(), task.getTaskId(), task.getExecutionId(), time);
+                } else {
+                    boolean failed = Cmd.send(new TaskFailCmd(task.getTaskId(), time, cmd.getErrorMsg()));
+                    if (!failed) {
+                        return false;
+                    }
+                    return Cmd.send(new ExecutionFailCmd(task.getExecutionId(), time));
                 }
-                return Cmd.send(new ExecutionFailCmd(task.getExecutionId(), time));
             }
-        } finally {
-            if (locked) {
-                distributedLock.unlock(lockName);
-            }
-        }
+        );
     }
 
 }

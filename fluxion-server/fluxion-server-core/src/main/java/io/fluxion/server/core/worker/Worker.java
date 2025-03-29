@@ -16,8 +16,10 @@
 
 package io.fluxion.server.core.worker;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import io.fluxion.common.constants.CommonConstants;
 import io.fluxion.remote.core.constants.Protocol;
-import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
@@ -59,7 +61,7 @@ public class Worker implements LBServer, Tagged {
      */
     private WorkerMetric metric;
 
-    private WorkerStatus status;
+    private Status status;
 
     /**
      * 是否启用 不启用则无法下发任务
@@ -68,7 +70,7 @@ public class Worker implements LBServer, Tagged {
 
     public Worker(String appId, String host, int port, Protocol protocol,
                   List<WorkerExecutor> executors, Map<String, Set<String>> tags, WorkerMetric metric,
-                  WorkerStatus status, boolean enabled) {
+                  Status status, boolean enabled) {
         this.appId = appId;
         this.host = host;
         this.port = port;
@@ -92,7 +94,7 @@ public class Worker implements LBServer, Tagged {
 
     @Override
     public boolean isAlive() {
-        return WorkerStatus.RUNNING == status;
+        return Status.ONLINE == status;
     }
 
     @Override
@@ -108,5 +110,43 @@ public class Worker implements LBServer, Tagged {
     @Override
     public int port() {
         return port;
+    }
+
+    /**
+     * Worker的状态
+     */
+    public enum Status {
+
+        UNKNOWN(CommonConstants.UNKNOWN),
+
+        ONLINE("online"),
+        OFFLINE("offline"),
+
+        ;
+
+        @JsonValue
+        public final String status;
+
+        Status(String status) {
+            this.status = status;
+        }
+
+        public boolean is(String status) {
+            return this.status.equals(status);
+        }
+
+        /**
+         * 解析worker状态
+         */
+        @JsonCreator
+        public static Status parse(String status) {
+            for (Status statusEnum : values()) {
+                if (statusEnum.is(status)) {
+                    return statusEnum;
+                }
+            }
+            return UNKNOWN;
+        }
+
     }
 }

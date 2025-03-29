@@ -17,12 +17,10 @@
 package io.fluxion.server.core.broker;
 
 import com.google.common.collect.Lists;
-import io.fluxion.common.constants.CommonConstants;
 import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.server.ClientServer;
-import io.fluxion.remote.core.cluster.NodeRegistry;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.task.BucketChecker;
 import io.fluxion.server.core.broker.task.CoreTask;
@@ -49,9 +47,7 @@ public class Broker {
 
     private final BrokerNode node;
 
-    private final NodeRegistry<BrokerNode> registry;
-
-    private final BrokerManger manger;
+    private final BrokerManger brokerManger;
 
     private final Client client;
 
@@ -66,14 +62,13 @@ public class Broker {
 
     private final DelayedTaskScheduler delayedTaskScheduler;
 
-    public Broker(Protocol protocol, String host, int port, NodeRegistry<BrokerNode> registry,
-                  BrokerManger manger, ClientServer clientServer) {
+    public Broker(Protocol protocol, String host, int port, BrokerManger brokerManger,
+                  ClientServer clientServer) {
         Assert.isTrue(Protocol.UNKNOWN != protocol, "protocol is unknown");
         Assert.isTrue(StringUtils.isNotBlank(host), "host is null");
 
         this.node = new BrokerNode(protocol, host, port, 0);
-        this.registry = registry;
-        this.manger = manger;
+        this.brokerManger = brokerManger;
         this.client = ClientFactory.create(protocol);
         this.coreTasks = Lists.newArrayList(
             new ScheduleLoader(),
@@ -95,33 +90,10 @@ public class Broker {
     public void start() {
         // 初始化上下文
         BrokerContext.initialize(this);
+        // 节点管理
+        brokerManger.start();
         // 启动服务处理请求
         clientServer.start();
-        // 将自己上线管理
-        manger.online(node);
-        // 节点注册 用于集群感知
-        registry.register(node);
-        // 节点变更通知
-        registry.subscribe(event -> {
-            switch (event.getType()) {
-                case ONLINE:
-                    manger.online(event.getNode());
-                    if (log.isDebugEnabled()) {
-                        log.debug("[BrokerNodeListener] receive online evnet {}", event);
-                    }
-                    break;
-                case OFFLINE:
-                    manger.offline(event.getNode());
-                    if (log.isDebugEnabled()) {
-                        log.debug("[BrokerNodeListener] receive offline evnet {}", event);
-                    }
-                    break;
-                default:
-                    log.warn("[BrokerNodeListener] {} evnet {}", CommonConstants.UNKNOWN, event);
-                    break;
-            }
-        });
-
         // 启动核心任务
         for (CoreTask coreTask : coreTasks) {
             switch (coreTask.scheduleType()) {
@@ -141,7 +113,7 @@ public class Broker {
      * 停止
      */
     public void stop() {
-        registry.stop();
+        brokerManger.stop();
         coreThreadPool.shutdown();
         clientServer.stop();
     }

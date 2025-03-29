@@ -20,6 +20,8 @@ import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.infrastructure.dao.entity.LockEntity;
 import io.fluxion.server.infrastructure.dao.repository.LockEntityRepo;
+import io.fluxion.server.infrastructure.exception.ErrorCode;
+import io.fluxion.server.infrastructure.exception.PlatformException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import javax.transaction.Transactional;
 import java.time.temporal.ChronoUnit;
+import java.util.function.Supplier;
 
 /**
  * @author Devil
@@ -38,6 +41,32 @@ public class DatabaseDistributedLock implements DistributedLock {
 
     @Resource
     private LockEntityRepo lockEntityRepo;
+
+    @Override
+    @Transactional
+    public <T> T lock(String name, long expire, long wait, Supplier<T> supplier) {
+        long endTime = System.currentTimeMillis() + wait;
+        boolean locked = false;
+        try {
+            do {
+                if (tryLock(name, expire)) {
+                    locked = true;
+                    break;
+                }
+                Thread.sleep(50);
+            } while (System.currentTimeMillis() < endTime);
+        } catch (Exception e) {
+            log.error("[DistributedLock] lock error name:{}", name, e);
+        }
+        if (!locked) {
+            throw new PlatformException(ErrorCode.SYSTEM_ERROR, "[DistributedLock] get lock " + name + " failed");
+        }
+        try {
+            return supplier.get();
+        } finally {
+            unlock(name);
+        }
+    }
 
     @Override
     @Transactional
@@ -58,12 +87,6 @@ public class DatabaseDistributedLock implements DistributedLock {
         lock.setOwner(current);
         lock.setExpireAt(TimeUtils.currentLocalDateTime().plus(expire, ChronoUnit.MILLIS));
         return dbLock(lock);
-    }
-
-    @Override
-    @Transactional
-    public void lock(String name, long expire, long wait) {
-
     }
 
     private String owner() {

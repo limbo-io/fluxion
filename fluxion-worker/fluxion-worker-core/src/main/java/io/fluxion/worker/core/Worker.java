@@ -16,6 +16,10 @@
 
 package io.fluxion.worker.core;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import io.fluxion.common.constants.CommonConstants;
+
 /**
  * Worker 行为方法定义
  *
@@ -33,5 +37,72 @@ public interface Worker {
      * 停止当前 Worker
      */
     void stop();
+
+    /**
+     * Worker的状态
+     */
+    enum Status {
+
+        UNKNOWN(CommonConstants.UNKNOWN),
+
+        /**
+         * 闲置
+         */
+        IDLE("idle"),
+        /**
+         * 初始化中
+         */
+        INITIALIZING("initializing"),
+        /**
+         * Worker正常运行中
+         */
+        RUNNING("running"),
+
+        /**
+         * Worker熔断中，此状态的Worker无法接受作业，并将等待心跳重连并复活。
+         */
+        FUSING("fusing"),
+
+        /**
+         * 关闭中
+         */
+        TERMINATING("terminating"),
+
+        /**
+         * Worker已停止。
+         */
+        TERMINATED("terminated"),
+
+        ;
+
+        @JsonValue
+        public final String status;
+
+        Status(String status) {
+            this.status = status;
+        }
+
+        public boolean is(String status) {
+            return this.status.equals(status);
+        }
+
+        /**
+         * 解析worker状态
+         */
+        @JsonCreator
+        public static Status parse(String status) {
+            for (Status statusEnum : values()) {
+                if (statusEnum.is(status)) {
+                    return statusEnum;
+                }
+            }
+            return UNKNOWN;
+        }
+
+        public boolean isRunning() {
+            return is(RUNNING.status);
+        }
+
+    }
 
 }

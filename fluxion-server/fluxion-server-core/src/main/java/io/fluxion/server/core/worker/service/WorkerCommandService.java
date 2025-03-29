@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.worker.service;
 
-import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerSaveCmd;
@@ -100,7 +99,7 @@ public class WorkerCommandService {
                 "set status = :status " +
                 "where workerId = :workerId"
             )
-            .setParameter("status", WorkerStatus.RUNNING.status)
+            .setParameter("status", Worker.Status.ONLINE.status)
             .setParameter("workerId", cmd.getWorkerId())
             .executeUpdate();
 

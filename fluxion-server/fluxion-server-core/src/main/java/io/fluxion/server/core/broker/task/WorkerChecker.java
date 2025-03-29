@@ -36,9 +36,9 @@ import java.util.List;
  * @author Devil
  */
 @Slf4j
-public class TaskChecker extends CoreTask {
+public class WorkerChecker extends CoreTask {
 
-    public TaskChecker() {
+    public WorkerChecker() {
         super(0, ScheduleDelayConstants.LOAD_INTERVAL, ScheduleDelayConstants.LOAD_TIME_UNIT);
     }
 

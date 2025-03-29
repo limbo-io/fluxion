@@ -30,4 +30,5 @@ public interface BrokerEntityRepo extends JpaRepository<BrokerEntity, BrokerEnti
 
     List<BrokerEntity> findByLastHeartbeatBetween(LocalDateTime startTime, LocalDateTime endTime);
 
+    List<BrokerEntity> findByCreatedAtBetween(LocalDateTime startTime, LocalDateTime endTime);
 }

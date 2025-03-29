@@ -81,7 +81,8 @@ CREATE TABLE `fluxion_broker`
     `updated_at`     datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_broker` (`host`, `port`),
-    KEY `idx_last_heartbeat` (`last_heartbeat`)
+    KEY `idx_last_heartbeat` (`last_heartbeat`),
+    KEY `idx_create` (`created_at`)
 );
 
 CREATE TABLE `fluxion_bucket`

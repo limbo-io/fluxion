@@ -23,7 +23,6 @@ import io.fluxion.remote.core.api.dto.WorkerTagDTO;
 import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
-import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.server.core.broker.BrokerNode;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
@@ -56,7 +55,7 @@ public class BrokerClientConverter {
             ).collect(Collectors.toList());
         return new Worker(
             appId, request.getHost(), request.getPort(), Protocol.parse(request.getProtocol()),
-            executors, tags, metric, WorkerStatus.RUNNING, true
+            executors, tags, metric, Worker.Status.ONLINE, true
         );
     }
 

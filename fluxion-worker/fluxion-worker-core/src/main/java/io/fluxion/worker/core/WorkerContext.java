@@ -21,7 +21,6 @@ import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.client.LBClient;
 import io.fluxion.remote.core.constants.Protocol;
-import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.tracker.TaskTracker;
 import org.slf4j.Logger;
@@ -85,7 +84,7 @@ public class WorkerContext {
 
     // ========== Runtime ==========
 
-    private final AtomicReference<WorkerStatus> status;
+    private final AtomicReference<Worker.Status> status;
 
     /**
      * 当前 Worker 的所有任务存储在此 Map 中
@@ -114,7 +113,7 @@ public class WorkerContext {
         this.queueSize = queueSize;
         this.concurrency = concurrency;
         this.client = client;
-        this.status = new AtomicReference<>(WorkerStatus.IDLE);
+        this.status = new AtomicReference<>(Worker.Status.IDLE);
         this.address = host + ":" + port;
     }
 
@@ -149,11 +148,11 @@ public class WorkerContext {
      * @param update 更新值（新值）
      * @return 是否成功
      */
-    public boolean status(WorkerStatus expect, WorkerStatus update) {
+    public boolean status(Worker.Status expect, Worker.Status update) {
         return status.compareAndSet(expect, update);
     }
 
-    public WorkerStatus status() {
+    public Worker.Status status() {
         return status.get();
     }
 

@@ -21,14 +21,11 @@ import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.client.server.ClientServer;
 import io.fluxion.remote.core.client.server.ClientServerConfig;
 import io.fluxion.remote.core.client.server.ClientServerFactory;
-import io.fluxion.remote.core.cluster.NodeRegistry;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.utils.NetUtils;
 import io.fluxion.server.core.broker.Broker;
 import io.fluxion.server.core.broker.BrokerClientHandler;
 import io.fluxion.server.core.broker.BrokerManger;
-import io.fluxion.server.core.broker.BrokerNode;
-import io.fluxion.server.core.broker.DBBrokerRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.axonframework.spring.event.AxonStartedEvent;
@@ -54,9 +51,6 @@ public class BrokerConfiguration {
     private BrokerProperties brokerProperties;
 
     @Resource
-    private DBBrokerRegistry brokerRegistry;
-
-    @Resource
     private BrokerManger brokerManger;
 
     @Bean
@@ -77,15 +71,15 @@ public class BrokerConfiguration {
 
         return new BrokerStarter(
             brokerProperties.getProtocol(), host, port,
-            brokerRegistry, brokerManger, clientServer
+            brokerManger, clientServer
         );
     }
 
-    class BrokerStarter extends Broker {
+    private static class BrokerStarter extends Broker {
 
-        BrokerStarter(Protocol protocol, String host, int port, NodeRegistry<BrokerNode> registry,
-                             BrokerManger manger, ClientServer clientServer) {
-            super(protocol, host, port, registry, manger, clientServer);
+        BrokerStarter(Protocol protocol, String host, int port, BrokerManger brokerManger,
+                      ClientServer clientServer) {
+            super(protocol, host, port, brokerManger, clientServer);
         }
 
         @Override

@@ -32,6 +32,7 @@ import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -64,11 +65,7 @@ public class BucketCommandService {
 
     @CommandHandler
     public void handle(BucketRebalanceCmd cmd) {
-        boolean locked = distributedLock.tryLock(REBALANCE_LOCK, 10000);
-        if (!locked) {
-            return;
-        }
-        try {
+        distributedLock.lock(REBALANCE_LOCK, 10000, -1, (Supplier<Void>) () -> {
             String brokerId = BrokerContext.broker().id();
             List<String> brokerIds = brokerManger.allAlive().stream().map(BrokerNode::id).sorted().collect(Collectors.toList());
             List<BucketEntity> dbEntities = bucketEntityRepo.findAll();
@@ -98,9 +95,8 @@ public class BucketCommandService {
             if (CollectionUtils.isNotEmpty(entities)) {
                 bucketEntityRepo.saveAllAndFlush(entities);
             }
-        } finally {
-            distributedLock.unlock(REBALANCE_LOCK);
-        }
+            return null;
+        });
     }
 
 }

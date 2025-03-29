@@ -17,7 +17,6 @@
 package io.fluxion.server.core.worker.converter;
 
 import io.fluxion.remote.core.constants.Protocol;
-import io.fluxion.remote.core.constants.WorkerStatus;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
@@ -85,7 +84,7 @@ public class WorkerConverter {
         WorkerMetric metric = toMetric(metricEntity);
         return new Worker(
             entity.getAppId(), entity.getHost(), entity.getPort(), Protocol.parse(entity.getProtocol()),
-            executors, tags, metric, WorkerStatus.parse(entity.getStatus()), entity.isEnabled()
+            executors, tags, metric, Worker.Status.parse(entity.getStatus()), entity.isEnabled()
         );
     }
 
