@@ -20,24 +20,17 @@ import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
-import io.fluxion.server.infrastructure.dao.entity.TagEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerExecutorEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerMetricEntity;
 import io.fluxion.server.infrastructure.tag.Tag;
-import io.fluxion.server.infrastructure.tag.TagRefType;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @author Devil
@@ -79,12 +72,11 @@ public class WorkerConverter {
         if (entity == null || entity.isDeleted()) {
             return null;
         }
-        Map<String, Set<String>> workerTags = toTags(tags);
         List<WorkerExecutor> executors = toExecutors(executorEntities);
         WorkerMetric metric = toMetric(metricEntity);
         return new Worker(
             entity.getAppId(), entity.getHost(), entity.getPort(), Protocol.parse(entity.getProtocol()),
-            executors, workerTags, metric, Worker.Status.parse(entity.getStatus()), entity.isEnabled()
+            executors, tags, metric, Worker.Status.parse(entity.getStatus()), entity.isEnabled()
         );
     }
 
@@ -172,69 +164,4 @@ public class WorkerConverter {
             .collect(Collectors.toList());
     }
 
-    /**
-     * 提取 Worker 中的 tags，转为持久化对象列表
-     */
-    public static Map<String, Set<String>> toTags(List<Tag> tags) {
-        if (CollectionUtils.isEmpty(tags)) {
-            return Collections.emptyMap();
-        }
-
-        Map<String, Set<String>> tagsMap = new HashMap<>();
-        for (Tag tag : tags) {
-            Set<String> values = tagsMap.computeIfAbsent(tag.getName(), k -> new HashSet<>());
-            values.add(tag.getValue());
-        }
-        return tagsMap;
-    }
-
-    /**
-     * 提取 Worker 中的 tags，转为持久化对象列表
-     */
-    public static List<TagEntity> toTagEntities(String workerId, Worker worker) {
-        Map<String, Set<String>> tags = worker.getTags();
-        if (MapUtils.isEmpty(tags)) {
-            return Collections.emptyList();
-        }
-
-        return tags.entrySet().stream()
-            .flatMap(entry -> {
-                Set<String> values = entry.getValue();
-                if (CollectionUtils.isEmpty(values)) {
-                    return Stream.empty();
-                }
-
-                return values.stream().map(value -> {
-                    TagEntity tag = new TagEntity();
-                    tag.setId(new TagEntity.ID(
-                        TagRefType.WORKER.value,
-                        workerId,
-                        entry.getKey(),
-                        value
-                    ));
-                    return tag;
-                });
-            })
-            .collect(Collectors.toList());
-    }
-
-    public static List<Tag> toTags(Worker worker) {
-        Map<String, Set<String>> tags = worker.getTags();
-        if (MapUtils.isEmpty(tags)) {
-            return Collections.emptyList();
-        }
-
-        return tags.entrySet().stream()
-            .flatMap(entry -> {
-                Set<String> values = entry.getValue();
-                if (CollectionUtils.isEmpty(values)) {
-                    return Stream.empty();
-                }
-
-                return values.stream().map(value -> {
-                    return new Tag(entry.getKey(), value);
-                });
-            })
-            .collect(Collectors.toList());
-    }
 }

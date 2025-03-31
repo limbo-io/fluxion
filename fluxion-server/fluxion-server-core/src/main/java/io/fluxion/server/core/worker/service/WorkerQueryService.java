@@ -16,8 +16,10 @@
 
 package io.fluxion.server.core.worker.service;
 
+import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.converter.WorkerConverter;
 import io.fluxion.server.core.worker.query.WorkerByAppQuery;
+import io.fluxion.server.core.worker.query.WorkerByIdsQuery;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerExecutorEntity;
@@ -56,15 +58,25 @@ public class WorkerQueryService {
         List<WorkerEntity> workerEntities = workerEntityRepo.findByAppIdAndStatusIn(
             query.getAppId(), query.getStatuses().stream().map(s -> s.status).collect(Collectors.toList())
         );
+        return new WorkerByAppQuery.Response(convertWorkerByEntities(workerEntities));
+    }
+
+    @QueryHandler
+    public WorkerByIdsQuery.Response handle(WorkerByIdsQuery query) {
+        List<WorkerEntity> workerEntities = workerEntityRepo.findAllById(query.getIds());
+        return new WorkerByIdsQuery.Response(convertWorkerByEntities(workerEntities));
+    }
+
+    private List<Worker> convertWorkerByEntities(List<WorkerEntity> workerEntities) {
         if (CollectionUtils.isEmpty(workerEntities)) {
-            return new WorkerByAppQuery.Response(Collections.emptyList());
+            return Collections.emptyList();
         }
         List<String> workerIds = workerEntities.stream().map(WorkerEntity::getWorkerId).collect(Collectors.toList());
         List<WorkerExecutorEntity> executorEntities = workerExecutorEntityRepo.findById_WorkerIdIn(workerIds);
         Map<String, List<Tag>> refTags = Query.query(new TagsByRefsQuery(workerIds, TagRefType.WORKER)).getRefTags();
         List<WorkerMetricEntity> metricEntities = workerMetricEntityRepo.findByWorkerIdIn(workerIds);
-        return new WorkerByAppQuery.Response(
-            WorkerConverter.toWorkers(workerEntities, executorEntities, refTags, metricEntities)
-        );
+        return WorkerConverter.toWorkers(workerEntities, executorEntities, refTags, metricEntities);
     }
+
+
 }

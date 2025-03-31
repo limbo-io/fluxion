@@ -21,7 +21,7 @@ import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerExecutorDTO;
-import io.fluxion.remote.core.api.dto.WorkerTagDTO;
+import io.fluxion.remote.core.api.dto.TagDTO;
 import io.fluxion.remote.core.api.request.broker.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
 import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
@@ -187,10 +187,10 @@ public class DefaultServerDiscovery implements ServerDiscovery {
         }).collect(Collectors.toList());
     }
 
-    private List<WorkerTagDTO> tagDTOS(Map<String, Set<String>> tags) {
+    private List<TagDTO> tagDTOS(Map<String, Set<String>> tags) {
         return tags.keySet().stream()
             .flatMap(key -> tags.get(key)
-                .stream().map(value -> new WorkerTagDTO(key, value))
+                .stream().map(value -> new TagDTO(key, value))
             )
             .collect(Collectors.toList());
     }

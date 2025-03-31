@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.dao.repository;
+package io.fluxion.server.start.api.worker.request;
 
-import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.stereotype.Repository;
-
-import java.util.Collection;
-import java.util.List;
+import io.fluxion.remote.core.api.PageRequest;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * @author Devil
  */
-@Repository
-public interface WorkerEntityRepo extends JpaRepository<WorkerEntity, String>, JpaSpecificationExecutor<WorkerEntity> {
-    List<WorkerEntity> findByAppIdAndStatusIn(String appId, Collection<String> statuses);
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class WorkerPageRequest extends PageRequest {
+
+    private String appId;
 }

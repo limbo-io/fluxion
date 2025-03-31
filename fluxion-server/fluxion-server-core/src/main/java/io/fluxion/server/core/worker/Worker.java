@@ -23,12 +23,11 @@ import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
+import io.fluxion.server.infrastructure.tag.Tag;
 import io.fluxion.server.infrastructure.tag.Tagged;
 import lombok.Getter;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * @author Devil
@@ -54,7 +53,7 @@ public class Worker implements LBServer, Tagged {
     /**
      * 标签
      */
-    private Map<String, Set<String>> tags;
+    private List<Tag> tags;
 
     /**
      * Worker 状态指标
@@ -69,7 +68,7 @@ public class Worker implements LBServer, Tagged {
     private boolean enabled;
 
     public Worker(String appId, String host, int port, Protocol protocol,
-                  List<WorkerExecutor> executors, Map<String, Set<String>> tags, WorkerMetric metric,
+                  List<WorkerExecutor> executors, List<Tag> tags, WorkerMetric metric,
                   Status status, boolean enabled) {
         this.appId = appId;
         this.host = host;
@@ -88,7 +87,7 @@ public class Worker implements LBServer, Tagged {
     }
 
     @Override
-    public Map<String, Set<String>> tags() {
+    public List<Tag> tags() {
         return tags;
     }
 

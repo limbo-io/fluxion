@@ -31,7 +31,6 @@ import io.fluxion.server.infrastructure.dao.repository.WorkerExecutorEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.WorkerMetricEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
-import io.fluxion.server.infrastructure.tag.Tag;
 import io.fluxion.server.infrastructure.tag.TagRefType;
 import io.fluxion.server.infrastructure.tag.cmd.TagsSaveByRefCmd;
 import io.fluxion.server.infrastructure.utils.JpaHelper;
@@ -84,8 +83,7 @@ public class WorkerCommandService {
         }
 
         // Tags 存储
-        List<Tag> tags = WorkerConverter.toTags(worker);
-        Cmd.send(new TagsSaveByRefCmd(workerId, TagRefType.WORKER, tags));
+        Cmd.send(new TagsSaveByRefCmd(workerId, TagRefType.WORKER, worker.getTags()));
 
         return new WorkerSaveCmd.Response(worker.id());
     }

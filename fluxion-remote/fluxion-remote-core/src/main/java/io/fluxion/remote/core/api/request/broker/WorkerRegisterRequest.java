@@ -19,7 +19,7 @@ package io.fluxion.remote.core.api.request.broker;
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerExecutorDTO;
-import io.fluxion.remote.core.api.dto.WorkerTagDTO;
+import io.fluxion.remote.core.api.dto.TagDTO;
 import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
 import io.fluxion.remote.core.constants.Protocol;
 
@@ -49,7 +49,7 @@ public class WorkerRegisterRequest implements Request<WorkerRegisterResponse> {
     /**
      * worker 的标签
      */
-    private List<WorkerTagDTO> tags;
+    private List<TagDTO> tags;
 
     /**
      * 执行器
@@ -101,11 +101,11 @@ public class WorkerRegisterRequest implements Request<WorkerRegisterResponse> {
         this.systemInfo = systemInfo;
     }
 
-    public List<WorkerTagDTO> getTags() {
+    public List<TagDTO> getTags() {
         return tags;
     }
 
-    public void setTags(List<WorkerTagDTO> tags) {
+    public void setTags(List<TagDTO> tags) {
         this.tags = tags;
     }
 

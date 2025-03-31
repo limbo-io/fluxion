@@ -15,13 +15,18 @@
  */
 package io.fluxion.server.infrastructure.tag;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.Map;
-import java.util.Set;
+import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * 根据标签过滤
@@ -57,9 +62,9 @@ public class TagFilterOption {
      */
     public Predicate<Tagged> asPredicate() {
         return tagged -> {
-            Map<String, Set<String>> tags = tagged.tags();
+            List<Tag> tags = tagged.tags();
 
-            Set<String> values = tags.get(this.tagName);
+            List<Tag> values = tags.stream().filter(tag -> tag.getName().equals(this.tagName)).collect(Collectors.toList());
             switch (this.condition) {
                 case EXISTS:
                     return CollectionUtils.isNotEmpty(values);
@@ -68,14 +73,14 @@ public class TagFilterOption {
                     return CollectionUtils.isEmpty(values);
 
                 case MUST_MATCH_VALUE:
-                    return CollectionUtils.isNotEmpty(values) && values.contains(this.tagValue);
+                    return CollectionUtils.isNotEmpty(values) && values.stream().anyMatch(tag -> this.tagValue.equals(tag.getValue()));
 
                 case MUST_NOT_MATCH_VALUE:
-                    return CollectionUtils.isNotEmpty(values) && !values.contains(this.tagValue);
+                    return CollectionUtils.isNotEmpty(values) && values.stream().noneMatch(tag -> this.tagValue.equals(tag.getValue()));
 
                 case MUST_MATCH_VALUE_REGEX:
                     Pattern pattern = Pattern.compile(this.tagValue);
-                    return CollectionUtils.isNotEmpty(values) && values.stream().anyMatch(s -> pattern.matcher(s).find());
+                    return CollectionUtils.isNotEmpty(values) && values.stream().anyMatch(tag -> pattern.matcher(tag.getValue()).find());
 
                 default:
                     return false;

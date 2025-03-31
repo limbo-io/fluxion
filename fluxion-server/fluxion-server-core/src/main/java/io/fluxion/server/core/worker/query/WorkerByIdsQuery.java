@@ -14,14 +14,28 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.tag;
+package io.fluxion.server.core.worker.query;
+
+import io.fluxion.server.core.worker.Worker;
+import io.fluxion.server.infrastructure.cqrs.IQuery;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import java.util.List;
 
 /**
  * @author Devil
  */
-public interface Tagged {
+@Getter
+@AllArgsConstructor
+public class WorkerByIdsQuery implements IQuery<WorkerByIdsQuery.Response> {
 
-    List<Tag> tags();
+    private final List<String> ids;
+
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private List<Worker> workers;
+    }
+
 }

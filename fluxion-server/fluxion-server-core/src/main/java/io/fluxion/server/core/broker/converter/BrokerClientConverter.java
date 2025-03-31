@@ -19,7 +19,7 @@ package io.fluxion.server.core.broker.converter;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
-import io.fluxion.remote.core.api.dto.WorkerTagDTO;
+import io.fluxion.remote.core.api.dto.TagDTO;
 import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
@@ -27,17 +27,13 @@ import io.fluxion.server.core.broker.BrokerNode;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
+import io.fluxion.server.infrastructure.tag.Tag;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
-
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toSet;
 
 /**
  * @author Devil
@@ -46,8 +42,7 @@ public class BrokerClientConverter {
 
     public static Worker toWorker(String appId, WorkerRegisterRequest request) {
         WorkerMetric metric = toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), TimeUtils.currentLocalDateTime());
-        Map<String, Set<String>> tags = CollectionUtils.isEmpty(request.getTags()) ? Collections.emptyMap() : request.getTags().stream()
-            .collect(Collectors.groupingBy(WorkerTagDTO::getName, mapping(WorkerTagDTO::getValue, toSet())));
+        List<Tag> tags = convert(request.getTags());
         List<WorkerExecutor> executors = request.getExecutors().stream()
             .map(e -> WorkerExecutor.builder()
                 .name(e.getName())
@@ -67,6 +62,19 @@ public class BrokerClientConverter {
             availableQueueNum,
             lastHeartbeatAt
         );
+    }
+
+    public static List<Tag> convert(List<TagDTO> dtos) {
+        if (CollectionUtils.isEmpty(dtos)) {
+            return Collections.emptyList();
+        }
+        return dtos.stream()
+            .map(BrokerClientConverter::convert)
+            .collect(Collectors.toList());
+    }
+
+    public static Tag convert(TagDTO dto) {
+        return new Tag(dto.getName(), dto.getValue());
     }
 
     public static NodeDTO toDTO(Node node) {

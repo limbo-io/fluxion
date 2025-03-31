@@ -20,7 +20,7 @@ package io.fluxion.remote.core.api.dto;
  * @author PengQ
  * @since 0.0.1
  */
-public class WorkerTagDTO {
+public class TagDTO {
     /**
      * 标签 name
      */
@@ -31,10 +31,10 @@ public class WorkerTagDTO {
      */
     private String value;
 
-    public WorkerTagDTO() {
+    public TagDTO() {
     }
 
-    public WorkerTagDTO(String name, String value) {
+    public TagDTO(String name, String value) {
         this.name = name;
         this.value = value;
     }
