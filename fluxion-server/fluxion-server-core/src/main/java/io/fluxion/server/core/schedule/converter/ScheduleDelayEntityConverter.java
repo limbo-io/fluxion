@@ -58,6 +58,7 @@ public class ScheduleDelayEntityConverter {
         }
         ScheduleDelayEntity entity = new ScheduleDelayEntity();
         entity.setId(convert(delay.getId()));
+        entity.setDelayId(delay.getDelayId());
         entity.setStatus(delay.getStatus().value);
         return entity;
     }

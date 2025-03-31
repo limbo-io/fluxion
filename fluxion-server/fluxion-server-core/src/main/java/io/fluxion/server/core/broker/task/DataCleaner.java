@@ -21,13 +21,14 @@ import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 数据清理
+ * 数据清理 -- 物理删除
  *
  * todo @d later
  *
  * 1. delay_task 超过7天
  * 2. broker 超过1天
  * 3. worker 超过1天
+ * 4. lock 超过一定时间的
  *
  * @author Devil
  * @date 2025/1/9

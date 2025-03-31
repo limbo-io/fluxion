@@ -27,6 +27,7 @@ import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.transaction.Transactional;
 
 /**
  * @author Devil
@@ -38,6 +39,7 @@ public class AppCommandService {
     @Resource
     private AppEntityRepo appEntityRepo;
 
+    @Transactional
     @CommandHandler
     public AppSaveCmd.Response handle(AppSaveCmd cmd) {
         AppEntity entity = appEntityRepo.findByAppName(cmd.getAppName()).orElse(null);

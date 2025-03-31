@@ -45,6 +45,7 @@ public class IDCommandService {
     @Resource
     private IdEntityRepo idEntityRepo;
 
+    @Transactional
     @CommandHandler
     public IDGenerateCmd.Response handle(IDGenerateCmd cmd) {
         Long autoIncrId = gainRandomAutoId(cmd.getType());

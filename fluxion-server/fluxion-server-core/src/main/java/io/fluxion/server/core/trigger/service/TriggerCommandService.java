@@ -55,6 +55,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaUpdate;
 import javax.persistence.criteria.Root;
+import javax.transaction.Transactional;
 import java.util.List;
 
 /**
@@ -69,6 +70,7 @@ public class TriggerCommandService {
     @Resource
     private EntityManager entityManager;
 
+    @Transactional
     @CommandHandler
     public TriggerCreateCmd.Response handle(TriggerCreateCmd cmd) {
         String id = Cmd.send(new IDGenerateCmd(IDType.TRIGGER)).getId();
@@ -81,6 +83,7 @@ public class TriggerCommandService {
         return new TriggerCreateCmd.Response(id);
     }
 
+    @Transactional
     @CommandHandler
     public void handle(TriggerUpdateCmd cmd) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
@@ -94,6 +97,7 @@ public class TriggerCommandService {
         entityManager.createQuery(update).executeUpdate();
     }
 
+    @Transactional
     @CommandHandler
     public void handle(TriggerDraftCmd cmd) {
         TriggerEntity entity = triggerEntityRepo.findById(cmd.getId()).orElseThrow(
@@ -109,6 +113,7 @@ public class TriggerCommandService {
         }
     }
 
+    @Transactional
     @CommandHandler
     public void handle(TriggerPublishCmd cmd) {
         TriggerConfig config = cmd.getTriggerConfig();
@@ -139,7 +144,7 @@ public class TriggerCommandService {
         }
     }
 
-
+    @Transactional
     @CommandHandler
     public void handle(TriggerEnableCmd cmd) {
         Trigger trigger = findByIdWithNullError(cmd.getId(), true);
@@ -153,6 +158,7 @@ public class TriggerCommandService {
         }
     }
 
+    @Transactional
     @CommandHandler
     public void handle(TriggerDisableCmd cmd) {
         Trigger trigger = findByIdWithNullError(cmd.getId(), true);
@@ -166,6 +172,7 @@ public class TriggerCommandService {
         }
     }
 
+    @Transactional
     @CommandHandler
     public void handle(TriggerDeleteCmd cmd) {
         Trigger trigger = findByIdWithNullError(cmd.getId(), false);

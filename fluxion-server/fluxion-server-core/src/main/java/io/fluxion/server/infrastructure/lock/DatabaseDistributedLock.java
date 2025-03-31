@@ -20,6 +20,7 @@ import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.infrastructure.dao.entity.LockEntity;
 import io.fluxion.server.infrastructure.dao.repository.LockEntityRepo;
+import io.fluxion.server.infrastructure.dao.tx.TransactionService;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +28,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import javax.transaction.Transactional;
 import java.time.temporal.ChronoUnit;
 import java.util.function.Supplier;
 
@@ -42,8 +42,10 @@ public class DatabaseDistributedLock implements DistributedLock {
     @Resource
     private LockEntityRepo lockEntityRepo;
 
+    @Resource
+    private TransactionService transactionService;
+
     @Override
-    @Transactional
     public <T> T lock(String name, long expire, long wait, Supplier<T> supplier) {
         long endTime = System.currentTimeMillis() + wait;
         boolean locked = false;
@@ -69,7 +71,6 @@ public class DatabaseDistributedLock implements DistributedLock {
     }
 
     @Override
-    @Transactional
     public boolean tryLock(String name, long expire) {
         LockEntity lock = lockEntityRepo.findByName(name);
 
@@ -94,21 +95,22 @@ public class DatabaseDistributedLock implements DistributedLock {
     }
 
     private boolean dbLock(LockEntity lock) {
-        try {
-            lockEntityRepo.saveAndFlush(lock);
-            return true;
-        } catch (DataIntegrityViolationException dive) {
-            // 数据重复
-            return false;
-        } catch (Exception e) {
-            log.warn("[DistributedLock] lock failed, name = {}.", lock.getName(), e);
-            return false;
-        }
+        return transactionService.transactional(() -> {
+            try {
+                lockEntityRepo.saveAndFlush(lock);
+                return true;
+            } catch (DataIntegrityViolationException dive) {
+                // 数据重复
+                return false;
+            } catch (Exception e) {
+                log.warn("[DistributedLock] lock failed, name = {}.", lock.getName(), e);
+                return false;
+            }
+        });
     }
 
     @Override
-    @Transactional
     public boolean unlock(String name) {
-        return lockEntityRepo.deleteByNameAndOwner(name, owner()) > 0;
+        return transactionService.transactional(() -> lockEntityRepo.deleteByNameAndOwner(name, owner()) > 0);
     }
 }

@@ -24,6 +24,7 @@ import io.fluxion.server.infrastructure.dao.entity.TagEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerExecutorEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerMetricEntity;
+import io.fluxion.server.infrastructure.tag.Tag;
 import io.fluxion.server.infrastructure.tag.TagRefType;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -43,8 +44,8 @@ import java.util.stream.Stream;
  */
 public class WorkerConverter {
 
-    public static List<Worker> toWorkers(List<WorkerEntity> workerEntities, List<WorkerExecutorEntity> executorEntities, List<TagEntity> tagEntities,
-                                  List<WorkerMetricEntity> metricEntities) {
+    public static List<Worker> toWorkers(List<WorkerEntity> workerEntities, List<WorkerExecutorEntity> executorEntities, Map<String, List<Tag>> refTags,
+                                         List<WorkerMetricEntity> metricEntities) {
         if (CollectionUtils.isEmpty(workerEntities)) {
             return Collections.emptyList();
         }
@@ -53,14 +54,13 @@ public class WorkerConverter {
 
         Map<String, List<WorkerExecutorEntity>> executorEntityMap = executorEntities.stream().collect(Collectors.groupingBy(e -> e.getId().getWorkerId()));
 
-        Map<String, List<TagEntity>> tagEntityMap = tagEntities.stream().collect(Collectors.groupingBy(e -> e.getId().getRefId()));
         List<Worker> workers = new ArrayList<>();
         for (WorkerEntity workerEntity : workerEntities) {
             String workerId = workerEntity.getWorkerId();
             workers.add(toWorker(
                 workerEntity,
                 executorEntityMap.get(workerId),
-                tagEntityMap.get(workerId),
+                refTags.get(workerId),
                 metricEntityMap.get(workerId)
             ));
         }
@@ -73,18 +73,18 @@ public class WorkerConverter {
      * @param entity {@link WorkerEntity}持久化对象
      * @return {@link Worker}领域对象
      */
-    public static Worker toWorker(WorkerEntity entity, List<WorkerExecutorEntity> executorEntities, List<TagEntity> tagEntities,
+    public static Worker toWorker(WorkerEntity entity, List<WorkerExecutorEntity> executorEntities, List<Tag> tags,
                                   WorkerMetricEntity metricEntity) {
         // 已删除则不返回
         if (entity == null || entity.isDeleted()) {
             return null;
         }
-        Map<String, Set<String>> tags = toTags(tagEntities);
+        Map<String, Set<String>> workerTags = toTags(tags);
         List<WorkerExecutor> executors = toExecutors(executorEntities);
         WorkerMetric metric = toMetric(metricEntity);
         return new Worker(
             entity.getAppId(), entity.getHost(), entity.getPort(), Protocol.parse(entity.getProtocol()),
-            executors, tags, metric, Worker.Status.parse(entity.getStatus()), entity.isEnabled()
+            executors, workerTags, metric, Worker.Status.parse(entity.getStatus()), entity.isEnabled()
         );
     }
 
@@ -175,15 +175,15 @@ public class WorkerConverter {
     /**
      * 提取 Worker 中的 tags，转为持久化对象列表
      */
-    public static Map<String, Set<String>> toTags(List<TagEntity> tags) {
+    public static Map<String, Set<String>> toTags(List<Tag> tags) {
         if (CollectionUtils.isEmpty(tags)) {
             return Collections.emptyMap();
         }
 
         Map<String, Set<String>> tagsMap = new HashMap<>();
-        for (TagEntity tag : tags) {
-            Set<String> values = tagsMap.computeIfAbsent(tag.getId().getTagName(), k -> new HashSet<>());
-            values.add(tag.getId().getTagValue());
+        for (Tag tag : tags) {
+            Set<String> values = tagsMap.computeIfAbsent(tag.getName(), k -> new HashSet<>());
+            values.add(tag.getValue());
         }
         return tagsMap;
     }
@@ -213,6 +213,26 @@ public class WorkerConverter {
                         value
                     ));
                     return tag;
+                });
+            })
+            .collect(Collectors.toList());
+    }
+
+    public static List<Tag> toTags(Worker worker) {
+        Map<String, Set<String>> tags = worker.getTags();
+        if (MapUtils.isEmpty(tags)) {
+            return Collections.emptyList();
+        }
+
+        return tags.entrySet().stream()
+            .flatMap(entry -> {
+                Set<String> values = entry.getValue();
+                if (CollectionUtils.isEmpty(values)) {
+                    return Stream.empty();
+                }
+
+                return values.stream().map(value -> {
+                    return new Tag(entry.getKey(), value);
                 });
             })
             .collect(Collectors.toList());

@@ -49,6 +49,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
@@ -78,12 +79,13 @@ public class ScheduleDelayCommandService {
             return;
         }
         for (ScheduleDelayEntity entity : entities) {
-            int bucket = Cmd.send(new BucketAllotCmd(entity.getId().toString())).getBucket();
+            int bucket = Cmd.send(new BucketAllotCmd(entity.getDelayId())).getBucket();
             entity.setBucket(bucket);
         }
         scheduleDelayEntityRepo.saveAllAndFlush(entities);
     }
 
+    @Transactional
     @CommandHandler
     public void handle(ScheduleDelaysLoadCmd cmd) {
         List<ScheduleDelay> delays = cmd.getDelays();
@@ -95,10 +97,8 @@ public class ScheduleDelayCommandService {
             .map(ScheduleDelay::getId)
             .collect(Collectors.toList());
 
-        changeDelayStatus(delayIds, ScheduleDelay.Status.INIT, ScheduleDelay.Status.LOADED);
-
         for (ScheduleDelay.ID delayId : delayIds) {
-            // 加载到内存 todo ! 加载到内存，但是宕机了状态无法修改
+            // 加载到内存
             String scheduleId = delayId.getScheduleId();
             DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
             delayedTaskScheduler.schedule(DelayedTaskFactory.create(
@@ -114,7 +114,7 @@ public class ScheduleDelayCommandService {
             // 移除不需要调度的
             Trigger trigger = Query.query(new TriggerByIdQuery(scheduleId)).getTrigger();
             if (!trigger.isEnabled()) {
-                changeDelayStatus(delayId, ScheduleDelay.Status.LOADED, ScheduleDelay.Status.INVALID);
+                changeDelayStatus(delayId, ScheduleDelay.Status.INIT, ScheduleDelay.Status.INVALID);
                 task.stop();
                 log.info("Trigger is not enabled id:{}", scheduleId);
                 return;
@@ -124,7 +124,7 @@ public class ScheduleDelayCommandService {
             String brokerId = BrokerContext.broker().id();
             List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
             if (!buckets.contains(entity.getBucket())
-                || !changeDelayStatus(delayId, ScheduleDelay.Status.LOADED, ScheduleDelay.Status.RUNNING)) {
+                || !changeDelayStatus(delayId, ScheduleDelay.Status.INIT, ScheduleDelay.Status.RUNNING)) {
                 task.stop();
                 log.info("ScheduleDelay is not schedule by current broker scheduleId:{} brokerId:{} bucket:{}",
                     scheduleId, brokerId, entity.getBucket()
@@ -170,6 +170,7 @@ public class ScheduleDelayCommandService {
         );
     }
 
+    @Transactional
     @CommandHandler
     public void handle(ScheduleDelayDeleteByScheduleCmd cmd) {
         entityManager.createQuery("update ScheduleDelayEntity " +

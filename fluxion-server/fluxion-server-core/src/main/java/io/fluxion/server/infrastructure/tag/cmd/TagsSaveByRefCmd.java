@@ -14,19 +14,34 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.dao.repository;
+package io.fluxion.server.infrastructure.tag.cmd;
 
-import io.fluxion.server.infrastructure.dao.entity.BrokerEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.fluxion.server.infrastructure.tag.Tag;
+import io.fluxion.server.infrastructure.tag.TagRefType;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
+ * 使用新的 tag 列表替换Ref的tag
+ *
  * @author Devil
- * @since 2022/7/18
  */
-public interface BrokerEntityRepo extends JpaRepository<BrokerEntity, BrokerEntity.ID> {
+@Getter
+@AllArgsConstructor
+public class TagsSaveByRefCmd implements ICmd<Void> {
 
-    List<BrokerEntity> findByLastHeartbeatAtBetween(LocalDateTime startTime, LocalDateTime endTime);
+    /**
+     * 关联的数据ID
+     */
+    private final String refId;
+    /**
+     * 关联的数据类型
+     */
+    private final TagRefType refType;
+
+    private final List<Tag> tags;
+
 }

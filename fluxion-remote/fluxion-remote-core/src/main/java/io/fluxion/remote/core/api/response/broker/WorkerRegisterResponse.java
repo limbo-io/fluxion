@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.api.response.broker;
 
 import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
+import io.fluxion.remote.core.api.dto.NodeDTO;
 
 /**
  * @author PengQ
@@ -33,10 +34,20 @@ public class WorkerRegisterResponse {
      */
     private String workerId;
 
+    private NodeDTO broker;
+
     /**
      * broker拓扑信息
      */
     private BrokerTopologyDTO brokerTopology;
+
+    public NodeDTO getBroker() {
+        return broker;
+    }
+
+    public void setBroker(NodeDTO broker) {
+        this.broker = broker;
+    }
 
     public String getAppId() {
         return appId;

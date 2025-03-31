@@ -19,6 +19,8 @@ package io.fluxion.server.core.schedule;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.fluxion.common.constants.CommonConstants;
+import io.fluxion.common.utils.time.Formatters;
+import io.fluxion.common.utils.time.LocalDateTimeUtils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -29,15 +31,22 @@ import java.time.LocalDateTime;
  *
  * @author Devil
  */
-@AllArgsConstructor
 @Getter
 public class ScheduleDelay {
 
-    private ID id;
+    private final ID id;
+
+    private final String delayId;
 
     private Status status;
 
     public void status(Status status) {
+        this.status = status;
+    }
+
+    public ScheduleDelay(ID id, Status status) {
+        this.id = id;
+        this.delayId = id.getScheduleId() + "_" + LocalDateTimeUtils.format(id.getTriggerAt(), Formatters.YMD_HMS_SSS);
         this.status = status;
     }
 
@@ -53,11 +62,6 @@ public class ScheduleDelay {
          */
         private LocalDateTime triggerAt;
 
-        @Override
-        public String toString() {
-            return triggerAt + "_" + scheduleId;
-        }
-
     }
 
     public enum Status {
@@ -66,10 +70,6 @@ public class ScheduleDelay {
          * 刚创建
          */
         INIT("init"),
-        /**
-         * 已经加载 待内存调度
-         */
-        LOADED("loaded"),
         /**
          * 运行中
          */

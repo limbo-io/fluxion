@@ -38,6 +38,7 @@ import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dag.DAG;
 import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -103,6 +104,7 @@ public class Workflow implements Executable {
     @Override
     public boolean success(String nodeId, String taskId, String executionId, LocalDateTime time) {
         Boolean success = Cmd.send(new TaskSuccessCmd(taskId, time));
+//        System.out.println("====" + TransactionSynchronizationManager.isActualTransactionActive());
         if (!success) {
             return false;
         }
@@ -122,6 +124,7 @@ public class Workflow implements Executable {
         if (CollectionUtils.isEmpty(continueNodes)) {
             return true;
         }
+        System.out.println("continueNodes " + continueNodes);
         createAndScheduleTasks(executionId, continueNodes);
         return true;
     }
@@ -146,6 +149,7 @@ public class Workflow implements Executable {
     }
 
     private boolean preNodesSuccess(String executionId, List<WorkflowNode> preNodes) {
+        System.out.println(executionId + " " +preNodes );
         if (CollectionUtils.isEmpty(preNodes)) {
             return true; // 没有前置节点，只有start节点才会有
         }

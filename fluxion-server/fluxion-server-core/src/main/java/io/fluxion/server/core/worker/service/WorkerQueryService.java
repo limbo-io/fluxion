@@ -18,15 +18,16 @@ package io.fluxion.server.core.worker.service;
 
 import io.fluxion.server.core.worker.converter.WorkerConverter;
 import io.fluxion.server.core.worker.query.WorkerByAppQuery;
-import io.fluxion.server.infrastructure.dao.entity.TagEntity;
+import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerExecutorEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerMetricEntity;
-import io.fluxion.server.infrastructure.dao.repository.TagEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.WorkerEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.WorkerExecutorEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.WorkerMetricEntityRepo;
+import io.fluxion.server.infrastructure.tag.Tag;
 import io.fluxion.server.infrastructure.tag.TagRefType;
+import io.fluxion.server.infrastructure.tag.query.TagsByRefsQuery;
 import org.apache.commons.collections4.CollectionUtils;
 import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -48,8 +50,6 @@ public class WorkerQueryService {
     private WorkerExecutorEntityRepo workerExecutorEntityRepo;
     @Resource
     private WorkerMetricEntityRepo workerMetricEntityRepo;
-    @Resource
-    private TagEntityRepo tagEntityRepo;
 
     @QueryHandler
     public WorkerByAppQuery.Response handle(WorkerByAppQuery query) {
@@ -61,10 +61,10 @@ public class WorkerQueryService {
         }
         List<String> workerIds = workerEntities.stream().map(WorkerEntity::getWorkerId).collect(Collectors.toList());
         List<WorkerExecutorEntity> executorEntities = workerExecutorEntityRepo.findById_WorkerIdIn(workerIds);
-        List<TagEntity> tagEntities = tagEntityRepo.findById_RefIdInAndId_RefType(workerIds, TagRefType.WORKER.value);
+        Map<String, List<Tag>> refTags = Query.query(new TagsByRefsQuery(workerIds, TagRefType.WORKER)).getRefTags();
         List<WorkerMetricEntity> metricEntities = workerMetricEntityRepo.findByWorkerIdIn(workerIds);
         return new WorkerByAppQuery.Response(
-            WorkerConverter.toWorkers(workerEntities, executorEntities, tagEntities, metricEntities)
+            WorkerConverter.toWorkers(workerEntities, executorEntities, refTags, metricEntities)
         );
     }
 }

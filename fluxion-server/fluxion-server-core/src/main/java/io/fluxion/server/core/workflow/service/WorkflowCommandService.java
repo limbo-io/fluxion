@@ -43,6 +43,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaUpdate;
 import javax.persistence.criteria.Root;
+import javax.transaction.Transactional;
 import java.util.List;
 
 /**
@@ -57,6 +58,7 @@ public class WorkflowCommandService {
     @Resource
     private EntityManager entityManager;
 
+    @Transactional
     @CommandHandler
     public WorkflowCreateCmd.Response handle(WorkflowCreateCmd cmd) {
         String id = Cmd.send(new IDGenerateCmd(IDType.WORKFLOW)).getId();
@@ -68,6 +70,7 @@ public class WorkflowCommandService {
         return new WorkflowCreateCmd.Response(id);
     }
 
+    @Transactional
     @CommandHandler
     public WorkflowDraftCmd.Response handle(WorkflowDraftCmd cmd) {
         WorkflowEntity entity = workflowEntityRepo.findById(cmd.getId()).orElseThrow(
@@ -84,6 +87,7 @@ public class WorkflowCommandService {
         return new WorkflowDraftCmd.Response(entity.getDraftVersion());
     }
 
+    @Transactional
     @CommandHandler
     public WorkflowPublishCmd.Response handle(WorkflowPublishCmd cmd) {
         WorkflowEntity entity = workflowEntityRepo.findById(cmd.getId()).orElseThrow(
@@ -102,6 +106,7 @@ public class WorkflowCommandService {
         return new WorkflowPublishCmd.Response(publishVersion, null);
     }
 
+    @Transactional
     @CommandHandler
     public void handle(WorkflowUpdateCmd cmd) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
@@ -116,6 +121,7 @@ public class WorkflowCommandService {
         entityManager.createQuery(update).executeUpdate();
     }
 
+    @Transactional
     @CommandHandler
     public void handle(WorkflowDeleteCmd cmd) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();

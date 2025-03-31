@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -55,6 +56,7 @@ public class VersionCommandService {
         REF_GENERATE_TYPES.put(VersionRefType.TRIGGER, VersionGenerateType.INCR);
     }
 
+    @Transactional
     @CommandHandler
     public VersionSaveCmd.Response handle(VersionSaveCmd cmd) {
         Version.ID id = cmd.getId();

@@ -46,6 +46,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +64,7 @@ public class ScheduleCommandService {
     @Resource
     private EntityManager entityManager;
 
+    @Transactional
     @CommandHandler
     public void handle(ScheduleSaveCmd cmd) {
         Schedule newSchedule = new Schedule();
@@ -89,21 +91,23 @@ public class ScheduleCommandService {
         // 判断版本是否变化 变化就要先删delay(等待状态) 后创建新的并调度
         if (oldSchedule == null || !newSchedule.version().equals(oldSchedule.version())) {
             Cmd.send(new ScheduleDelayDeleteByScheduleCmd(newSchedule.getId(), Lists.newArrayList(
-                ScheduleDelay.Status.INIT, ScheduleDelay.Status.LOADED
+                ScheduleDelay.Status.INIT
             )));
             Cmd.send(new ScheduleTriggerCmd(newSchedule));
         }
     }
 
+    @Transactional
     @CommandHandler
     public void handle(ScheduleDeleteCmd cmd) {
         scheduleEntityRepo.deleteById(cmd.getId()); // 软删除 交由 DataCleaner 删除
         // 删除 未运行的 delay
         Cmd.send(new ScheduleDelayDeleteByScheduleCmd(cmd.getId(), Lists.newArrayList(
-            ScheduleDelay.Status.INIT, ScheduleDelay.Status.LOADED
+            ScheduleDelay.Status.INIT
         )));
     }
 
+    @Transactional
     @CommandHandler
     public void handle(ScheduleEnableCmd cmd) {
         scheduleEntityRepo.updateEnable(cmd.getId(), true);
@@ -112,12 +116,14 @@ public class ScheduleCommandService {
         Cmd.send(new ScheduleTriggerCmd(schedule));
     }
 
+    @Transactional
     @CommandHandler
     public void handle(ScheduleDisableCmd cmd) {
         scheduleEntityRepo.updateEnable(cmd.getId(), false);
         // 可以不删，不然开关会比较重
     }
 
+    @Transactional
     @CommandHandler
     public void handle(ScheduleTriggerCmd cmd) {
         Schedule schedule = cmd.getSchedule();
@@ -141,6 +147,7 @@ public class ScheduleCommandService {
             }
             ScheduleDelay delay = new ScheduleDelay(
                 new ScheduleDelay.ID(schedule.getId(), nextTriggerAt),
+
                 ScheduleDelay.Status.INIT
             );
             delays.add(delay);
@@ -190,6 +197,7 @@ public class ScheduleCommandService {
         return true;
     }
 
+    @Transactional
     @CommandHandler
     public void handle(ScheduleFeedbackCmd cmd) {
         Schedule schedule = cmd.getSchedule();

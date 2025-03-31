@@ -29,6 +29,7 @@ import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.TaskEntity;
 import io.fluxion.server.infrastructure.dao.repository.TaskEntityRepo;
+import io.fluxion.server.infrastructure.dao.tx.TransactionService;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
 import io.fluxion.server.infrastructure.lock.DistributedLock;
@@ -53,35 +54,36 @@ public class ExecutableCommandService {
     @Resource
     private DistributedLock distributedLock;
 
+    @Resource
+    private TransactionService transactionService;
+
     private static final String LOCK_SUFFIX = "_Execution_Lock";
 
     @CommandHandler
     public boolean handle(ExecutableSuccessCmd cmd) {
-        TaskEntity task = taskEntityRepo.findById(cmd.getTaskId()).orElse(null);
-        if (task == null) {
-            throw new PlatformException(ErrorCode.PARAM_ERROR, "task not found io:" + cmd.getTaskId());
-        }
+        TaskEntity task = taskEntityRepo.findById(cmd.getTaskId())
+            .orElseThrow(PlatformException.supplier(ErrorCode.PARAM_ERROR, "task not found io:" + cmd.getTaskId()));
         Execution execution = Query.query(new ExecutionByIdQuery(task.getExecutionId())).getExecution();
         Executable executable = execution.getExecutable();
         String lockName = execution.getId() + LOCK_SUFFIX;
         return distributedLock.lock(lockName, 2000, 3000,
-            () -> executable.success(task.getRefId(), task.getTaskId(), task.getExecutionId(), cmd.getReportAt())
+            () -> transactionService.transactional(() ->
+                executable.success(task.getRefId(), task.getTaskId(), task.getExecutionId(), cmd.getReportAt())
+            )
         );
     }
 
     @CommandHandler
     public boolean handle(ExecutableFailCmd cmd) {
-        TaskEntity task = taskEntityRepo.findById(cmd.getTaskId()).orElse(null);
-        if (task == null) {
-            throw new PlatformException(ErrorCode.PARAM_ERROR, "task not found io:" + cmd.getTaskId());
-        }
+        TaskEntity task = taskEntityRepo.findById(cmd.getTaskId())
+            .orElseThrow(PlatformException.supplier(ErrorCode.PARAM_ERROR, "task not found io:" + cmd.getTaskId()));
         Execution execution = Query.query(new ExecutionByIdQuery(task.getExecutionId())).getExecution();
         Executable executable = execution.getExecutable();
         LocalDateTime time = cmd.getReportAt();
         RetryOption retryOption = Optional.ofNullable(executable.retryOption(task.getRefId())).orElse(new RetryOption());
         String lockName = execution.getId() + LOCK_SUFFIX;
         return distributedLock.lock(lockName, 2000, 3000,
-            () -> {
+            () -> transactionService.transactional(() -> {
                 if (retryOption.canRetry(task.getRetryTimes())) {
                     return Cmd.send(new TaskRetryCmd());
                 } else if (executable.skipWhenFail(task.getRefId())) {
@@ -93,7 +95,7 @@ public class ExecutableCommandService {
                     }
                     return Cmd.send(new ExecutionFailCmd(task.getExecutionId(), time));
                 }
-            }
+            })
         );
     }
 

@@ -40,6 +40,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 
 /**
@@ -55,6 +56,7 @@ public class ExecutionCommandService {
     @Resource
     private EntityManager entityManager;
 
+    @Transactional
     @CommandHandler
     public ExecutionCreateCmd.Response handle(ExecutionCreateCmd cmd) {
         Executable executable = cmd.getExecutable();
@@ -76,6 +78,7 @@ public class ExecutionCommandService {
         return new ExecutionCreateCmd.Response(execution);
     }
 
+    @Transactional
     @CommandHandler
     public void handle(ExecutionRunningCmd cmd) {
         entityManager.createQuery("update ExecutionEntity " +
@@ -89,6 +92,7 @@ public class ExecutionCommandService {
             .executeUpdate();
     }
 
+    @Transactional
     @CommandHandler
     public boolean handle(ExecutionSuccessCmd cmd) {
         boolean finished = updateToFinish(cmd.getExecutionId(), ExecutionStatus.SUCCEED, cmd.getEndAt());
@@ -100,6 +104,7 @@ public class ExecutionCommandService {
         return true;
     }
 
+    @Transactional
     @CommandHandler
     public boolean handle(ExecutionFailCmd cmd) {
         boolean finished = updateToFinish(cmd.getExecutionId(), ExecutionStatus.FAILED, cmd.getEndAt());

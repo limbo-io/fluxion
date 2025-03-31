@@ -37,6 +37,8 @@ public class ScheduleDelayNextTriggerQuery implements IQuery<ScheduleDelayNextTr
 
     private int limit;
 
+    private String lastDelayId;
+
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor

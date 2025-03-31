@@ -20,13 +20,14 @@ import io.fluxion.server.infrastructure.dao.entity.TagEntity;
 import io.fluxion.server.infrastructure.dao.repository.TagEntityRepo;
 import io.fluxion.server.infrastructure.tag.Tag;
 import io.fluxion.server.infrastructure.tag.TagRefType;
-import io.fluxion.server.infrastructure.tag.cmd.TagBatchSaveCmd;
+import io.fluxion.server.infrastructure.tag.cmd.TagsSaveByRefCmd;
 import io.fluxion.server.infrastructure.tag.cmd.TagCreateCmd;
 import org.apache.commons.collections4.CollectionUtils;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.transaction.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,14 +40,16 @@ public class TagCommandService {
     @Resource
     private TagEntityRepo tagEntityRepo;
 
+    @Transactional
     @CommandHandler
     public void handle(TagCreateCmd cmd) {
         TagEntity entity = toEntity(cmd.getRefId(), cmd.getRefType(), cmd.getTag());
         tagEntityRepo.saveAndFlush(entity);
     }
 
+    @Transactional
     @CommandHandler
-    public void handle(TagBatchSaveCmd cmd) {
+    public void handle(TagsSaveByRefCmd cmd) {
         String refId = cmd.getRefId();
         TagRefType refType = cmd.getRefType();
         tagEntityRepo.deleteById_RefIdAndId_RefType(refId, refType.value);

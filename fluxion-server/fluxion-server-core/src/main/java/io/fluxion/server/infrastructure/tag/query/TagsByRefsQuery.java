@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,34 +14,37 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.tag.cmd;
+package io.fluxion.server.infrastructure.tag.query;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.fluxion.server.infrastructure.cqrs.IQuery;
 import io.fluxion.server.infrastructure.tag.Tag;
 import io.fluxion.server.infrastructure.tag.TagRefType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.List;
+import java.util.Map;
 
 /**
- * 使用新的 tag 列表替换Ref的tag
- *
  * @author Devil
  */
 @Getter
 @AllArgsConstructor
-public class TagBatchSaveCmd implements ICmd<Void> {
+public class TagsByRefsQuery implements IQuery<TagsByRefsQuery.Response> {
 
     /**
      * 关联的数据ID
      */
-    private final String refId;
+    private final List<String> refIds;
     /**
      * 关联的数据类型
      */
     private final TagRefType refType;
 
-    private final List<Tag> tags;
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private Map<String, List<Tag>> refTags;
+    }
 
 }

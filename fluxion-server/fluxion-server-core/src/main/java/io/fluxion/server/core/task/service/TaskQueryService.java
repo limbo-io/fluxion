@@ -20,8 +20,11 @@ import io.fluxion.server.core.task.query.TaskCountByStatusQuery;
 import io.fluxion.server.infrastructure.dao.repository.TaskEntityRepo;
 import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.annotation.Resource;
+import javax.persistence.EntityManager;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 /**
@@ -33,11 +36,19 @@ public class TaskQueryService {
     @Resource
     private TaskEntityRepo taskEntityRepo;
 
+    @Resource
+    private EntityManager entityManager;
+
     @QueryHandler
     public TaskCountByStatusQuery.Response handle(TaskCountByStatusQuery query) {
         long count = taskEntityRepo.countByExecutionIdAndRefIdInAndStatusIn(
             query.getExecutionId(), query.getRefIds(), query.getStatuses().stream().map(s -> s.value).collect(Collectors.toList())
         );
+        for (String refId : query.getRefIds()) {
+            System.out.println(refId + " " + taskEntityRepo.countByExecutionIdAndRefIdInAndStatusIn(
+                query.getExecutionId(), Collections.singletonList(refId), query.getStatuses().stream().map(s -> s.value).collect(Collectors.toList())
+            ));
+        }
         return new TaskCountByStatusQuery.Response(count);
     }
 }

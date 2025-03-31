@@ -26,11 +26,15 @@ import io.fluxion.remote.core.api.request.broker.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
 import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
 import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
+import io.fluxion.remote.core.client.Client;
+import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.LBClient;
+import io.fluxion.remote.core.client.RetryableClient;
 import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.exception.RpcException;
+import io.fluxion.remote.core.heartbeat.Heartbeat;
 import io.fluxion.remote.core.heartbeat.HeartbeatPacemaker;
 import io.fluxion.remote.core.lb.BaseLBServer;
 import io.fluxion.remote.core.lb.LBServer;
@@ -75,18 +79,21 @@ public class DefaultServerDiscovery implements ServerDiscovery {
     /**
      * manage heartbeat
      */
-    private HeartbeatPacemaker heartbeatPacemaker;
+    private final HeartbeatPacemaker heartbeatPacemaker;
+
+    private Node heartbeatBroker;
 
     public DefaultServerDiscovery(WorkerContext workerContext, LBClient client, LBServerRepository repository) {
         this.repository = repository;
         this.workerContext = workerContext;
         this.client = client;
+        this.heartbeatPacemaker = new HeartbeatPacemaker(new WorkerHeartbeat(), Duration.ofSeconds(HEARTBEAT_TIMEOUT_SECOND));
     }
 
     @Override
     public void start() {
         register();
-        startHeartbeat();
+        this.heartbeatPacemaker.start();
     }
 
     private void register() {
@@ -104,24 +111,39 @@ public class DefaultServerDiscovery implements ServerDiscovery {
         workerContext.appId(registerResponse.getAppId());
         repository.updateServers(brokers(registerResponse.getBrokerTopology()));
         topologyVersion = registerResponse.getBrokerTopology().getVersion();
+        heartbeatBroker = node(registerResponse.getBroker());
     }
 
-    private void startHeartbeat() {
-        this.heartbeatPacemaker = new HeartbeatPacemaker(() -> {
+    class WorkerHeartbeat implements Heartbeat {
+
+        private final Client client;
+
+        public WorkerHeartbeat() {
+            this.client = RetryableClient.builder()
+                .client(ClientFactory.create(workerContext.protocol()))
+                .build();
+        }
+
+        @Override
+        public void beat() {
             try {
+                String version = topologyVersion;
+                if (repository.listAliveServers().isEmpty()) {
+                    version = null;
+                }
                 WorkerHeartbeatRequest request = new WorkerHeartbeatRequest();
                 request.setAppId(workerContext.appId());
                 request.setWorkerId(workerContext.address());
                 request.setSystemInfo(systemInfoDTO());
-                request.setTopologyVersion(topologyVersion);
+                request.setTopologyVersion(version);
                 request.setHeartbeatAt(TimeUtils.currentLocalDateTime());
                 request.setAvailableQueueNum(workerContext.availableQueueNum());
 
                 WorkerHeartbeatResponse heartbeatResponse = client.call(
-                    API_WORKER_HEARTBEAT, request
+                    API_WORKER_HEARTBEAT, heartbeatBroker.host(), heartbeatBroker.port(), request
                 ).getData();
                 BrokerTopologyDTO brokerTopology = heartbeatResponse.getBrokerTopology();
-                if (!topologyVersion.equals(brokerTopology.getVersion())) {
+                if (!brokerTopology.getVersion().equals(version)) {
                     repository.updateServers(brokers(brokerTopology));
                     topologyVersion = brokerTopology.getVersion();
                 }
@@ -130,7 +152,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
                 // 换新broker节点重新注册
                 register();
             }
-        }, Duration.ofSeconds(HEARTBEAT_TIMEOUT_SECOND));
+        }
     }
 
     private List<WorkerExecutorDTO> executorDTOS(WorkerContext workerContext) {
@@ -177,4 +199,5 @@ public class DefaultServerDiscovery implements ServerDiscovery {
     public void stop() {
         heartbeatPacemaker.stop();
     }
+
 }

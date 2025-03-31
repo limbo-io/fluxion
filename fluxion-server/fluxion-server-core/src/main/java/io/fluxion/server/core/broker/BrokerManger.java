@@ -19,7 +19,6 @@ package io.fluxion.server.core.broker;
 import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.common.utils.MD5Utils;
 import io.fluxion.common.utils.time.Formatters;
-import io.fluxion.common.utils.time.LocalDateTimeUtils;
 import io.fluxion.common.utils.time.LocalTimeUtils;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.Protocol;
@@ -192,7 +191,7 @@ public class BrokerManger {
 
         private static final String TASK_NAME = "[NodeOnlineCheckTask]";
 
-        LocalDateTime lastCheckAt = LocalDateTimeUtils.parse("2000-01-01 00:00:00", Formatters.YMD_HMS);
+        LocalDateTime lastCheckAt = TimeUtils.currentLocalDateTime().plusSeconds(-heartbeatTimeout.getSeconds());
 
         @Override
         public void run() {
@@ -202,14 +201,9 @@ public class BrokerManger {
                 if (log.isDebugEnabled()) {
                     log.info("{} checkOnline start:{} end:{}", TASK_NAME, LocalTimeUtils.format(startTime, Formatters.YMD_HMS), LocalTimeUtils.format(endTime, Formatters.YMD_HMS));
                 }
-                List<BrokerEntity> onlineBrokers = brokerEntityRepo.findByCreatedAtBetween(startTime, endTime);
+                List<BrokerEntity> onlineBrokers = brokerEntityRepo.findByLastHeartbeatAtBetween(startTime, endTime);
                 if (CollectionUtils.isNotEmpty(onlineBrokers)) {
                     for (BrokerEntity entity : onlineBrokers) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("{} find online broker id: {}, lastHeartbeat:{}",
-                                TASK_NAME, entity.getId(), LocalTimeUtils.format(entity.getLastHeartbeatAt(), Formatters.YMD_HMS)
-                            );
-                        }
                         online(node(entity));
                     }
                 }
@@ -238,11 +232,6 @@ public class BrokerManger {
                 List<BrokerEntity> offlineBrokers = brokerEntityRepo.findByLastHeartbeatAtBetween(startTime, endTime);
                 if (CollectionUtils.isNotEmpty(offlineBrokers)) {
                     for (BrokerEntity entity : offlineBrokers) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("{} find offline broker id: {}, lastHeartbeat:{}",
-                                TASK_NAME, entity.getId(), LocalTimeUtils.format(entity.getLastHeartbeatAt(), Formatters.YMD_HMS)
-                            );
-                        }
                         offline(node(entity));
                     }
                 }

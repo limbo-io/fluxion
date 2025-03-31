@@ -42,6 +42,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
+import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -62,6 +63,7 @@ public class TaskCommandService {
     @Resource
     private EntityManager entityManager;
 
+    @Transactional
     @CommandHandler
     public void handle(TasksCreateCmd cmd) {
         List<Task> tasks = new ArrayList<>();
@@ -104,6 +106,7 @@ public class TaskCommandService {
         taskRunner.run(task);
     }
 
+    @Transactional
     @CommandHandler
     public boolean handle(TaskDispatchedCmd cmd) {
         TaskEntity entity = taskEntityRepo.findById(cmd.getTaskId()).orElse(null);
@@ -124,6 +127,7 @@ public class TaskCommandService {
         return updated > 0;
     }
 
+    @Transactional
     @CommandHandler
     public boolean handle(TaskStartCmd cmd) {
         StringBuilder sqlSb = new StringBuilder("update TaskEntity ");
@@ -152,6 +156,7 @@ public class TaskCommandService {
         return updated > 0;
     }
 
+    @Transactional
     @CommandHandler
     public boolean handle(TaskReportCmd cmd) {
         int updated = entityManager.createQuery("update TaskEntity " +
@@ -167,6 +172,7 @@ public class TaskCommandService {
         return updated > 0;
     }
 
+    @Transactional
     @CommandHandler
     public boolean handle(TaskSuccessCmd cmd) {
         TaskEntity entity = taskEntityRepo.findById(cmd.getTaskId()).orElse(null);
@@ -190,6 +196,7 @@ public class TaskCommandService {
         return true;
     }
 
+    @Transactional
     @CommandHandler
     public boolean handle(TaskFailCmd cmd) {
         TaskEntity entity = taskEntityRepo.findById(cmd.getTaskId()).orElse(null);

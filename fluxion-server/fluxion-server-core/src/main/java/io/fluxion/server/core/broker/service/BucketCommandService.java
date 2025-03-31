@@ -29,6 +29,7 @@ import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -63,6 +64,7 @@ public class BucketCommandService {
         return new BucketAllotCmd.Response(bucket);
     }
 
+    @Transactional
     @CommandHandler
     public void handle(BucketRebalanceCmd cmd) {
         distributedLock.lock(REBALANCE_LOCK, 10000, -1, (Supplier<Void>) () -> {

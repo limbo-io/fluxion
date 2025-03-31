@@ -47,6 +47,8 @@ public class ScheduleDelayEntity extends BaseEntity {
     @EmbeddedId
     private ID id;
 
+    private String delayId;
+
     private Integer bucket;
 
     /**
@@ -70,11 +72,6 @@ public class ScheduleDelayEntity extends BaseEntity {
         private String scheduleId;
 
         private LocalDateTime triggerAt;
-
-        @Override
-        public String toString() {
-            return triggerAt + "_" + scheduleId;
-        }
 
     }
 

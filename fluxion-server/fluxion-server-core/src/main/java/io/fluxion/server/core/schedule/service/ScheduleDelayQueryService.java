@@ -27,11 +27,13 @@ import io.fluxion.server.core.schedule.query.ScheduleDelayNextTriggerQuery;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
+import javax.persistence.TypedQuery;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -51,14 +53,13 @@ public class ScheduleDelayQueryService {
         List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
         LocalDateTime nextTriggerAt = TimeUtils.currentLocalDateTime().plusSeconds(ScheduleDelayConstants.LOAD_INTERVAL_SECONDS);
         List<ScheduleDelayEntity> entities = entityManager.createQuery("select e from ScheduleDelayEntity e" +
-                " where e.bucket in :buckets and e.id.triggerAt <= :triggerAt " +
-                "and e.status in :status and e.deleted = false order by id.triggerAt", ScheduleDelayEntity.class
+                " where e.bucket in :buckets and e.id.triggerAt <= :triggerAt and delayId > :lastDelayId " +
+                " and e.status = :status and e.deleted = false order by id.triggerAt, delayId asc ", ScheduleDelayEntity.class
             )
             .setParameter("buckets", buckets)
+            .setParameter("lastDelayId", query.getLastDelayId())
             .setParameter("triggerAt", nextTriggerAt)
-            .setParameter("status", Lists.newArrayList(
-                ScheduleDelay.Status.INIT.value
-            ))
+            .setParameter("status", ScheduleDelay.Status.INIT.value)
             .setMaxResults(query.getLimit())
             .getResultList();
         return new ScheduleDelayNextTriggerQuery.Response(ScheduleDelayEntityConverter.convert(entities));

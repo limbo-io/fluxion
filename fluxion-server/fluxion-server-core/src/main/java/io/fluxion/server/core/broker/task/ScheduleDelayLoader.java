@@ -26,7 +26,6 @@ import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 
-import javax.sound.midi.Soundbank;
 import java.util.List;
 
 /**
@@ -42,12 +41,13 @@ public class ScheduleDelayLoader extends CoreTask {
     @Override
     public void run() {
         try {
-            List<ScheduleDelay> delays = Query.query(new ScheduleDelayNextTriggerQuery(100)).getDelays();
+            String lastId = "";
+            List<ScheduleDelay> delays = Query.query(new ScheduleDelayNextTriggerQuery(100, lastId)).getDelays();
             while (CollectionUtils.isNotEmpty(delays)) {
-                System.out.println("ScheduleDelayLoader " + delays.size());
                 Cmd.send(new ScheduleDelaysLoadCmd(delays));
                 // 拉取后续的
-                delays = Query.query(new ScheduleDelayNextTriggerQuery(100)).getDelays();
+                lastId = delays.get(delays.size() - 1).getDelayId();
+                delays = Query.query(new ScheduleDelayNextTriggerQuery(100, lastId)).getDelays();
             }
         } catch (Exception e) {
             log.error("[{}] execute fail", this.getClass().getSimpleName(), e);

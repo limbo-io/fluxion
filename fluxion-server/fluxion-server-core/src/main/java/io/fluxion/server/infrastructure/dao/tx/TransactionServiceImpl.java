@@ -35,14 +35,19 @@ import java.util.function.Supplier;
 public class TransactionServiceImpl implements TransactionService {
 
     @Resource
-    private PlatformTransactionManager platformTransactionManager;
+    private PlatformTransactionManager transactionManager;
 
     @Override
     public <T> T transactional(Supplier<T> supplier) {
-        TransactionStatus transaction = begin();
+        return transactional(supplier, null);
+    }
+
+    @Override
+    public <T> T transactional(Supplier<T> supplier, TransactionDefinition transactionDefinition) {
+        TransactionStatus transaction = begin(transactionDefinition);
         try {
             T result = supplier.get();
-            commit(transaction);
+            commitOrRollback(transaction);
             return result;
         } catch (Exception e) {
             rollback(transaction, e);
@@ -52,38 +57,53 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public void transactional(Runnable runnable) {
-        TransactionStatus transaction = begin();
+        transactional(runnable, null);
+    }
+
+    @Override
+    public void transactional(Runnable runnable, TransactionDefinition transactionDefinition) {
+        TransactionStatus transaction = begin(transactionDefinition);
         try {
             runnable.run();
-            commit(transaction);
+            commitOrRollback(transaction);
         } catch (Exception e) {
             rollback(transaction, e);
             throw e;
         }
     }
 
-    //开启事务, 默认使用RR隔离级别，REQUIRED传播级别
-    private TransactionStatus begin() {
-        DefaultTransactionDefinition def = new DefaultTransactionDefinition();
-        // 事物隔离级别，开启新事务
-//        def.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
-//        def.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
-        // 事务传播行为
-        def.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
-        // 将拿到的事务返回进去，才能提交。
-        return platformTransactionManager.getTransaction(def);
+    // 开启事务
+    private TransactionStatus begin(TransactionDefinition transactionDefinition) {
+        if (transactionDefinition == null) {
+            transactionDefinition = new DefaultTransactionDefinition();
+        }
+
+        return transactionManager.getTransaction(transactionDefinition);
+    }
+
+    private void commitOrRollback(TransactionStatus transaction) {
+        if (transaction.isRollbackOnly()) {
+            rollback(transaction, null);
+        } else {
+            commit(transaction);
+        }
     }
 
     //提交事务
     private void commit(TransactionStatus transaction) {
-        //提交事务
-        platformTransactionManager.commit(transaction);
+        if (transaction.isNewTransaction() && !transaction.isCompleted()) {
+            transactionManager.commit(transaction);
+        }
     }
 
     //回滚事务
     private void rollback(TransactionStatus transaction, Exception e) {
-        platformTransactionManager.rollback(transaction);
-        log.error("Transaction error and rollback", e);
+        if (transaction.isNewTransaction() && !transaction.isCompleted()) {
+            transactionManager.rollback(transaction);
+            if (e != null) {
+                log.error("Transaction error and rollback", e);
+            }
+        }
     }
 
 }

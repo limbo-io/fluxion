@@ -22,17 +22,18 @@ import io.fluxion.server.core.worker.cmd.WorkerSaveCmd;
 import io.fluxion.server.core.worker.cmd.WorkerSliceOfflineCmd;
 import io.fluxion.server.core.worker.converter.WorkerConverter;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
-import io.fluxion.server.infrastructure.dao.entity.TagEntity;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerExecutorEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerMetricEntity;
-import io.fluxion.server.infrastructure.dao.repository.TagEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.WorkerEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.WorkerExecutorEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.WorkerMetricEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
+import io.fluxion.server.infrastructure.tag.Tag;
 import io.fluxion.server.infrastructure.tag.TagRefType;
+import io.fluxion.server.infrastructure.tag.cmd.TagsSaveByRefCmd;
 import io.fluxion.server.infrastructure.utils.JpaHelper;
 import org.apache.commons.collections4.CollectionUtils;
 import org.axonframework.commandhandling.CommandHandler;
@@ -40,6 +41,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -57,10 +59,9 @@ public class WorkerCommandService {
     @Resource
     private WorkerMetricEntityRepo workerMetricEntityRepo;
     @Resource
-    private TagEntityRepo tagEntityRepo;
-    @Resource
     private EntityManager entityManager;
 
+    @Transactional
     @CommandHandler
     public WorkerSaveCmd.Response handle(WorkerSaveCmd cmd) {
         Worker worker = cmd.getWorker();
@@ -83,15 +84,13 @@ public class WorkerCommandService {
         }
 
         // Tags 存储
-        tagEntityRepo.deleteById_RefIdAndId_RefType(workerId, TagRefType.WORKER.value);
-        List<TagEntity> tagEntities = WorkerConverter.toTagEntities(workerId, worker);
-        if (CollectionUtils.isNotEmpty(tagEntities)) {
-            tagEntityRepo.saveAllAndFlush(tagEntities);
-        }
+        List<Tag> tags = WorkerConverter.toTags(worker);
+        Cmd.send(new TagsSaveByRefCmd(workerId, TagRefType.WORKER, tags));
 
         return new WorkerSaveCmd.Response(worker.id());
     }
 
+    @Transactional
     @CommandHandler
     public void handle(WorkerHeartbeatCmd cmd) {
         WorkerEntity entity = workerEntityRepo.findById(cmd.getWorkerId()).orElse(null);
@@ -111,6 +110,7 @@ public class WorkerCommandService {
         workerMetricEntityRepo.saveAndFlush(metricEntity);
     }
 
+    @Transactional
     @CommandHandler
     public WorkerSliceOfflineCmd.Response handle(WorkerSliceOfflineCmd cmd) {
         List<WorkerMetricEntity> metricEntities = workerMetricEntityRepo.findByLastHeartbeatAtBetween(

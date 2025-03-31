@@ -16,6 +16,8 @@
 
 package io.fluxion.server.infrastructure.dao.tx;
 
+import org.springframework.transaction.TransactionDefinition;
+
 import java.util.function.Supplier;
 
 /**
@@ -32,5 +34,9 @@ public interface TransactionService {
      */
     <T> T transactional(Supplier<T> supplier);
 
+    <T> T transactional(Supplier<T> supplier, TransactionDefinition transactionDefinition);
+
     void transactional(Runnable runnable);
+
+    void transactional(Runnable runnable, TransactionDefinition transactionDefinition);
 }

@@ -19,6 +19,7 @@ package io.fluxion.server.core.broker;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
+import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.request.broker.TaskDispatchedRequest;
 import io.fluxion.remote.core.api.request.broker.TaskFailRequest;
 import io.fluxion.remote.core.api.request.broker.TaskReportRequest;
@@ -121,10 +122,12 @@ public class BrokerClientHandler implements ClientHandler {
         BrokerTopologyDTO brokerTopologyDTO = new BrokerTopologyDTO();
         brokerTopologyDTO.setVersion(brokersRes.getVersion());
         brokerTopologyDTO.setBrokers(BrokerClientConverter.toBrokerNodeDTO(brokersRes.getBrokerNodes()));
+        NodeDTO brokerDTO = BrokerClientConverter.toDTO(BrokerContext.broker().node());
         WorkerRegisterResponse response = new WorkerRegisterResponse();
         response.setAppId(appId);
         response.setWorkerId(workerId);
         response.setBrokerTopology(brokerTopologyDTO);
+        response.setBroker(brokerDTO);
         return response;
     }
 
