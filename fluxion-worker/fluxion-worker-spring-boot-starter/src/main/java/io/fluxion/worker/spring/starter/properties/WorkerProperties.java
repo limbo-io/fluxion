@@ -58,8 +58,7 @@ public class WorkerProperties {
     private String host = "";
 
     /**
-     * worker 注册时，向 broker 提交的 RPC 通信端口，默认为 null。
-     * 如果未指定此配置，则尝试使用 ${server.port} 配置；如 ${server.port} 配置也不存在，则使用默认端口
+     * worker 注册时，向 broker 提交的 RPC 通信端口，默认为 9787
      */
     private Integer port;
 
