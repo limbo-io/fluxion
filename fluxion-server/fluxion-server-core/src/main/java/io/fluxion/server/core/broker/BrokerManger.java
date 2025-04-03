@@ -160,7 +160,7 @@ public class BrokerManger {
     private BrokerEntity entity(BrokerNode node) {
         BrokerEntity entity = new BrokerEntity();
         entity.setId(new BrokerEntity.ID(node.host(), node.port()));
-        entity.setProtocol(node.protocol().getValue());
+        entity.setProtocol(node.protocol().value);
         entity.setBrokerLoad(node.load());
         entity.setLastHeartbeatAt(TimeUtils.currentLocalDateTime());
         return entity;

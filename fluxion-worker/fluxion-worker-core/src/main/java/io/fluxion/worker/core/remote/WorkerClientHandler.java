@@ -18,15 +18,23 @@ package io.fluxion.worker.core.remote;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
-import io.fluxion.remote.core.api.request.worker.SubTaskDispatchRequest;
-import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
+import io.fluxion.remote.core.api.request.JobDispatchRequest;
+import io.fluxion.remote.core.api.request.TaskDispatchRequest;
+import io.fluxion.remote.core.api.request.TaskDispatchedRequest;
+import io.fluxion.remote.core.api.request.TaskFailRequest;
+import io.fluxion.remote.core.api.request.TaskReportRequest;
+import io.fluxion.remote.core.api.request.TaskStartRequest;
+import io.fluxion.remote.core.api.request.TaskSuccessRequest;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
+import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.job.tracker.BasicJobTracker;
+import io.fluxion.worker.core.job.tracker.BroadcastJobTracker;
+import io.fluxion.worker.core.job.tracker.JobTracker;
+import io.fluxion.worker.core.job.tracker.MapReduceJobTracker;
 import io.fluxion.worker.core.task.Task;
-import io.fluxion.worker.core.task.tracker.BasicTaskTracker;
-import io.fluxion.worker.core.task.tracker.SubTaskTracker;
 import io.fluxion.worker.core.task.tracker.TaskTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,19 +57,26 @@ public class WorkerClientHandler implements ClientHandler {
     public Response<?> process(String path, String data) {
         try {
             switch (path) {
-                case WorkerRemoteConstant.API_TASK_DISPATCH: {
-                    TaskDispatchRequest request = JacksonUtils.toType(data, TaskDispatchRequest.class);
-                    Task task = WorkerClientConverter.toTask(request);
-                    TaskTracker tracker = createTaskTracker(task);
-                    boolean success = tracker.start();
-                    return Response.ok(success);
+                case WorkerRemoteConstant.API_JOB_DISPATCH: {
+                    return Response.ok(jobDispatch(data));
                 }
-                case WorkerRemoteConstant.API_SUB_TASK_DISPATCH: {
-                    SubTaskDispatchRequest request = JacksonUtils.toType(data, SubTaskDispatchRequest.class);
-                    Task task = WorkerClientConverter.toTask(request);
-                    TaskTracker tracker = createSubTaskTracker(task);
-                    boolean success = tracker.start();
-                    return Response.ok(success);
+                case WorkerRemoteConstant.API_TASK_DISPATCH: {
+                    return Response.ok(taskDispatch(data));
+                }
+                case WorkerRemoteConstant.API_TASK_DISPATCHED: {
+                    return Response.ok(taskDispatched(data));
+                }
+                case WorkerRemoteConstant.API_TASK_START: {
+                    return Response.ok(taskStart(data));
+                }
+                case WorkerRemoteConstant.API_TASK_REPORT: {
+                    return Response.ok(taskReport(data));
+                }
+                case WorkerRemoteConstant.API_TASK_SUCCESS: {
+                    return Response.ok(taskSuccess(data));
+                }
+                case WorkerRemoteConstant.API_TASK_FAIL: {
+                    return Response.ok(taskFail(data));
                 }
             }
             String msg = "Invalid request, Path NotFound.";
@@ -73,27 +88,74 @@ public class WorkerClientHandler implements ClientHandler {
         }
     }
 
-    private TaskTracker createTaskTracker(Task task) {
-        Executor executor = workerContext.executor(task.getExecutorName());
+    private boolean jobDispatch(String data) {
+        JobDispatchRequest request = JacksonUtils.toType(data, JobDispatchRequest.class);
+        Job job = WorkerClientConverter.toJob(request);
+        Executor executor = workerContext.executor(job.getExecutorName());
         if (executor == null) {
-            throw new IllegalArgumentException("unknown executor name:" + task.getExecutorName());
+            throw new IllegalArgumentException("unknown executor name:" + job.getExecutorName());
         }
-        switch (task.getExecuteMode()) {
+        JobTracker tracker;
+        switch (job.getExecuteMode()) {
             case STANDALONE:
-                return new BasicTaskTracker(task, executor, workerContext);
+                tracker = new BasicJobTracker(job, executor, workerContext);
+                break;
             case BROADCAST:
+                tracker = new BroadcastJobTracker(job, executor, workerContext);
+                break;
+            case MAP:
             case MAP_REDUCE:
-                return new SubTaskTracker(task, workerContext);
+                tracker = new MapReduceJobTracker(job, executor, workerContext);
+                break;
             default:
-                throw new IllegalArgumentException("unknown execute mode:" + task.getExecuteMode());
+                throw new IllegalArgumentException("unknown execute mode:" + job.getExecuteMode());
         }
+        return tracker.start();
     }
 
-    private TaskTracker createSubTaskTracker(Task task) {
-        Executor executor = workerContext.executor(task.getExecutorName());
+    private boolean taskDispatch(String data) {
+        TaskDispatchRequest request = JacksonUtils.toType(data, TaskDispatchRequest.class);
+        Executor executor = workerContext.executor(request.getExecutorName());
         if (executor == null) {
-            throw new IllegalArgumentException("unknown executor name:" + task.getExecutorName());
+            throw new IllegalArgumentException("unknown executor name:" + request.getExecutorName());
         }
-        return new BasicTaskTracker(task, executor, workerContext);
+        Task task = WorkerClientConverter.toTask(request, workerContext);
+        TaskTracker tracker = new TaskTracker(task, executor, workerContext);
+        return tracker.start();
     }
+
+    private boolean taskDispatched(String data) {
+        TaskDispatchedRequest request = JacksonUtils.toType(data, TaskDispatchedRequest.class);
+        return workerContext.taskRepository().dispatched(
+            request.getJobId(), request.getTaskId(),
+            request.getWorkerAddress()
+        );
+    }
+
+    private boolean taskStart(String data) {
+        TaskStartRequest request = JacksonUtils.toType(data, TaskStartRequest.class);
+        return workerContext.taskRepository().start(
+            request.getJobId(), request.getTaskId(),
+            request.getWorkerAddress(), request.getReportAt()
+        );
+    }
+
+    private boolean taskReport(String data) {
+        TaskReportRequest request = JacksonUtils.toType(data, TaskReportRequest.class);
+        return workerContext.taskRepository().report(
+            request.getJobId(), request.getTaskId(),
+            request.getWorkerAddress(), request.getReportAt()
+        );
+    }
+
+    private boolean taskSuccess(String data) {
+        TaskSuccessRequest request = JacksonUtils.toType(data, TaskSuccessRequest.class);
+        return false;
+    }
+
+    private boolean taskFail(String data) {
+        TaskFailRequest request = JacksonUtils.toType(data, TaskFailRequest.class);
+        return false;
+    }
+
 }

@@ -23,13 +23,12 @@ import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.executor.option.RetryOption;
-import io.fluxion.server.core.task.ExecutorTask;
-import io.fluxion.server.core.task.InputOutputTask;
-import io.fluxion.server.core.task.Task;
-import io.fluxion.server.core.task.TaskStatus;
-import io.fluxion.server.core.task.cmd.TaskSuccessCmd;
-import io.fluxion.server.core.task.cmd.TasksCreateCmd;
-import io.fluxion.server.core.task.query.TaskCountByStatusQuery;
+import io.fluxion.server.core.job.ExecutorJob;
+import io.fluxion.server.core.job.InputOutputJob;
+import io.fluxion.server.core.job.Job;
+import io.fluxion.server.core.job.JobStatus;
+import io.fluxion.server.core.job.cmd.JobsCreateCmd;
+import io.fluxion.server.core.job.query.JobCountByStatusQuery;
 import io.fluxion.server.core.workflow.node.EndNode;
 import io.fluxion.server.core.workflow.node.ExecutorNode;
 import io.fluxion.server.core.workflow.node.StartNode;
@@ -38,7 +37,6 @@ import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dag.DAG;
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -102,12 +100,7 @@ public class Workflow implements Executable {
      * 某个 node 成功后执行的逻辑
      */
     @Override
-    public boolean success(String nodeId, String taskId, String executionId, LocalDateTime time) {
-        Boolean success = Cmd.send(new TaskSuccessCmd(taskId, time));
-//        System.out.println("====" + TransactionSynchronizationManager.isActualTransactionActive());
-        if (!success) {
-            return false;
-        }
+    public boolean success(String nodeId, String executionId, LocalDateTime time) {
         List<WorkflowNode> subNodes = dag.subNodes(nodeId);
         if (CollectionUtils.isEmpty(subNodes)) {
             // 最终节点 execution 完成
@@ -124,7 +117,6 @@ public class Workflow implements Executable {
         if (CollectionUtils.isEmpty(continueNodes)) {
             return true;
         }
-        System.out.println("continueNodes " + continueNodes);
         createAndScheduleTasks(executionId, continueNodes);
         return true;
     }
@@ -137,52 +129,57 @@ public class Workflow implements Executable {
 
     private void createAndScheduleTasks(String executionId, List<WorkflowNode> nodes) {
         LocalDateTime now = TimeUtils.currentLocalDateTime();
-        List<Task> tasks = nodes.stream()
-            .map(n -> nodeTask(n, executionId, now))
+        List<Job> jobs = nodes.stream()
+            .map(n -> job(n, executionId, now))
             .collect(Collectors.toList());
         // 保存数据
-        Cmd.send(new TasksCreateCmd(tasks));
+        Cmd.send(new JobsCreateCmd(jobs));
         // 执行
-        for (Task task : tasks) {
-            task.schedule();
+        for (Job job : jobs) {
+            job.schedule();
         }
     }
 
     private boolean preNodesSuccess(String executionId, List<WorkflowNode> preNodes) {
-        System.out.println(executionId + " " +preNodes );
         if (CollectionUtils.isEmpty(preNodes)) {
             return true; // 没有前置节点，只有start节点才会有
         }
         if (preNodes.size() == 1) {
             return true; // 之前的节点完成了，没有其它节点了
         }
-        long count = Query.query(new TaskCountByStatusQuery(
+        long count = Query.query(new JobCountByStatusQuery(
             executionId, preNodes.stream().map(WorkflowNode::getId).collect(Collectors.toList()),
-            Collections.singletonList(TaskStatus.SUCCEED)
+            Collections.singletonList(JobStatus.SUCCEED)
         )).getCount();
         return count >= preNodes.size();
     }
 
-    private Task nodeTask(WorkflowNode node, String executionId, LocalDateTime triggerAt) {
-        Task task = null;
+    @Override
+    public Job job(String refId, String executionId, LocalDateTime triggerAt) {
+        WorkflowNode node = dag.node(refId);
+        return job(node, executionId, triggerAt);
+    }
+
+    private Job job(WorkflowNode node, String executionId, LocalDateTime triggerAt) {
+        Job job = null;
         if (node instanceof StartNode) {
-            task = new InputOutputTask();
+            job = new InputOutputJob();
         } else if (node instanceof EndNode) {
-            task = new InputOutputTask();
+            job = new InputOutputJob();
         } else if (node instanceof ExecutorNode) {
             ExecutorNode executorNode = (ExecutorNode) node;
-            task = new ExecutorTask();
-            ExecutorTask executorTask = (ExecutorTask) task;
+            job = new ExecutorJob();
+            ExecutorJob executorTask = (ExecutorJob) job;
             ExecutorConfig executorConfig = executorNode.getExecutor();
             executorTask.setAppId(executorConfig.getAppId());
             executorTask.setExecutorName(executorConfig.executorName());
             executorTask.setDispatchOption(executorConfig.getDispatchOption());
             executorTask.setExecuteMode(executorConfig.getExecuteMode());
         }
-        task.setExecutionId(executionId);
-        task.setTriggerAt(triggerAt);
-        task.setRefId(node.id());
-        return task;
+        job.setExecutionId(executionId);
+        job.setTriggerAt(triggerAt);
+        job.setRefId(node.id());
+        return job;
     }
 
 }

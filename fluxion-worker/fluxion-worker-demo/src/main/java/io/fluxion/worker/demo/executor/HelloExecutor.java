@@ -16,8 +16,8 @@
 
 package io.fluxion.worker.demo.executor;
 
-import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.Task;
+import io.fluxion.worker.core.executor.Executor;
 import org.springframework.stereotype.Component;
 
 /**

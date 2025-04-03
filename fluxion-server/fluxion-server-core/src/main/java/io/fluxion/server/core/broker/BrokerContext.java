@@ -17,7 +17,7 @@
 package io.fluxion.server.core.broker;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.api.request.broker.BrokerPingRequest;
+import io.fluxion.remote.core.api.request.BrokerPingRequest;
 
 import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_BROKER_PING;
 

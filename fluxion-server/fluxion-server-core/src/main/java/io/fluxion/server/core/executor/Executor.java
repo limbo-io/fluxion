@@ -24,10 +24,9 @@ import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.executor.option.OvertimeOption;
 import io.fluxion.server.core.executor.option.RetryOption;
-import io.fluxion.server.core.task.ExecutorTask;
-import io.fluxion.server.core.task.Task;
-import io.fluxion.server.core.task.cmd.TaskSuccessCmd;
-import io.fluxion.server.core.task.cmd.TasksCreateCmd;
+import io.fluxion.server.core.job.ExecutorJob;
+import io.fluxion.server.core.job.Job;
+import io.fluxion.server.core.job.cmd.JobsCreateCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 
 import java.time.LocalDateTime;
@@ -83,19 +82,15 @@ public class Executor implements Executable {
 
     @Override
     public void execute(RunContext context) {
-        Task task = task(context.executionId(), TimeUtils.currentLocalDateTime());
+        Job job = job(context.executionId(), TimeUtils.currentLocalDateTime());
         // 保存数据
-        Cmd.send(new TasksCreateCmd(Collections.singletonList(task)));
+        Cmd.send(new JobsCreateCmd(Collections.singletonList(job)));
         // 执行
-        task.schedule();
+        job.schedule();
     }
 
     @Override
-    public boolean success(String refId, String taskId, String executionId, LocalDateTime time) {
-        Boolean success = Cmd.send(new TaskSuccessCmd(taskId, time));
-        if (!success) {
-            return false;
-        }
+    public boolean success(String refId, String executionId, LocalDateTime time) {
         return Cmd.send(new ExecutionSuccessCmd(executionId, time));
     }
 
@@ -104,15 +99,20 @@ public class Executor implements Executable {
         return retryOption;
     }
 
-    private Task task(String executionId, LocalDateTime triggerAt) {
-        ExecutorTask task = new ExecutorTask();
-        task.setAppId(config.getAppId());
-        task.setExecutorName(config.executorName());
-        task.setDispatchOption(config.getDispatchOption());
-        task.setExecuteMode(config.getExecuteMode());
-        task.setExecutionId(executionId);
-        task.setTriggerAt(triggerAt);
-        task.setRefId("");
-        return task;
+    @Override
+    public Job job(String refId, String executionId, LocalDateTime triggerAt) {
+        ExecutorJob job = new ExecutorJob();
+        job.setAppId(config.getAppId());
+        job.setExecutorName(config.executorName());
+        job.setDispatchOption(config.getDispatchOption());
+        job.setExecuteMode(config.getExecuteMode());
+        job.setExecutionId(executionId);
+        job.setTriggerAt(triggerAt);
+        job.setRefId(refId);
+        return job;
+    }
+
+    private Job job(String executionId, LocalDateTime triggerAt) {
+        return job("", executionId, triggerAt);
     }
 }

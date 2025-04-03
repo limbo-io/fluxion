@@ -49,6 +49,6 @@ public class PythonScriptExecutorConfig extends ExecutorConfig {
 
     @Override
     public String executorName() {
-        return "PythonScriptExecutor";
+        return "fluxion.PythonScriptExecutor";
     }
 }

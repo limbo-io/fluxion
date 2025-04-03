@@ -20,7 +20,7 @@ import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.TagDTO;
-import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
+import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.BrokerNode;
@@ -82,7 +82,7 @@ public class BrokerClientConverter {
             return null;
         }
         NodeDTO dto = new NodeDTO();
-        dto.setProtocol(node.protocol().getValue());
+        dto.setProtocol(node.protocol().value);
         dto.setHost(node.host());
         dto.setPort(node.port());
         return dto;

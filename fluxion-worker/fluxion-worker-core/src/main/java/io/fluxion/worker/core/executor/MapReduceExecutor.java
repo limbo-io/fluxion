@@ -16,15 +16,27 @@
 
 package io.fluxion.worker.core.executor;
 
+import io.fluxion.worker.core.job.Job;
 import io.fluxion.worker.core.task.Task;
+
+import java.util.List;
 
 /**
  * @author Devil
  */
-public class MapReduceExecutor implements Executor {
-    @Override
-    public void run(Task task) {
+public abstract class MapReduceExecutor implements Executor {
 
-    }
+    /**
+     * 切分创建多个子task
+     *
+     * @param job 任务
+     */
+    public abstract List<Task> sharding(Job job);
 
+    /**
+     * 处理reduce任务
+     *
+     * @param job 任务
+     */
+    public abstract void reduce(Job job);
 }

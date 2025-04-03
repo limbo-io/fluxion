@@ -75,11 +75,4 @@ public enum Protocol {
         return UNKNOWN;
     }
 
-    public String getValue() {
-        return value;
-    }
-
-    public int getPort() {
-        return port;
-    }
 }

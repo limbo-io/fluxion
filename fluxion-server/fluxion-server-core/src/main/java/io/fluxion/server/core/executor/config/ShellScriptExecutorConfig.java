@@ -49,6 +49,6 @@ public class ShellScriptExecutorConfig extends ExecutorConfig {
 
     @Override
     public String executorName() {
-        return "ShellScriptExecutor";
+        return "fluxion.ShellScriptExecutor";
     }
 }

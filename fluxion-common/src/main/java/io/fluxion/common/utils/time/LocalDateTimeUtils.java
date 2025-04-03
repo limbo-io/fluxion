@@ -16,6 +16,8 @@
 
 package io.fluxion.common.utils.time;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -132,6 +134,9 @@ public class LocalDateTimeUtils {
      * @return 日期字符串对应的时间戳
      */
     public static LocalDateTime parseYMDHMS(String date) {
+        if (StringUtils.isBlank(date)) {
+            return null;
+        }
         return Formatters.ymdhms().parse(date, LocalDateTime::from);
     }
 

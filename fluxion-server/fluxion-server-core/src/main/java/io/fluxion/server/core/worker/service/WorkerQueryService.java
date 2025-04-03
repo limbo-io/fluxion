@@ -16,10 +16,17 @@
 
 package io.fluxion.server.core.worker.service;
 
+import com.google.common.collect.Lists;
+import io.fluxion.server.core.executor.option.DispatchOption;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.converter.WorkerConverter;
+import io.fluxion.server.core.worker.dispatch.WorkerFilter;
 import io.fluxion.server.core.worker.query.WorkerByAppQuery;
 import io.fluxion.server.core.worker.query.WorkerByIdsQuery;
+import io.fluxion.server.core.worker.query.WorkersFilterQuery;
+import io.fluxion.server.core.worker.selector.WorkerSelectInvocation;
+import io.fluxion.server.core.worker.selector.WorkerSelector;
+import io.fluxion.server.core.worker.selector.WorkerSelectorFactory;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerExecutorEntity;
@@ -53,6 +60,8 @@ public class WorkerQueryService {
     @Resource
     private WorkerMetricEntityRepo workerMetricEntityRepo;
 
+    private static final WorkerSelectorFactory WORKER_SELECTOR_FACTORY = new WorkerSelectorFactory();
+
     @QueryHandler
     public WorkerByAppQuery.Response handle(WorkerByAppQuery query) {
         List<WorkerEntity> workerEntities = workerEntityRepo.findByAppIdAndStatusIn(
@@ -78,5 +87,31 @@ public class WorkerQueryService {
         return WorkerConverter.toWorkers(workerEntities, executorEntities, refTags, metricEntities);
     }
 
+    @QueryHandler
+    public WorkersFilterQuery.Response handle(WorkersFilterQuery query) {
+        String executorName = query.getExecutorName();
+        DispatchOption dispatchOption = query.getDispatchOption();
+        List<Worker> workers = Query.query(new WorkerByAppQuery(
+                query.getAppId(), Lists.newArrayList(Worker.Status.ONLINE)
+            )).getWorkers().stream()
+            .filter(Worker::isEnabled)
+            .collect(Collectors.toList());
+        // 广播的应该不关心资源大小 在配置的时候直接处理
+        WorkerFilter workerFilter = new WorkerFilter(workers)
+            .filterExecutor(executorName)
+            .filterTags(dispatchOption.getTagFilters());
+        if (query.isFilterResource()) {
+            workerFilter = workerFilter.filterResources(dispatchOption.getCpuRequirement(), dispatchOption.getRamRequirement());
+        }
+        List<Worker> filterWorkers = workerFilter.get();
+        if (query.isLoadBalanceSelect()) {
+            WorkerSelectInvocation invocation = new WorkerSelectInvocation(executorName, null);
+            WorkerSelector workerSelector = WORKER_SELECTOR_FACTORY.newSelector(dispatchOption.getLoadBalanceType());
+            Worker worker = workerSelector.select(invocation, filterWorkers);
+            return new WorkersFilterQuery.Response(Collections.singletonList(worker));
+        } else  {
+            return new WorkersFilterQuery.Response(filterWorkers);
+        }
+    }
 
 }

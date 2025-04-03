@@ -21,6 +21,12 @@ package io.fluxion.remote.core.constants;
  * @since 0.0.1
  */
 public interface BrokerRemoteConstant {
+
+    /**
+     * 任务上报间隔 秒
+     */
+    int JOB_REPORT_SECONDS = 60;
+
     // ========== API ==========
     String API_WORKER_REGISTER = "/api/v1/worker/register";
 
@@ -28,14 +34,14 @@ public interface BrokerRemoteConstant {
 
     String API_BROKER_PING = "/api/v1/broker/ping";
 
-    String API_TASK_DISPATCHED = "/api/v1/task/dispatched";
+    String API_JOB_DISPATCHED = "/api/v1/job/dispatched";
 
-    String API_TASK_START = "/api/v1/task/start";
+    String API_JOB_START = "/api/v1/job/start";
 
-    String API_TASK_REPORT = "/api/v1/task/report";
+    String API_JOB_REPORT = "/api/v1/job/report";
 
-    String API_TASK_SUCCESS = "/api/v1/task/success";
+    String API_JOB_FEEDBACK = "/api/v1/job/feedback";
 
-    String API_TASK_FAIL = "/api/v1/task/fail";
+    String API_JOB_WORKERS = "/api/v1/job/workers";
     // ========== API ==========
 }

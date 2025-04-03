@@ -201,12 +201,12 @@ CREATE TABLE `fluxion_schedule_delay`
     KEY `idx_delay_trigger_bucket_status` (`delay_id`, `trigger_at`, `bucket`, `status`)
 );
 
-CREATE TABLE `fluxion_task`
+CREATE TABLE `fluxion_job`
 (
     `id`             bigint unsigned NOT NULL AUTO_INCREMENT,
-    `task_id`        varchar(64)     NOT NULL,
+    `job_id`         varchar(64)     NOT NULL,
     `execution_id`   varchar(64)     NOT NULL,
-    `task_type`      varchar(32)     NOT NULL,
+    `job_type`       varchar(32)     NOT NULL,
     `ref_id`         varchar(64)     NOT NULL,
     `status`         varchar(32)     NOT NULL,
     `trigger_at`     datetime(6)     NOT NULL,
@@ -219,8 +219,8 @@ CREATE TABLE `fluxion_task`
     `created_at`     datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`     datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_task` (`task_id`),
-    UNIQUE KEY `uk_task_execution` (`execution_id`, `ref_id`, `task_type`)
+    UNIQUE KEY `uk_job` (`job_id`),
+    UNIQUE KEY `uk_job_execution` (`execution_id`, `ref_id`, `job_type`)
 );
 
 CREATE TABLE `fluxion_worker`

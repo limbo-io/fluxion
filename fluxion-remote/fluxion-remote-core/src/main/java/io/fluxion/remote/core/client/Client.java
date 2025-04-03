@@ -54,7 +54,7 @@ public interface Client {
 
     default URL url(String path, String host, int port) {
         try {
-            return new URL(protocol().getValue(), host, port, path);
+            return new URL(protocol().value, host, port, path);
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }

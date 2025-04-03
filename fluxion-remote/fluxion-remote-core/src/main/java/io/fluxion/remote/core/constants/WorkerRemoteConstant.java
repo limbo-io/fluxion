@@ -28,9 +28,24 @@ public interface WorkerRemoteConstant {
      */
     int HEARTBEAT_TIMEOUT_SECOND = 3;
 
+    /**
+     * 任务上报间隔 秒
+     */
+    int TASK_REPORT_SECONDS = 60;
+
     // ========== API ==========
+    String API_JOB_DISPATCH = "/api/v1/job/dispatch";
+
     String API_TASK_DISPATCH = "/api/v1/task/dispatch";
 
-    String API_SUB_TASK_DISPATCH = "/api/v1/sub_task/dispatch";
+    String API_TASK_DISPATCHED = "/api/v1/task/dispatched";
+
+    String API_TASK_START = "/api/v1/task/start";
+
+    String API_TASK_REPORT = "/api/v1/task/report";
+
+    String API_TASK_SUCCESS = "/api/v1/task/success";
+
+    String API_TASK_FAIL = "/api/v1/task/fail";
     // ========== API ==========
 }

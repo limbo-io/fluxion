@@ -89,7 +89,7 @@ public class WorkerConverter {
     public static WorkerEntity toWorkerEntity(Worker worker) {
         WorkerEntity po = new WorkerEntity();
         po.setWorkerId(worker.id());
-        po.setProtocol(worker.getProtocol().getValue());
+        po.setProtocol(worker.getProtocol().value);
         po.setHost(worker.getHost());
         po.setPort(worker.getPort());
         po.setAppId(worker.getAppId());

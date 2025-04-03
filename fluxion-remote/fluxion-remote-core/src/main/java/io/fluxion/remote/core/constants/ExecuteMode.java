@@ -38,6 +38,11 @@ public enum ExecuteMode {
      */
     BROADCAST("broadcast"),
     /**
+     * Map任务
+     * 拆分任务->处理分片->完成
+     */
+    MAP("map"),
+    /**
      * MapReduce任务
      * 拆分任务->处理分片->最终处理
      */

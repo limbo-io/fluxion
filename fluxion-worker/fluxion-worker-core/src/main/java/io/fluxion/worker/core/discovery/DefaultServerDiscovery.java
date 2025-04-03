@@ -22,10 +22,10 @@ import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerExecutorDTO;
 import io.fluxion.remote.core.api.dto.TagDTO;
-import io.fluxion.remote.core.api.request.broker.WorkerHeartbeatRequest;
-import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
-import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
-import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
+import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
+import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
+import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
+import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.LBClient;
@@ -66,7 +66,7 @@ import static io.fluxion.remote.core.constants.WorkerRemoteConstant.HEARTBEAT_TI
  */
 public class DefaultServerDiscovery implements ServerDiscovery {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log = LoggerFactory.getLogger(DefaultServerDiscovery.class);
 
     private final LBClient client;
 
@@ -100,7 +100,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
         WorkerRegisterRequest request = new WorkerRegisterRequest();
         request.setHost(workerContext.host());
         request.setPort(workerContext.port());
-        request.setProtocol(workerContext.protocol().getValue());
+        request.setProtocol(workerContext.protocol().value);
         request.setAppName(workerContext.appName());
         request.setSystemInfo(systemInfoDTO());
         request.setTags(tagDTOS(workerContext.tags()));

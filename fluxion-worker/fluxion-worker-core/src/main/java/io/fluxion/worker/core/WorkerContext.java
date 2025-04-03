@@ -19,9 +19,12 @@ package io.fluxion.worker.core;
 import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.LBClient;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.worker.core.executor.Executor;
+import io.fluxion.worker.core.job.tracker.JobTracker;
+import io.fluxion.worker.core.task.repository.TaskRepository;
 import io.fluxion.worker.core.task.tracker.TaskTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +52,7 @@ import java.util.stream.Collectors;
  */
 public class WorkerContext {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log = LoggerFactory.getLogger(WorkerContext.class);
 
     private String appId;
 
@@ -80,16 +83,19 @@ public class WorkerContext {
 
     private int concurrency;
 
-    private LBClient client;
+    private LBClient brokerClient;
+
+    private Client client;
 
     // ========== Runtime ==========
 
     private final AtomicReference<Worker.Status> status;
 
-    /**
-     * 当前 Worker 的所有任务存储在此 Map 中
-     */
-    private Map<String, TaskTracker> tasks;
+    private final Map<String, JobTracker> jobs = new ConcurrentHashMap<>();
+
+    private final Map<String, TaskTracker> tasks = new ConcurrentHashMap<>();
+
+    private TaskRepository taskRepository;
 
     /**
      * 任务执行线程池
@@ -102,7 +108,7 @@ public class WorkerContext {
     private ScheduledExecutorService taskStatusReportExecutor;
 
     public WorkerContext(String appName, Protocol protocol, String host, int port,
-                         int queueSize, int concurrency, LBClient client,
+                         int queueSize, int concurrency, LBClient brokerClient, TaskRepository taskRepository,
                          List<Executor> executors, Map<String, Set<String>> tags) {
         this.appName = appName;
         this.protocol = protocol;
@@ -112,13 +118,13 @@ public class WorkerContext {
         this.tags = tags == null ? Collections.emptyMap() : tags;
         this.queueSize = queueSize;
         this.concurrency = concurrency;
-        this.client = client;
+        this.brokerClient = brokerClient;
         this.status = new AtomicReference<>(Worker.Status.IDLE);
         this.address = host + ":" + port;
+        this.taskRepository = taskRepository;
     }
 
     public void initialize() {
-        this.tasks = new ConcurrentHashMap<>();
         // 初始化工作线程池
         BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(queueSize <= 0 ? concurrency : queueSize);
         this.taskProcessExecutor = new ThreadPoolExecutor(
@@ -185,7 +191,7 @@ public class WorkerContext {
     }
 
     public int availableQueueNum() {
-        return queueSize - tasks.size();
+        return queueSize - jobs.size() - tasks.size();
     }
 
     /**
@@ -194,17 +200,30 @@ public class WorkerContext {
      * @param tracker 任务执行上下文
      */
     public boolean saveTask(TaskTracker tracker) {
+        return tasks.putIfAbsent(tracker.task().getId(), tracker) == null;
+    }
+
+    public void deleteTask(String taskId) {
+        tasks.remove(taskId);
+    }
+
+    /**
+     * 尝试新增任务到仓库中：如果已存在相同任务，则不添加新的任务，返回 false；如不存在，则添加成功，返回 true。
+     *
+     * @param tracker 任务执行上下文
+     */
+    public boolean saveJob(JobTracker tracker) {
         // 剩余可分配任务数
         int availableQueueNum = availableQueueNum();
         if (availableQueueNum <= 0) {
             log.info("Worker's queue is full, limit: {}", availableQueueNum);
             return false;
         }
-        return tasks.putIfAbsent(tracker.task().getTaskId(), tracker) == null;
+        return jobs.putIfAbsent(tracker.job().getId(), tracker) == null;
     }
 
-    public void removeTask(String taskId) {
-        tasks.remove(taskId);
+    public void deleteJob(String jobId) {
+        jobs.remove(jobId);
     }
 
     public String appId() {
@@ -220,9 +239,17 @@ public class WorkerContext {
     }
 
     public <R> R call(String path, Request<R> request) {
-        R data = client.call(path, request).getData();
+        R data = brokerClient.call(path, request).getData();
         if (log.isDebugEnabled()) {
             log.debug("Remote Call request:{} result:{}", JacksonUtils.toJSONString(request), data);
+        }
+        return data;
+    }
+
+    public <R> R call(String path, String host, int port, Request<R> request) {
+        R data = client.call(path, host, port, request).getData();
+        if (log.isDebugEnabled()) {
+            log.debug("Remote Call host: {} port: {} request:{} result:{}", host, port, JacksonUtils.toJSONString(request), data);
         }
         return data;
     }
@@ -233,6 +260,10 @@ public class WorkerContext {
 
     public int port() {
         return port;
+    }
+
+    public TaskRepository taskRepository() {
+        return taskRepository;
     }
 
 }

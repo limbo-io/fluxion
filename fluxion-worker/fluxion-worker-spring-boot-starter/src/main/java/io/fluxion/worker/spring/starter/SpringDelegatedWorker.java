@@ -35,6 +35,7 @@ import io.fluxion.worker.core.discovery.DefaultServerDiscovery;
 import io.fluxion.worker.core.discovery.ServerDiscovery;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.remote.WorkerClientHandler;
+import io.fluxion.worker.core.task.repository.TaskRepository;
 import io.fluxion.worker.spring.starter.processor.event.ExecutorScannedEvent;
 import io.fluxion.worker.spring.starter.processor.event.WorkerReadyEvent;
 import org.springframework.beans.factory.DisposableBean;
@@ -61,10 +62,11 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
     private final int concurrency;
     private final Map<String, Set<String>> tags;
     private final List<LBServer> brokerNodes;
+    private final TaskRepository taskRepository;
 
     public SpringDelegatedWorker(String appName, Protocol protocol, String host, int port,
                                  int queueSize, int concurrency, Map<String, Set<String>> tags,
-                                 List<LBServer> brokerNodes) {
+                                 TaskRepository taskRepository, List<LBServer> brokerNodes) {
         this.appName = appName;
         this.protocol = protocol;
         this.host = host;
@@ -73,6 +75,7 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
         this.concurrency = concurrency;
         this.tags = tags;
         this.brokerNodes = brokerNodes;
+        this.taskRepository = taskRepository;
     }
 
 
@@ -99,7 +102,10 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
             .strategy(new RoundRobinLBStrategy<>())
             .build();
         // WorkerContext
-        WorkerContext workerContext = new WorkerContext(appName, protocol, host, port, queueSize, concurrency, client, executors, tags);
+        WorkerContext workerContext = new WorkerContext(
+            appName, protocol, host, port, queueSize, concurrency,
+            client, taskRepository, executors, tags
+        );
         // Discovery
         ServerDiscovery discovery = new DefaultServerDiscovery(workerContext, client, repository);
         // ClientServer

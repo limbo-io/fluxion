@@ -83,6 +83,8 @@ public class WorkerProperties {
      */
     private List<String> tags;
 
+    private DatasourceProperties datasource;
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -161,5 +163,13 @@ public class WorkerProperties {
 
     public void setAppName(String appName) {
         this.appName = appName;
+    }
+
+    public DatasourceProperties getDatasource() {
+        return datasource;
+    }
+
+    public void setDatasource(DatasourceProperties datasource) {
+        this.datasource = datasource;
     }
 }

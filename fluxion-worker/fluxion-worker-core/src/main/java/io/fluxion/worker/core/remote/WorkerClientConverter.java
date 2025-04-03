@@ -16,10 +16,13 @@
 
 package io.fluxion.worker.core.remote;
 
-import io.fluxion.remote.core.api.request.worker.SubTaskDispatchRequest;
-import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
+import io.fluxion.remote.core.api.request.TaskDispatchRequest;
+import io.fluxion.remote.core.api.request.JobDispatchRequest;
 import io.fluxion.remote.core.constants.ExecuteMode;
+import io.fluxion.remote.core.constants.TaskStatus;
+import io.fluxion.worker.core.job.Job;
 import io.fluxion.worker.core.task.Task;
+import io.fluxion.worker.core.WorkerContext;
 
 /**
  * @author PengQ
@@ -27,21 +30,18 @@ import io.fluxion.worker.core.task.Task;
  */
 public class WorkerClientConverter {
 
-    public static Task toTask(TaskDispatchRequest request) {
-        Task task = new Task();
-        task.setTaskId(request.getTaskId());
-        task.setBrokerAddress(request.getBrokerAddress());
-        task.setExecutorName(request.getExecutorName());
-        task.setExecuteMode(ExecuteMode.parse(request.getExecuteMode()));
-        return task;
+    public static Job toJob(JobDispatchRequest request) {
+        Job job = new Job();
+        job.setId(request.getJobId());
+        job.setExecutorName(request.getExecutorName());
+        job.setExecuteMode(ExecuteMode.parse(request.getExecuteMode()));
+        return job;
     }
 
-    public static Task toTask(SubTaskDispatchRequest request) {
-        Task task = new Task();
-        task.setTaskId(request.getTaskId());
-        task.setBrokerAddress(request.getWorkerId());
-        task.setExecutorName(request.getExecutorName());
-        task.setExecuteMode(ExecuteMode.parse(request.getExecuteType()));
+    public static Task toTask(TaskDispatchRequest request, WorkerContext workerContext) {
+        Task task = new Task(request.getTaskId(), request.getJobId());
+        task.setStatus(TaskStatus.CREATED);
+        task.setWorkerAddress(workerContext.address());
         return task;
     }
 

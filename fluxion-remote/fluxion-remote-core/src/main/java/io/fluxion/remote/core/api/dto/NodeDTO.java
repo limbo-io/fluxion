@@ -33,6 +33,10 @@ public class NodeDTO {
 
     private int port;
 
+    public String address() {
+        return host + ":" + port;
+    }
+
     public String getProtocol() {
         return protocol;
     }
