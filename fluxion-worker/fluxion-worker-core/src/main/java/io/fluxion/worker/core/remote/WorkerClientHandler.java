@@ -35,6 +35,7 @@ import io.fluxion.worker.core.job.tracker.BroadcastJobTracker;
 import io.fluxion.worker.core.job.tracker.JobTracker;
 import io.fluxion.worker.core.job.tracker.MapReduceJobTracker;
 import io.fluxion.worker.core.task.Task;
+import io.fluxion.worker.core.task.repository.TaskRepository;
 import io.fluxion.worker.core.task.tracker.TaskTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,7 +127,7 @@ public class WorkerClientHandler implements ClientHandler {
 
     private boolean taskDispatched(String data) {
         TaskDispatchedRequest request = JacksonUtils.toType(data, TaskDispatchedRequest.class);
-        return workerContext.taskRepository().dispatched(
+        return taskRepository().dispatched(
             request.getJobId(), request.getTaskId(),
             request.getWorkerAddress()
         );
@@ -134,28 +135,61 @@ public class WorkerClientHandler implements ClientHandler {
 
     private boolean taskStart(String data) {
         TaskStartRequest request = JacksonUtils.toType(data, TaskStartRequest.class);
-        return workerContext.taskRepository().start(
-            request.getJobId(), request.getTaskId(),
-            request.getWorkerAddress(), request.getReportAt()
-        );
+        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
+        if (!task.getWorkerAddress().equals(request.getWorkerAddress())) {
+            return false;
+        }
+        task.setLastReportAt(request.getReportAt());
+        return taskRepository().start(task);
     }
 
     private boolean taskReport(String data) {
         TaskReportRequest request = JacksonUtils.toType(data, TaskReportRequest.class);
-        return workerContext.taskRepository().report(
-            request.getJobId(), request.getTaskId(),
-            request.getWorkerAddress(), request.getReportAt()
-        );
+        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
+        if (!task.getWorkerAddress().equals(request.getWorkerAddress())) {
+            return false;
+        }
+        task.setLastReportAt(request.getReportAt());
+        return taskRepository().report(task);
     }
 
     private boolean taskSuccess(String data) {
         TaskSuccessRequest request = JacksonUtils.toType(data, TaskSuccessRequest.class);
-        return false;
+        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
+        if (!task.getWorkerAddress().equals(request.getWorkerAddress())) {
+            return false;
+        }
+        task.setLastReportAt(request.getReportAt());
+        task.setResult(request.getResult());
+        boolean updated = taskRepository().success(task);
+        if (!updated) {
+            return false;
+        }
+        JobTracker tracker = workerContext.getJob(request.getJobId());
+        tracker.success(task);
+        return true;
     }
 
     private boolean taskFail(String data) {
         TaskFailRequest request = JacksonUtils.toType(data, TaskFailRequest.class);
-        return false;
+        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
+        if (!task.getWorkerAddress().equals(request.getWorkerAddress())) {
+            return false;
+        }
+        task.setLastReportAt(request.getReportAt());
+        task.setErrorMsg(request.getErrorMsg());
+        task.setErrorStackTrace(request.getErrorStackTrace());
+        boolean updated = taskRepository().fail(task);
+        if (!updated) {
+            return false;
+        }
+        JobTracker tracker = workerContext.getJob(request.getJobId());
+        tracker.fail(task);
+        return true;
+    }
+
+    private TaskRepository taskRepository() {
+        return workerContext.taskRepository();
     }
 
 }

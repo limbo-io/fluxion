@@ -23,6 +23,7 @@ import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.executor.MapReduceExecutor;
 import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.job.TaskCounter;
 import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.task.repository.TaskRepository;
 
@@ -38,9 +39,12 @@ public class MapReduceJobTracker extends JobTracker {
 
     private final MapReduceExecutor executor;
 
+    private final TaskCounter taskCounter;
+
     public MapReduceJobTracker(Job job, Executor executor, WorkerContext workerContext) {
         super(job, workerContext);
         this.executor = (MapReduceExecutor) executor;
+        this.taskCounter = new TaskCounter();
     }
 
     @Override
@@ -66,6 +70,29 @@ public class MapReduceJobTracker extends JobTracker {
         if (!dispatched) {
             reportFail("dispatch fail");
         }
+    }
+
+    @Override
+    public void success(Task task) {
+        taskCounter.getSuccess().incrementAndGet();
+        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
+            return;
+        }
+        if (taskCounter.getFail().get() > 0) {
+            reportFail("");
+        } else {
+            executor.reduce(job);
+            reportSuccess();
+        }
+    }
+
+    @Override
+    public void fail(Task task) {
+        taskCounter.getSuccess().incrementAndGet();
+        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
+            return;
+        }
+        reportFail("");
     }
 
     private boolean dispatch(Task task) {

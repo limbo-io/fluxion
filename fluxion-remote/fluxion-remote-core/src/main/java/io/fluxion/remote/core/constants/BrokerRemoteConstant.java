@@ -40,7 +40,9 @@ public interface BrokerRemoteConstant {
 
     String API_JOB_REPORT = "/api/v1/job/report";
 
-    String API_JOB_FEEDBACK = "/api/v1/job/feedback";
+    String API_JOB_SUCCESS = "/api/v1/job/success";
+
+    String API_JOB_FAIL = "/api/v1/job/fail";
 
     String API_JOB_WORKERS = "/api/v1/job/workers";
     // ========== API ==========

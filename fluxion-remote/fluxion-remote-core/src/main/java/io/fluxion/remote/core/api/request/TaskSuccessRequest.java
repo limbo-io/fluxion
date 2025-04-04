@@ -34,6 +34,8 @@ public class TaskSuccessRequest implements Request<Boolean> {
 
     private LocalDateTime reportAt;
 
+    private String result;
+
     public String getTaskId() {
         return taskId;
     }
@@ -64,5 +66,13 @@ public class TaskSuccessRequest implements Request<Boolean> {
 
     public void setJobId(String jobId) {
         this.jobId = jobId;
+    }
+
+    public String getResult() {
+        return result;
+    }
+
+    public void setResult(String result) {
+        this.result = result;
     }
 }

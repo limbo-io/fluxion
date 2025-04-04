@@ -18,7 +18,8 @@ package io.fluxion.server.core.execution.service;
 
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
-import io.fluxion.server.core.execution.cmd.ExecutableFeedbackCmd;
+import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
+import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
 import io.fluxion.server.core.executor.option.RetryOption;
@@ -60,34 +61,37 @@ public class ExecutableCommandService {
     private static final String LOCK_SUFFIX = "_Execution_Lock";
 
     @CommandHandler
-    public boolean handle(ExecutableFeedbackCmd cmd) {
+    public boolean handle(ExecutableSuccessCmd cmd) {
         JobEntity entity = jobEntityRepo.findById(cmd.getJobId())
-            .orElseThrow(PlatformException.supplier(ErrorCode.PARAM_ERROR, "task not found io:" + cmd.getJobId()));
+            .orElseThrow(PlatformException.supplier(ErrorCode.PARAM_ERROR, "job not found id:" + cmd.getJobId()));
         Execution execution = Query.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
+        Executable executable = execution.getExecutable();
         String lockName = execution.getId() + LOCK_SUFFIX;
         return distributedLock.lock(lockName, 2000, 3000,
-            () -> transactionService.transactional(() -> finish(execution, entity, cmd))
+            () -> transactionService.transactional(() -> {
+                    String jobId = cmd.getJobId();
+                    LocalDateTime reportAt = cmd.getReportAt();
+                    boolean success = Cmd.send(new JobFinishCmd(jobId, reportAt, JobStatus.RUNNING, JobStatus.SUCCEED));
+                    if (!success) {
+                        return false;
+                    }
+                    return executable.success(entity.getRefId(), jobId, reportAt);
+                }
+            )
         );
     }
 
-    private boolean finish(Execution execution, JobEntity entity, ExecutableFeedbackCmd cmd) {
-        Executable executable = execution.getExecutable();
-        String jobId = cmd.getJobId();
-        LocalDateTime reportAt = cmd.getReportAt();
-        switch (cmd.getExecuteResult()) {
-            case SUCCEED:
-                boolean success = Cmd.send(new JobFinishCmd(jobId, reportAt, JobStatus.RUNNING, JobStatus.SUCCEED));
-                if (!success) {
-                    return false;
-                }
-                return executable.success(entity.getRefId(), entity.getJobId(), cmd.getReportAt());
-            case PARTIALLY_SUCCESSFUL:
-                boolean partSuccess = Cmd.send(new JobFinishCmd(jobId, reportAt, JobStatus.RUNNING, JobStatus.PARTIALLY_SUCCESSFUL));
-                if (!partSuccess) {
-                    return false;
-                }
-                return executable.success(entity.getRefId(), entity.getJobId(), cmd.getReportAt());
-            case FAILED:
+    @CommandHandler
+    public boolean handle(ExecutableFailCmd cmd) {
+        JobEntity entity = jobEntityRepo.findById(cmd.getJobId())
+            .orElseThrow(PlatformException.supplier(ErrorCode.PARAM_ERROR, "job not found id:" + cmd.getJobId()));
+        Execution execution = Query.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
+        String lockName = execution.getId() + LOCK_SUFFIX;
+        return distributedLock.lock(lockName, 2000, 3000,
+            () -> transactionService.transactional(() -> {
+                String jobId = cmd.getJobId();
+                LocalDateTime reportAt = cmd.getReportAt();
+                Executable executable = execution.getExecutable();
                 RetryOption retryOption = Optional.ofNullable(executable.retryOption(entity.getRefId())).orElse(new RetryOption());
                 if (retryOption.canRetry(entity.getRetryTimes())) {
                     return Cmd.send(new JobRetryCmd());
@@ -100,12 +104,8 @@ public class ExecutableCommandService {
                     }
                     return Cmd.send(new ExecutionFailCmd(entity.getExecutionId(), reportAt));
                 }
-            case TERMINATED:
-                throw new UnsupportedOperationException("Manual task termination is not currently supported!");
-            case UNKNOWN:
-                throw new UnsupportedOperationException("Unknown result type!");
-        }
-        return false;
+            })
+        );
     }
 
 }

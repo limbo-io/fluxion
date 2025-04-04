@@ -23,6 +23,7 @@ import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.job.TaskCounter;
 import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.task.repository.TaskRepository;
 
@@ -39,9 +40,12 @@ public class BroadcastJobTracker extends JobTracker {
 
     private final Executor executor;
 
+    private final TaskCounter taskCounter;
+
     public BroadcastJobTracker(Job job, Executor executor, WorkerContext workerContext) {
         super(job, workerContext);
         this.executor = executor;
+        this.taskCounter = new TaskCounter();
     }
 
     @Override
@@ -72,6 +76,28 @@ public class BroadcastJobTracker extends JobTracker {
                 task.setErrorMsg(String.format("task dispatch fail over limit last worker=%s", task.getWorkerAddress()));
                 taskRepository.fail(task);
             }
+        }
+    }
+
+    @Override
+    public void success(Task task) {
+        taskCounter.getSuccess().incrementAndGet();
+        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
+            return;
+        }
+        reportSuccess();
+    }
+
+    @Override
+    public void fail(Task task) {
+        taskCounter.getFail().incrementAndGet();
+        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
+            return;
+        }
+        if (taskCounter.getSuccess().get() > 0) {
+            reportSuccess();
+        } else {
+            reportFail("");
         }
     }
 

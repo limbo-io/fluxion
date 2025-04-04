@@ -17,8 +17,8 @@
 package io.fluxion.server.core.job.runner;
 
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.remote.core.constants.ExecuteResult;
-import io.fluxion.server.core.execution.cmd.ExecutableFeedbackCmd;
+import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
+import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
 import io.fluxion.server.core.job.InputOutputJob;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
@@ -50,17 +50,15 @@ public class InputOutputJobRunner extends JobRunner {
             if (log.isDebugEnabled()) {
                 log.debug("InputOutputTaskRunner taskId:{}", job.getJobId());
             }
-            Cmd.send(new ExecutableFeedbackCmd(
+            Cmd.send(new ExecutableSuccessCmd(
                 job.getJobId(),
-                TimeUtils.currentLocalDateTime(),
-                ExecuteResult.SUCCEED
+                TimeUtils.currentLocalDateTime()
             ));
         } catch (Exception e) {
             log.error("InputOutputTaskRunner error", e);
-            Cmd.send(new ExecutableFeedbackCmd(
+            Cmd.send(new ExecutableFailCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),
-                ExecuteResult.FAILED,
                 e.getMessage()
             ));
         }

@@ -21,7 +21,6 @@ import io.fluxion.remote.core.constants.ExecuteMode;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.task.Task;
 
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -55,9 +54,9 @@ public interface TaskRepository {
 
     boolean dispatchFail(String jobId, String taskId);
 
-    boolean start(String jobId, String taskId, String workerAddress, LocalDateTime reportTime);
+    boolean start(Task task);
 
-    boolean report(String jobId, String taskId, String workerAddress, LocalDateTime reportTime);
+    boolean report(Task task);
 
     boolean success(Task task);
 

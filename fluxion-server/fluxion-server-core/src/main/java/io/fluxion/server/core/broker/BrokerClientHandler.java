@@ -21,9 +21,10 @@ import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.request.JobDispatchedRequest;
-import io.fluxion.remote.core.api.request.JobFeedbackRequest;
+import io.fluxion.remote.core.api.request.JobFailRequest;
 import io.fluxion.remote.core.api.request.JobReportRequest;
 import io.fluxion.remote.core.api.request.JobStartRequest;
+import io.fluxion.remote.core.api.request.JobSuccessRequest;
 import io.fluxion.remote.core.api.request.JobWorkersRequest;
 import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
@@ -32,11 +33,11 @@ import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
 import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.BrokerRemoteConstant;
-import io.fluxion.remote.core.constants.ExecuteResult;
 import io.fluxion.server.core.app.cmd.AppSaveCmd;
 import io.fluxion.server.core.broker.converter.BrokerClientConverter;
 import io.fluxion.server.core.broker.query.BrokersQuery;
-import io.fluxion.server.core.execution.cmd.ExecutableFeedbackCmd;
+import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
+import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.job.ExecutorJob;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.cmd.JobDispatchedCmd;
@@ -84,8 +85,11 @@ public class BrokerClientHandler implements ClientHandler {
                 case BrokerRemoteConstant.API_JOB_REPORT: {
                     return Response.ok(jobReport(data));
                 }
-                case BrokerRemoteConstant.API_JOB_FEEDBACK: {
-                    return Response.ok(jobFeedback(data));
+                case BrokerRemoteConstant.API_JOB_SUCCESS: {
+                    return Response.ok(jobSuccess(data));
+                }
+                case BrokerRemoteConstant.API_JOB_FAIL: {
+                    return Response.ok(jobFail(data));
                 }
                 case BrokerRemoteConstant.API_JOB_WORKERS: {
                     return Response.ok(jobWorkers(data));
@@ -160,12 +164,20 @@ public class BrokerClientHandler implements ClientHandler {
         ));
     }
 
-    private boolean jobFeedback(String data) {
-        JobFeedbackRequest request = JacksonUtils.toType(data, JobFeedbackRequest.class);
-        return Cmd.send(new ExecutableFeedbackCmd(
+    private boolean jobSuccess(String data) {
+        JobSuccessRequest request = JacksonUtils.toType(data, JobSuccessRequest.class);
+
+        return Cmd.send(new ExecutionSuccessCmd(
+            request.getJobId(),
+            request.getReportAt()
+        ));
+    }
+
+    private boolean jobFail(String data) {
+        JobFailRequest request = JacksonUtils.toType(data, JobFailRequest.class);
+        return Cmd.send(new ExecutableFailCmd(
             request.getJobId(),
             request.getReportAt(),
-            ExecuteResult.parse(request.getExecuteResult()),
             request.getErrorMsg()
         ));
     }

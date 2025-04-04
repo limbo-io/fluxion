@@ -72,6 +72,14 @@ public class LocalDateTimeUtils {
         return Formatters.ymdhms().format(date);
     }
 
+    /**
+     * 将{@link LocalDateTime}格式化为"<code>yyyy-MM-dd HH:mm:ss</code>"格式，并使用默认时区{@link Formatters#DEFAULT_ZONE}进行格式化。
+     * @param date 时间
+     * @return 时间格式化后的字符串
+     */
+    public static String formatYMDHMSS(LocalDateTime date) {
+        return Formatters.ymdhmss().format(date);
+    }
 
     /**
      * 将{@link LocalDateTime}格式化为"<code>yyyy-MM-dd</code>"格式，并使用默认时区{@link Formatters#DEFAULT_ZONE}进行格式化。

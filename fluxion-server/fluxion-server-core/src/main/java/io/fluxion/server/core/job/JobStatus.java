@@ -18,11 +18,9 @@ package io.fluxion.server.core.job;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.fluxion.common.constants.CommonConstants;
 
-import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -44,10 +42,6 @@ public enum JobStatus {
      */
     RUNNING("running"),
     SUCCEED("succeed"),
-    /**
-     * 部分成功
-     */
-    PARTIALLY_SUCCESSFUL("partially_successful"),
     FAILED("failed"), // worker拒绝，进入容错策略 失败次数不增加 TERMINATED 作业被手动终止 不再增加一个状态 而是写入 errMsg
     /**
      * 重试 调度中
@@ -68,7 +62,7 @@ public enum JobStatus {
     ;
 
     public static final Set<JobStatus> FINISH_STATUS = Sets.newHashSet(
-        SUCCEED, PARTIALLY_SUCCESSFUL, FAILED, CANCELLED, TERMINATED
+        SUCCEED, FAILED, CANCELLED, TERMINATED
     );
 
     @JsonValue

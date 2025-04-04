@@ -90,12 +90,18 @@ public class WorkerContext {
     // ========== Runtime ==========
 
     private final AtomicReference<Worker.Status> status;
-
+    /**
+     * 本机运行的 job
+     */
     private final Map<String, JobTracker> jobs = new ConcurrentHashMap<>();
-
+    /**
+     * 本机运行的 task
+     */
     private final Map<String, TaskTracker> tasks = new ConcurrentHashMap<>();
-
-    private TaskRepository taskRepository;
+    /**
+     * 本机管理的 job
+     */
+    private final TaskRepository taskRepository;
 
     /**
      * 任务执行线程池
@@ -224,6 +230,10 @@ public class WorkerContext {
 
     public void deleteJob(String jobId) {
         jobs.remove(jobId);
+    }
+
+    public JobTracker getJob(String jobId) {
+        return jobs.get(jobId);
     }
 
     public String appId() {

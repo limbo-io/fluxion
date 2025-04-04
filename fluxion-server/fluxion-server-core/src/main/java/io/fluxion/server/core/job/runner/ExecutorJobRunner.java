@@ -18,10 +18,9 @@ package io.fluxion.server.core.job.runner;
 
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.request.JobDispatchRequest;
-import io.fluxion.remote.core.constants.ExecuteResult;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.broker.BrokerContext;
-import io.fluxion.server.core.execution.cmd.ExecutableFeedbackCmd;
+import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
 import io.fluxion.server.core.job.ExecutorJob;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
@@ -64,10 +63,9 @@ public class ExecutorJobRunner extends JobRunner {
 
         String workerAddress = worker == null ? null : worker.getAddress();
         if (!dispatched) {
-            Cmd.send(new ExecutableFeedbackCmd(
+            Cmd.send(new ExecutableFailCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),
-                ExecuteResult.FAILED,
                 "dispatch fail worker:" + workerAddress
             ));
         }

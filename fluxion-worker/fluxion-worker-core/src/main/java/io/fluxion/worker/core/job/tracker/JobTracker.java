@@ -19,14 +19,15 @@ package io.fluxion.worker.core.job.tracker;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.request.JobDispatchedRequest;
-import io.fluxion.remote.core.api.request.JobFeedbackRequest;
+import io.fluxion.remote.core.api.request.JobFailRequest;
 import io.fluxion.remote.core.api.request.JobReportRequest;
 import io.fluxion.remote.core.api.request.JobStartRequest;
+import io.fluxion.remote.core.api.request.JobSuccessRequest;
 import io.fluxion.remote.core.constants.BrokerRemoteConstant;
-import io.fluxion.remote.core.constants.ExecuteResult;
 import io.fluxion.worker.core.AbstractTracker;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.task.Task;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
@@ -34,9 +35,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_DISPATCHED;
-import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_FEEDBACK;
+import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_FAIL;
 import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_REPORT;
 import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_START;
+import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_SUCCESS;
 
 /**
  * Task执行管理和监控
@@ -119,6 +121,10 @@ public abstract class JobTracker extends AbstractTracker {
 
     public abstract void run();
 
+    public void success(Task task) {}
+
+    public void fail(Task task) {}
+
     @Override
     public void destroy() {
         if (!destroyed.compareAndSet(false, true)) {
@@ -162,11 +168,11 @@ public abstract class JobTracker extends AbstractTracker {
 
     protected void reportSuccess() {
         try {
-            JobFeedbackRequest request = new JobFeedbackRequest(
-                job.getId(), workerContext.address(),
-                TimeUtils.currentLocalDateTime(), ExecuteResult.SUCCEED.result
-            );
-            workerContext.call(API_JOB_FEEDBACK, request); // todo @d later 如果上报失败需要记录，定时重试
+            JobSuccessRequest request = new JobSuccessRequest();
+            request.setJobId(job.getId());
+            request.setWorkerAddress(workerContext.address());
+            request.setReportAt(TimeUtils.currentLocalDateTime());
+            workerContext.call(API_JOB_SUCCESS, request); // todo @d later 如果上报失败需要记录，定时重试
         } catch (Exception e) {
             log.error("reportSuccess fail jobId={}", job.getId(), e);
             // todo @d later 如果上报失败需要记录，定时重试
@@ -175,11 +181,12 @@ public abstract class JobTracker extends AbstractTracker {
 
     protected void reportFail(String errorMsg) {
         try {
-            JobFeedbackRequest request = new JobFeedbackRequest(
-                job.getId(), workerContext.address(),
-                TimeUtils.currentLocalDateTime(), ExecuteResult.FAILED.result, errorMsg
-            );
-            workerContext.call(API_JOB_FEEDBACK, request); // todo @d later 如果上报失败需要记录，定时重试
+            JobFailRequest request = new JobFailRequest();
+            request.setJobId(job.getId());
+            request.setWorkerAddress(workerContext.address());
+            request.setReportAt(TimeUtils.currentLocalDateTime());
+            request.setErrorMsg(errorMsg);
+            workerContext.call(API_JOB_FAIL, request); // todo @d later 如果上报失败需要记录，定时重试
         } catch (Exception e) {
             log.error("reportFail fail jobId={}", job.getId(), e);
             // todo @d later 如果上报失败需要记录，定时重试
