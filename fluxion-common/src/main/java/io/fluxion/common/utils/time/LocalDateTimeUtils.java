@@ -148,6 +148,13 @@ public class LocalDateTimeUtils {
         return Formatters.ymdhms().parse(date, LocalDateTime::from);
     }
 
+    public static LocalDateTime parseYMDHMSS(String date) {
+        if (StringUtils.isBlank(date)) {
+            return null;
+        }
+        return Formatters.ymdhmss().parse(date, LocalDateTime::from);
+    }
+
 
     /**
      * 将"<code>yyyy-MM-dd</code>"格式的日期字符串转换为{@link LocalDateTime}，日期字符串的时区使用默认时区{@link Formatters#DEFAULT_ZONE}。

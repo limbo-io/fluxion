@@ -37,7 +37,7 @@ import io.fluxion.server.core.app.cmd.AppSaveCmd;
 import io.fluxion.server.core.broker.converter.BrokerClientConverter;
 import io.fluxion.server.core.broker.query.BrokersQuery;
 import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
-import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
+import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
 import io.fluxion.server.core.job.ExecutorJob;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.cmd.JobDispatchedCmd;
@@ -51,11 +51,8 @@ import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @author Devil
@@ -160,25 +157,24 @@ public class BrokerClientHandler implements ClientHandler {
     private boolean jobReport(String data) {
         JobReportRequest request = JacksonUtils.toType(data, JobReportRequest.class);
         return Cmd.send(new JobReportCmd(
-            request.getJobId(), request.getWorkerAddress(), request.getReportAt()
+            request.getJobId(), request.getWorkerAddress(),
+            request.getReportAt(), BrokerClientConverter.convert(request.getTaskMonitor())
         ));
     }
 
     private boolean jobSuccess(String data) {
         JobSuccessRequest request = JacksonUtils.toType(data, JobSuccessRequest.class);
-
-        return Cmd.send(new ExecutionSuccessCmd(
-            request.getJobId(),
-            request.getReportAt()
+        return Cmd.send(new ExecutableSuccessCmd(
+            request.getJobId(), request.getReportAt(),
+            BrokerClientConverter.convert(request.getTaskMonitor())
         ));
     }
 
     private boolean jobFail(String data) {
         JobFailRequest request = JacksonUtils.toType(data, JobFailRequest.class);
         return Cmd.send(new ExecutableFailCmd(
-            request.getJobId(),
-            request.getReportAt(),
-            request.getErrorMsg()
+            request.getJobId(), request.getReportAt(), request.getErrorMsg(),
+            BrokerClientConverter.convert(request.getTaskMonitor())
         ));
     }
 
@@ -194,21 +190,8 @@ public class BrokerClientHandler implements ClientHandler {
             executorJob.getDispatchOption(), request.isFilterResource(), request.isLoadBalanceSelect()
         )).getWorkers();
         JobWorkersResponse response = new JobWorkersResponse();
-        response.setWorkers(toNodes(workers));
+        response.setWorkers(BrokerClientConverter.toNodes(workers));
         return response;
-    }
-
-    private List<NodeDTO> toNodes(List<Worker> workers) {
-        if (CollectionUtils.isEmpty(workers)) {
-            return Collections.emptyList();
-        }
-        return workers.stream().map(w -> {
-            NodeDTO dto = new NodeDTO();
-            dto.setProtocol(w.getProtocol().value);
-            dto.setHost(w.getHost());
-            dto.setPort(w.getPort());
-            return dto;
-        }).collect(Collectors.toList());
     }
 
 }

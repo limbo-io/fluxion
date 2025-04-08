@@ -16,15 +16,38 @@
 
 package io.fluxion.worker.demo.executor;
 
+import io.fluxion.worker.core.executor.MapReduceExecutor;
+import io.fluxion.worker.core.job.Job;
 import io.fluxion.worker.core.task.Task;
-import io.fluxion.worker.core.executor.Executor;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Devil
  */
 @Component
-public class HelloExecutor implements Executor {
+public class MapReduceDemoExecutor extends MapReduceExecutor {
+
+    @Override
+    public List<Task> sharding(Job job) {
+        List<Task> tasks = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            Task task = new Task("SUB_" + i, job.getId());
+            tasks.add(task);
+        }
+        return tasks;
+    }
+
+    @Override
+    public void reduce(Map<String, String> taskResults) {
+        for (Map.Entry<String, String> entry : taskResults.entrySet()) {
+            System.out.println("Reduce " + entry.getKey() + ":" + entry.getValue());
+        }
+    }
+
     @Override
     public void run(Task task) {
         System.out.println("Hello " + task.getId());

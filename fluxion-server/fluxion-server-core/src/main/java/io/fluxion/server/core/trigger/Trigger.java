@@ -31,6 +31,8 @@ public class Trigger {
 
     private String id;
 
+    private String version;
+
     private String name;
 
     private String description;

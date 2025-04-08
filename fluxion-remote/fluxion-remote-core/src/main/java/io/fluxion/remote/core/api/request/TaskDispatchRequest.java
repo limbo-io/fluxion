@@ -35,7 +35,9 @@ public class TaskDispatchRequest implements Request<Boolean> {
      * 执行器的名称
      */
     private String executorName;
-
+    /**
+     * 管理地址
+     */
     private String remoteAddress;
 
     public String getJobId() {

@@ -20,6 +20,7 @@ import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.client.Client;
+import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.LBClient;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.worker.core.executor.Executor;
@@ -125,6 +126,7 @@ public class WorkerContext {
         this.queueSize = queueSize;
         this.concurrency = concurrency;
         this.brokerClient = brokerClient;
+        this.client = ClientFactory.create(protocol);
         this.status = new AtomicReference<>(Worker.Status.IDLE);
         this.address = host + ":" + port;
         this.taskRepository = taskRepository;

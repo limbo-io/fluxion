@@ -13,7 +13,7 @@ spring:
 
 # h2
 #    driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
-#    url: jdbc:log4jdbc:h2:./fluxion;DB_CLOSE_DELAY=-1;MODE=mysql;
+#    url: jdbc:log4jdbc:h2:./fluxion;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=mysql;
 #  h2:
 #    # h2嵌入式数据库控制台，可以通过浏览器访问 ip:port/h2-console
 #    # file 模式 用户名密码都是空

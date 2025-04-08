@@ -83,7 +83,7 @@ public class WorkerProperties {
      */
     private List<String> tags;
 
-    private DatasourceProperties datasource;
+    private DatasourceProperties datasource = new DatasourceProperties();
 
     public boolean isEnabled() {
         return enabled;

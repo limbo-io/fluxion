@@ -52,14 +52,16 @@ public class InputOutputJobRunner extends JobRunner {
             }
             Cmd.send(new ExecutableSuccessCmd(
                 job.getJobId(),
-                TimeUtils.currentLocalDateTime()
+                TimeUtils.currentLocalDateTime(),
+                null
             ));
         } catch (Exception e) {
             log.error("InputOutputTaskRunner error", e);
             Cmd.send(new ExecutableFailCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),
-                e.getMessage()
+                e.getMessage(),
+                null
             ));
         }
     }

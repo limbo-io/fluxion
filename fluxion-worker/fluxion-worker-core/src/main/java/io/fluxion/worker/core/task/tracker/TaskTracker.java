@@ -18,6 +18,7 @@ package io.fluxion.worker.core.task.tracker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.request.TaskDispatchedRequest;
 import io.fluxion.remote.core.api.request.TaskFailRequest;
 import io.fluxion.remote.core.api.request.TaskReportRequest;
@@ -25,9 +26,9 @@ import io.fluxion.remote.core.api.request.TaskStartRequest;
 import io.fluxion.remote.core.api.request.TaskSuccessRequest;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.worker.core.AbstractTracker;
-import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
+import io.fluxion.worker.core.task.Task;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
@@ -118,9 +119,11 @@ public class TaskTracker extends AbstractTracker {
         this.statusReportFuture = workerContext.taskStatusReportExecutor().scheduleAtFixedRate(() -> {
             TaskReportRequest request = new TaskReportRequest();
             request.setTaskId(task.getId());
+            request.setJobId(task.getJobId());
             request.setReportAt(TimeUtils.currentLocalDateTime());
             request.setWorkerAddress(workerContext.address());
-            workerContext.call(API_TASK_REPORT, request);
+            NodeDTO remote = task.remoteNode();
+            workerContext.call(API_TASK_REPORT, remote.getHost(), remote.getPort(), request);
         }, 1, WorkerRemoteConstant.TASK_REPORT_SECONDS, TimeUnit.SECONDS);
     }
 
@@ -128,8 +131,10 @@ public class TaskTracker extends AbstractTracker {
         try {
             TaskDispatchedRequest request = new TaskDispatchedRequest();
             request.setTaskId(task.getId());
+            request.setJobId(task.getJobId());
             request.setWorkerAddress(workerContext.address());
-            return workerContext.call(API_TASK_DISPATCHED, request);
+            NodeDTO remote = task.remoteNode();
+            return workerContext.call(API_TASK_DISPATCHED, remote.getHost(), remote.getPort(), request);
         } catch (Exception e) {
             log.error("reportDispatched fail subTask={}", task.getId(), e);
             return false;
@@ -155,9 +160,11 @@ public class TaskTracker extends AbstractTracker {
         try {
             TaskStartRequest request = new TaskStartRequest();
             request.setTaskId(task.getId());
+            request.setJobId(task.getJobId());
             request.setWorkerAddress(workerContext.address());
             request.setReportAt(TimeUtils.currentLocalDateTime());
-            return workerContext.call(API_TASK_START, request);
+            NodeDTO remote = task.remoteNode();
+            return workerContext.call(API_TASK_START, remote.getHost(), remote.getPort(), request);
         } catch (Exception e) {
             log.error("reportStart fail subTask={}", task.getId(), e);
             return false;
@@ -168,9 +175,11 @@ public class TaskTracker extends AbstractTracker {
         try {
             TaskSuccessRequest request = new TaskSuccessRequest();
             request.setTaskId(task.getId());
+            request.setJobId(task.getJobId());
             request.setReportAt(TimeUtils.currentLocalDateTime());
             request.setWorkerAddress(workerContext.address());
-            workerContext.call(API_TASK_SUCCESS, request); // todo @d later 如果上报失败需要记录，定时重试
+            NodeDTO remote = task.remoteNode();
+            workerContext.call(API_TASK_SUCCESS, remote.getHost(), remote.getPort(), request); // todo @d later 如果上报失败需要记录，定时重试
         } catch (Exception e) {
             log.error("reportSuccess fail subTask={}", task.getId(), e);
             // todo @d later 如果上报失败需要记录，定时重试
@@ -181,10 +190,12 @@ public class TaskTracker extends AbstractTracker {
         try {
             TaskFailRequest request = new TaskFailRequest();
             request.setTaskId(task.getId());
+            request.setJobId(task.getJobId());
             request.setReportAt(TimeUtils.currentLocalDateTime());
             request.setWorkerAddress(workerContext.address());
             request.setErrorMsg(throwable.getMessage());
-            workerContext.call(API_TASK_FAIL, request); // todo @d later 如果上报失败需要记录，定时重试
+            NodeDTO remote = task.remoteNode();
+            workerContext.call(API_TASK_FAIL, remote.getHost(), remote.getPort(), request); // todo @d later 如果上报失败需要记录，定时重试
         } catch (Exception e) {
             log.error("reportFail fail subTask={}", task.getId(), e);
             // todo @d later 如果上报失败需要记录，定时重试

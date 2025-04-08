@@ -24,14 +24,12 @@ import java.util.List;
 /**
  * @author Devil
  */
-public abstract class MapExecutor extends MapReduceExecutor {
+public abstract class MapExecutor implements Executor {
 
     /**
-     * 处理reduce任务
+     * 切分创建多个子task
      *
      * @param job 任务
      */
-    public void reduce(Job job) {
-        // do nothing
-    }
+    public abstract List<Task> sharding(Job job);
 }

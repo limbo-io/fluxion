@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.execution.cmd;
 
+import io.fluxion.server.core.job.TaskMonitor;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -32,5 +33,7 @@ public class ExecutableSuccessCmd implements ICmd<Boolean> {
     private String jobId;
 
     private LocalDateTime reportAt;
+
+    private TaskMonitor monitor;
 
 }

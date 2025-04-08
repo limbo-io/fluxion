@@ -1,6 +1,7 @@
 package io.fluxion.remote.core.api.request;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
 
 import java.time.LocalDateTime;
 
@@ -16,6 +17,8 @@ public class JobFailRequest implements Request<Boolean> {
      * 执行失败时候返回的信息
      */
     private String errorMsg;
+
+    private TaskMonitorDTO taskMonitor;
 
     public String getJobId() {
         return jobId;
@@ -49,4 +52,11 @@ public class JobFailRequest implements Request<Boolean> {
         this.workerAddress = workerAddress;
     }
 
+    public TaskMonitorDTO getTaskMonitor() {
+        return taskMonitor;
+    }
+
+    public void setTaskMonitor(TaskMonitorDTO taskMonitor) {
+        this.taskMonitor = taskMonitor;
+    }
 }

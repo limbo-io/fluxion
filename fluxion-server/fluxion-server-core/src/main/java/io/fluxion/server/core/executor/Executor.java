@@ -39,6 +39,8 @@ public class Executor implements Executable {
 
     private String id;
 
+    private String version;
+
     private ExecutorConfig config;
 
     /**
@@ -54,15 +56,16 @@ public class Executor implements Executable {
     private Executor() {
     }
 
-    private Executor(String id, ExecutorConfig config, RetryOption retryOption, OvertimeOption overtimeOption) {
+    private Executor(String id, String version, ExecutorConfig config, RetryOption retryOption, OvertimeOption overtimeOption) {
         this.id = id;
+        this.version = version;
         this.config = config;
         this.retryOption = retryOption == null ? new RetryOption() : retryOption;
         this.overtimeOption = overtimeOption == null ? new OvertimeOption() : overtimeOption;
     }
 
-    public static Executor of(String id, ExecutorConfig config, RetryOption retryOption, OvertimeOption overtimeOption) {
-        return new Executor(id, config, retryOption, overtimeOption);
+    public static Executor of(String id, String version, ExecutorConfig config, RetryOption retryOption, OvertimeOption overtimeOption) {
+        return new Executor(id, version, config, retryOption, overtimeOption);
     }
 
     @Override
@@ -72,7 +75,7 @@ public class Executor implements Executable {
 
     @Override
     public String version() {
-        return "";
+        return version;
     }
 
     @Override

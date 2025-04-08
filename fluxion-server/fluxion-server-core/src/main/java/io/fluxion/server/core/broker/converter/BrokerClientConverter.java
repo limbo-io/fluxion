@@ -20,10 +20,12 @@ import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.TagDTO;
+import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
 import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.BrokerNode;
+import io.fluxion.server.core.job.TaskMonitor;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
@@ -93,6 +95,26 @@ public class BrokerClientConverter {
             return Collections.emptyList();
         }
         return nodes.stream().map(BrokerClientConverter::toDTO).collect(Collectors.toList());
+    }
+
+    public static List<NodeDTO> toNodes(List<Worker> workers) {
+        if (CollectionUtils.isEmpty(workers)) {
+            return Collections.emptyList();
+        }
+        return workers.stream().map(w -> {
+            NodeDTO dto = new NodeDTO();
+            dto.setProtocol(w.getProtocol().value);
+            dto.setHost(w.getHost());
+            dto.setPort(w.getPort());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    public static TaskMonitor convert(TaskMonitorDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        return new TaskMonitor(dto.getTotal(), dto.getSuccess(), dto.getFail());
     }
 
 }

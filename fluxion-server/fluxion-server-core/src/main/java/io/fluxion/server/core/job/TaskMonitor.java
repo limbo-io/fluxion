@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.demo.executor;
+package io.fluxion.server.core.job;
 
-import io.fluxion.worker.core.task.Task;
-import io.fluxion.worker.core.executor.Executor;
-import org.springframework.stereotype.Component;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * @author Devil
  */
-@Component
-public class HelloExecutor implements Executor {
-    @Override
-    public void run(Task task) {
-        System.out.println("Hello " + task.getId());
-    }
+@Getter
+@AllArgsConstructor
+public class TaskMonitor {
+
+    private int total;
+
+    private int success;
+
+    private int fail;
 }

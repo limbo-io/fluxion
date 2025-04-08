@@ -42,6 +42,7 @@ public class WorkerClientConverter {
         Task task = new Task(request.getTaskId(), request.getJobId());
         task.setStatus(TaskStatus.CREATED);
         task.setWorkerAddress(workerContext.address());
+        task.setRemoteAddress(request.getRemoteAddress());
         return task;
     }
 

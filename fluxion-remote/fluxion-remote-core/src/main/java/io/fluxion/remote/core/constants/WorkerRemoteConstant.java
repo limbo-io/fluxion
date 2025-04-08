@@ -33,9 +33,9 @@ public interface WorkerRemoteConstant {
      */
     int TASK_REPORT_SECONDS = 60;
 
-    // ========== API ==========
+    // ========== API Broker -> Worker ==========
     String API_JOB_DISPATCH = "/api/v1/job/dispatch";
-
+    // ========== API Worker -> Worker ==========
     String API_TASK_DISPATCH = "/api/v1/task/dispatch";
 
     String API_TASK_DISPATCHED = "/api/v1/task/dispatched";
@@ -47,5 +47,5 @@ public interface WorkerRemoteConstant {
     String API_TASK_SUCCESS = "/api/v1/task/success";
 
     String API_TASK_FAIL = "/api/v1/task/fail";
-    // ========== API ==========
+    // ========== API End ==========
 }

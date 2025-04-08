@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.api.request;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
 
 import java.time.LocalDateTime;
 
@@ -31,6 +32,8 @@ public class JobReportRequest implements Request<Boolean> {
     private String workerAddress;
 
     private LocalDateTime reportAt;
+
+    private TaskMonitorDTO taskMonitor;
 
     public String getWorkerAddress() {
         return workerAddress;
@@ -54,5 +57,13 @@ public class JobReportRequest implements Request<Boolean> {
 
     public void setReportAt(LocalDateTime reportAt) {
         this.reportAt = reportAt;
+    }
+
+    public TaskMonitorDTO getTaskMonitor() {
+        return taskMonitor;
+    }
+
+    public void setTaskMonitor(TaskMonitorDTO taskMonitor) {
+        this.taskMonitor = taskMonitor;
     }
 }

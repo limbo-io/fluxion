@@ -30,6 +30,11 @@ import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
 /**
  * @author Devil
  */
@@ -47,7 +52,7 @@ public class ExecutorJobRunner extends JobRunner {
         Worker worker = Query.query(new WorkersFilterQuery(
             executorJob.getAppId(), executorJob.getExecutorName(),
             executorJob.getDispatchOption(), true, true
-        )).getWorkers().stream().findAny().orElse(null);
+        )).getWorkers().stream().findFirst().orElse(null); // todo ! findAny npe
         boolean dispatched = false;
         if (worker != null) {
             // 远程调用处理任务
@@ -66,7 +71,8 @@ public class ExecutorJobRunner extends JobRunner {
             Cmd.send(new ExecutableFailCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),
-                "dispatch fail worker:" + workerAddress
+                "dispatch fail worker:" + workerAddress,
+                null
             ));
         }
     }

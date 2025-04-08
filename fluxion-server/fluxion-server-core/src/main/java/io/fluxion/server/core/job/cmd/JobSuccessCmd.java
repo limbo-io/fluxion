@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.job.cmd;
 
-import io.fluxion.server.core.job.JobStatus;
+import io.fluxion.server.core.job.TaskMonitor;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,33 +27,12 @@ import java.time.LocalDateTime;
  * @author Devil
  */
 @Getter
-public class JobFinishCmd implements ICmd<Boolean> {
+@AllArgsConstructor
+public class JobSuccessCmd implements ICmd<Boolean> {
 
     private final String jobId;
 
     private final LocalDateTime reportAt;
 
-    private final JobStatus oldStatus;
-
-    private final JobStatus newStatus;
-
-    /**
-     * 执行失败时候返回的信息
-     */
-    private String errorMsg;
-
-    public JobFinishCmd(String jobId, LocalDateTime reportAt, JobStatus oldStatus, JobStatus newStatus) {
-        this.jobId = jobId;
-        this.reportAt = reportAt;
-        this.oldStatus = oldStatus;
-        this.newStatus = newStatus;
-    }
-
-    public JobFinishCmd(String jobId, LocalDateTime reportAt, JobStatus oldStatus, JobStatus newStatus, String errorMsg) {
-        this.jobId = jobId;
-        this.reportAt = reportAt;
-        this.oldStatus = oldStatus;
-        this.newStatus = newStatus;
-        this.errorMsg = errorMsg;
-    }
+    private TaskMonitor monitor;
 }

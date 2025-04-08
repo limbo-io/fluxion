@@ -17,13 +17,26 @@
 package io.fluxion.worker.spring.starter.properties;
 
 public class DatasourceProperties {
-    private String url;
-    private String username;
-    private String password;
+    /**
+     * 是否开启数据库存储
+     */
+    private boolean open = true;
     /**
      * 是否初始化数据库 如果是持久化 task 的则选 false 交由运维管理
      */
     private boolean initTable = true;
+
+    private String url = "jdbc:h2:./fluxion_worker;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=mysql;";
+    private String username;
+    private String password;
+
+    public boolean isOpen() {
+        return open;
+    }
+
+    public void setOpen(boolean open) {
+        this.open = open;
+    }
 
     public String getUrl() {
         return url;

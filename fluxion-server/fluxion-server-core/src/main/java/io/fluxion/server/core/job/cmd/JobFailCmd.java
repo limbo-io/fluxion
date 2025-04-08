@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 limbo-io Team (https://github.com/limbo-io).
+ * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,29 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.demo.executor;
+package io.fluxion.server.core.job.cmd;
 
-import io.fluxion.worker.core.task.Task;
-import io.fluxion.worker.core.executor.Executor;
-import org.springframework.stereotype.Component;
+import io.fluxion.server.core.job.TaskMonitor;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+import java.time.LocalDateTime;
 
 /**
  * @author Devil
  */
-@Component
-public class HelloExecutor implements Executor {
-    @Override
-    public void run(Task task) {
-        System.out.println("Hello " + task.getId());
-    }
+@Getter
+@AllArgsConstructor
+public class JobFailCmd implements ICmd<Boolean> {
+
+    private final String jobId;
+
+    private final LocalDateTime reportAt;
+    /**
+     * 执行失败时候返回的信息
+     */
+    private String errorMsg;
+
+    private TaskMonitor monitor;
 }

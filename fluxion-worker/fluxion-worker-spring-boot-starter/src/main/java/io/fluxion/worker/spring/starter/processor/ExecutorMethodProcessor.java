@@ -18,6 +18,7 @@ package io.fluxion.worker.spring.starter.processor;
 
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.spring.starter.processor.event.ExecutorScannedEvent;
 import io.fluxion.worker.spring.starter.processor.event.WorkerReadyEvent;
 import org.springframework.aop.framework.autoproxy.AutoProxyUtils;
@@ -54,7 +55,7 @@ public class ExecutorMethodProcessor implements SmartInitializingSingleton,
 
     static {
         try {
-            M_RUN = Executor.class.getMethod("run", Job.class);
+            M_RUN = Executor.class.getMethod("run", Task.class);
             if (M_RUN.getReturnType() != Void.TYPE) {
                 throw new NoSuchMethodException();
             }

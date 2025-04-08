@@ -21,9 +21,9 @@ import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.core.execution.config.ExecutorExecuteConfig;
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.executor.Executor;
-import io.fluxion.server.core.workflow.query.WorkflowByIdQuery;
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
+import io.fluxion.server.core.workflow.query.WorkflowByIdQuery;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.stereotype.Service;
@@ -42,11 +42,11 @@ public class ExecutableQueryService {
                 executable = Query.query(new WorkflowByIdQuery(query.getId(), query.getVersion())).getWorkflow();
                 break;
             case EXECUTOR:
-                Trigger trigger = Query.query(new TriggerByIdQuery(query.getId())).getTrigger();
+                Trigger trigger = Query.query(new TriggerByIdQuery(query.getId(), query.getVersion())).getTrigger();
                 ExecuteConfig executeConfig = trigger.getConfig().getExecuteConfig();
                 ExecutorExecuteConfig executorExecuteConfig = (ExecutorExecuteConfig) executeConfig;
                 executable = Executor.of(
-                    executorExecuteConfig.getExecutor().executorName(),
+                    trigger.getId(), trigger.getVersion(),
                     executorExecuteConfig.getExecutor(), executorExecuteConfig.getRetryOption(),
                     executorExecuteConfig.getOvertimeOption()
                 );

@@ -16,15 +16,17 @@
 
 package io.fluxion.server.core.job.service;
 
+import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobStatus;
 import io.fluxion.server.core.job.cmd.JobDispatchedCmd;
-import io.fluxion.server.core.job.cmd.JobFinishCmd;
+import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.cmd.JobReportCmd;
 import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.cmd.JobStartCmd;
+import io.fluxion.server.core.job.cmd.JobSuccessCmd;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
 import io.fluxion.server.core.job.runner.JobRunner;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
@@ -158,7 +160,7 @@ public class JobCommandService {
     @CommandHandler
     public boolean handle(JobReportCmd cmd) {
         int updated = entityManager.createQuery("update JobEntity " +
-                "set lastReportAt = :lastReportAt " +
+                "set lastReportAt = :lastReportAt, monitor = :monitor " +
                 "where jobId = :jobId and status = :oldStatus and lastReportAt < :lastReportAt " +
                 "and workerAddress = :workerAddress"
             )
@@ -166,32 +168,62 @@ public class JobCommandService {
             .setParameter("jobId", cmd.getJobId())
             .setParameter("oldStatus", JobStatus.RUNNING.value)
             .setParameter("workerAddress", cmd.getWorkerAddress())
+            .setParameter("monitor", cmd.getMonitor() == null ? "" : JacksonUtils.toJSONString(cmd.getMonitor()))
             .executeUpdate();
         return updated > 0;
     }
 
     @Transactional
     @CommandHandler
-    public boolean handle(JobFinishCmd cmd) {
+    public boolean handle(JobSuccessCmd cmd) {
         JobEntity entity = jobEntityRepo.findById(cmd.getJobId()).orElse(null);
         if (entity == null) {
-            log.warn("JobFinishCmd not found jobId:{}", cmd.getJobId());
+            log.warn("JobSuccessCmd not found jobId:{}", cmd.getJobId());
             return false;
         }
         int updated = entityManager.createQuery("update JobEntity " +
-                "set lastReportAt = :lastReportAt, status = :newStatus, startAt = :startAt, endAt = :endAt, errorMsg = :errorMsg " +
+                "set lastReportAt = :lastReportAt, status = :newStatus, startAt = :startAt, endAt = :endAt, monitor = :monitor " +
                 "where jobId = :jobId and status = :oldStatus "
             )
             .setParameter("lastReportAt", cmd.getReportAt())
             .setParameter("startAt", entity.getStartAt() == null ? cmd.getReportAt() : entity.getStartAt())
             .setParameter("endAt", cmd.getReportAt())
             .setParameter("jobId", cmd.getJobId())
-            .setParameter("oldStatus", cmd.getOldStatus().value)
-            .setParameter("newStatus", cmd.getNewStatus().value)
-            .setParameter("errorMsg", cmd.getErrorMsg())
+            .setParameter("oldStatus", JobStatus.RUNNING.value)
+            .setParameter("newStatus", JobStatus.SUCCEED.value)
+            .setParameter("monitor", cmd.getMonitor() == null ? "" : JacksonUtils.toJSONString(cmd.getMonitor()))
             .executeUpdate();
         if (updated <= 0) {
-            log.warn("JobFinishCmd update fail jobId:{}", cmd.getJobId());
+            log.warn("JobSuccessCmd update fail jobId:{}", cmd.getJobId());
+            return false;
+        }
+        return true;
+    }
+
+    @Transactional
+    @CommandHandler
+    public boolean handle(JobFailCmd cmd) {
+        JobEntity entity = jobEntityRepo.findById(cmd.getJobId()).orElse(null);
+        if (entity == null) {
+            log.warn("JobFailCmd not found jobId:{}", cmd.getJobId());
+            return false;
+        }
+        int updated = entityManager.createQuery("update JobEntity " +
+                "set lastReportAt = :lastReportAt, status = :newStatus, startAt = :startAt, endAt = :endAt," +
+                " errorMsg = :errorMsg, monitor =:monitor " +
+                "where jobId = :jobId and status = :oldStatus "
+            )
+            .setParameter("lastReportAt", cmd.getReportAt())
+            .setParameter("startAt", entity.getStartAt() == null ? cmd.getReportAt() : entity.getStartAt())
+            .setParameter("endAt", cmd.getReportAt())
+            .setParameter("jobId", cmd.getJobId())
+            .setParameter("oldStatus", JobStatus.RUNNING.value)
+            .setParameter("newStatus", JobStatus.FAILED.value)
+            .setParameter("errorMsg", cmd.getErrorMsg())
+            .setParameter("monitor", cmd.getMonitor() == null ? "" : JacksonUtils.toJSONString(cmd.getMonitor()))
+            .executeUpdate();
+        if (updated <= 0) {
+            log.warn("JobFailCmd update fail jobId:{}", cmd.getJobId());
             return false;
         }
         return true;

@@ -18,8 +18,8 @@ package io.fluxion.worker.core.task.repository;
 
 import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.LocalDateTimeUtils;
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.request.TaskPageRequest;
-import io.fluxion.remote.core.constants.ExecuteMode;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.persistence.ConnectionFactory;
 import io.fluxion.worker.core.task.Task;
@@ -34,12 +34,15 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -52,7 +55,7 @@ public class DBTaskRepository implements TaskRepository {
 
     private static final LocalDateTime DEFAULT_REPORT_TIME = LocalDateTimeUtils.parse("2000-01-01 00:00:00", Formatters.YMD_HMS);
 
-    private static final String DEFAULT_REPORT_TIME_STR = LocalDateTimeUtils.formatYMDHMS(DEFAULT_REPORT_TIME);
+    private static final String DEFAULT_REPORT_TIME_STR = LocalDateTimeUtils.formatYMDHMSS(DEFAULT_REPORT_TIME);
 
     private final ConnectionFactory connectionFactory;
 
@@ -82,10 +85,10 @@ public class DBTaskRepository implements TaskRepository {
                 "    `job_id`            varchar(255) NOT NULL DEFAULT '',\n" +
                 "    `worker_address`    varchar(255) NOT NULL DEFAULT '',\n" +
                 "    `status`            varchar(32)     NOT NULL,\n" +
-                "    `trigger_at`        datetime(6) DEFAULT NULL,\n" +
-                "    `start_at`          datetime(6) DEFAULT NULL,\n" +
-                "    `end_at`            datetime(6) DEFAULT NULL,\n" +
-                "    `last_report_at`    datetime(6) NOT NULL," +
+                "    `trigger_at`        datetime(3) DEFAULT NULL,\n" +
+                "    `start_at`          datetime(3) DEFAULT NULL,\n" +
+                "    `end_at`            datetime(3) DEFAULT NULL,\n" +
+                "    `last_report_at`    datetime(3) DEFAULT NULL," +
                 "    `result`            text DEFAULT NULL,\n" +
                 "    `error_msg`         varchar(255) DEFAULT '',\n" +
                 "    `error_stack_trace` text DEFAULT NULL,\n" +
@@ -159,7 +162,9 @@ public class DBTaskRepository implements TaskRepository {
     }
 
     public List<Task> getUnDispatched(String triggerAt, String startId, Integer limit) {
-        String sql = "select * from " + TABLE_NAME + " where last_report_at = ? and trigger_at < ? and status = ? and task_id > ? order by task_id limit ?";
+        String sql = "select * from " + TABLE_NAME +
+            " where last_report_at = ? and trigger_at < ? and status = ? and task_id > ? " +
+            " order by task_id limit ?";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
             ps.setString(++i, DEFAULT_REPORT_TIME_STR);
@@ -181,7 +186,9 @@ public class DBTaskRepository implements TaskRepository {
     }
 
     public List<Task> getByLastReportBetween(String reportTimeStart, String reportTimeEnd, TaskStatus status, String taskId, Integer limit) {
-        String sql = "select * from " + TABLE_NAME + " where last_report_at >= ? and last_report_at <= ? and status = ? and task_id > ? order by task_id limit ?";
+        String sql = "select * from " + TABLE_NAME +
+            " where last_report_at >= ? and last_report_at <= ? and status = ? and task_id > ? " +
+            " order by task_id limit ?";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
             ps.setString(++i, reportTimeStart);
@@ -260,27 +267,41 @@ public class DBTaskRepository implements TaskRepository {
         }
     }
 
-    public List<String> getAllTaskResult(String jobId, ExecuteMode executeMode) {
-        String sql = "select result from " + TABLE_NAME + " where job_id = ? and `execute_mode` = ?";
+    public Map<String, String> getAllSubTaskResult(String jobId) {
+        String sql = "select task_id, result from " + TABLE_NAME + " where job_id = ? ";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, jobId);
-            ps.setString(2, executeMode.mode);
             try (ResultSet rs = ps.executeQuery()) {
-                List<String> results = new ArrayList<>();
+                Map<String, String> results = new HashMap<>();
                 while (rs.next()) {
-                    results.add(rs.getString("result"));
+                    results.put(rs.getString("task_id"), rs.getString("result"));
                 }
                 return results;
             }
         } catch (Exception e) {
-            log.error("TaskRepository.getAllTaskResult error jobId={} executeMode={}", jobId, executeMode, e);
-            return Collections.emptyList();
+            log.error("TaskRepository.getAllTaskResult error jobId={}", jobId, e);
+            return Collections.emptyMap();
         }
     }
 
     @Override
-    public boolean dispatched(String jobId, String taskId, String workerAddress) {
-        return false; // todo !
+    public boolean dispatched(Task task) {
+        String sql = "update " + TABLE_NAME + " set `status` = ?, worker_address = ?, last_report_at = ? " +
+            " where job_id = ? and task_id = ? and `status` = ? ";
+        try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            int i = 0;
+            String reportAt = LocalDateTimeUtils.formatYMDHMSS(TimeUtils.currentLocalDateTime());
+            ps.setString(++i, TaskStatus.DISPATCHED.value);
+            ps.setString(++i, task.getWorkerAddress());
+            ps.setString(++i, reportAt);
+            ps.setString(++i, task.getJobId());
+            ps.setString(++i, task.getId());
+            ps.setString(++i, TaskStatus.CREATED.value);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            log.error("TaskRepository.executing error task={}", task, e);
+            return false;
+        }
     }
 
     public boolean batchSave(Collection<Task> tasks) {
@@ -289,7 +310,7 @@ public class DBTaskRepository implements TaskRepository {
         }
         List<String> values = new ArrayList<>();
         for (Task task : tasks) {
-            values.add(" (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            values.add(" (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         }
         String sql = "insert into " + TABLE_NAME + "(" +
             "task_id, job_id, worker_address, " +
@@ -301,13 +322,13 @@ public class DBTaskRepository implements TaskRepository {
             for (Task task : tasks) {
                 ps.setString(++idx, task.getId());
                 ps.setString(++idx, task.getJobId());
-                ps.setString(++idx, task.getWorkerAddress());
+                ps.setString(++idx, task.getWorkerAddress() == null ? "" : task.getWorkerAddress());
                 ps.setString(++idx, task.getStatus().value);
 
-                ps.setString(++idx, task.getTriggerAt() == null ? null : LocalDateTimeUtils.formatYMDHMS(task.getTriggerAt()));
-                ps.setString(++idx, task.getStartAt() == null ? null : LocalDateTimeUtils.formatYMDHMS(task.getStartAt()));
-                ps.setString(++idx, task.getEndAt() == null ? null : LocalDateTimeUtils.formatYMDHMS(task.getEndAt()));
-                ps.setString(++idx, LocalDateTimeUtils.formatYMDHMS(task.getLastReportAt()));
+                ps.setString(++idx, task.getTriggerAt() == null ? null : LocalDateTimeUtils.formatYMDHMSS(task.getTriggerAt()));
+                ps.setString(++idx, task.getStartAt() == null ? null : LocalDateTimeUtils.formatYMDHMSS(task.getStartAt()));
+                ps.setString(++idx, task.getEndAt() == null ? null : LocalDateTimeUtils.formatYMDHMSS(task.getEndAt()));
+                ps.setString(++idx, task.getLastReportAt() == null ? null : LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt()));
 
                 ps.setString(++idx, task.getResult() == null ? "" : task.getResult());
                 ps.setString(++idx, task.getErrorMsg() == null ? "" : task.getErrorMsg());
@@ -338,7 +359,7 @@ public class DBTaskRepository implements TaskRepository {
             " where job_id = ? and task_id = ? and `status` = ? ";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
-            String reportAt = LocalDateTimeUtils.formatYMDHMS(task.getLastReportAt());
+            String reportAt = LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt());
             ps.setString(++i, TaskStatus.RUNNING.value);
             ps.setString(++i, task.getWorkerAddress());
             ps.setString(++i, reportAt);
@@ -358,7 +379,7 @@ public class DBTaskRepository implements TaskRepository {
             " where job_id = ? and task_id = ? and status = ? ";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
-            ps.setString(++i, LocalDateTimeUtils.formatYMDHMS(task.getLastReportAt()));
+            ps.setString(++i, LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt()));
             ps.setString(++i, task.getJobId());
             ps.setString(++i, task.getId());
             ps.setString(++i, TaskStatus.RUNNING.value);
@@ -392,9 +413,9 @@ public class DBTaskRepository implements TaskRepository {
             "where job_id = ? and task_id = ? and `status` = ? ";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
-            String curTimeStr = LocalDateTimeUtils.formatYMDHMS(task.getLastReportAt());
+            String curTimeStr = LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt());
             ps.setString(++i, TaskStatus.FAILED.value);
-            ps.setString(++i, task.getStartAt() == null ? curTimeStr : LocalDateTimeUtils.formatYMDHMS(task.getStartAt()));
+            ps.setString(++i, task.getStartAt() == null ? curTimeStr : LocalDateTimeUtils.formatYMDHMSS(task.getStartAt()));
             ps.setString(++i, curTimeStr);
             ps.setString(++i, task.getErrorMsg() == null ? "" : task.getErrorMsg());
             ps.setString(++i, task.getErrorStackTrace() == null ? "" : task.getErrorStackTrace());
@@ -409,13 +430,18 @@ public class DBTaskRepository implements TaskRepository {
     }
 
     private Task convert(ResultSet rs) throws SQLException {
+        Timestamp triggerAt = rs.getTimestamp("trigger_at");
+        Timestamp startAt = rs.getTimestamp("start_at");
+        Timestamp endAt = rs.getTimestamp("end_at");
+        Timestamp lastReportAt = rs.getTimestamp("last_report_at");
+
         Task task = new Task(rs.getString("task_id"), rs.getString("job_id"));
         task.setStatus(TaskStatus.parse(rs.getString("status")));
         task.setWorkerAddress(rs.getString("worker_address"));
-        task.setTriggerAt(LocalDateTimeUtils.parseYMDHMS(rs.getString("trigger_at")));
-        task.setStartAt(LocalDateTimeUtils.parseYMDHMS(rs.getString("start_at")));
-        task.setEndAt(LocalDateTimeUtils.parseYMDHMS(rs.getString("end_at")));
-        task.setLastReportAt(LocalDateTimeUtils.parseYMDHMS(rs.getString("last_report_at")));
+        task.setTriggerAt(triggerAt == null ? null : triggerAt.toLocalDateTime());
+        task.setStartAt(startAt == null ? null : startAt.toLocalDateTime());
+        task.setEndAt(endAt == null ? null : endAt.toLocalDateTime());
+        task.setLastReportAt(lastReportAt == null ? null : lastReportAt.toLocalDateTime());
         task.setResult(rs.getString("result"));
         task.setErrorMsg(rs.getString("error_msg"));
         task.setErrorStackTrace(rs.getString("error_stack_trace"));

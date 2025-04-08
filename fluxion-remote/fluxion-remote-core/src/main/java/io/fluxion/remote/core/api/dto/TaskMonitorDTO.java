@@ -14,19 +14,40 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.demo.executor;
-
-import io.fluxion.worker.core.task.Task;
-import io.fluxion.worker.core.executor.Executor;
-import org.springframework.stereotype.Component;
+package io.fluxion.remote.core.api.dto;
 
 /**
  * @author Devil
  */
-@Component
-public class HelloExecutor implements Executor {
-    @Override
-    public void run(Task task) {
-        System.out.println("Hello " + task.getId());
+public class TaskMonitorDTO {
+
+    private int total;
+
+    private int success;
+
+    private int fail;
+
+    public int getTotal() {
+        return total;
+    }
+
+    public void setTotal(int total) {
+        this.total = total;
+    }
+
+    public int getSuccess() {
+        return success;
+    }
+
+    public void setSuccess(int success) {
+        this.success = success;
+    }
+
+    public int getFail() {
+        return fail;
+    }
+
+    public void setFail(int fail) {
+        this.fail = fail;
     }
 }

@@ -17,12 +17,12 @@
 package io.fluxion.worker.core.task.repository;
 
 import io.fluxion.remote.core.api.request.TaskPageRequest;
-import io.fluxion.remote.core.constants.ExecuteMode;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.task.Task;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -48,9 +48,9 @@ public interface TaskRepository {
 
     long queryCount(TaskPageRequest request);
 
-    List<String> getAllTaskResult(String jobId, ExecuteMode executeMode);
+    Map<String, String> getAllSubTaskResult(String jobId);
 
-    boolean dispatched(String jobId, String taskId, String workerAddress);
+    boolean dispatched(Task task);
 
     boolean dispatchFail(String jobId, String taskId);
 

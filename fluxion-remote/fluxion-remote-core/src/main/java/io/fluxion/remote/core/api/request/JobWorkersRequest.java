@@ -30,16 +30,6 @@ public class JobWorkersRequest implements Request<JobWorkersResponse> {
 
     private boolean loadBalanceSelect = false;
 
-    public JobWorkersRequest(String jobId) {
-        this.jobId = jobId;
-    }
-
-    public JobWorkersRequest(String jobId, boolean filterResource, boolean loadBalanceSelect) {
-        this.jobId = jobId;
-        this.filterResource = filterResource;
-        this.loadBalanceSelect = loadBalanceSelect;
-    }
-
     public String getJobId() {
         return jobId;
     }

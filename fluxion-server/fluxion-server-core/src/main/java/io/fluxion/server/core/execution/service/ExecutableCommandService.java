@@ -23,9 +23,9 @@ import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
 import io.fluxion.server.core.executor.option.RetryOption;
-import io.fluxion.server.core.job.JobStatus;
-import io.fluxion.server.core.job.cmd.JobFinishCmd;
+import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.cmd.JobRetryCmd;
+import io.fluxion.server.core.job.cmd.JobSuccessCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.JobEntity;
@@ -71,7 +71,7 @@ public class ExecutableCommandService {
             () -> transactionService.transactional(() -> {
                     String jobId = cmd.getJobId();
                     LocalDateTime reportAt = cmd.getReportAt();
-                    boolean success = Cmd.send(new JobFinishCmd(jobId, reportAt, JobStatus.RUNNING, JobStatus.SUCCEED));
+                    boolean success = Cmd.send(new JobSuccessCmd(jobId, reportAt, cmd.getMonitor()));
                     if (!success) {
                         return false;
                     }
@@ -98,7 +98,7 @@ public class ExecutableCommandService {
                 } else if (executable.skipWhenFail(entity.getRefId())) {
                     return executable.success(entity.getRefId(), entity.getExecutionId(), reportAt);
                 } else {
-                    boolean failed = Cmd.send(new JobFinishCmd(jobId, reportAt, JobStatus.RUNNING, JobStatus.FAILED, cmd.getErrorMsg()));
+                    boolean failed = Cmd.send(new JobFailCmd(jobId, reportAt, cmd.getErrorMsg(), cmd.getMonitor()));
                     if (!failed) {
                         return false;
                     }

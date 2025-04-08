@@ -29,23 +29,39 @@ import io.fluxion.worker.core.task.Task;
  */
 public class BasicJobTracker extends JobTracker {
 
-    private final Executor executor;
-
     public BasicJobTracker(Job job, Executor executor, WorkerContext workerContext) {
-        super(job, workerContext);
-        this.executor = executor;
+        super(job, executor, workerContext);
     }
 
     @Override
     public void run() {
-        Task task = new Task("0", job.getId());
-        task.setStatus(TaskStatus.RUNNING);
-        task.setRemoteAddress(workerContext.address());
-        task.setWorkerAddress(workerContext.address());
-        executor.run(task);
+        try {
+            // 反馈执行中 -- 排除由于网络问题导致的失败可能性
+            boolean success = reportStart();
+            if (!success) {
+                // 不成功，可能已经下发给其它节点
+                return;
+            }
 
-        // 执行成功
-        reportSuccess();
+            Task task = new Task("0", job.getId());
+            task.setStatus(TaskStatus.RUNNING);
+            task.setRemoteAddress(workerContext.address());
+            task.setWorkerAddress(workerContext.address());
+            executor.run(task);
+
+            // 执行成功
+            reportSuccess();
+        } catch (Throwable throwable) {
+            log.error("[{}] run error", getClass().getSimpleName(), throwable);
+            reportFail(throwable.getMessage());
+        } finally {
+            destroy();
+        }
+    }
+
+    @Override
+    public void report() {
+        reportJob();
     }
 
 }

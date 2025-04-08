@@ -16,6 +16,7 @@
 
 package io.fluxion.worker.core.task;
 
+import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.constants.TaskStatus;
 
 import java.time.LocalDateTime;
@@ -175,4 +176,21 @@ public class Task {
     public void dispatchFail() {
         dispatchFailTimes++;
     }
+
+    public NodeDTO remoteNode() {
+        String[] split = remoteAddress.split(":");
+        NodeDTO node = new NodeDTO();
+        node.setHost(split[0]);
+        node.setPort(Integer.parseInt(split[1]));
+        return node;
+    }
+
+    public NodeDTO workerNode() {
+        String[] split = workerAddress.split(":");
+        NodeDTO node = new NodeDTO();
+        node.setHost(split[0]);
+        node.setPort(Integer.parseInt(split[1]));
+        return node;
+    }
+
 }

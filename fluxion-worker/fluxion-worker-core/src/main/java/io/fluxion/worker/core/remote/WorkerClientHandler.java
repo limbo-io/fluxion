@@ -26,12 +26,14 @@ import io.fluxion.remote.core.api.request.TaskReportRequest;
 import io.fluxion.remote.core.api.request.TaskStartRequest;
 import io.fluxion.remote.core.api.request.TaskSuccessRequest;
 import io.fluxion.remote.core.client.server.ClientHandler;
+import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
 import io.fluxion.worker.core.job.tracker.BasicJobTracker;
 import io.fluxion.worker.core.job.tracker.BroadcastJobTracker;
+import io.fluxion.worker.core.job.tracker.DistributedJobTracker;
 import io.fluxion.worker.core.job.tracker.JobTracker;
 import io.fluxion.worker.core.job.tracker.MapReduceJobTracker;
 import io.fluxion.worker.core.task.Task;
@@ -127,16 +129,18 @@ public class WorkerClientHandler implements ClientHandler {
 
     private boolean taskDispatched(String data) {
         TaskDispatchedRequest request = JacksonUtils.toType(data, TaskDispatchedRequest.class);
-        return taskRepository().dispatched(
-            request.getJobId(), request.getTaskId(),
-            request.getWorkerAddress()
-        );
+        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
+        if (task == null || TaskStatus.CREATED != task.getStatus()) {
+            return false;
+        }
+        task.setWorkerAddress(request.getWorkerAddress());
+        return taskRepository().dispatched(task);
     }
 
     private boolean taskStart(String data) {
         TaskStartRequest request = JacksonUtils.toType(data, TaskStartRequest.class);
         Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
-        if (!task.getWorkerAddress().equals(request.getWorkerAddress())) {
+        if (task == null || !task.getWorkerAddress().equals(request.getWorkerAddress())) {
             return false;
         }
         task.setLastReportAt(request.getReportAt());
@@ -146,7 +150,7 @@ public class WorkerClientHandler implements ClientHandler {
     private boolean taskReport(String data) {
         TaskReportRequest request = JacksonUtils.toType(data, TaskReportRequest.class);
         Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
-        if (!task.getWorkerAddress().equals(request.getWorkerAddress())) {
+        if (task == null || !task.getWorkerAddress().equals(request.getWorkerAddress())) {
             return false;
         }
         task.setLastReportAt(request.getReportAt());
@@ -156,7 +160,7 @@ public class WorkerClientHandler implements ClientHandler {
     private boolean taskSuccess(String data) {
         TaskSuccessRequest request = JacksonUtils.toType(data, TaskSuccessRequest.class);
         Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
-        if (!task.getWorkerAddress().equals(request.getWorkerAddress())) {
+        if (task == null || !task.getWorkerAddress().equals(request.getWorkerAddress())) {
             return false;
         }
         task.setLastReportAt(request.getReportAt());
@@ -165,7 +169,7 @@ public class WorkerClientHandler implements ClientHandler {
         if (!updated) {
             return false;
         }
-        JobTracker tracker = workerContext.getJob(request.getJobId());
+        DistributedJobTracker tracker = (DistributedJobTracker) workerContext.getJob(request.getJobId());
         tracker.success(task);
         return true;
     }
@@ -173,7 +177,7 @@ public class WorkerClientHandler implements ClientHandler {
     private boolean taskFail(String data) {
         TaskFailRequest request = JacksonUtils.toType(data, TaskFailRequest.class);
         Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
-        if (!task.getWorkerAddress().equals(request.getWorkerAddress())) {
+        if (task == null || !task.getWorkerAddress().equals(request.getWorkerAddress())) {
             return false;
         }
         task.setLastReportAt(request.getReportAt());
@@ -183,7 +187,7 @@ public class WorkerClientHandler implements ClientHandler {
         if (!updated) {
             return false;
         }
-        JobTracker tracker = workerContext.getJob(request.getJobId());
+        DistributedJobTracker tracker = (DistributedJobTracker) workerContext.getJob(request.getJobId());
         tracker.fail(task);
         return true;
     }

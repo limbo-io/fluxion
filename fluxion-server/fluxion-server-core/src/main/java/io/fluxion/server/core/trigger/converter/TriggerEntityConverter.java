@@ -58,6 +58,7 @@ public class TriggerEntityConverter {
         if (version != null) {
             trigger.setPublished(StringUtils.isNotBlank(version.getId().getVersion()));
             trigger.setConfig(JacksonUtils.toType(version.getConfig(), TriggerConfig.class));
+            trigger.setVersion(version.getId().getVersion());
         }
         return trigger;
     }

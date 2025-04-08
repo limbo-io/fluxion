@@ -108,8 +108,12 @@ public class WorkerQueryService {
             WorkerSelectInvocation invocation = new WorkerSelectInvocation(executorName, null);
             WorkerSelector workerSelector = WORKER_SELECTOR_FACTORY.newSelector(dispatchOption.getLoadBalanceType());
             Worker worker = workerSelector.select(invocation, filterWorkers);
-            return new WorkersFilterQuery.Response(Collections.singletonList(worker));
-        } else  {
+            if (worker == null) {
+                return new WorkersFilterQuery.Response(Collections.emptyList());
+            } else {
+                return new WorkersFilterQuery.Response(Collections.singletonList(worker));
+            }
+        } else {
             return new WorkersFilterQuery.Response(filterWorkers);
         }
     }

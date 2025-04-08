@@ -18,6 +18,7 @@ package io.fluxion.worker.core.job.tracker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
 import io.fluxion.remote.core.api.request.JobDispatchedRequest;
 import io.fluxion.remote.core.api.request.JobFailRequest;
 import io.fluxion.remote.core.api.request.JobReportRequest;
@@ -26,8 +27,8 @@ import io.fluxion.remote.core.api.request.JobSuccessRequest;
 import io.fluxion.remote.core.constants.BrokerRemoteConstant;
 import io.fluxion.worker.core.AbstractTracker;
 import io.fluxion.worker.core.WorkerContext;
+import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
-import io.fluxion.worker.core.task.Task;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
@@ -52,6 +53,8 @@ public abstract class JobTracker extends AbstractTracker {
      */
     protected final Job job;
 
+    protected final Executor executor;
+
     protected final WorkerContext workerContext;
 
     protected final AtomicBoolean destroyed;
@@ -60,8 +63,9 @@ public abstract class JobTracker extends AbstractTracker {
 
     protected Future<?> statusReportFuture;
 
-    public JobTracker(Job job, WorkerContext workerContext) {
+    public JobTracker(Job job, Executor executor, WorkerContext workerContext) {
         this.job = job;
+        this.executor = executor;
         this.workerContext = workerContext;
         this.destroyed = new AtomicBoolean(false);
     }
@@ -83,30 +87,11 @@ public abstract class JobTracker extends AbstractTracker {
                 return true;
             }
             // 提交执行 正常来说保存成功这里不会被拒绝
-            this.processFuture = workerContext.taskProcessExecutor().submit(() -> {
-                try {
-                    // 反馈执行中 -- 排除由于网络问题导致的失败可能性
-                    boolean success = reportStart();
-                    if (!success) {
-                        // 不成功，可能已经下发给其它节点
-                        return;
-                    }
-                    run();
-                } catch (Throwable throwable) {
-                    log.error("[{}] run error", getClass().getSimpleName(), throwable);
-                    reportFail(throwable.getMessage());
-                } finally {
-                    destroy();
-                }
-            });
+            this.processFuture = workerContext.taskProcessExecutor().submit(this::run);
             // 提交状态监控
-            this.statusReportFuture = workerContext.taskStatusReportExecutor().scheduleAtFixedRate(() -> {
-                JobReportRequest request = new JobReportRequest();
-                request.setJobId(job.getId());
-                request.setReportAt(TimeUtils.currentLocalDateTime());
-                request.setWorkerAddress(workerContext.address());
-                workerContext.call(API_JOB_REPORT, request);
-            }, 1, BrokerRemoteConstant.JOB_REPORT_SECONDS, TimeUnit.SECONDS);
+            this.statusReportFuture = workerContext.taskStatusReportExecutor().scheduleAtFixedRate(
+                this::report, 1, BrokerRemoteConstant.JOB_REPORT_SECONDS, TimeUnit.SECONDS
+            );
             return true;
         } catch (RejectedExecutionException e) {
             log.error("Schedule job in worker failed, maybe work thread exhausted job:{}", JacksonUtils.toJSONString(job), e);
@@ -121,9 +106,7 @@ public abstract class JobTracker extends AbstractTracker {
 
     public abstract void run();
 
-    public void success(Task task) {}
-
-    public void fail(Task task) {}
+    public abstract void report();
 
     @Override
     public void destroy() {
@@ -166,12 +149,30 @@ public abstract class JobTracker extends AbstractTracker {
         }
     }
 
+    protected boolean reportJob() {
+        return reportJob(null);
+    }
+
+    protected boolean reportJob(TaskMonitorDTO taskMonitor) {
+        JobReportRequest request = new JobReportRequest();
+        request.setJobId(job.getId());
+        request.setReportAt(TimeUtils.currentLocalDateTime());
+        request.setWorkerAddress(workerContext.address());
+        request.setTaskMonitor(taskMonitor);
+        return workerContext.call(API_JOB_REPORT, request);
+    }
+
     protected void reportSuccess() {
+        reportSuccess(null);
+    }
+
+    protected void reportSuccess(TaskMonitorDTO taskMonitor) {
         try {
             JobSuccessRequest request = new JobSuccessRequest();
             request.setJobId(job.getId());
             request.setWorkerAddress(workerContext.address());
             request.setReportAt(TimeUtils.currentLocalDateTime());
+            request.setTaskMonitor(taskMonitor);
             workerContext.call(API_JOB_SUCCESS, request); // todo @d later 如果上报失败需要记录，定时重试
         } catch (Exception e) {
             log.error("reportSuccess fail jobId={}", job.getId(), e);
@@ -180,12 +181,17 @@ public abstract class JobTracker extends AbstractTracker {
     }
 
     protected void reportFail(String errorMsg) {
+        reportFail(errorMsg, null);
+    }
+
+    protected void reportFail(String errorMsg, TaskMonitorDTO taskMonitor) {
         try {
             JobFailRequest request = new JobFailRequest();
             request.setJobId(job.getId());
             request.setWorkerAddress(workerContext.address());
             request.setReportAt(TimeUtils.currentLocalDateTime());
             request.setErrorMsg(errorMsg);
+            request.setTaskMonitor(taskMonitor);
             workerContext.call(API_JOB_FAIL, request); // todo @d later 如果上报失败需要记录，定时重试
         } catch (Exception e) {
             log.error("reportFail fail jobId={}", job.getId(), e);

@@ -37,7 +37,7 @@ import java.time.LocalDateTime;
  */
 @Setter
 @Getter
-@Table(name = TableConstants.FLUXION_TASK)
+@Table(name = TableConstants.FLUXION_JOB)
 @Entity
 @DynamicInsert
 @DynamicUpdate
@@ -101,6 +101,10 @@ public class JobEntity extends BaseEntity {
      * 错误信息
      */
     private String errorMsg;
+    /**
+     * 任务监控数据
+     */
+    private String monitor;
 
     @Override
     public Object getUid() {

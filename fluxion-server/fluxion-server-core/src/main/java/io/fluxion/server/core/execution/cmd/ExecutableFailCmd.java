@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.execution.cmd;
 
+import io.fluxion.server.core.job.TaskMonitor;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -34,5 +35,7 @@ public class ExecutableFailCmd implements ICmd<Boolean> {
      * 执行失败时候返回的信息
      */
     private String errorMsg;
+
+    private TaskMonitor monitor;
 
 }
