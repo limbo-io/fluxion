@@ -30,7 +30,7 @@ public class UUIDUtils {
      * 生成一个UUID，去除中连接线-
      */
     public static String randomID() {
-        return StringUtils.replace(UUID.randomUUID().toString(), "-", "").toUpperCase();
+        return StringUtils.replace(UUID.randomUUID().toString(), "-", "");
     }
 
     /**

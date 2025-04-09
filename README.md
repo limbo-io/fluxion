@@ -4,6 +4,10 @@
 
 ## 功能介绍
 
+<div align="center">
+<img src="docs/images/fluxion-framework.png" alt="framework" title="framework"/>
+</div>
+
 **Fluxion**主要分为以下几个部分：
 
 * Broker：管控节点，对配置好的任务在集群进行负载，同时管理和维护节点注册等。
@@ -117,7 +121,7 @@ mvn clean package -Dmaven.test.skip=true -Pdev
 
 # 前端应用
 
-结合Api开发了相应的前端页面：[点击跳转](https://github.com/limbo-io/fluxion-console)
+结合Console接口，提供了对应的官方前端项目：[点击跳转](https://github.com/limbo-io/fluxion-console)
 
 # 参与贡献
 
