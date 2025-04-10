@@ -20,6 +20,7 @@ import io.fluxion.server.core.trigger.TriggerConfig;
 import lombok.Data;
 
 /**
+ * 变更 trigger 的配置信息
  * @author Devil
  */
 @Data

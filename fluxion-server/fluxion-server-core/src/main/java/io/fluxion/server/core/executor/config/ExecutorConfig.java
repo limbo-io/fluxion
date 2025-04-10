@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,10 +19,8 @@ package io.fluxion.server.core.executor.config;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
 import io.fluxion.common.utils.json.JacksonTypeIdResolver;
-import io.fluxion.server.core.executor.ExecuteType;
+import io.fluxion.remote.core.constants.ExecuteMode;
 import io.fluxion.server.core.executor.option.DispatchOption;
-import io.fluxion.server.core.executor.option.OvertimeOption;
-import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -51,28 +49,26 @@ public abstract class ExecutorConfig implements ValidatableConfig {
     private String type;
 
     /**
-     * 执行方式
+     * 所属应用
      */
-    private ExecuteType executeType;
+    private String appId;
 
     /**
-     * 超时参数
+     * 执行模式
      */
-    private OvertimeOption overtimeOption;
-
-    /**
-     * 重试参数
-     */
-    private RetryOption retryOption;
+    private ExecuteMode executeMode;
 
     /**
      * 下发属性
      */
-    private DispatchOption dispatchOption;
+    private DispatchOption dispatchOption = new DispatchOption();
+
+    public abstract String executorName();
 
     public interface Type {
         String CUSTOM = "custom";
         String PYTHON_SCRIPT = "python_script";
         String SHELL_SCRIPT = "shell_script";
     }
+
 }

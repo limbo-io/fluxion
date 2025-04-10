@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,24 +25,24 @@ import java.util.List;
  *
  * @author Brozen
  */
-public interface LBServerRepository<S extends LBServer> {
+public interface LBServerRepository {
 
     /**
      * 更新被的服务列表
      * @param servers 服务列表
      */
-    void updateServers(List<S> servers);
+    void updateServers(List<LBServer> servers);
 
 
     /**
      * 列出所有存活的服务
      */
-    List<S> listAliveServers();
+    List<LBServer> listAliveServers();
 
 
     /**
      * 列出所有服务
      */
-    List<S> listAllServers();
+    List<LBServer> listAllServers();
 
 }

@@ -1,48 +1,196 @@
 /*
- * Copyright 2020-2024 fluxion Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 limbo-io Team (https://github.com/limbo-io).
  *
- *   Licensed under the Apache License, Version 2.0 (the "License");
- *   you may not use this file except in compliance with the License.
- *   You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   	http://www.apache.org/licenses/LICENSE-2.0
+ * 	http://www.apache.org/licenses/LICENSE-2.0
  *
- *   Unless required by applicable law or agreed to in writing, software
- *   distributed under the License is distributed on an "AS IS" BASIS,
- *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   See the License for the specific language governing permissions and
- *   limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package io.fluxion.worker.core.task;
 
-import java.net.URL;
+import io.fluxion.remote.core.api.dto.NodeDTO;
+import io.fluxion.remote.core.constants.TaskStatus;
+
+import java.time.LocalDateTime;
 
 /**
  * @author Devil
- * @since 2021/7/24
  */
 public class Task {
 
-    private String jobId;
+    private final String id;
 
-    private String taskId;
-
-    private URL rpcUrl;
-
-    private String executeType;
+    private final String jobId;
 
     /**
-     * 执行器的名称
+     * 管理节点地址
      */
-    private String executorName;
+    private String remoteAddress;
 
-    public String taskId() {
-        return taskId;
+    /**
+     * 执行节点地址
+     */
+    private String workerAddress;
+
+    /**
+     * 状态
+     */
+    private TaskStatus status;
+
+    /**
+     * 预期触发时间
+     */
+    private LocalDateTime triggerAt;
+
+    /**
+     * 开始时间
+     */
+    private LocalDateTime startAt;
+
+    /**
+     * 结束时间
+     */
+    private LocalDateTime endAt;
+
+    /**
+     * 上次上报时间
+     */
+    private LocalDateTime lastReportAt;
+
+    private String result;
+
+    private String errorMsg;
+
+    private String errorStackTrace;
+
+    /**
+     * 下发失败次数
+     */
+    private int dispatchFailTimes = 0;
+
+    public Task(String id, String jobId) {
+        this.id = id;
+        this.jobId = jobId;
     }
 
-    public String executorName() {
-        return executorName;
+    public String getJobId() {
+        return jobId;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getWorkerAddress() {
+        return workerAddress;
+    }
+
+    public void setWorkerAddress(String workerAddress) {
+        this.workerAddress = workerAddress;
+    }
+
+    public TaskStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(TaskStatus status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getTriggerAt() {
+        return triggerAt;
+    }
+
+    public void setTriggerAt(LocalDateTime triggerAt) {
+        this.triggerAt = triggerAt;
+    }
+
+    public LocalDateTime getStartAt() {
+        return startAt;
+    }
+
+    public void setStartAt(LocalDateTime startAt) {
+        this.startAt = startAt;
+    }
+
+    public LocalDateTime getEndAt() {
+        return endAt;
+    }
+
+    public void setEndAt(LocalDateTime endAt) {
+        this.endAt = endAt;
+    }
+
+    public LocalDateTime getLastReportAt() {
+        return lastReportAt;
+    }
+
+    public void setLastReportAt(LocalDateTime lastReportAt) {
+        this.lastReportAt = lastReportAt;
+    }
+
+    public String getResult() {
+        return result;
+    }
+
+    public void setResult(String result) {
+        this.result = result;
+    }
+
+    public String getErrorMsg() {
+        return errorMsg;
+    }
+
+    public void setErrorMsg(String errorMsg) {
+        this.errorMsg = errorMsg;
+    }
+
+    public String getErrorStackTrace() {
+        return errorStackTrace;
+    }
+
+    public void setErrorStackTrace(String errorStackTrace) {
+        this.errorStackTrace = errorStackTrace;
+    }
+
+    public String getRemoteAddress() {
+        return remoteAddress;
+    }
+
+    public void setRemoteAddress(String remoteAddress) {
+        this.remoteAddress = remoteAddress;
+    }
+
+    public int getDispatchFailTimes() {
+        return dispatchFailTimes;
+    }
+
+    public void dispatchFail() {
+        dispatchFailTimes++;
+    }
+
+    public NodeDTO remoteNode() {
+        String[] split = remoteAddress.split(":");
+        NodeDTO node = new NodeDTO();
+        node.setHost(split[0]);
+        node.setPort(Integer.parseInt(split[1]));
+        return node;
+    }
+
+    public NodeDTO workerNode() {
+        String[] split = workerAddress.split(":");
+        NodeDTO node = new NodeDTO();
+        node.setHost(split[0]);
+        node.setPort(Integer.parseInt(split[1]));
+        return node;
     }
 
 }

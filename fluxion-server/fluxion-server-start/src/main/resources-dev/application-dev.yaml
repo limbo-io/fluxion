@@ -1,15 +1,26 @@
 spring:
+#  jpa:
+#    show-sql: true
+#    properties:
+#      hibernate:
+#        format_sql: true
   datasource:
-    driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
-    url: jdbc:log4jdbc:h2:./fluxion;DB_CLOSE_DELAY=-1;MODE=mysql;
-  # h2
-  h2:
-    # h2嵌入式数据库控制台，可以通过浏览器访问 ip:port/h2-console
-    # file 模式 用户名密码都是空
-    # mem 模式 用户名 sa 密码空
-    console:
-      path: /h2-console
-      enabled: true
-      #      settings:
-      # rootrootroot
-  #        web-admin-password: b218ada98873d7ce73d170600ba5bdcd2dd2379e4ba2e84d2bcfa42bb1efd97e0d21f1406650bade15c3f9e06d5b8e2a4fa79a616db52ab31ce49e862127ea75
+# mysql
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/fluxion?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true
+    username: root
+    password: root
+
+# h2
+#    driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+#    url: jdbc:log4jdbc:h2:./fluxion;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=mysql;
+#  h2:
+#    # h2嵌入式数据库控制台，可以通过浏览器访问 ip:port/h2-console
+#    # file 模式 用户名密码都是空
+#    # mem 模式 用户名 sa 密码空
+#    console:
+#      path: /h2-console
+#      enabled: true
+#      #      settings:
+#      # rootrootroot
+#  #        web-admin-password: b218ada98873d7ce73d170600ba5bdcd2dd2379e4ba2e84d2bcfa42bb1efd97e0d21f1406650bade15c3f9e06d5b8e2a4fa79a616db52ab31ce49e862127ea75

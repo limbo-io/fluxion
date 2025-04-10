@@ -40,51 +40,51 @@ public enum LoadBalanceType {
     /**
      * 随机。将作业随机下发给某一个worker执行（默认）
      */
-    RANDOM(1),
+    RANDOM("random"),
 
     /**
      * 轮询。
      */
-    ROUND_ROBIN(2),
+    ROUND_ROBIN("round_robin"),
 
     /**
      * 指定节点，让作业指定下发到某个worker执行。
      */
-    APPOINT(3),
+    APPOINT("appoint"),
 
     /**
      * 最不经常使用。将作业下发给一个时间窗口内，接收作业最少的worker。
      */
-    LEAST_FREQUENTLY_USED(4),
+    LEAST_FREQUENTLY_USED("least_frequently_used"),
 
     /**
      * 最近最少使用。将作业下发给一个时间窗口内，最长时间没有接受worker的worker。
      */
-    LEAST_RECENTLY_USED(5),
+    LEAST_RECENTLY_USED("least_recently_used"),
 
     /**
      * 一致性hash。同样参数的作业将始终下发给同一台机器。
      */
-    CONSISTENT_HASH(6),
+    CONSISTENT_HASH("consistent_hash"),
 
     ;
 
     @JsonValue
-    public final int value;
+    public final String value;
 
-    LoadBalanceType(int value) {
+    LoadBalanceType(String value) {
         this.value = value;
     }
 
-    public boolean is(Number value) {
-        return value != null && value.intValue() == this.value;
+    public boolean is(String value) {
+        return this.value.equals(value);
     }
 
     /**
      * 解析作业分发类型。
      */
     @JsonCreator
-    public static LoadBalanceType parse(Number value) {
+    public static LoadBalanceType parse(String value) {
         for (LoadBalanceType v : values()) {
             if (v.is(value)) {
                 return v;

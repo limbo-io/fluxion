@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 package io.fluxion.server.infrastructure.schedule.scheduler;
 
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.infrastructure.schedule.schedule.Scheduler;
+import io.fluxion.server.infrastructure.schedule.schedule.Timer;
 import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
 import lombok.extern.slf4j.Slf4j;
 
@@ -70,7 +72,10 @@ public abstract class TaskScheduler<T extends AbstractTask> implements Scheduler
     /**
      * 计算调度延时
      */
-    private long calDelay(T task) {
+    private Long calDelay(T task) {
+        if (task.triggerAt() == null) {
+            return null;
+        }
         long delay = Duration.between(TimeUtils.currentLocalDateTime(), task.triggerAt()).toMillis();
         return delay < 0 ? 0 : delay;
     }
@@ -80,6 +85,11 @@ public abstract class TaskScheduler<T extends AbstractTask> implements Scheduler
      */
     protected void doSchedule(T task) {
         TaskScheduler<T> scheduler = this;
+        Long delay = calDelay(task);
+        if (delay == null) {
+            scheduling.remove(task.id());
+            return;
+        }
         timer.schedule(() -> {
             // 已经取消调度了，则不再重新调度作业
             if (task.stopped()) {
@@ -95,7 +105,7 @@ public abstract class TaskScheduler<T extends AbstractTask> implements Scheduler
             } finally {
                 afterExecute(task, thrown);
             }
-        }, calDelay(task), SCHEDULE_UNIT);
+        }, delay, SCHEDULE_UNIT);
     }
 
     @Override
@@ -106,7 +116,7 @@ public abstract class TaskScheduler<T extends AbstractTask> implements Scheduler
         }
     }
 
-    protected abstract Runnable run(T task);
+    protected abstract void run(T task);
 
     protected abstract void afterExecute(T task, Throwable thrown);
 

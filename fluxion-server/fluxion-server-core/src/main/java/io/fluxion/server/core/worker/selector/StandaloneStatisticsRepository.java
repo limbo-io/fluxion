@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 /**
  * @author Devil
  */
-public abstract class StandaloneStatisticsRepository<T extends LBServerStatistics> extends Lockable<List<StandaloneStatisticsRepository.StatisticsRecord>> implements LBServerStatisticsProvider<T> {
+public abstract class StandaloneStatisticsRepository<T extends LBServerStatistics> extends Lockable<List<StandaloneStatisticsRepository.StatisticsRecord>> implements LBServerStatisticsProvider {
 
     /**
      * 最久统计多长时间的数据，默认 12H。
@@ -45,7 +45,7 @@ public abstract class StandaloneStatisticsRepository<T extends LBServerStatistic
         runInWriteLock(records -> {
             // 新增记录
             records.add(new StatisticsRecord(
-                lbServer.serverId(), Instant.now()
+                lbServer.id(), Instant.now()
             ));
 
             // 同时检测头部 10 条记录是否过时，如过时需要移除
@@ -75,7 +75,7 @@ public abstract class StandaloneStatisticsRepository<T extends LBServerStatistic
      * @return
      */
     @Override
-    public List<T> getStatistics(Set<String> serverIds, Duration interval) {
+    public List<LBServerStatistics> getStatistics(Set<String> serverIds, Duration interval) {
         Instant limit = Instant.now().plusSeconds(-interval.getSeconds());
         // 读取所有统计数据
         Map<String, MutableLBStatistics> statistics = new HashMap<>();
@@ -95,8 +95,8 @@ public abstract class StandaloneStatisticsRepository<T extends LBServerStatistic
         });
 
         return statistics.values().stream()
-                .map(this::map)
-                .collect(Collectors.toList());
+            .map(this::map)
+            .collect(Collectors.toList());
     }
 
     public abstract T map(MutableLBStatistics mutableLBStatistics);

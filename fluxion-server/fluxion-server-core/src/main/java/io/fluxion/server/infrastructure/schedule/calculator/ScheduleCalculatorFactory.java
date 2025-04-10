@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ public class ScheduleCalculatorFactory {
         );
 
         for (ScheduleCalculator calculator : calculators) {
-            scheduleCalculators.put(calculator.getScheduleType(), calculator);
+            scheduleCalculators.put(calculator.scheduleType(), calculator);
         }
     }
 

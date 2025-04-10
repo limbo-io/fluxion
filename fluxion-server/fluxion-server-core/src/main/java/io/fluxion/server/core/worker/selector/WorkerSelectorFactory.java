@@ -40,7 +40,7 @@ public class WorkerSelectorFactory {
      * 如果确认不使用 LRU、LFU 算法，可以不设置此属性
      */
     @Setter
-    private LBServerStatisticsProvider<WorkerLBStatistics> lbServerStatisticsProvider = (sids, interval) -> Collections.emptyList();
+    private LBServerStatisticsProvider lbServerStatisticsProvider = (sids, interval) -> Collections.emptyList();
 
     private final Map<LoadBalanceType, Supplier<WorkerSelector>> selectors = new EnumMap<>(LoadBalanceType.class);
 

@@ -78,6 +78,10 @@ public class Formatters {
         return getFormatter(YMD_HMS);
     }
 
+    public static DateTimeFormatter ymdhmss() {
+        return getFormatter(YMD_HMS_SSS);
+    }
+
 
     /**
      * 获取"<code>yyyy-MM-dd</code>"格式的日期格式化器

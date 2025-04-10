@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,19 @@
 
 package io.fluxion.remote.core.client;
 
+import com.fasterxml.jackson.databind.JavaType;
 import com.google.common.net.HttpHeaders;
 import io.fluxion.common.utils.ReflectionUtils;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.exception.RpcException;
-import okhttp3.*;
+import okhttp3.Call;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,21 +55,27 @@ public class OKHttpClient implements Client {
     }
 
     @Override
-    public <R, T extends Request<T>> R call(URL url, T request) {
-        String urlStr = url.toString();
+    public <R> io.fluxion.remote.core.api.Response<R> call(URL url, Request<R> request) {
         try {
-            ResponseBody responseBody = executePost(urlStr, request);
-            Class<R> responseType = ReflectionUtils.refType(request);
+            ResponseBody responseBody = executePost(url, request);
+            Class<R> resultClass = ReflectionUtils.refType(request);
+            JavaType responseType = JacksonUtils.MAPPER.getTypeFactory()
+                .constructParametricType(io.fluxion.remote.core.api.Response.class, resultClass);
             return JacksonUtils.toType(responseBody.string(), responseType);
         } catch (IOException e) {
-            throw new RpcException("Api access failed " + logRequest(urlStr, JacksonUtils.toJSONString(request)), e);
+            throw new RpcException("Api access failed " + logRequest(url, JacksonUtils.toJSONString(request)), e);
         }
+    }
+
+    @Override
+    public Protocol protocol() {
+        return Protocol.HTTP;
     }
 
     /**
      * 通过 OkHttp 执行请求，并获取响应
      */
-    protected ResponseBody executePost(String url, Object param) {
+    protected ResponseBody executePost(URL url, Object param) {
         String json = "";
         if (param != null) {
             json = JacksonUtils.toJSONString(param);
@@ -97,8 +110,8 @@ public class OKHttpClient implements Client {
         }
     }
 
-    private String logRequest(String url, String param) {
-        return String.format("request[url=%s, param=%s]", url, param);
+    private String logRequest(URL url, String param) {
+        return String.format("request[url=%s, param=%s]", url.toString(), param);
     }
 
 }

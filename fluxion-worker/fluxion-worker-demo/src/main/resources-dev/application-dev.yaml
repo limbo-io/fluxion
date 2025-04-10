@@ -1,0 +1,20 @@
+server:
+  port: 8084
+
+fluxion:
+  worker:
+    brokers:
+      - http://localhost:9785
+    queue-size: 64
+    tags:
+      - a=b
+      - c=d
+
+spring:
+  h2:
+    # h2嵌入式数据库控制台，可以通过浏览器访问 ip:port/h2-console
+    # file 模式 用户名密码都是空
+    # mem 模式 用户名 sa 密码空
+    console:
+      path: /h2-console
+      enabled: true

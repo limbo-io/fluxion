@@ -27,20 +27,20 @@ import lombok.Getter;
 @Getter
 public class Execution {
 
-    private final String executionId;
+    private final String id;
 
     private final Executable executable;
 
-    private ExecutionStatus status;
+    private final ExecutionStatus status;
 
-    public Execution(String executionId, Executable executable, ExecutionStatus status) {
-        this.executionId = executionId;
+    public Execution(String id, Executable executable, ExecutionStatus status) {
+        this.id = id;
         this.executable = executable;
         this.status = status;
     }
 
     public void execute() {
-        RunContext runContext = RunContext.of(executionId);
+        RunContext runContext = RunContext.of(id);
         executable.execute(runContext);
     }
 

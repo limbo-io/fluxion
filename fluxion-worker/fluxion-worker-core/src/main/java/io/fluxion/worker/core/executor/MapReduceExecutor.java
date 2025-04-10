@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,19 @@
 
 package io.fluxion.worker.core.executor;
 
+import io.fluxion.worker.core.job.Job;
+
+import java.util.Map;
+
 /**
  * @author Devil
  */
-public class MapReduceExecutor {
+public abstract class MapReduceExecutor extends MapExecutor {
+
+    /**
+     * 处理reduce任务
+     *
+     * @param taskResults taskId - result
+     */
+    public abstract void reduce(Map<String, String> taskResults);
 }

@@ -16,8 +16,6 @@
 
 package io.fluxion.server.start.api.trigger.request;
 
-import io.fluxion.server.core.trigger.Trigger;
-import io.fluxion.server.core.trigger.TriggerRefType;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
@@ -28,24 +26,8 @@ import javax.validation.constraints.NotBlank;
 @Data
 public class TriggerCreateRequest {
 
-    /**
-     * 触发方式
-     *
-     * @see Trigger.Type
-     */
     @NotBlank
-    private String type;
-
-    /**
-     * 关联类型
-     *
-     * @see TriggerRefType
-     */
-    @NotBlank
-    private int refType;
-
-    @NotBlank
-    private String refId;
+    private String name;
 
     private String description;
 

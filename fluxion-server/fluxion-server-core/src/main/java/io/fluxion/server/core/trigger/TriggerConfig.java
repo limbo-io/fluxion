@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,31 +16,41 @@
 
 package io.fluxion.server.core.trigger;
 
-import io.fluxion.server.core.flow.FlowConstants;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
+import io.fluxion.common.utils.json.JacksonTypeIdResolver;
+import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.infrastructure.validata.ValidatableConfig;
-import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import lombok.Data;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 /**
- * Trigger 配置态
+ * 触发器Trigger 配置态
  *
  * @author Devil
  */
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.CLASS,
+    include = JsonTypeInfo.As.EXISTING_PROPERTY,
+    property = "type",
+    visible = true
+)
+@JsonTypeIdResolver(JacksonTypeIdResolver.class)
 @Data
-public class TriggerConfig implements ValidatableConfig {
+public abstract class TriggerConfig implements ValidatableConfig {
+    /**
+     * 触发方式
+     *
+     * @see TriggerType
+     */
+    private String type;
 
-    private Trigger trigger;
+    /**
+     * 执行配置
+     */
+    private ExecuteConfig executeConfig;
 
-    @Override
-    public List<ValidateSuppressInfo> validate() {
-        if (trigger == null) {
-            return Collections.singletonList(new ValidateSuppressInfo(FlowConstants.TRIGGER_IS_EMPTY));
-        }
-        return new ArrayList<>(trigger.validate());
+    public TriggerType type() {
+        return TriggerType.parse(type);
     }
 
 }

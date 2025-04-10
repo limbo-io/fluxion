@@ -16,29 +16,29 @@
 
 package io.fluxion.server.start.controller;
 
-import io.fluxion.common.utils.ValidatorUtils;
 import io.fluxion.remote.core.api.PageResponse;
-import io.fluxion.server.core.trigger.TriggerRefType;
-import io.fluxion.server.core.trigger.cmd.*;
+import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.cmd.TriggerCreateCmd;
+import io.fluxion.server.core.trigger.cmd.TriggerDeleteCmd;
+import io.fluxion.server.core.trigger.cmd.TriggerDisableCmd;
+import io.fluxion.server.core.trigger.cmd.TriggerDraftCmd;
+import io.fluxion.server.core.trigger.cmd.TriggerEnableCmd;
+import io.fluxion.server.core.trigger.cmd.TriggerPublishCmd;
+import io.fluxion.server.core.trigger.cmd.TriggerUpdateCmd;
+import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
-import io.fluxion.server.infrastructure.exception.PlatformException;
+import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.start.api.trigger.request.TriggerConfigRequest;
 import io.fluxion.server.start.api.trigger.request.TriggerCreateRequest;
 import io.fluxion.server.start.api.trigger.request.TriggerPageRequest;
 import io.fluxion.server.start.api.trigger.request.TriggerUpdateRequest;
-import io.fluxion.server.start.api.trigger.view.TriggerView;
 import io.fluxion.server.start.service.TriggerService;
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
-import javax.validation.ConstraintViolation;
-import java.util.Set;
-
-import static io.fluxion.server.infrastructure.exception.ErrorCode.PARAM_ERROR;
 
 
 /**
@@ -52,24 +52,24 @@ public class TriggerController {
 
     @RequestMapping("/api/v1/trigger/create")
     public String create(@RequestBody TriggerCreateRequest request) {
-        Set<ConstraintViolation<TriggerCreateRequest>> validate = ValidatorUtils.validate(request);
-        if (CollectionUtils.isNotEmpty(validate)) {
-            throw new PlatformException(PARAM_ERROR, validate.stream().findFirst().get().getMessage());
-        }
-        TriggerCreateCmd cmd = new TriggerCreateCmd(
-            request.getType(),
-            TriggerRefType.parse(request.getRefType()), request.getRefId(),
-            request.getDescription()
-        );
-        TriggerCreateCmd.Response response = Cmd.send(cmd);
+        TriggerCreateCmd.Response response = Cmd.send(new TriggerCreateCmd(
+            request.getName(), request.getDescription()
+        ));
         return response.getId();
     }
 
     @RequestMapping("/api/v1/trigger/update")
     public void update(@RequestBody TriggerUpdateRequest request) {
-        TriggerUpdateCmd cmd = new TriggerUpdateCmd(
+        Cmd.send(new TriggerUpdateCmd(
+            request.getId(), request.getName(), request.getDescription()
+        ));
+    }
+
+    @RequestMapping("/api/v1/trigger/draft")
+    public void draft(@RequestBody TriggerConfigRequest request) {
+        TriggerDraftCmd cmd = new TriggerDraftCmd(
             request.getId(),
-            request.getDescription()
+            request.getConfig()
         );
         Cmd.send(cmd);
     }
@@ -94,13 +94,13 @@ public class TriggerController {
     }
 
     @RequestMapping("/api/v1/trigger/page")
-    public PageResponse<TriggerView> page(TriggerPageRequest request) {
+    public PageResponse<Trigger> page(TriggerPageRequest request) {
         return triggerService.page(request);
     }
 
     @RequestMapping("/api/v1/trigger/get")
-    public TriggerView get(@RequestParam String id) {
-        return triggerService.get(id);
+    public Trigger get(@RequestParam String id) {
+        return Query.query(new TriggerByIdQuery(id)).getTrigger();
     }
 
     @RequestMapping("/api/v1/trigger/delete")

@@ -16,10 +16,10 @@
 
 package io.fluxion.server.core.worker.dispatch;
 
+import io.fluxion.server.infrastructure.tag.TagFilterOption;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
-import io.fluxion.server.core.worker.metric.WorkerAvailableResource;
-import io.fluxion.server.core.tag.TagFilterOption;
+import io.fluxion.server.core.worker.metric.WorkerMetric;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.Collections;
@@ -42,20 +42,20 @@ public class WorkerFilter {
      */
     public WorkerFilter filterExecutor(String executorName) {
         List<Worker> filterWorkers = workers.stream()
-                .filter(worker -> {
-                    List<WorkerExecutor> executors = worker.getExecutors();
-                    if (CollectionUtils.isEmpty(executors)) {
-                        return false;
-                    }
-                    // 判断是否有对应的执行器
-                    for (WorkerExecutor executor : executors) {
-                        if (executor.getName().equals(executorName)) {
-                            return true;
-                        }
-                    }
+            .filter(worker -> {
+                List<WorkerExecutor> executors = worker.getExecutors();
+                if (CollectionUtils.isEmpty(executors)) {
                     return false;
-                })
-                .collect(Collectors.toList());
+                }
+                // 判断是否有对应的执行器
+                for (WorkerExecutor executor : executors) {
+                    if (executor.getName().equals(executorName)) {
+                        return true;
+                    }
+                }
+                return false;
+            })
+            .collect(Collectors.toList());
         return new WorkerFilter(filterWorkers);
     }
 
@@ -76,16 +76,16 @@ public class WorkerFilter {
     /**
      * 基于资源过滤
      */
-    public WorkerFilter filterResources(Float cpuRequirement, Long ramRequirement) {
+    public WorkerFilter filterResources(Double cpuRequirement, Long ramRequirement) {
         List<Worker> filterWorkers = workers.stream().filter(worker -> {
-            WorkerAvailableResource availableResource = worker.getMetric().getAvailableResource();
-            if (availableResource.getAvailableQueueLimit() <= 0) {
+            WorkerMetric metric = worker.getMetric();
+            if (metric.getAvailableQueueNum() <= 0) {
                 return false;
             }
-            if (cpuRequirement != null && availableResource.getAvailableCpu() < cpuRequirement) {
+            if (cpuRequirement != null && metric.getCpuLoad() < cpuRequirement) {
                 return false;
             }
-            if (ramRequirement != null && availableResource.getAvailableRam() < ramRequirement) {
+            if (ramRequirement != null && metric.getFreeMemory() < ramRequirement) {
                 return false;
             }
             return true;

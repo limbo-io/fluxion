@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,15 +38,7 @@ public interface Executor {
     /**
      * 执行器名称，默认为执行器类的类全名
      */
-    default String getName() {
-        return this.getClass().getName();
-    }
-
-
-    /**
-     * 执行器描述，默认为执行器类的类全名
-     */
-    default String getDescription() {
+    default String name() {
         return this.getClass().getName();
     }
 

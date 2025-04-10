@@ -29,50 +29,45 @@ public enum ExecutionStatus {
     /**
      * 已经创建 等待下发
      */
-    CREATED(1),
-    /**
-     * 队列中
-     * 已下发给worker
-     */
-    QUEUED(2),
+    CREATED("created"),
     /**
      * 运行中
      */
-    RUNNING(3),
-    SUCCEED(4),
-    FAILED(5), // worker拒绝，进入容错策略 失败次数不增加 TERMINATED 作业被手动终止 不再增加一个状态 而是写入 errMsg
+    RUNNING("running"),
+    SUCCEED("succeed"),
+    FAILED("failed"), // worker拒绝，进入容错策略 失败次数不增加 TERMINATED 作业被手动终止 不再增加一个状态 而是写入 errMsg
     /**
      * 重试 调度中
      */
-    RESTARTED(6),
+    RESTARTED("restarted"),
     /**
      * 终止
      * 比如重试时发现是未启用状态
      */
-    CANCELLED(7),
+    CANCELLED("cancelled"),
     /**
      * 暂停
      */
-    PAUSED(8),
+    PAUSED("paused"),
     /**
      * 手工关闭任务
      */
-    KILLING(9);
+    KILLING("killing");
 
     @JsonValue
-    public final int value;
+    public final String value;
 
 
-    ExecutionStatus(int type) {
+    ExecutionStatus(String type) {
         this.value = type;
     }
 
-    public boolean is(Number type) {
-        return type != null && type.intValue() == this.value;
+    public boolean is(String type) {
+        return this.value.equals(type);
     }
 
     @JsonCreator
-    public static ExecutionStatus parse(Number value) {
+    public static ExecutionStatus parse(String value) {
         for (ExecutionStatus v : values()) {
             if (v.is(value)) {
                 return v;

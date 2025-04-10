@@ -33,9 +33,8 @@ public class TriggerUpdateCmd implements ICmd<Void> {
 
     private String id;
 
-    /**
-     * 描述
-     */
+    private String name;
+
     private String description;
 
 }

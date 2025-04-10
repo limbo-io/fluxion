@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@ import javax.validation.constraints.NotNull;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
+import static io.fluxion.common.utils.time.TimeUtils.TIME_FOREVER;
+
 /**
  * 作业调度配置，值对象。
  *
@@ -38,58 +40,58 @@ public class ScheduleOption {
      * 调度方式
      */
     @NotNull
-    private final ScheduleType scheduleType;
+    private final ScheduleType type;
 
     /**
      * 调度开始时间，从此时间开始执行调度。
      */
     @NotNull
-    private final LocalDateTime scheduleStartAt;
+    private final LocalDateTime startTime;
 
     /**
      * 调度结束时间，从此时间结束执行调度。
      */
-    private final LocalDateTime scheduleEndAt;
+    private final LocalDateTime endTime;
 
     /**
      * 延迟时间 -- 当前时间多久后调度
      */
-    private final Duration scheduleDelay;
+    private final Duration delay;
 
     /**
      * 获取调度间隔时间。
      * 当调度方式为{@link ScheduleType#FIXED_DELAY}时，表示前一次作业调度执行完成后，隔多久触发第二次调度。
      * 当调度方式为{@link ScheduleType#FIXED_RATE}时，表示前一次作业调度下发后，隔多久触发第二次调度。
      */
-    private final Duration scheduleInterval;
+    private final Duration interval;
 
     /**
      * 作业调度的CRON表达式
      * 当调度方式为{@link ScheduleType#CRON}时，根据此CRON表达式计算得到的时间点触发作业调度。
      */
-    private final String scheduleCron;
+    private final String cron;
 
     /**
      * 作业调度的CRON表达式的类型
      * 当调度方式为{@link ScheduleType#CRON}时，根据此CRON表达式类型计算得到的时间点触发作业调度。{@link com.cronutils.model.CronType}
      */
-    private final String scheduleCronType;
+    private final String cronType;
 
     @JsonCreator
-    public ScheduleOption(@JsonProperty("scheduleType") ScheduleType scheduleType,
-                          @JsonProperty("scheduleStartAt") LocalDateTime scheduleStartAt,
-                          @JsonProperty("scheduleEndAt") LocalDateTime scheduleEndAt,
-                          @JsonProperty("scheduleDelay") Duration scheduleDelay,
-                          @JsonProperty("scheduleInterval") Duration scheduleInterval,
-                          @JsonProperty("scheduleCron") String scheduleCron,
-                          @JsonProperty("scheduleCronType") String scheduleCronType) {
-        this.scheduleType = scheduleType;
-        this.scheduleStartAt = scheduleStartAt == null ? TimeUtils.currentLocalDateTime() : scheduleStartAt;
-        this.scheduleEndAt = scheduleEndAt;
-        this.scheduleDelay = scheduleDelay == null ? Duration.ZERO : scheduleDelay;
-        this.scheduleInterval = scheduleInterval == null ? Duration.ZERO : scheduleInterval;
-        this.scheduleCron = scheduleCron;
-        this.scheduleCronType = scheduleCronType;
+    public ScheduleOption(@JsonProperty("type") ScheduleType type,
+                          @JsonProperty("startTime") LocalDateTime startTime,
+                          @JsonProperty("endTime") LocalDateTime endTime,
+                          @JsonProperty("scheduleDelay") Duration delay,
+                          @JsonProperty("scheduleInterval") Duration interval,
+                          @JsonProperty("cron") String cron,
+                          @JsonProperty("cronType") String cronType) {
+        this.type = type;
+        this.startTime = startTime == null ? TimeUtils.currentLocalDateTime() : startTime;
+        this.endTime = endTime == null ? TIME_FOREVER : endTime;
+        this.delay = delay == null ? Duration.ZERO : delay;
+        this.interval = interval == null ? Duration.ZERO : interval;
+        this.cron = cron;
+        this.cronType = cronType;
     }
 
 }

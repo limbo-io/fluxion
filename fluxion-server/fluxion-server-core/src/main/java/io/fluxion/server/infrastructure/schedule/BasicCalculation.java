@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
 
 package io.fluxion.server.infrastructure.schedule;
 
-import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculator;
 import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculatorFactory;
 
 import java.time.LocalDateTime;
@@ -46,11 +44,6 @@ public class BasicCalculation implements Calculable {
     private final ScheduleOption scheduleOption;
 
     /**
-     * 计算器
-     */
-    private final ScheduleCalculator calculator;
-
-    /**
      * 计算结果，执行时间
      */
     private final LocalDateTime triggerAt;
@@ -60,22 +53,12 @@ public class BasicCalculation implements Calculable {
         this.lastTriggerAt = lastTriggerAt;
         this.lastFeedbackAt = lastFeedbackAt;
         this.scheduleOption = scheduleOption;
-        this.calculator = ScheduleCalculatorFactory.create(scheduleOption.getScheduleType());
-        this.triggerAt = calTriggerAt();
-    }
-
-    /**
-     * 下次触发时间
-     */
-    private LocalDateTime calTriggerAt() {
-        Long calculate = calculator.calculate(this);
-        return TimeUtils.toLocalDateTime(calculate);
+        this.triggerAt = ScheduleCalculatorFactory.create(scheduleOption.getType()).calculate(this);
     }
 
     public LocalDateTime triggerAt() {
         return triggerAt;
     }
-
 
     @Override
     public ScheduleOption scheduleOption() {

@@ -1,0 +1,9 @@
+spring:
+  profiles:
+    active: @profiles.active@
+  application:
+    name: fluxion-worker-demo
+
+# log
+logging:
+  config: classpath:log4j2.xml

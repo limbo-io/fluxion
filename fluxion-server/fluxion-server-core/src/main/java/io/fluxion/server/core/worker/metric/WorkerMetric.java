@@ -16,7 +16,11 @@
 
 package io.fluxion.server.core.worker.metric;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -33,12 +37,21 @@ import java.time.LocalDateTime;
 public class WorkerMetric {
 
     /**
-     * worker可用的资源
+     * cpu 核心数
      */
-    private WorkerAvailableResource availableResource;
+    private int cpuProcessors;
+
+    private double cpuLoad;
+
+    private long freeMemory;
 
     /**
-     * 上次心跳上报时间戳，毫秒
+     * 任务队列剩余可排队数
+     */
+    private int availableQueueNum;
+
+    /**
+     * 上次心跳上报时间戳
      */
     private LocalDateTime lastHeartbeatAt;
 

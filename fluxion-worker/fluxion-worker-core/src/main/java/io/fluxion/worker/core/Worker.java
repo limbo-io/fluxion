@@ -16,14 +16,9 @@
 
 package io.fluxion.worker.core;
 
-import io.fluxion.worker.core.executor.Executor;
-import io.fluxion.worker.core.resource.WorkerResources;
-import io.fluxion.worker.core.task.Task;
-import org.apache.commons.collections4.MultiValuedMap;
-
-import java.net.URL;
-import java.time.Duration;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import io.fluxion.common.constants.CommonConstants;
 
 /**
  * Worker 行为方法定义
@@ -34,71 +29,80 @@ import java.util.Map;
 public interface Worker {
 
     /**
-     * 获取 Worker ID
-     */
-    String getId();
-
-    /**
-     * 获取 Worker 名称
-     */
-    String getName();
-
-    /**
-     * 获取为 Worker 分配的资源
-     */
-    WorkerResources getResource();
-
-    /**
-     * 获取 Worker RPC 通信用到的 URL
-     */
-    URL remoteUrl();
-
-    /**
-     * 获取此 Worker 标记的标签，返回的标签不可修改。
-     */
-    MultiValuedMap<String, String> getTags();
-
-    /**
-     * 为此 Worker 添加标签
-     *
-     * @param key   标签 key
-     * @param value 标签 value
-     */
-    void addTag(String key, String value);
-
-    /**
-     * 添加任务执行器
-     */
-    void addExecutor(Executor executor);
-
-    /**
-     * 获取当前 Worker 中的执行器
-     */
-    Map<String, Executor> executors();
-
-    /**
      * 启动当前 Worker
-     *
-     * @param heartbeatPeriod 心跳间隔
      */
-    void start(Duration heartbeatPeriod);
-
-    /**
-     * Just beat it
-     * 发送心跳
-     */
-    void heartbeat();
-
-    /**
-     * 接收 Broker 发送来的任务
-     *
-     * @param task 任务数据
-     */
-    void receive(Task task);
+    void start();
 
     /**
      * 停止当前 Worker
      */
     void stop();
+
+    /**
+     * Worker的状态
+     */
+    enum Status {
+
+        UNKNOWN(CommonConstants.UNKNOWN),
+
+        /**
+         * 闲置
+         */
+        IDLE("idle"),
+        /**
+         * 初始化中
+         */
+        INITIALIZING("initializing"),
+        /**
+         * Worker正常运行中
+         */
+        RUNNING("running"),
+
+        /**
+         * Worker熔断中，此状态的Worker无法接受作业，并将等待心跳重连并复活。
+         */
+        FUSING("fusing"),
+
+        /**
+         * 关闭中
+         */
+        TERMINATING("terminating"),
+
+        /**
+         * Worker已停止。
+         */
+        TERMINATED("terminated"),
+
+        ;
+
+        @JsonValue
+        public final String status;
+
+        Status(String status) {
+            this.status = status;
+        }
+
+        public boolean is(String status) {
+            return this.status.equals(status);
+        }
+
+        /**
+         * 解析worker状态
+         */
+        @JsonCreator
+        public static Status parse(String status) {
+            for (Status statusEnum : values()) {
+                if (statusEnum.is(status)) {
+                    return statusEnum;
+                }
+            }
+            return UNKNOWN;
+        }
+
+        public boolean isRunning() {
+            return is(RUNNING.status);
+        }
+
+    }
 
 }

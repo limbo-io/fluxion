@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,8 @@
 
 package io.fluxion.server.infrastructure.dao.tx;
 
-import java.util.function.Consumer;
+import org.springframework.transaction.TransactionDefinition;
+
 import java.util.function.Supplier;
 
 /**
@@ -33,5 +34,9 @@ public interface TransactionService {
      */
     <T> T transactional(Supplier<T> supplier);
 
+    <T> T transactional(Supplier<T> supplier, TransactionDefinition transactionDefinition);
+
     void transactional(Runnable runnable);
+
+    void transactional(Runnable runnable, TransactionDefinition transactionDefinition);
 }

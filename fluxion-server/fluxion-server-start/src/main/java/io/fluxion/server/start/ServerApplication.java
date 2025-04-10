@@ -16,6 +16,8 @@
 
 package io.fluxion.server.start;
 
+import org.axonframework.springboot.autoconfig.TransactionAutoConfiguration;
+import org.axonframework.springboot.autoconfig.legacyjpa.JpaJavaxAutoConfiguration;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -28,7 +30,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  * @author Devil
  * @since 2021/7/24
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+    JpaJavaxAutoConfiguration.class, // 目前不需要这些功能
+    TransactionAutoConfiguration.class, // 给Cmd和Query都套了事务
+})
 @ComponentScan(basePackages = "io.fluxion")
 @EnableTransactionManagement
 @EntityScan(basePackages = "io.fluxion.**.dao.entity")

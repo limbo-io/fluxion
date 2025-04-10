@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,14 @@
 
 package io.fluxion.server.infrastructure.schedule.calculator;
 
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.fluxion.common.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 /**
  * 固定速度作业调度时间计算器
@@ -42,29 +42,26 @@ public class FixRateScheduleCalculator implements ScheduleCalculator {
      * @return 下次触发调度的时间戳，当返回非正数时，表示作业不会有触发时间。
      */
     @Override
-    public Long calculate(Calculable calculable) {
+    public LocalDateTime calculate(Calculable calculable) {
         ScheduleOption scheduleOption = calculable.scheduleOption();
         // 上次调度一定间隔后调度
-        Duration interval = scheduleOption.getScheduleInterval();
+        Duration interval = scheduleOption.getInterval();
         if (interval == null) {
-            log.error("cannot calculate next trigger timestamp of {} because interval is not assigned!", calculable);
-            return ScheduleCalculator.NOT_TRIGGER;
+            return TimeUtils.currentLocalDateTime();
         }
 
         // 如果上次为空则根据 delay 来
         if (calculable.lastTriggerAt() == null) {
-            Instant nowInstant = TimeUtils.currentInstant();
-            long startScheduleAt = calculateStartScheduleTimestamp(calculable.scheduleOption());
-            return Math.max(startScheduleAt, nowInstant.getEpochSecond());
+            LocalDateTime startScheduleAt = calculateStartScheduleTime(calculable.scheduleOption());
+            return laterTime(startScheduleAt, TimeUtils.currentLocalDateTime());
         }
 
-        long now = TimeUtils.currentInstant().toEpochMilli();
-        long scheduleAt = TimeUtils.toInstant(calculable.lastTriggerAt()).toEpochMilli() + interval.toMillis();
-        return Math.max(scheduleAt, now);
+        LocalDateTime scheduleAt = calculable.lastTriggerAt().plus(interval);
+        return laterTime(scheduleAt, TimeUtils.currentLocalDateTime());
     }
 
     @Override
-    public ScheduleType getScheduleType() {
+    public ScheduleType scheduleType() {
         return ScheduleType.FIXED_RATE;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,9 @@
 
 package io.fluxion.server.core.trigger;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
-import io.fluxion.common.utils.json.JacksonTypeIdResolver;
-import io.fluxion.server.infrastructure.validata.ValidatableConfig;
+import io.fluxion.server.core.execution.ExecuteConfig;
+import io.fluxion.server.core.execution.config.ExecutorExecuteConfig;
+import io.fluxion.server.core.execution.config.WorkflowExecuteConfig;
 import lombok.Data;
 
 /**
@@ -27,24 +26,35 @@ import lombok.Data;
  *
  * @author Devil
  */
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.CLASS,
-    include = JsonTypeInfo.As.EXISTING_PROPERTY,
-    property = "type",
-    visible = true
-)
-@JsonTypeIdResolver(JacksonTypeIdResolver.class)
 @Data
-public abstract class Trigger implements ValidatableConfig {
-    /**
-     * 触发方式
-     * @see Type
-     */
-    private String type;
+public class Trigger {
 
-    public interface Type {
-        String SCHEDULE = "schedule";
-        String WEBHOOK = "webhook"; // event ?? todo
+    private String id;
+
+    private String version;
+
+    private String name;
+
+    private String description;
+
+    private TriggerConfig config;
+
+    private boolean enabled;
+
+    private boolean published;
+
+    public String executableId() {
+        ExecuteConfig executeConfig = config.getExecuteConfig();
+        if (executeConfig == null) {
+            return null;
+        } else if (executeConfig instanceof WorkflowExecuteConfig) {
+            WorkflowExecuteConfig workflowExecuteConfig = (WorkflowExecuteConfig) executeConfig;
+            return workflowExecuteConfig.getWorkflowId();
+        } else if (executeConfig instanceof ExecutorExecuteConfig) {
+            return id;
+        } else {
+            return null;
+        }
     }
 
 }

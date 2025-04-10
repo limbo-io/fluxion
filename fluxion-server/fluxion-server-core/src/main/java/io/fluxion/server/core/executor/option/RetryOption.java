@@ -16,7 +16,12 @@
 
 package io.fluxion.server.core.executor.option;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * 重试参数
@@ -34,16 +39,20 @@ public class RetryOption {
     /**
      * 重试次数
      */
-    private Integer retry = 0;
+    private int retryTimes = 0;
 
     /**
      * 重试间隔 秒
      */
-    private Integer retryInterval = 0;
+    private int retryInterval = 0;
 
     /**
      * 重试方式
      */
-    private Integer retryType = RetryType.ALL.getValue();
+    private String retryType = RetryType.ALL.getValue();
+
+    public boolean canRetry(int retried) {
+        return retried < retryTimes;
+    }
 
 }

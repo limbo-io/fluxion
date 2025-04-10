@@ -16,11 +16,8 @@
 
 package io.fluxion.server.infrastructure.dao.repository;
 
-import io.fluxion.server.infrastructure.dao.TableConstants;
 import io.fluxion.server.infrastructure.dao.entity.VersionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -28,9 +25,5 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface VersionEntityRepo extends JpaRepository<VersionEntity, VersionEntity.ID> {
-
-    @Query(value = "select * from " + TableConstants.FLUXION_VERSION
-        + " where ref_id = :refId and ref_type = :refType order by version desc limit 1", nativeQuery = true)
-    VersionEntity findLast(@Param("refId") String refId, @Param("refType") String refType);
 
 }

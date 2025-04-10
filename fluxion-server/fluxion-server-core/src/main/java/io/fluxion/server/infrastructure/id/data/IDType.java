@@ -20,10 +20,10 @@ package io.fluxion.server.infrastructure.id.data;
  * @author Devil
  */
 public enum IDType {
-    FLOW,
+    WORKFLOW,
     TRIGGER,
-    BROKER,
     EXECUTION,
-    TASK,
+    JOB,
+    APP,
     ;
 }

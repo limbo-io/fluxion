@@ -16,7 +16,12 @@
 
 package io.fluxion.server.core.worker.executor;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * worker可用的执行器
@@ -35,10 +40,5 @@ public class WorkerExecutor {
      * 执行器名称
      */
     private String name;
-
-    /**
-     * 执行器描述信息
-     */
-    private String description;
 
 }

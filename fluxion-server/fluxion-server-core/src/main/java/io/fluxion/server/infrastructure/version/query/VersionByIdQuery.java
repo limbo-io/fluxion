@@ -18,7 +18,6 @@ package io.fluxion.server.infrastructure.version.query;
 
 import io.fluxion.server.infrastructure.cqrs.IQuery;
 import io.fluxion.server.infrastructure.version.model.Version;
-import io.fluxion.server.infrastructure.version.model.VersionRefType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -33,11 +32,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class VersionByIdQuery implements IQuery<VersionByIdQuery.Response> {
 
-    private String refId;
-
-    private VersionRefType refType;
-
-    private String version;
+    private Version.ID id;
 
     @Getter
     @AllArgsConstructor

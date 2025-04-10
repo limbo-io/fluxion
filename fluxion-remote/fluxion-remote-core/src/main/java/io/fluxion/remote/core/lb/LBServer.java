@@ -16,28 +16,18 @@
 
 package io.fluxion.remote.core.lb;
 
-import java.net.URL;
+import io.fluxion.remote.core.cluster.Node;
 
 /**
  * 被负载均衡的服务
  *
  * @author Brozen
  */
-public interface LBServer {
-
-    /**
-     * 当前服务的唯一 ID
-     */
-    String serverId();
+public interface LBServer extends Node {
 
     /**
      * 当前服务是否存活可用
      */
     boolean isAlive();
-
-    /**
-     * 当前服务的资源路径
-     */
-    URL url();
 
 }

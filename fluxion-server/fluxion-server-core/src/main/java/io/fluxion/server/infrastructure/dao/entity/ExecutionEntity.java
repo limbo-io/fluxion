@@ -16,7 +16,9 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
-import io.fluxion.server.core.trigger.TriggerRefType;
+import io.fluxion.server.core.execution.ExecutableType;
+import io.fluxion.server.core.execution.ExecutionStatus;
+import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.infrastructure.dao.TableConstants;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,7 +31,7 @@ import javax.persistence.Table;
 import java.time.LocalDateTime;
 
 /**
- * 执行记录
+ * 一次执行
  *
  * @author Devil
  * @since 2021/9/1
@@ -45,24 +47,34 @@ public class ExecutionEntity extends BaseEntity {
     @Id
     private String executionId;
 
-    private String refId;
+    private String triggerId;
 
     /**
-     * @see TriggerRefType
+     * @see TriggerType
      */
-    private int refType;
+    private String triggerType;
 
-    private String version;
+    /**
+     * @see ExecutableType
+     */
+    private String executableType;
+
+    /**
+     * workflow -> workflowId
+     * executor -> triggerId
+     */
+    private String executableId;
+    /**
+     * 版本
+     */
+    private String executableVersion;
 
     /**
      * 状态
+     *
+     * @see ExecutionStatus
      */
-    private Integer status;
-
-    /**
-     * 属性参数
-     */
-    protected String attributes;
+    private String status;
 
     /**
      * 期望的调度触发时间
@@ -77,7 +89,7 @@ public class ExecutionEntity extends BaseEntity {
     /**
      * 执行结束时间
      */
-    private LocalDateTime feedbackAt;
+    private LocalDateTime endAt;
 
     @Override
     public Object getUid() {

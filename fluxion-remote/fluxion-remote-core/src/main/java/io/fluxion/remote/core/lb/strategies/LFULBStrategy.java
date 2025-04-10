@@ -16,12 +16,18 @@
 
 package io.fluxion.remote.core.lb.strategies;
 
-import io.fluxion.remote.core.lb.*;
+import io.fluxion.remote.core.lb.Invocation;
+import io.fluxion.remote.core.lb.LBServer;
+import io.fluxion.remote.core.lb.LBServerStatistics;
+import io.fluxion.remote.core.lb.LBServerStatisticsProvider;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -65,15 +71,16 @@ public class LFULBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
 
     /**
      * {@inheritDoc}
-     * @param servers 被负载的服务列表，可以保证非空。
+     *
+     * @param servers    被负载的服务列表，可以保证非空。
      * @param invocation 本次调用的上下文信息
      * @return
      */
     @Override
-    protected Optional<S> doSelect(List<S> servers, Invocation invocation) {
+    protected S doSelect(List<S> servers, Invocation invocation) {
         Set<String> serverIds = servers.stream()
-                .map(LBServer::serverId)
-                .collect(Collectors.toSet());
+            .map(LBServer::id)
+            .collect(Collectors.toSet());
 
         List<LBServerStatistics> statistics = statisticsProvider.getStatistics(serverIds, this.interval);
         if (CollectionUtils.isEmpty(statistics)) {
@@ -82,11 +89,11 @@ public class LFULBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
         }
 
         return statistics.stream()
-                .min(Comparator.comparing(LBServerStatistics::accessTimes))
-                .flatMap(s -> servers.stream()
-                        .filter(server -> StringUtils.equals(server.serverId(), s.serverId()))
-                        .findFirst()
-                );
+            .min(Comparator.comparing(LBServerStatistics::accessTimes))
+            .flatMap(s -> servers.stream()
+                .filter(server -> StringUtils.equals(server.id(), s.serverId()))
+                .findFirst()
+            ).orElse(null);
     }
 
 }

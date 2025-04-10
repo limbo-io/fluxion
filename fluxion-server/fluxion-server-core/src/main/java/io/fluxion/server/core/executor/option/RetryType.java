@@ -25,27 +25,26 @@ import lombok.Getter;
  * @author Brozen
  * @since 2021-05-19
  */
+@Getter
 public enum RetryType {
 
     UNKNOWN(CommonConstants.UNKNOWN, "未知"),
     /**
      * 对于广播/map-map/reduce任务 会重新重试
      */
-    ALL(1, "重试所有"),
+    ALL("all", "重试所有"),
     /**
      * 对于广播/map-map/reduce任务 只处理失败的任务
      */
-    ONLY_FAIL_PART(2, "失败部分重试"),
+    ONLY_FAIL_PART("only_fail_part", "失败部分重试"),
     ;
 
     @JsonValue
-    @Getter
-    public final int value;
+    public final String value;
 
-    @Getter
     public final String desc;
 
-    RetryType(int value, String desc) {
+    RetryType(String value, String desc) {
         this.value = value;
         this.desc = desc;
     }
@@ -64,15 +63,15 @@ public enum RetryType {
      *
      * @param value 待校验状态值
      */
-    public boolean is(Number value) {
-        return value != null && value.intValue() == this.value;
+    public boolean is(String value) {
+        return this.value.equals(value);
     }
 
     /**
      * 解析上下文状态值
      */
     @JsonCreator
-    public static RetryType parse(Number value) {
+    public static RetryType parse(String value) {
         for (RetryType v : values()) {
             if (v.is(value)) {
                 return v;

@@ -27,5 +27,5 @@ public interface LockEntityRepo extends JpaRepository<LockEntity, String> {
 
     LockEntity findByName(String name);
 
-    int deleteByName(String name);
+    int deleteByNameAndOwner(String name, String owner);
 }

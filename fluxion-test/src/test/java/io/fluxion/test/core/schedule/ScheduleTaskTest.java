@@ -24,8 +24,8 @@ import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculator;
 import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculatorFactory;
-import io.fluxion.server.infrastructure.schedule.scheduler.ScheduledTaskScheduler;
-import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
+import io.fluxion.server.infrastructure.schedule.schedule.ScheduledTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.schedule.TimingWheelTimer;
 import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
 import io.fluxion.server.infrastructure.schedule.task.ScheduledTaskFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -71,7 +71,7 @@ class ScheduleTaskTest {
         log.info("times:0 time:{}", System.currentTimeMillis());
         ScheduleCalculator calculator = ScheduleCalculatorFactory.create(ScheduleType.CRON);
         for (int i = 1; i <= 5; i++) {
-            Long time = calculator.calculate(new Calculable() {
+            LocalDateTime time = calculator.calculate(new Calculable() {
                 @Override
                 public ScheduleOption scheduleOption() {
                     return scheduleOption;
@@ -87,9 +87,9 @@ class ScheduleTaskTest {
                     return null;
                 }
             });
-            lastTriggerAt.set(time);
+            lastTriggerAt.set(TimeUtils.toTimestamp(time));
             log.info("times:{} time:{}", i, lastTriggerAt.get());
-            log.info("times:{} time format:{}", i, LocalDateTime.ofEpochSecond(lastTriggerAt.get() / 1000, 0, TimeUtils.defaultZoneOffset()).format(Formatters.getFormatter(Formatters.YMD_HMS_SSS)));
+            log.info("times:{} time format:{}", i, LocalDateTime.ofEpochSecond(lastTriggerAt.get(), 0, TimeUtils.defaultZoneOffset()).format(Formatters.getFormatter(Formatters.YMD_HMS_SSS)));
         }
     }
 

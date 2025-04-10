@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,8 +65,7 @@ public class ScheduledTask extends AbstractTask {
     public ScheduledTask nextTrigger() {
         LocalDateTime lastTriggerAt = calculation.lastTriggerAt();
         ScheduleOption scheduleOption = calculation.scheduleOption();
-        LocalDateTime now = TimeUtils.currentLocalDateTime();
-        calculation = new BasicCalculation(lastTriggerAt, now, scheduleOption);
+        calculation = new BasicCalculation(lastTriggerAt, TimeUtils.currentLocalDateTime(), scheduleOption);
         return this;
     }
 

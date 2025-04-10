@@ -23,7 +23,6 @@ import org.springframework.data.domain.Pageable;
 import javax.persistence.criteria.*;
 
 /**
- *
  * @author KaiFengCai
  * @since 2023/1/30
  */
@@ -33,11 +32,16 @@ public class JpaHelper {
      * PageParam 转换为 Pageable
      */
     public static Pageable pageable(PageRequest page) {
-        // PageParam 从 1 开始 Pageable 从 0 开始
+        // PageRequest 从 1 开始 Pageable 从 0 开始
         return org.springframework.data.domain.PageRequest.of(page.getCurrent() - 1, page.getPageSize());
     }
 
-    private static <T, R> Expression<R>  expression(Root<T> root, Lambda.Func<T, R> func) {
+    public static Pageable pageable(int pageFromZero, int size) {
+        // PageRequest 从 1 开始 Pageable 从 0 开始
+        return org.springframework.data.domain.PageRequest.of(pageFromZero, size);
+    }
+
+    private static <T, R> Expression<R> expression(Root<T> root, Lambda.Func<T, R> func) {
         String fieldName = Lambda.name(func);
         Class<R> clazz = Lambda.returnType(func);
         return root.get(fieldName).as(clazz);

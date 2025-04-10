@@ -17,7 +17,7 @@
 package io.fluxion.server.core.executor.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import io.fluxion.server.core.flow.FlowConstants;
+import io.fluxion.server.core.workflow.WorkflowConstants;
 import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -38,14 +38,17 @@ public class CustomExecutorConfig extends ExecutorConfig {
      */
     private String name;
 
-
-
     @Override
     public List<ValidateSuppressInfo> validate() {
         List<ValidateSuppressInfo> infos = new ArrayList<>();
         if (StringUtils.isBlank(name)) {
-            infos.add(new ValidateSuppressInfo(FlowConstants.EXECUTOR_NAME_IS_EMPTY));
+            infos.add(new ValidateSuppressInfo(WorkflowConstants.EXECUTOR_NAME_IS_EMPTY));
         }
         return infos;
+    }
+
+    @Override
+    public String executorName() {
+        return name;
     }
 }

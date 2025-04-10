@@ -26,11 +26,7 @@ import java.util.List;
  * @author Devil
  * @since 2022/7/18
  */
-public interface BrokerEntityRepo extends JpaRepository<BrokerEntity, String> {
+public interface BrokerEntityRepo extends JpaRepository<BrokerEntity, BrokerEntity.ID> {
 
-    BrokerEntity findByProtocolAndHostAndPort(String protocol, String host, Integer port);
-
-    List<BrokerEntity> findByLastHeartbeatBetween(LocalDateTime startTime, LocalDateTime endTime);
-
-    List<BrokerEntity> findByOnlineTimeBetween(LocalDateTime startTime, LocalDateTime endTime);
+    List<BrokerEntity> findByLastHeartbeatAtBetween(LocalDateTime startTime, LocalDateTime endTime);
 }

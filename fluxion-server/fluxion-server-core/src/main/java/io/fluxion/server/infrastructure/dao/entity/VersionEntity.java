@@ -44,9 +44,6 @@ import java.io.Serializable;
 @DynamicUpdate
 public class VersionEntity extends BaseEntity {
 
-    /**
-     * @see VersionRefType
-     */
     @EmbeddedId
     private ID id;
 
@@ -72,8 +69,10 @@ public class VersionEntity extends BaseEntity {
     public static class ID implements Serializable {
 
         private String refId;
-
-        private int refType;
+        /**
+         * @see VersionRefType
+         */
+        private String refType;
 
         private String version;
     }

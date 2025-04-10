@@ -16,11 +16,20 @@
 
 package io.fluxion.server.infrastructure.lock;
 
+import java.util.function.Supplier;
+
 /**
  * @author Devil
  * @since 2024/1/13
  */
 public interface DistributedLock {
+    /**
+     * 阻塞 直到获取到锁
+     * @param name 锁名
+     * @param expire 加锁时间/毫秒
+     * @param wait 等待时间
+     */
+    <T> T lock(String name, long expire, long wait, Supplier<T> supplier);
 
     /**
      * 尝试加锁，如果锁被占有返回失败

@@ -18,6 +18,8 @@ package io.fluxion.server.start.api.trigger.request;
 
 import lombok.Data;
 
+import javax.validation.constraints.NotBlank;
+
 /**
  * @author Devil
  */
@@ -25,6 +27,9 @@ import lombok.Data;
 public class TriggerUpdateRequest {
 
     private String id;
+
+    @NotBlank
+    private String name;
 
     private String description;
 

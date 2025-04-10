@@ -16,7 +16,6 @@
 
 package io.fluxion.remote.core.lb.strategies;
 
-import io.fluxion.remote.core.lb.AbstractLBStrategy;
 import io.fluxion.remote.core.lb.Invocation;
 import io.fluxion.remote.core.lb.LBServer;
 import org.apache.commons.collections4.CollectionUtils;
@@ -24,44 +23,37 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
- * todo
  * @author Brozen
  */
 public class AppointLBStrategy<S extends LBServer> extends AbstractLBStrategy<S> {
 
     /**
-     * 通过节点RPC通信URL指定负载均衡节点
+     * 节点ID
      */
-    public static final String PARAM_BY_URL = "appoint.byUrl";
+    public static final String PARAM_BY_SERVER_ID = "appoint.serverId";
 
     /**
-     * 通过节点 ID 指定负载均衡节点
+     * 通过节点RPC通信地址指定负载均衡节点
      */
-    public static final String PARAM_BY_SERVER_ID = "appoint.byServerId";
+    public static final String PARAM_BY_SERVER_ADDRESS = "appoint.serverAddress";
 
 
     /**
      * 从调用参数中解析指定节点的类型。
      */
     private boolean filter(S server, Invocation invocation) {
-        if (server == null || server.url() == null) {
+        if (server == null) {
             return false;
         }
         Map<String, String> params = invocation.parameters();
-        String byServerId = params.get(PARAM_BY_SERVER_ID);
-        if (StringUtils.isNotBlank(byServerId) && StringUtils.equals(server.serverId(), byServerId)) {
+        String serverId = params.get(PARAM_BY_SERVER_ID);
+        if (StringUtils.isNotBlank(serverId) && StringUtils.equals(server.id(), serverId)) {
             return true;
         }
-
-        String byUrl = params.get(PARAM_BY_URL);
-        if (StringUtils.isNotBlank(byUrl) && server.url().toString().equals(byUrl)) {
-            return true;
-        }
-
-        return false;
+        String address = params.get(PARAM_BY_SERVER_ADDRESS);
+        return StringUtils.isNotBlank(address) && StringUtils.equals(address, server.host() + ":" + server.port());
     }
 
 
@@ -73,14 +65,14 @@ public class AppointLBStrategy<S extends LBServer> extends AbstractLBStrategy<S>
      * @return
      */
     @Override
-    protected Optional<S> doSelect(List<S> servers, Invocation invocation) {
+    protected S doSelect(List<S> servers, Invocation invocation) {
         if (CollectionUtils.isEmpty(servers)) {
-            return Optional.empty();
+            return null;
         }
 
         return servers.stream()
-                .filter(server -> filter(server, invocation))
-                .findFirst();
+            .filter(server -> filter(server, invocation))
+            .findFirst().orElse(null);
     }
 
 }

@@ -16,6 +16,8 @@
 
 package io.fluxion.common.utils.time;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -70,6 +72,14 @@ public class LocalDateTimeUtils {
         return Formatters.ymdhms().format(date);
     }
 
+    /**
+     * 将{@link LocalDateTime}格式化为"<code>yyyy-MM-dd HH:mm:ss</code>"格式，并使用默认时区{@link Formatters#DEFAULT_ZONE}进行格式化。
+     * @param date 时间
+     * @return 时间格式化后的字符串
+     */
+    public static String formatYMDHMSS(LocalDateTime date) {
+        return Formatters.ymdhmss().format(date);
+    }
 
     /**
      * 将{@link LocalDateTime}格式化为"<code>yyyy-MM-dd</code>"格式，并使用默认时区{@link Formatters#DEFAULT_ZONE}进行格式化。
@@ -132,7 +142,17 @@ public class LocalDateTimeUtils {
      * @return 日期字符串对应的时间戳
      */
     public static LocalDateTime parseYMDHMS(String date) {
+        if (StringUtils.isBlank(date)) {
+            return null;
+        }
         return Formatters.ymdhms().parse(date, LocalDateTime::from);
+    }
+
+    public static LocalDateTime parseYMDHMSS(String date) {
+        if (StringUtils.isBlank(date)) {
+            return null;
+        }
+        return Formatters.ymdhmss().parse(date, LocalDateTime::from);
     }
 
 

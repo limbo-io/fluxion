@@ -16,14 +16,14 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
-import io.fluxion.server.core.trigger.TriggerRefType;
+import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.infrastructure.dao.TableConstants;
-import io.fluxion.server.core.trigger.Trigger;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
@@ -44,18 +44,7 @@ public class TriggerEntity extends BaseEntity {
     @Id
     private String triggerId;
 
-    /**
-     * 触发方式
-     * @see Trigger.Type
-     */
-    private String type;
-
-    private String refId;
-
-    /**
-     * @see TriggerRefType
-     */
-    private int refType;
+    private String name;
 
     /**
      * 描述
@@ -63,13 +52,18 @@ public class TriggerEntity extends BaseEntity {
     private String description;
 
     /**
-     * 触发配置
+     * 运行版本
      */
-    private String config;
+    private String publishVersion;
 
+    /**
+     * 草稿版本
+     */
+    private String draftVersion;
     /**
      * 是否启动
      */
+    @Column(name = "is_enabled")
     private boolean enabled;
 
     @Override

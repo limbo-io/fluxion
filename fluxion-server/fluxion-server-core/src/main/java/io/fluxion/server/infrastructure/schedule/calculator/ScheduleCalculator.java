@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,9 @@
 
 package io.fluxion.server.infrastructure.schedule.calculator;
 
-import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.fluxion.server.infrastructure.schedule.Calculable;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -33,32 +32,40 @@ import java.time.LocalDateTime;
 public interface ScheduleCalculator {
 
     /**
-     * 没有下次触发时间时，返回负数
-     */
-    long NOT_TRIGGER = -1;
-
-
-    /**
      * 通过此策略计算下一次触发调度的时间戳。如果不应该被触发，返回负数。
+     *
      * @param calculable 可计算的对象
      * @return 下次触发调度的时间戳，当返回负数时，表示作业不会有触发时间。
      */
-    Long calculate(Calculable calculable);
+    LocalDateTime calculate(Calculable calculable);
+
     /**
      * 此策略适用的调度类型
      */
-    ScheduleType getScheduleType();
+    ScheduleType scheduleType();
 
     /**
      * 计算作业的开始调度时间，从作业创建时间开始，加上delay。
+     *
      * @param scheduleOption 作业调度配置
      * @return 作业开始进行调度计算的时间
      */
-    default long calculateStartScheduleTimestamp(ScheduleOption scheduleOption) {
-        LocalDateTime startAt = scheduleOption.getScheduleStartAt();
-        Duration delay = scheduleOption.getScheduleDelay();
-        long startScheduleAt = startAt.toInstant(TimeUtils.defaultZoneOffset()).toEpochMilli();
-        return delay != null ? startScheduleAt + delay.toMillis() : startScheduleAt;
+    default LocalDateTime calculateStartScheduleTime(ScheduleOption scheduleOption) {
+        LocalDateTime startTime = scheduleOption.getStartTime();
+        Duration delay = scheduleOption.getDelay();
+        return delay != null ? startTime.plusSeconds(delay.getSeconds()) : startTime;
+    }
+
+    default LocalDateTime laterTime(LocalDateTime a, LocalDateTime b) {
+        if (a == null) {
+            return b;
+        } else if (b == null) {
+            return a;
+        } else if (a.isBefore(b)) {
+            return b;
+        } else {
+            return a;
+        }
     }
 
 }

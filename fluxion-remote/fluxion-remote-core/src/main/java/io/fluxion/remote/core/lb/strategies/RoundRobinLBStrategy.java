@@ -17,13 +17,11 @@
 package io.fluxion.remote.core.lb.strategies;
 
 
-import io.fluxion.remote.core.lb.AbstractLBStrategy;
 import io.fluxion.remote.core.lb.Invocation;
 import io.fluxion.remote.core.lb.LBServer;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -48,7 +46,7 @@ public class RoundRobinLBStrategy<S extends LBServer> extends AbstractLBStrategy
 
 
     public RoundRobinLBStrategy() {
-        this(s -> s.stream().collect(Collectors.toMap(LBServer::serverId, a -> 1)));
+        this(s -> s.stream().collect(Collectors.toMap(LBServer::id, a -> 1)));
     }
 
 
@@ -66,7 +64,7 @@ public class RoundRobinLBStrategy<S extends LBServer> extends AbstractLBStrategy
      * @return
      */
     @Override
-    protected Optional<S> doSelect(List<S> servers, Invocation invocation) {
+    protected S doSelect(List<S> servers, Invocation invocation) {
         String targetId = invocation.targetId();
         Map<String, RoundRobinIndexer> indexerMap = this.indexers.computeIfAbsent(targetId, k -> new ConcurrentHashMap<>());
 
@@ -78,8 +76,8 @@ public class RoundRobinLBStrategy<S extends LBServer> extends AbstractLBStrategy
         S selected = null;
         RoundRobinIndexer selectedIndexer = null;
         for (S server : servers) {
-            int weight = Math.max(weights.getOrDefault(server.serverId(), 0), 0);
-            RoundRobinIndexer indexer = indexerMap.computeIfAbsent(server.serverId(), sid -> new RoundRobinIndexer(weight));
+            int weight = Math.max(weights.getOrDefault(server.id(), 0), 0);
+            RoundRobinIndexer indexer = indexerMap.computeIfAbsent(server.id(), sid -> new RoundRobinIndexer(weight));
 
             if (indexer.weight != weight) {
                 indexer.weight = weight;
@@ -98,10 +96,10 @@ public class RoundRobinLBStrategy<S extends LBServer> extends AbstractLBStrategy
 
         if (selected != null) {
             selectedIndexer.reset(allWeight);
-            return Optional.of(selected);
+            return selected;
         }
 
-        return Optional.of(servers.get(0));
+        return servers.get(0);
     }
 
 

@@ -16,97 +16,124 @@
 
 package io.fluxion.server.core.broker;
 
-import io.fluxion.common.constants.CommonConstants;
-import io.fluxion.common.utils.SHAUtils;
-import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.server.core.cluster.Node;
-import io.fluxion.server.core.cluster.NodeManger;
-import io.fluxion.server.core.cluster.NodeRegistry;
-import lombok.Getter;
+import com.google.common.collect.Lists;
+import io.fluxion.common.thread.NamedThreadFactory;
+import io.fluxion.remote.core.client.Client;
+import io.fluxion.remote.core.client.ClientFactory;
+import io.fluxion.remote.core.client.server.ClientServer;
+import io.fluxion.remote.core.constants.Protocol;
+import io.fluxion.server.core.broker.task.BucketChecker;
+import io.fluxion.server.core.broker.task.CoreTask;
+import io.fluxion.server.core.broker.task.DataCleaner;
+import io.fluxion.server.core.broker.task.ScheduleDelayLoader;
+import io.fluxion.server.core.broker.task.ScheduleLoader;
+import io.fluxion.server.core.broker.task.WorkerChecker;
+import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.schedule.TimingWheelTimer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.Assert;
 
-import java.net.URL;
-import java.util.Objects;
+import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Devil
  * @since 2022/7/20
  */
 @Slf4j
-public abstract class Broker {
+public class Broker {
 
-    @Getter
-    protected String name;
+    private final BrokerNode node;
 
-    @Getter
-    protected URL rpcBaseURL;
+    private final BrokerManger brokerManger;
 
-    protected final NodeRegistry registry;
+    private final Client client;
 
-    protected final NodeManger manger;
+    /**
+     * Client服务
+     */
+    private final ClientServer clientServer;
 
-    public Broker(String name, URL baseURL, NodeRegistry registry, NodeManger manger) {
-        Objects.requireNonNull(baseURL, "URL can't be null");
+    private final ScheduledExecutorService coreThreadPool;
 
-        this.name = StringUtils.isBlank(name) ? SHAUtils.sha1AndHex(baseURL.toString()).toUpperCase() : name;
-        this.rpcBaseURL = baseURL;
-        this.registry = registry;
-        this.manger = manger;
+    private final List<CoreTask> coreTasks;
+
+    private final DelayedTaskScheduler delayedTaskScheduler;
+
+    public Broker(Protocol protocol, String host, int port, BrokerManger brokerManger,
+                  ClientServer clientServer) {
+        Assert.isTrue(Protocol.UNKNOWN != protocol, "protocol is unknown");
+        Assert.isTrue(StringUtils.isNotBlank(host), "host is null");
+
+        this.node = new BrokerNode(protocol, host, port, 0);
+        this.brokerManger = brokerManger;
+        this.client = ClientFactory.create(protocol);
+        this.coreTasks = Lists.newArrayList(
+            new ScheduleLoader(),
+            new ScheduleDelayLoader(),
+            new BucketChecker(),
+            new DataCleaner(),
+            new WorkerChecker()
+        );
+        this.clientServer = clientServer;
+        this.coreThreadPool = new ScheduledThreadPoolExecutor(
+            coreTasks.size(),
+            NamedThreadFactory.newInstance("FluxionBrokerCoreExecutor")
+        );
+        this.delayedTaskScheduler = new DelayedTaskScheduler(new TimingWheelTimer(100L, TimeUnit.MILLISECONDS));
     }
 
     /**
      * 启动节点
      */
     public void start() {
-        // 将自己先注册上去
-        manger.online(new Node(name, rpcBaseURL));
-        // 节点注册 用于集群感知
-        registry.register(name, rpcBaseURL);
-        // 节点变更通知
-        registry.subscribe(event -> {
-            switch (event.getType()) {
-                case ONLINE:
-                    manger.online(new Node(event.getName(), event.getUrl()));
-                    if (log.isDebugEnabled()) {
-                        log.debug("[BrokerNodeListener] receive online evnet {}", JacksonUtils.toJSONString(event));
-                    }
+        // 初始化上下文
+        BrokerContext.initialize(this);
+        // 节点管理
+        brokerManger.start();
+        // 启动服务处理请求
+        clientServer.start();
+        // 启动核心任务
+        for (CoreTask coreTask : coreTasks) {
+            switch (coreTask.scheduleType()) {
+                case FIXED_DELAY:
+                    coreThreadPool.scheduleWithFixedDelay(coreTask, coreTask.getDelay(), coreTask.getInterval(), coreTask.getUnit());
                     break;
-                case OFFLINE:
-                    manger.offline(new Node(event.getName(), event.getUrl()));
-                    if (log.isDebugEnabled()) {
-                        log.debug("[BrokerNodeListener] receive offline evnet {}", JacksonUtils.toJSONString(event));
-                    }
-                    break;
-                default:
-                    log.warn("[BrokerNodeListener] " + CommonConstants.UNKNOWN + " evnet {}", JacksonUtils.toJSONString(event));
+                case FIXED_RATE:
+                    coreThreadPool.scheduleAtFixedRate(coreTask, coreTask.getDelay(), coreTask.getInterval(), coreTask.getUnit());
                     break;
             }
-        });
-        log.info("broker start!!!~~~");
+        }
 
-        afterStart();
+        log.info("FluxionBroker start!!!~~~");
     }
-
-    /**
-     * Broker启动的主要事件执行后，后置处理
-     */
-    protected abstract void afterStart();
 
     /**
      * 停止
      */
-    public abstract void stop();
+    public void stop() {
+        brokerManger.stop();
+        coreThreadPool.shutdown();
+        clientServer.stop();
+    }
 
-    /**
-     * @return 是否正在运行
-     */
-    public abstract boolean isRunning();
+    public String id() {
+        return node.id();
+    }
 
-    /**
-     * @return 是否已停止
-     */
-    public abstract boolean isStopped();
+    public Client client() {
+        return client;
+    }
 
+    public DelayedTaskScheduler delayedTaskScheduler() {
+        return delayedTaskScheduler;
+    }
+
+    public BrokerNode node() {
+        return node;
+    }
 
 }

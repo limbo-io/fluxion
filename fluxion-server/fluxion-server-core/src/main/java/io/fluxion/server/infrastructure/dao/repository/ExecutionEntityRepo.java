@@ -27,7 +27,7 @@ import java.time.LocalDateTime;
  * @author Devil
  */
 @Repository
-public interface ExecutionEntityRepo extends JpaRepository<ExecutionEntity, String> {
+public interface ExecutionEntityRepo extends JpaRepository<ExecutionEntity, String>, JpaSpecificationExecutor<ExecutionEntity> {
 
-    ExecutionEntity findByRefIdAndRefTypeAndTriggerAt(String refId, int refType, LocalDateTime triggerAt);
+    ExecutionEntity findByExecutableIdAndExecutableTypeAndTriggerAt(String executableId, String executableType, LocalDateTime triggerAt);
 }

@@ -26,17 +26,12 @@ import com.fasterxml.jackson.annotation.JsonValue;
  */
 public enum Protocol {
 
-    UNKNOWN("", 0),
+    UNKNOWN("unknown", 0),
 
     /**
      * HTTP协议通信
      */
     HTTP("http", 80),
-
-    /**
-     * HTTPS协议
-     */
-    HTTPS("https", 443),
 
     ;
 
@@ -80,11 +75,4 @@ public enum Protocol {
         return UNKNOWN;
     }
 
-    public String getValue() {
-        return value;
-    }
-
-    public int getPort() {
-        return port;
-    }
 }

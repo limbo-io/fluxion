@@ -25,24 +25,24 @@ import io.fluxion.common.constants.CommonConstants;
  */
 public enum VersionRefType {
     UNKNOWN(CommonConstants.UNKNOWN),
-    FLOW(1),
-    TRIGGER(2),
+    WORKFLOW("workflow"),
+    TRIGGER("trigger"),
     ;
 
     @JsonValue
-    public final int value;
+    public final String value;
 
 
-    VersionRefType(int value) {
+    VersionRefType(String value) {
         this.value = value;
     }
 
-    public boolean is(Number value) {
-        return value != null && value.intValue() == this.value;
+    public boolean is(String value) {
+        return this.value.equals(value);
     }
 
     @JsonCreator
-    public static VersionRefType parse(Number value) {
+    public static VersionRefType parse(String value) {
         for (VersionRefType v : values()) {
             if (v.is(value)) {
                 return v;

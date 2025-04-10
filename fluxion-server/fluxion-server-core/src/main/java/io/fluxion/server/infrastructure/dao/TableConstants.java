@@ -20,15 +20,21 @@ package io.fluxion.server.infrastructure.dao;
  * @author Devil
  */
 public interface TableConstants {
-    String FLUXION_FLOW = "fluxion_flow";
-    String FLUXION_SCHEDULE_TASK = "fluxion_schedule_task";
+    String FLUXION_WORKFLOW = "fluxion_workflow";
+    String FLUXION_SCHEDULE = "fluxion_schedule";
+    String FLUXION_SCHEDULE_DELAY = "fluxion_schedule_delay";
     String FLUXION_ID = "fluxion_id";
-    String FLUXION_TAG_REF = "fluxion_tag_ref";
+    String FLUXION_TAG = "fluxion_tag";
     String FLUXION_VERSION = "fluxion_version";
     String FLUXION_TRIGGER = "fluxion_trigger";
-    String FLUXION_EXECUTOR = "fluxion_executor";
     String FLUXION_BROKER = "fluxion_broker";
+    String FLUXION_BUCKET = "fluxion_bucket";
     String FLUXION_LOCK = "fluxion_lock";
     String FLUXION_EXECUTION = "fluxion_execution";
-    String FLUXION_TASK = "fluxion_task";
+    String FLUXION_JOB = "fluxion_job";
+    String FLUXION_TASK_RECORD = "fluxion_task_record";
+    String FLUXION_APP = "fluxion_app";
+    String FLUXION_WORKER = "fluxion_worker";
+    String FLUXION_WORKER_EXECUTOR = "fluxion_worker_executor";
+    String FLUXION_WORKER_METRIC = "fluxion_worker_metric";
 }

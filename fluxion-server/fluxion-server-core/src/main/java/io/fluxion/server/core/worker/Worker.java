@@ -16,23 +16,34 @@
 
 package io.fluxion.server.core.worker;
 
-import io.fluxion.remote.core.client.Client;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import io.fluxion.common.constants.CommonConstants;
+import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.lb.LBServer;
-import io.fluxion.server.core.tag.Tagged;
-import io.fluxion.server.core.task.Task;
 import io.fluxion.server.core.worker.executor.WorkerExecutor;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
+import io.fluxion.server.infrastructure.tag.Tag;
+import io.fluxion.server.infrastructure.tag.Tagged;
 import lombok.Getter;
 
-import java.net.URL;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Devil
  */
 @Getter
 public class Worker implements LBServer, Tagged {
+
+    private String appId;
+
+    private Protocol protocol;
+
+    private String host;
+
+    private int port;
+
+    private String address;
 
     /**
      * 执行器
@@ -42,50 +53,99 @@ public class Worker implements LBServer, Tagged {
     /**
      * 标签
      */
-    private Map<String, List<String>> tags;
+    private List<Tag> tags;
 
     /**
      * Worker 状态指标
      */
     private WorkerMetric metric;
 
-    /**
-     * 通信
-     */
-    private Client client;
+    private Status status;
 
     /**
      * 是否启用 不启用则无法下发任务
      */
     private boolean enabled;
 
+    public Worker(String appId, String host, int port, Protocol protocol,
+                  List<WorkerExecutor> executors, List<Tag> tags, WorkerMetric metric,
+                  Status status, boolean enabled) {
+        this.appId = appId;
+        this.host = host;
+        this.port = port;
+        this.protocol = protocol;
+        this.address = host + ":" + port;
+        this.executors = executors;
+        this.tags = tags;
+        this.metric = metric;
+        this.status = status;
+        this.enabled = enabled;
+    }
+
+    public String id() {
+        return address;
+    }
+
     @Override
-    public String serverId() {
-        return null;
+    public List<Tag> tags() {
+        return tags;
     }
 
     @Override
     public boolean isAlive() {
-        return false;
+        return Status.ONLINE == status;
     }
 
     @Override
-    public URL url() {
-        return null;
+    public Protocol protocol() {
+        return protocol;
     }
 
     @Override
-    public Map<String, List<String>> tags() {
-        return tags;
+    public String host() {
+        return host;
+    }
+
+    @Override
+    public int port() {
+        return port;
     }
 
     /**
-     * 发送一个作业到worker执行。当worker接受此task后，将触发返回
-     *
-     * @param task 任务
+     * Worker的状态
      */
-    public void dispatch(Task task) {
+    public enum Status {
+
+        UNKNOWN(CommonConstants.UNKNOWN),
+
+        ONLINE("online"),
+        OFFLINE("offline"),
+
+        ;
+
+        @JsonValue
+        public final String status;
+
+        Status(String status) {
+            this.status = status;
+        }
+
+        public boolean is(String status) {
+            return this.status.equals(status);
+        }
+
+        /**
+         * 解析worker状态
+         */
+        @JsonCreator
+        public static Status parse(String status) {
+            for (Status statusEnum : values()) {
+                if (statusEnum.is(status)) {
+                    return statusEnum;
+                }
+            }
+            return UNKNOWN;
+        }
 
     }
-
 }
