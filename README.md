@@ -98,7 +98,7 @@ mvn clean package -Dmaven.test.skip=true -Pdev
 
 ```
 <dependency>
-    <groupId>io.github.fluxion-io</groupId>
+    <groupId>io.github.limbo-io</groupId>
     <artifactId>fluxion-worker-spring-boot-starter</artifactId>
     <version>x.x.x</version>
 </dependency>
