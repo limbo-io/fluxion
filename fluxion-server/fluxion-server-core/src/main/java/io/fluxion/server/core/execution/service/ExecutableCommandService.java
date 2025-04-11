@@ -75,7 +75,7 @@ public class ExecutableCommandService {
                     if (!success) {
                         return false;
                     }
-                    return executable.success(entity.getRefId(), jobId, reportAt);
+                    return executable.success(entity.getRefId(), entity.getExecutionId(), reportAt);
                 }
             )
         );
