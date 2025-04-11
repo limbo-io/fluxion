@@ -28,12 +28,13 @@ import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 
 /**
  * @author Devil
@@ -49,11 +50,13 @@ public class ExecutorJobRunner extends JobRunner {
     @Override
     public void run(Job job) {
         ExecutorJob executorJob = (ExecutorJob) job;
-        Worker worker = Query.query(new WorkersFilterQuery(
+        List<Worker> workers = Query.query(new WorkersFilterQuery(
             executorJob.getAppId(), executorJob.getExecutorName(),
             executorJob.getDispatchOption(), true, true
-        )).getWorkers().stream().findFirst().orElse(null); // todo ! findAny npe
-        boolean dispatched = false;
+        )).getWorkers();
+        workers = CollectionUtils.isEmpty(workers) ? Collections.emptyList() : workers;
+        Worker worker = workers.stream().filter(Objects::nonNull).findAny().orElse(null);
+        Boolean dispatched = false;
         if (worker != null) {
             // 远程调用处理任务
             JobDispatchRequest request = new JobDispatchRequest();
@@ -67,7 +70,7 @@ public class ExecutorJobRunner extends JobRunner {
         }
 
         String workerAddress = worker == null ? null : worker.getAddress();
-        if (!dispatched) {
+        if (!BooleanUtils.isTrue(dispatched)) {
             Cmd.send(new ExecutableFailCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),

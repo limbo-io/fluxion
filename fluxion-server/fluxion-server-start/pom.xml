@@ -21,11 +21,6 @@
             <groupId>io.github.limbo-io</groupId>
             <artifactId>fluxion-remote-netty</artifactId>
         </dependency>
-        <!-- Worker同时加载进来 todo -->
-<!--        <dependency>-->
-<!--            <groupId>io.github.fluxion-io</groupId>-->
-<!--            <artifactId>fluxion-worker-spring-boot-starter</artifactId>-->
-<!--        </dependency>-->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
