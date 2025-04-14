@@ -17,6 +17,7 @@
 package io.fluxion.server.core.job.runner;
 
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.JobDispatchRequest;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.broker.BrokerContext;
@@ -56,7 +57,7 @@ public class ExecutorJobRunner extends JobRunner {
         )).getWorkers();
         workers = CollectionUtils.isEmpty(workers) ? Collections.emptyList() : workers;
         Worker worker = workers.stream().filter(Objects::nonNull).findAny().orElse(null);
-        Boolean dispatched = false;
+        boolean dispatched = false;
         if (worker != null) {
             // 远程调用处理任务
             JobDispatchRequest request = new JobDispatchRequest();
@@ -64,13 +65,14 @@ public class ExecutorJobRunner extends JobRunner {
             request.setExecutorName(executorJob.getExecutorName());
             request.setExecuteMode(executorJob.getExecuteMode().mode);
             // call
-            dispatched = BrokerContext.call(
+            Response<Boolean> dispatchRes = BrokerContext.call(
                 WorkerRemoteConstant.API_JOB_DISPATCH, worker.getHost(), worker.getPort(), request
             );
+            dispatched = dispatchRes.success() && BooleanUtils.isTrue(dispatchRes.getData());
         }
 
         String workerAddress = worker == null ? null : worker.getAddress();
-        if (!BooleanUtils.isTrue(dispatched)) {
+        if (!dispatched) {
             Cmd.send(new ExecutableFailCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),

@@ -16,50 +16,55 @@
 
 package io.fluxion.worker.core.job.tracker;
 
-import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
+import io.fluxion.remote.core.api.Response;
+import io.fluxion.remote.core.api.dto.NodeDTO;
+import io.fluxion.remote.core.api.request.TaskDispatchRequest;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
-import io.fluxion.worker.core.job.TaskCounter;
 import io.fluxion.worker.core.task.Task;
+import io.fluxion.worker.core.task.repository.TaskRepository;
+import org.apache.commons.lang3.BooleanUtils;
+
+import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_DISPATCH;
 
 /**
  * @author Devil
  */
 public abstract class DistributedJobTracker extends JobTracker {
 
-    protected final TaskCounter taskCounter;
-
     public DistributedJobTracker(Job job, Executor executor, WorkerContext workerContext) {
         super(job, executor, workerContext);
-        this.taskCounter = new TaskCounter();
     }
 
     public abstract void success(Task task);
 
     public abstract void fail(Task task);
 
-    @Override
-    public void report() {
-        reportJob(taskMonitor());
-    }
+    protected abstract NodeDTO findWorker(Task task);
 
-    @Override
-    protected void reportSuccess() {
-        reportSuccess(taskMonitor());
-    }
-
-    @Override
-    protected void reportFail(String errorMsg) {
-        reportFail(errorMsg, taskMonitor());
-    }
-
-    protected TaskMonitorDTO taskMonitor() {
-        TaskMonitorDTO dto = new TaskMonitorDTO();
-        dto.setTotalNum(taskCounter.getTotal().get());
-        dto.setSuccessNum(taskCounter.getSuccess().get());
-        dto.setFailNum(taskCounter.getFail().get());
-        return dto;
+    protected boolean dispatch(Task task) {
+        TaskRepository taskRepository = workerContext.taskRepository();
+        while (task.getDispatchFailTimes() < 3) {
+            try {
+                NodeDTO worker = findWorker(task);
+                task.setWorkerAddress(worker.address());
+                TaskDispatchRequest request = new TaskDispatchRequest();
+                request.setJobId(task.getJobId());
+                request.setTaskId(task.getId());
+                request.setExecutorName(executor.name());
+                request.setRemoteAddress(task.getRemoteAddress());
+                Response<Boolean> response = workerContext.call(API_TASK_DISPATCH, worker.getHost(), worker.getPort(), request);
+                if (response.success() && BooleanUtils.isTrue(response.getData())) {
+                    return true;
+                } else {
+                    taskRepository.dispatchFail(task.getJobId(), task.getId());
+                }
+            } catch (Exception e) {
+                log.error("Task dispatch failed: jobId={} taskId={} worker={}", task.getJobId(), task.getId(), task.getWorkerAddress(), e);
+            }
+        }
+        return false;
     }
 
 }

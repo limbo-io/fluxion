@@ -18,6 +18,7 @@ package io.fluxion.worker.core.job.tracker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
 import io.fluxion.remote.core.api.request.JobDispatchedRequest;
 import io.fluxion.remote.core.api.request.JobFailRequest;
@@ -29,6 +30,7 @@ import io.fluxion.worker.core.AbstractTracker;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.job.TaskCounter;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
@@ -63,11 +65,14 @@ public abstract class JobTracker extends AbstractTracker {
 
     protected Future<?> statusReportFuture;
 
+    protected final TaskCounter taskCounter;
+
     public JobTracker(Job job, Executor executor, WorkerContext workerContext) {
         this.job = job;
         this.executor = executor;
         this.workerContext = workerContext;
         this.destroyed = new AtomicBoolean(false);
+        this.taskCounter = new TaskCounter();
     }
 
     @Override
@@ -106,7 +111,9 @@ public abstract class JobTracker extends AbstractTracker {
 
     public abstract void run();
 
-    public abstract void report();
+    public void report() {
+
+    }
 
     @Override
     public void destroy() {
@@ -129,7 +136,11 @@ public abstract class JobTracker extends AbstractTracker {
             JobDispatchedRequest request = new JobDispatchedRequest();
             request.setJobId(job.getId());
             request.setWorkerAddress(workerContext.address());
-            return workerContext.call(API_JOB_DISPATCHED, request);
+            Response<Boolean> response = workerContext.call(API_JOB_DISPATCHED, request);
+            if (!response.success()) {
+                return false;
+            }
+            return response.getData();
         } catch (Exception e) {
             log.error("reportDispatched fail jobId={}", job.getId(), e);
             return false;
@@ -142,7 +153,11 @@ public abstract class JobTracker extends AbstractTracker {
             request.setJobId(job.getId());
             request.setWorkerAddress(workerContext.address());
             request.setReportAt(TimeUtils.currentLocalDateTime());
-            return workerContext.call(API_JOB_START, request);
+            Response<Boolean> response = workerContext.call(API_JOB_START, request);
+            if (!response.success()) {
+                return false;
+            }
+            return response.getData();
         } catch (Exception e) {
             log.error("reportStart fail jobId={}", job.getId(), e);
             return false;
@@ -150,24 +165,22 @@ public abstract class JobTracker extends AbstractTracker {
     }
 
     protected boolean reportJob() {
-        return reportJob(null);
-    }
-
-    protected boolean reportJob(TaskMonitorDTO taskMonitor) {
+        TaskMonitorDTO taskMonitor = taskMonitor();
         JobReportRequest request = new JobReportRequest();
         request.setJobId(job.getId());
         request.setReportAt(TimeUtils.currentLocalDateTime());
         request.setWorkerAddress(workerContext.address());
         request.setTaskMonitor(taskMonitor);
-        return workerContext.call(API_JOB_REPORT, request);
+        Response<Boolean> response = workerContext.call(API_JOB_REPORT, request);
+        if (!response.success()) {
+            return false;
+        }
+        return response.getData();
     }
 
     protected void reportSuccess() {
-        reportSuccess(null);
-    }
-
-    protected void reportSuccess(TaskMonitorDTO taskMonitor) {
         try {
+            TaskMonitorDTO taskMonitor = taskMonitor();
             JobSuccessRequest request = new JobSuccessRequest();
             request.setJobId(job.getId());
             request.setWorkerAddress(workerContext.address());
@@ -181,11 +194,8 @@ public abstract class JobTracker extends AbstractTracker {
     }
 
     protected void reportFail(String errorMsg) {
-        reportFail(errorMsg, null);
-    }
-
-    protected void reportFail(String errorMsg, TaskMonitorDTO taskMonitor) {
         try {
+            TaskMonitorDTO taskMonitor = taskMonitor();
             JobFailRequest request = new JobFailRequest();
             request.setJobId(job.getId());
             request.setWorkerAddress(workerContext.address());
@@ -201,6 +211,14 @@ public abstract class JobTracker extends AbstractTracker {
 
     public Job job() {
         return job;
+    }
+
+    private TaskMonitorDTO taskMonitor() {
+        TaskMonitorDTO dto = new TaskMonitorDTO();
+        dto.setTotalNum(taskCounter.getTotal().get());
+        dto.setSuccessNum(taskCounter.getSuccess().get());
+        dto.setFailNum(taskCounter.getFail().get());
+        return dto;
     }
 
 }

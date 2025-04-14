@@ -38,11 +38,7 @@ package io.fluxion.server.infrastructure.exception;
  */
 public enum ErrorCode {
     // 公用 00 开头
-    SUCCESS(200, "ok"),
     PARAM_ERROR(400, "param_error"),
-    UNAUTHORIZED(401, "unauthorized"),
-    FORBIDDEN(403, "forbidden"),
-    NOT_FOUND(404, "not_found"),
     SYSTEM_ERROR(500, "system_error"),
     // 业务定义 01 ~ 99 开头
     ;

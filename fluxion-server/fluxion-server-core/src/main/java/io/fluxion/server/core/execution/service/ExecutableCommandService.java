@@ -22,9 +22,7 @@ import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
-import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
-import io.fluxion.server.core.job.cmd.JobRetryCmd;
 import io.fluxion.server.core.job.cmd.JobSuccessCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
@@ -40,7 +38,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 /**
  * @author Devil
@@ -87,25 +84,31 @@ public class ExecutableCommandService {
             .orElseThrow(PlatformException.supplier(ErrorCode.PARAM_ERROR, "job not found id:" + cmd.getJobId()));
         Execution execution = Query.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
         String lockName = execution.getId() + LOCK_SUFFIX;
-        return distributedLock.lock(lockName, 2000, 3000,
-            () -> transactionService.transactional(() -> {
-                String jobId = cmd.getJobId();
-                LocalDateTime reportAt = cmd.getReportAt();
-                Executable executable = execution.getExecutable();
-                RetryOption retryOption = Optional.ofNullable(executable.retryOption(entity.getRefId())).orElse(new RetryOption());
-                if (retryOption.canRetry(entity.getRetryTimes())) {
-                    return Cmd.send(new JobRetryCmd());
-                } else if (executable.skipWhenFail(entity.getRefId())) {
-                    return executable.success(entity.getRefId(), entity.getExecutionId(), reportAt);
-                } else {
-                    boolean failed = Cmd.send(new JobFailCmd(jobId, reportAt, cmd.getErrorMsg(), cmd.getMonitor()));
-                    if (!failed) {
-                        return false;
-                    }
-                    return Cmd.send(new ExecutionFailCmd(entity.getExecutionId(), reportAt));
-                }
-            })
-        );
+        try {
+            return distributedLock.lock(lockName, 2000, 3000,
+                () -> transactionService.transactional(() -> {
+                    String jobId = cmd.getJobId();
+                    LocalDateTime reportAt = cmd.getReportAt();
+                    // 下面能力后面支持 todo
+//                    Executable executable = execution.getExecutable();
+//                    RetryOption retryOption = Optional.ofNullable(executable.retryOption(entity.getRefId())).orElse(new RetryOption());
+//                    if (retryOption.canRetry(entity.getRetryTimes())) {
+//                        return Cmd.send(new JobRetryCmd());
+//                    } else if (executable.skipWhenFail(entity.getRefId())) {
+//                        return executable.success(entity.getRefId(), entity.getExecutionId(), reportAt);
+//                    } else {
+                        boolean failed = Cmd.send(new JobFailCmd(jobId, reportAt, cmd.getErrorMsg(), cmd.getMonitor()));
+                        if (!failed) {
+                            return false;
+                        }
+                        return Cmd.send(new ExecutionFailCmd(entity.getExecutionId(), reportAt));
+//                    }
+                })
+            );
+        } catch (Exception e) {
+            log.error("ExecutableFailCmd fail jobId:{}", cmd.getJobId(), e);
+            return false;
+        }
     }
 
 }

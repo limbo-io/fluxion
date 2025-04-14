@@ -16,8 +16,12 @@
 
 package io.fluxion.server.core.broker;
 
+import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.BrokerPingRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_BROKER_PING;
 
@@ -26,6 +30,8 @@ import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_BROKER_P
  * @date 2025/1/10
  */
 public class BrokerContext {
+
+    private static final Logger log = LoggerFactory.getLogger(BrokerContext.class);
 
     private static Broker broker;
 
@@ -37,8 +43,12 @@ public class BrokerContext {
         BrokerContext.broker = broker;
     }
 
-    public static <R> R call(String path, String host, int port, Request<R> request) {
-        return broker().client().call(path, host, port, request).getData();
+    public static <R> Response<R> call(String path, String host, int port, Request<R> request) {
+        Response<R> response = broker().client().call(path, host, port, request);
+        if (log.isDebugEnabled()) {
+            log.debug("Remote Call host: {} port: {} request:{} response:{}", host, port, JacksonUtils.toJSONString(request), response);
+        }
+        return response;
     }
 
     public static Boolean ping(String host, int port) {
@@ -46,7 +56,8 @@ public class BrokerContext {
         if (node.host().equals(host) && node.port() == port) {
             return true; // 当前节点直接返回
         }
-        return call(API_BROKER_PING, host, port, new BrokerPingRequest());
+        Response<Boolean> response = call(API_BROKER_PING, host, port, new BrokerPingRequest());
+        return response.getData();
     }
 
 }

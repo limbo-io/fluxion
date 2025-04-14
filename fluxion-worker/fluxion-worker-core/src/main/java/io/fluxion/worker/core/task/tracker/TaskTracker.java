@@ -18,6 +18,7 @@ package io.fluxion.worker.core.task.tracker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.request.TaskDispatchedRequest;
 import io.fluxion.remote.core.api.request.TaskFailRequest;
@@ -29,6 +30,7 @@ import io.fluxion.worker.core.AbstractTracker;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.Task;
+import org.apache.commons.lang3.BooleanUtils;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
@@ -134,7 +136,8 @@ public class TaskTracker extends AbstractTracker {
             request.setJobId(task.getJobId());
             request.setWorkerAddress(workerContext.address());
             NodeDTO remote = task.remoteNode();
-            return workerContext.call(API_TASK_DISPATCHED, remote.getHost(), remote.getPort(), request);
+            Response<Boolean> response = workerContext.call(API_TASK_DISPATCHED, remote.getHost(), remote.getPort(), request);
+            return response.success() && BooleanUtils.isTrue(response.getData());
         } catch (Exception e) {
             log.error("reportDispatched fail subTask={}", task.getId(), e);
             return false;
@@ -164,7 +167,8 @@ public class TaskTracker extends AbstractTracker {
             request.setWorkerAddress(workerContext.address());
             request.setReportAt(TimeUtils.currentLocalDateTime());
             NodeDTO remote = task.remoteNode();
-            return workerContext.call(API_TASK_START, remote.getHost(), remote.getPort(), request);
+            Response<Boolean> response = workerContext.call(API_TASK_START, remote.getHost(), remote.getPort(), request);
+            return response.success() && BooleanUtils.isTrue(response.getData());
         } catch (Exception e) {
             log.error("reportStart fail subTask={}", task.getId(), e);
             return false;

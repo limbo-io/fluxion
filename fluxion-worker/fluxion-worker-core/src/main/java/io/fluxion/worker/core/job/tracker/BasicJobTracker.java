@@ -47,21 +47,22 @@ public class BasicJobTracker extends JobTracker {
             task.setStatus(TaskStatus.RUNNING);
             task.setRemoteAddress(workerContext.address());
             task.setWorkerAddress(workerContext.address());
+
+            taskCounter.getTotal().set(1);
+
+            // 执行
             executor.run(task);
 
             // 执行成功
+            taskCounter.getSuccess().incrementAndGet();
             reportSuccess();
         } catch (Throwable throwable) {
             log.error("[{}] run error", getClass().getSimpleName(), throwable);
+            taskCounter.getFail().incrementAndGet();
             reportFail(throwable.getMessage());
         } finally {
             destroy();
         }
-    }
-
-    @Override
-    public void report() {
-        reportJob();
     }
 
 }

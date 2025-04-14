@@ -16,9 +16,10 @@
 
 package io.fluxion.worker.core.job.tracker;
 
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.request.JobWorkersRequest;
-import io.fluxion.remote.core.api.request.TaskDispatchRequest;
+import io.fluxion.remote.core.api.response.JobWorkersResponse;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
@@ -30,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_WORKERS;
-import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_DISPATCH;
 
 /**
  * @author Devil
@@ -54,7 +54,14 @@ public class BroadcastJobTracker extends DistributedJobTracker {
             // 获取所有节点，创建task
             JobWorkersRequest request = new JobWorkersRequest();
             request.setJobId(job.getId());
-            List<NodeDTO> workers = workerContext.call(API_JOB_WORKERS, request).getWorkers();
+            Response<JobWorkersResponse> workerResponse = workerContext.call(API_JOB_WORKERS, request);
+            if (!workerResponse.success()) {
+                reportFail("Get Workers Fail");
+                destroy();
+                return;
+            }
+
+            List<NodeDTO> workers = workerResponse.getData().getWorkers();
 
             List<Task> tasks = new ArrayList<>();
             for (int i = 0; i < workers.size(); i++) {
@@ -81,9 +88,10 @@ public class BroadcastJobTracker extends DistributedJobTracker {
                     taskRepository.fail(task);
                 }
             }
+            // todo ! 如果全部下发失败了，直接失败
         } catch (Throwable throwable) {
             log.error("[{}] run error", getClass().getSimpleName(), throwable);
-            reportFail(throwable.getMessage());
+            reportFail(throwable.getMessage()); // todo ! 这里没有统计失败个数
             destroy();
         }
     }
@@ -112,27 +120,9 @@ public class BroadcastJobTracker extends DistributedJobTracker {
         destroy();
     }
 
-    private boolean dispatch(Task task) {
-        TaskRepository taskRepository = workerContext.taskRepository();
-        while (task.getDispatchFailTimes() < 3) {
-            try {
-                TaskDispatchRequest request = new TaskDispatchRequest();
-                request.setJobId(task.getJobId());
-                request.setTaskId(task.getId());
-                request.setExecutorName(executor.name());
-                request.setRemoteAddress(task.getRemoteAddress());
-                NodeDTO worker = task.workerNode();
-                boolean dispatched = workerContext.call(API_TASK_DISPATCH, worker.getHost(), worker.getPort(), request);
-                if (dispatched) {
-                    return true;
-                } else {
-                    taskRepository.dispatchFail(task.getJobId(), task.getId());
-                }
-            } catch (Exception e) {
-                log.error("Task dispatch failed: jobId={} taskId={} worker={}", task.getJobId(), task.getId(), task.getWorkerAddress(), e);
-            }
-        }
-        return false;
+    @Override
+    protected NodeDTO findWorker(Task task) {
+        return null; // todo
     }
 
 }

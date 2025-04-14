@@ -19,6 +19,7 @@ package io.fluxion.worker.core;
 import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.LBClient;
@@ -250,20 +251,20 @@ public class WorkerContext {
         return protocol;
     }
 
-    public <R> R call(String path, Request<R> request) {
-        R data = brokerClient.call(path, request).getData();
+    public <R> Response<R> call(String path, Request<R> request) {
+        Response<R> response = brokerClient.call(path, request);
         if (log.isDebugEnabled()) {
-            log.debug("Remote Call request:{} result:{}", JacksonUtils.toJSONString(request), data);
+            log.debug("Remote Call request:{} response:{}", JacksonUtils.toJSONString(request), response);
         }
-        return data;
+        return response;
     }
 
-    public <R> R call(String path, String host, int port, Request<R> request) {
-        R data = client.call(path, host, port, request).getData();
+    public <R> Response<R> call(String path, String host, int port, Request<R> request) {
+        Response<R> response = client.call(path, host, port, request);
         if (log.isDebugEnabled()) {
-            log.debug("Remote Call host: {} port: {} request:{} result:{}", host, port, JacksonUtils.toJSONString(request), data);
+            log.debug("Remote Call host: {} port: {} request:{} response:{}", host, port, JacksonUtils.toJSONString(request), response);
         }
-        return data;
+        return response;
     }
 
     public String host() {
