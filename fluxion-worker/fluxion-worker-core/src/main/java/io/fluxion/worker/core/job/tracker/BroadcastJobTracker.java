@@ -83,7 +83,7 @@ public class BroadcastJobTracker extends DistributedJobTracker {
             }
         } catch (Throwable throwable) {
             log.error("[{}] run error", getClass().getSimpleName(), throwable);
-            reportFail(throwable.getMessage(), taskMonitor());
+            reportFail(throwable.getMessage());
             destroy();
         }
     }
@@ -94,7 +94,7 @@ public class BroadcastJobTracker extends DistributedJobTracker {
         if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
             return;
         }
-        reportSuccess(taskMonitor());
+        reportSuccess();
         destroy();
     }
 
@@ -105,9 +105,9 @@ public class BroadcastJobTracker extends DistributedJobTracker {
             return;
         }
         if (taskCounter.getSuccess().get() > 0) {
-            reportSuccess(taskMonitor());
+            reportSuccess();
         } else {
-            reportFail("", taskMonitor());
+            reportFail("");
         }
         destroy();
     }

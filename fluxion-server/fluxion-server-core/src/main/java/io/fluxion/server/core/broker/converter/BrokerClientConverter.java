@@ -114,7 +114,7 @@ public class BrokerClientConverter {
         if (dto == null) {
             return null;
         }
-        return new TaskMonitor(dto.getTotal(), dto.getSuccess(), dto.getFail());
+        return new TaskMonitor(dto.getTotalNum(), dto.getSuccessNum(), dto.getFailNum());
     }
 
 }

@@ -78,11 +78,11 @@ public class MapReduceJobTracker extends DistributedJobTracker {
                 }
             }
             if (!dispatched) {
-                reportFail("dispatch fail", taskMonitor());
+                reportFail("dispatch fail");
             }
         } catch (Throwable throwable) {
             log.error("[{}] run error", getClass().getSimpleName(), throwable);
-            reportFail(throwable.getMessage(), taskMonitor());
+            reportFail(throwable.getMessage());
             destroy();
         }
     }
@@ -95,14 +95,14 @@ public class MapReduceJobTracker extends DistributedJobTracker {
             return;
         }
         if (taskCounter.getFail().get() > 0) {
-            reportFail("", taskMonitor());
+            reportFail("");
         } else {
             if (executor instanceof MapReduceExecutor) {
                 MapReduceExecutor reduceExecutor = (MapReduceExecutor) this.executor;
                 Map<String, String> allSubTaskResult = workerContext.taskRepository().getAllSubTaskResult(task.getJobId());
                 reduceExecutor.reduce(allSubTaskResult);
             }
-            reportSuccess(taskMonitor());
+            reportSuccess();
         }
         destroy();
     }
@@ -113,7 +113,7 @@ public class MapReduceJobTracker extends DistributedJobTracker {
         if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
             return;
         }
-        reportFail("", taskMonitor());
+        reportFail("");
         destroy();
     }
 

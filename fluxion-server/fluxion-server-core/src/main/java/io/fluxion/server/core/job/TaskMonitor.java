@@ -26,9 +26,9 @@ import lombok.Getter;
 @AllArgsConstructor
 public class TaskMonitor {
 
-    private int total;
+    private int totalNum;
 
-    private int success;
+    private int successNum;
 
-    private int fail;
+    private int failNum;
 }
