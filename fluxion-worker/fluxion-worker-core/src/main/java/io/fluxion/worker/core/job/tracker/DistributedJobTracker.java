@@ -44,11 +44,21 @@ public abstract class DistributedJobTracker extends JobTracker {
         reportJob(taskMonitor());
     }
 
+    @Override
+    protected void reportSuccess() {
+        reportSuccess(taskMonitor());
+    }
+
+    @Override
+    protected void reportFail(String errorMsg) {
+        reportFail(errorMsg, taskMonitor());
+    }
+
     protected TaskMonitorDTO taskMonitor() {
         TaskMonitorDTO dto = new TaskMonitorDTO();
-        dto.setTotal(taskCounter.getTotal().get());
-        dto.setSuccess(taskCounter.getSuccess().get());
-        dto.setFail(taskCounter.getFail().get());
+        dto.setTotalNum(taskCounter.getTotal().get());
+        dto.setSuccessNum(taskCounter.getSuccess().get());
+        dto.setFailNum(taskCounter.getFail().get());
         return dto;
     }
 
