@@ -35,6 +35,8 @@ import java.util.List;
 @Getter
 public class Worker implements LBServer, Tagged {
 
+    private String id;
+
     private String appId;
 
     private Protocol protocol;
@@ -42,8 +44,6 @@ public class Worker implements LBServer, Tagged {
     private String host;
 
     private int port;
-
-    private String address;
 
     /**
      * 执行器
@@ -67,14 +67,14 @@ public class Worker implements LBServer, Tagged {
      */
     private boolean enabled;
 
-    public Worker(String appId, String host, int port, Protocol protocol,
+    public Worker(String workerId, String appId, String host, int port, Protocol protocol,
                   List<WorkerExecutor> executors, List<Tag> tags, WorkerMetric metric,
                   Status status, boolean enabled) {
+        this.id = workerId;
         this.appId = appId;
         this.host = host;
         this.port = port;
         this.protocol = protocol;
-        this.address = host + ":" + port;
         this.executors = executors;
         this.tags = tags;
         this.metric = metric;
@@ -83,7 +83,7 @@ public class Worker implements LBServer, Tagged {
     }
 
     public String id() {
-        return address;
+        return id;
     }
 
     @Override

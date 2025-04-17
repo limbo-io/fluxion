@@ -23,14 +23,15 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * todo @d later
  * 1. 加载 create 状态执行TaskRunCmd
- * 2. 加载 dispatched + running 状态比较久的 判断超时
+ * 2. 加载 dispatched + running 状态 长时间没有心跳 修改为最终态
+ * 3. 判断超时
  *
  * @author Devil
  */
 @Slf4j
-public class TaskChecker extends CoreTask {
+public class JobChecker extends CoreTask {
 
-    public TaskChecker() {
+    public JobChecker() {
         super(0, ScheduleDelayConstants.LOAD_INTERVAL, ScheduleDelayConstants.LOAD_TIME_UNIT);
     }
 

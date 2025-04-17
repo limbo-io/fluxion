@@ -18,9 +18,11 @@ package io.fluxion.server.core.job.service;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobStatus;
+import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobDispatchedCmd;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.cmd.JobReportCmd;
@@ -90,6 +92,9 @@ public class JobCommandService {
             entity.setJobType(job.type().value);
             entity.setRefId(job.getRefId());
             entity.setRetryTimes(job.getRetryTimes());
+            if (JobType.EXECUTOR != job.type()) {
+                entity.setWorkerAddress(BrokerContext.broker().node().address());
+            }
             return entity;
         }).collect(Collectors.toList());
         jobEntityRepo.saveAllAndFlush(entities);

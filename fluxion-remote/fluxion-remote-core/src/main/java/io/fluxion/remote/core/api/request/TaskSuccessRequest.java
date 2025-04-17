@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.api.request;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.dto.NodeDTO;
 
 import java.time.LocalDateTime;
 
@@ -30,7 +31,7 @@ public class TaskSuccessRequest implements Request<Boolean> {
 
     private String taskId;
 
-    private String workerAddress;
+    private NodeDTO workerNode;
 
     private LocalDateTime reportAt;
 
@@ -52,14 +53,6 @@ public class TaskSuccessRequest implements Request<Boolean> {
         this.reportAt = reportAt;
     }
 
-    public String getWorkerAddress() {
-        return workerAddress;
-    }
-
-    public void setWorkerAddress(String workerAddress) {
-        this.workerAddress = workerAddress;
-    }
-
     public String getJobId() {
         return jobId;
     }
@@ -74,5 +67,13 @@ public class TaskSuccessRequest implements Request<Boolean> {
 
     public void setResult(String result) {
         this.result = result;
+    }
+
+    public NodeDTO getWorkerNode() {
+        return workerNode;
+    }
+
+    public void setWorkerNode(NodeDTO workerNode) {
+        this.workerNode = workerNode;
     }
 }

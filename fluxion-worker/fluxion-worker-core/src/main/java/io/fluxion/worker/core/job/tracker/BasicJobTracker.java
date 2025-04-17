@@ -45,8 +45,8 @@ public class BasicJobTracker extends JobTracker {
 
             Task task = new Task("0", job.getId());
             task.setStatus(TaskStatus.RUNNING);
-            task.setRemoteAddress(workerContext.address());
-            task.setWorkerAddress(workerContext.address());
+            task.setWorkerNode(workerContext.node());
+            task.setRemoteNode(workerContext.node());
 
             taskCounter.getTotal().set(1);
 

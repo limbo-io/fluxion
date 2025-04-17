@@ -75,7 +75,7 @@ public class WorkerConverter {
         List<WorkerExecutor> executors = toExecutors(executorEntities);
         WorkerMetric metric = toMetric(metricEntity);
         return new Worker(
-            entity.getAppId(), entity.getHost(), entity.getPort(), Protocol.parse(entity.getProtocol()),
+            entity.getWorkerId(), entity.getAppId(), entity.getHost(), entity.getPort(), Protocol.parse(entity.getProtocol()),
             executors, tags, metric, Worker.Status.parse(entity.getStatus()), entity.isEnabled()
         );
     }

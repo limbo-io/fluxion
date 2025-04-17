@@ -135,7 +135,7 @@ public abstract class JobTracker extends AbstractTracker {
         try {
             JobDispatchedRequest request = new JobDispatchedRequest();
             request.setJobId(job.getId());
-            request.setWorkerAddress(workerContext.address());
+            request.setWorkerAddress(workerContext.node().address());
             Response<Boolean> response = workerContext.call(API_JOB_DISPATCHED, request);
             if (!response.success()) {
                 return false;
@@ -151,7 +151,7 @@ public abstract class JobTracker extends AbstractTracker {
         try {
             JobStartRequest request = new JobStartRequest();
             request.setJobId(job.getId());
-            request.setWorkerAddress(workerContext.address());
+            request.setWorkerAddress(workerContext.node().address());
             request.setReportAt(TimeUtils.currentLocalDateTime());
             Response<Boolean> response = workerContext.call(API_JOB_START, request);
             if (!response.success()) {
@@ -169,7 +169,7 @@ public abstract class JobTracker extends AbstractTracker {
         JobReportRequest request = new JobReportRequest();
         request.setJobId(job.getId());
         request.setReportAt(TimeUtils.currentLocalDateTime());
-        request.setWorkerAddress(workerContext.address());
+        request.setWorkerAddress(workerContext.node().address());
         request.setTaskMonitor(taskMonitor);
         Response<Boolean> response = workerContext.call(API_JOB_REPORT, request);
         if (!response.success()) {
@@ -183,7 +183,7 @@ public abstract class JobTracker extends AbstractTracker {
             TaskMonitorDTO taskMonitor = taskMonitor();
             JobSuccessRequest request = new JobSuccessRequest();
             request.setJobId(job.getId());
-            request.setWorkerAddress(workerContext.address());
+            request.setWorkerAddress(workerContext.node().address());
             request.setReportAt(TimeUtils.currentLocalDateTime());
             request.setTaskMonitor(taskMonitor);
             workerContext.call(API_JOB_SUCCESS, request); // todo @d later 如果上报失败需要记录，定时重试
@@ -198,7 +198,7 @@ public abstract class JobTracker extends AbstractTracker {
             TaskMonitorDTO taskMonitor = taskMonitor();
             JobFailRequest request = new JobFailRequest();
             request.setJobId(job.getId());
-            request.setWorkerAddress(workerContext.address());
+            request.setWorkerAddress(workerContext.node().address());
             request.setReportAt(TimeUtils.currentLocalDateTime());
             request.setErrorMsg(errorMsg);
             request.setTaskMonitor(taskMonitor);

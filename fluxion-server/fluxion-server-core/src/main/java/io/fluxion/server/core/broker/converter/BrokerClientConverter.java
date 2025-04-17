@@ -50,8 +50,9 @@ public class BrokerClientConverter {
                 .name(e.getName())
                 .build()
             ).collect(Collectors.toList());
+        String id = request.getProtocol() + "://" + request.getHost() + ":" + request.getPort();
         return new Worker(
-            appId, request.getHost(), request.getPort(), Protocol.parse(request.getProtocol()),
+            id, appId, request.getHost(), request.getPort(), Protocol.parse(request.getProtocol()),
             executors, tags, metric, Worker.Status.ONLINE, true
         );
     }
@@ -84,7 +85,6 @@ public class BrokerClientConverter {
             return null;
         }
         NodeDTO dto = new NodeDTO();
-        dto.setProtocol(node.protocol().value);
         dto.setHost(node.host());
         dto.setPort(node.port());
         return dto;
@@ -103,7 +103,6 @@ public class BrokerClientConverter {
         }
         return workers.stream().map(w -> {
             NodeDTO dto = new NodeDTO();
-            dto.setProtocol(w.getProtocol().value);
             dto.setHost(w.getHost());
             dto.setPort(w.getPort());
             return dto;

@@ -50,6 +50,8 @@ import io.fluxion.server.core.worker.cmd.WorkerSaveCmd;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
+import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
+import io.fluxion.server.infrastructure.id.data.IDType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;

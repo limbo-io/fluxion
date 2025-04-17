@@ -20,7 +20,11 @@ import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.LocalDateTimeUtils;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.request.TaskPageRequest;
+import io.fluxion.remote.core.cluster.BaseNode;
+import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.constants.TaskStatus;
+import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.persistence.ConnectionFactory;
 import io.fluxion.worker.core.task.Task;
 import org.apache.commons.collections4.CollectionUtils;
@@ -28,6 +32,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -59,10 +65,13 @@ public class DBTaskRepository implements TaskRepository {
 
     private final ConnectionFactory connectionFactory;
 
+    private final WorkerContext workerContext;
+
     private static final String TABLE_NAME = "fluxion_task";
 
-    public DBTaskRepository(ConnectionFactory connectionFactory) {
+    public DBTaskRepository(ConnectionFactory connectionFactory, WorkerContext workerContext) {
         this.connectionFactory = connectionFactory;
+        this.workerContext = workerContext;
     }
 
     public boolean existTable() throws SQLException {
@@ -292,7 +301,7 @@ public class DBTaskRepository implements TaskRepository {
             int i = 0;
             String reportAt = LocalDateTimeUtils.formatYMDHMSS(TimeUtils.currentLocalDateTime());
             ps.setString(++i, TaskStatus.DISPATCHED.value);
-            ps.setString(++i, task.getWorkerAddress());
+            ps.setString(++i, task.workerAddress());
             ps.setString(++i, reportAt);
             ps.setString(++i, task.getJobId());
             ps.setString(++i, task.getId());
@@ -322,7 +331,7 @@ public class DBTaskRepository implements TaskRepository {
             for (Task task : tasks) {
                 ps.setString(++idx, task.getId());
                 ps.setString(++idx, task.getJobId());
-                ps.setString(++idx, task.getWorkerAddress() == null ? "" : task.getWorkerAddress());
+                ps.setString(++idx, task.workerAddress() == null ? "" : task.workerAddress());
                 ps.setString(++idx, task.getStatus().value);
 
                 ps.setString(++idx, task.getTriggerAt() == null ? null : LocalDateTimeUtils.formatYMDHMSS(task.getTriggerAt()));
@@ -361,7 +370,7 @@ public class DBTaskRepository implements TaskRepository {
             int i = 0;
             String reportAt = LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt());
             ps.setString(++i, TaskStatus.RUNNING.value);
-            ps.setString(++i, task.getWorkerAddress());
+            ps.setString(++i, task.workerAddress());
             ps.setString(++i, reportAt);
             ps.setString(++i, reportAt);
             ps.setString(++i, task.getJobId());
@@ -437,7 +446,8 @@ public class DBTaskRepository implements TaskRepository {
 
         Task task = new Task(rs.getString("task_id"), rs.getString("job_id"));
         task.setStatus(TaskStatus.parse(rs.getString("status")));
-        task.setWorkerAddress(rs.getString("worker_address"));
+        task.setWorkerNode(addressToNode(rs.getString("worker_address")));
+        task.setRemoteNode(workerContext.node());
         task.setTriggerAt(triggerAt == null ? null : triggerAt.toLocalDateTime());
         task.setStartAt(startAt == null ? null : startAt.toLocalDateTime());
         task.setEndAt(endAt == null ? null : endAt.toLocalDateTime());
@@ -446,6 +456,19 @@ public class DBTaskRepository implements TaskRepository {
         task.setErrorMsg(rs.getString("error_msg"));
         task.setErrorStackTrace(rs.getString("error_stack_trace"));
         return task;
+    }
+
+    private Node addressToNode(String address) {
+        if (StringUtils.isBlank(address)) {
+            return null;
+        }
+        try {
+            URL url = new URL(address);
+            return new BaseNode(Protocol.parse(url.getProtocol()), url.getHost(), url.getPort());
+        } catch (MalformedURLException e) {
+            log.error("addressToNode fail {}", address, e);
+            return null;
+        }
     }
 
 }

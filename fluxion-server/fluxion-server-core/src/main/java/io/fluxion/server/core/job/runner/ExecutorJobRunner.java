@@ -71,12 +71,11 @@ public class ExecutorJobRunner extends JobRunner {
             dispatched = dispatchRes.success() && BooleanUtils.isTrue(dispatchRes.getData());
         }
 
-        String workerAddress = worker == null ? null : worker.getAddress();
         if (!dispatched) {
             Cmd.send(new ExecutableFailCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),
-                "dispatch fail worker:" + workerAddress,
+                "dispatch fail worker:" + (worker == null ? null : worker.id()),
                 null
             ));
         }

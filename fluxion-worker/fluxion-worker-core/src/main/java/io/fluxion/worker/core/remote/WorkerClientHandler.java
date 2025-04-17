@@ -52,8 +52,11 @@ public class WorkerClientHandler implements ClientHandler {
 
     private final WorkerContext workerContext;
 
-    public WorkerClientHandler(WorkerContext workerContext) {
+    private final TaskRepository taskRepository;
+
+    public WorkerClientHandler(WorkerContext workerContext, TaskRepository taskRepository) {
         this.workerContext = workerContext;
+        this.taskRepository = taskRepository;
     }
 
     @Override
@@ -104,11 +107,11 @@ public class WorkerClientHandler implements ClientHandler {
                 tracker = new BasicJobTracker(job, executor, workerContext);
                 break;
             case BROADCAST:
-                tracker = new BroadcastJobTracker(job, executor, workerContext);
+                tracker = new BroadcastJobTracker(job, executor, workerContext, taskRepository);
                 break;
             case MAP:
             case MAP_REDUCE:
-                tracker = new MapReduceJobTracker(job, executor, workerContext);
+                tracker = new MapReduceJobTracker(job, executor, workerContext, taskRepository);
                 break;
             default:
                 throw new IllegalArgumentException("unknown execute mode:" + job.getExecuteMode());
@@ -129,43 +132,43 @@ public class WorkerClientHandler implements ClientHandler {
 
     private boolean taskDispatched(String data) {
         TaskDispatchedRequest request = JacksonUtils.toType(data, TaskDispatchedRequest.class);
-        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
+        Task task = taskRepository.getById(request.getJobId(), request.getTaskId());
         if (task == null || TaskStatus.CREATED != task.getStatus()) {
             return false;
         }
-        task.setWorkerAddress(request.getWorkerAddress());
-        return taskRepository().dispatched(task);
+        task.setWorkerNode(WorkerClientConverter.toNode(request.getWorkerNode()));
+        return taskRepository.dispatched(task);
     }
 
     private boolean taskStart(String data) {
         TaskStartRequest request = JacksonUtils.toType(data, TaskStartRequest.class);
-        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
-        if (task == null || !task.getWorkerAddress().equals(request.getWorkerAddress())) {
+        Task task = taskRepository.getById(request.getJobId(), request.getTaskId());
+        if (task == null || !task.sameWorker(WorkerClientConverter.toNode(request.getWorkerNode()))) {
             return false;
         }
         task.setLastReportAt(request.getReportAt());
-        return taskRepository().start(task);
+        return taskRepository.start(task);
     }
 
     private boolean taskReport(String data) {
         TaskReportRequest request = JacksonUtils.toType(data, TaskReportRequest.class);
-        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
-        if (task == null || !task.getWorkerAddress().equals(request.getWorkerAddress())) {
+        Task task = taskRepository.getById(request.getJobId(), request.getTaskId());
+        if (task == null || !task.sameWorker(WorkerClientConverter.toNode(request.getWorkerNode()))) {
             return false;
         }
         task.setLastReportAt(request.getReportAt());
-        return taskRepository().report(task);
+        return taskRepository.report(task);
     }
 
     private boolean taskSuccess(String data) {
         TaskSuccessRequest request = JacksonUtils.toType(data, TaskSuccessRequest.class);
-        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
-        if (task == null || !task.getWorkerAddress().equals(request.getWorkerAddress())) {
+        Task task = taskRepository.getById(request.getJobId(), request.getTaskId());
+        if (task == null || !task.sameWorker(WorkerClientConverter.toNode(request.getWorkerNode()))) {
             return false;
         }
         task.setLastReportAt(request.getReportAt());
         task.setResult(request.getResult());
-        boolean updated = taskRepository().success(task);
+        boolean updated = taskRepository.success(task);
         if (!updated) {
             return false;
         }
@@ -176,24 +179,20 @@ public class WorkerClientHandler implements ClientHandler {
 
     private boolean taskFail(String data) {
         TaskFailRequest request = JacksonUtils.toType(data, TaskFailRequest.class);
-        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
-        if (task == null || !task.getWorkerAddress().equals(request.getWorkerAddress())) {
+        Task task = taskRepository.getById(request.getJobId(), request.getTaskId());
+        if (task == null || !task.sameWorker(WorkerClientConverter.toNode(request.getWorkerNode()))) {
             return false;
         }
         task.setLastReportAt(request.getReportAt());
         task.setErrorMsg(request.getErrorMsg());
         task.setErrorStackTrace(request.getErrorStackTrace());
-        boolean updated = taskRepository().fail(task);
+        boolean updated = taskRepository.fail(task);
         if (!updated) {
             return false;
         }
         DistributedJobTracker tracker = (DistributedJobTracker) workerContext.getJob(request.getJobId());
         tracker.fail(task);
         return true;
-    }
-
-    private TaskRepository taskRepository() {
-        return workerContext.taskRepository();
     }
 
 }

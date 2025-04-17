@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.api.request;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.constants.ExecuteMode;
 
 /**
@@ -36,9 +37,9 @@ public class TaskDispatchRequest implements Request<Boolean> {
      */
     private String executorName;
     /**
-     * 管理地址
+     * 管理节点
      */
-    private String remoteAddress;
+    private NodeDTO remoteNode;
 
     public String getJobId() {
         return jobId;
@@ -64,11 +65,11 @@ public class TaskDispatchRequest implements Request<Boolean> {
         this.executorName = executorName;
     }
 
-    public String getRemoteAddress() {
-        return remoteAddress;
+    public NodeDTO getRemoteNode() {
+        return remoteNode;
     }
 
-    public void setRemoteAddress(String remoteAddress) {
-        this.remoteAddress = remoteAddress;
+    public void setRemoteNode(NodeDTO remoteNode) {
+        this.remoteNode = remoteNode;
     }
 }

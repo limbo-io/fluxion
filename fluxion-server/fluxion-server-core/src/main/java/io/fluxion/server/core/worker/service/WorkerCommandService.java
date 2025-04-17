@@ -31,10 +31,13 @@ import io.fluxion.server.infrastructure.dao.repository.WorkerExecutorEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.WorkerMetricEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
+import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
+import io.fluxion.server.infrastructure.id.data.IDType;
 import io.fluxion.server.infrastructure.tag.TagRefType;
 import io.fluxion.server.infrastructure.tag.cmd.TagsSaveByRefCmd;
 import io.fluxion.server.infrastructure.utils.JpaHelper;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
@@ -68,6 +71,7 @@ public class WorkerCommandService {
 
         WorkerEntity entity = WorkerConverter.toWorkerEntity(worker);
         Objects.requireNonNull(entity);
+
         workerEntityRepo.saveAndFlush(entity);
 
         // Metric 存储

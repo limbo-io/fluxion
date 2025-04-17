@@ -36,7 +36,7 @@ import java.io.Serializable;
 //@Entity
 //@DynamicInsert
 //@DynamicUpdate
-public class TaskRecordEntity extends BaseEntity {
+public class JobRecordEntity extends BaseEntity {
 
     @EmbeddedId
     private ID id;

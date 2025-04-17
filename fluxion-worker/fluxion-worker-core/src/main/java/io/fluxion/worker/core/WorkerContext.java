@@ -23,10 +23,10 @@ import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.LBClient;
+import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.tracker.JobTracker;
-import io.fluxion.worker.core.task.repository.TaskRepository;
 import io.fluxion.worker.core.task.tracker.TaskTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,13 +60,7 @@ public class WorkerContext {
 
     private final String appName;
 
-    private final Protocol protocol;
-
-    private final String address;
-
-    private final String host;
-
-    private final int port;
+    private final BaseNode node;
 
     /**
      * 执行器
@@ -100,10 +94,6 @@ public class WorkerContext {
      * 本机运行的 task
      */
     private final Map<String, TaskTracker> tasks = new ConcurrentHashMap<>();
-    /**
-     * 本机管理的 job
-     */
-    private final TaskRepository taskRepository;
 
     /**
      * 任务执行线程池
@@ -116,12 +106,10 @@ public class WorkerContext {
     private ScheduledExecutorService taskStatusReportExecutor;
 
     public WorkerContext(String appName, Protocol protocol, String host, int port,
-                         int queueSize, int concurrency, LBClient brokerClient, TaskRepository taskRepository,
+                         int queueSize, int concurrency, LBClient brokerClient,
                          List<Executor> executors, Map<String, Set<String>> tags) {
         this.appName = appName;
-        this.protocol = protocol;
-        this.host = host;
-        this.port = port;
+        this.node = new BaseNode(protocol, host, port);
         this.executors = executors == null ? Collections.emptyMap() : executors.stream().collect(Collectors.toMap(Executor::name, executor -> executor));
         this.tags = tags == null ? Collections.emptyMap() : tags;
         this.queueSize = queueSize;
@@ -129,8 +117,6 @@ public class WorkerContext {
         this.brokerClient = brokerClient;
         this.client = ClientFactory.create(protocol);
         this.status = new AtomicReference<>(Worker.Status.IDLE);
-        this.address = host + ":" + port;
-        this.taskRepository = taskRepository;
     }
 
     public void initialize() {
@@ -195,10 +181,6 @@ public class WorkerContext {
         return tags;
     }
 
-    public String address() {
-        return address;
-    }
-
     public int availableQueueNum() {
         return queueSize - jobs.size() - tasks.size();
     }
@@ -247,10 +229,6 @@ public class WorkerContext {
         this.appId = appId;
     }
 
-    public Protocol protocol() {
-        return protocol;
-    }
-
     public <R> Response<R> call(String path, Request<R> request) {
         Response<R> response = brokerClient.call(path, request);
         if (log.isDebugEnabled()) {
@@ -267,16 +245,8 @@ public class WorkerContext {
         return response;
     }
 
-    public String host() {
-        return host;
-    }
-
-    public int port() {
-        return port;
-    }
-
-    public TaskRepository taskRepository() {
-        return taskRepository;
+    public BaseNode node() {
+        return node;
     }
 
 }

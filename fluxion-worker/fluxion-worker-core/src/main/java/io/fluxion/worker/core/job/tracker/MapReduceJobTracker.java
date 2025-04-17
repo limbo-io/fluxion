@@ -20,12 +20,14 @@ import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.request.JobWorkersRequest;
 import io.fluxion.remote.core.api.response.JobWorkersResponse;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.executor.MapExecutor;
 import io.fluxion.worker.core.executor.MapReduceExecutor;
 import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.remote.WorkerClientConverter;
 import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.task.repository.TaskRepository;
 
@@ -39,8 +41,8 @@ import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_WORK
  */
 public class MapReduceJobTracker extends DistributedJobTracker {
 
-    public MapReduceJobTracker(Job job, Executor executor, WorkerContext workerContext) {
-        super(job, executor, workerContext);
+    public MapReduceJobTracker(Job job, Executor executor, WorkerContext workerContext, TaskRepository taskRepository) {
+        super(job, executor, workerContext, taskRepository);
     }
 
     @Override
@@ -57,11 +59,10 @@ public class MapReduceJobTracker extends DistributedJobTracker {
             List<Task> tasks = executor.sharding(job);
             for (Task task : tasks) {
                 task.setStatus(TaskStatus.CREATED);
-                task.setRemoteAddress(workerContext.address());
+                task.setRemoteNode(workerContext.node());
             }
 
             // 保存
-            TaskRepository taskRepository = workerContext.taskRepository();
             taskRepository.batchSave(tasks);
             taskCounter.getTotal().set(tasks.size());
 
@@ -72,7 +73,7 @@ public class MapReduceJobTracker extends DistributedJobTracker {
                 if (dispatched) {
                     taskRepository.dispatched(task);
                 } else {
-                    task.setErrorMsg(String.format("task dispatch fail over limit last worker=%s", task.getWorkerAddress()));
+                    task.setErrorMsg(String.format("task dispatch fail over limit last worker=%s", task.workerAddress()));
                     taskRepository.fail(task);
                     break;
                 }
@@ -99,7 +100,7 @@ public class MapReduceJobTracker extends DistributedJobTracker {
         } else {
             if (executor instanceof MapReduceExecutor) {
                 MapReduceExecutor reduceExecutor = (MapReduceExecutor) this.executor;
-                Map<String, String> allSubTaskResult = workerContext.taskRepository().getAllSubTaskResult(task.getJobId());
+                Map<String, String> allSubTaskResult = taskRepository.getAllSubTaskResult(task.getJobId());
                 reduceExecutor.reduce(allSubTaskResult);
             }
             reportSuccess();
@@ -118,7 +119,7 @@ public class MapReduceJobTracker extends DistributedJobTracker {
     }
 
     @Override
-    protected NodeDTO findWorker(Task task) {
+    protected Node findWorker(Task task) {
         JobWorkersRequest request = new JobWorkersRequest();
         request.setJobId(task.getJobId());
         request.setLoadBalanceSelect(true);
@@ -128,7 +129,8 @@ public class MapReduceJobTracker extends DistributedJobTracker {
             return null;
         }
         List<NodeDTO> workers = response.getData().getWorkers();
-        return workers.stream().findFirst().orElse(null);
+        NodeDTO dto = workers.stream().findFirst().orElse(null);
+        return WorkerClientConverter.toNode(dto);
     }
 
 }

@@ -83,7 +83,7 @@ public class JobEntity extends BaseEntity {
     private LocalDateTime endAt;
 
     /**
-     * 执行节点
+     * 执行节点 可能是worker也可能是broker
      */
     private String workerAddress;
 

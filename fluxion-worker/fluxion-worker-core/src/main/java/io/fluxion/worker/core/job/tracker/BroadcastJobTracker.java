@@ -20,10 +20,12 @@ import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.request.JobWorkersRequest;
 import io.fluxion.remote.core.api.response.JobWorkersResponse;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.remote.WorkerClientConverter;
 import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.task.repository.TaskRepository;
 
@@ -37,8 +39,8 @@ import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_WORK
  */
 public class BroadcastJobTracker extends DistributedJobTracker {
 
-    public BroadcastJobTracker(Job job, Executor executor, WorkerContext workerContext) {
-        super(job, executor, workerContext);
+    public BroadcastJobTracker(Job job, Executor executor, WorkerContext workerContext, TaskRepository taskRepository) {
+        super(job, executor, workerContext, taskRepository);
     }
 
     @Override
@@ -68,13 +70,12 @@ public class BroadcastJobTracker extends DistributedJobTracker {
                 NodeDTO worker = workers.get(i);
                 Task task = new Task("SUB_" + i, job.getId());
                 task.setStatus(TaskStatus.CREATED);
-                task.setRemoteAddress(workerContext.address());
-                task.setWorkerAddress(worker.address());
+                task.setRemoteNode(workerContext.node());
+                task.setWorkerNode(WorkerClientConverter.toNode(worker));
                 tasks.add(task);
             }
 
             // 保存
-            TaskRepository taskRepository = workerContext.taskRepository();
             taskRepository.batchSave(tasks);
             taskCounter.getTotal().set(tasks.size());
 
@@ -84,7 +85,7 @@ public class BroadcastJobTracker extends DistributedJobTracker {
                 if (dispatched) {
                     taskRepository.dispatched(task);
                 } else {
-                    task.setErrorMsg(String.format("task dispatch fail over limit last worker=%s", task.getWorkerAddress()));
+                    task.setErrorMsg(String.format("task dispatch fail over limit last worker=%s", task.workerAddress()));
                     taskRepository.fail(task);
                 }
             }
@@ -121,8 +122,8 @@ public class BroadcastJobTracker extends DistributedJobTracker {
     }
 
     @Override
-    protected NodeDTO findWorker(Task task) {
-        return null; // todo
+    protected Node findWorker(Task task) {
+        return task.getWorkerNode() == null ? null : task.getWorkerNode();
     }
 
 }

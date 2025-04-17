@@ -17,6 +17,7 @@
 package io.fluxion.remote.core.api.request;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.dto.NodeDTO;
 
 /**
  * @author Devil
@@ -28,7 +29,7 @@ public class TaskDispatchedRequest implements Request<Boolean> {
 
     private String taskId;
 
-    private String workerAddress;
+    private NodeDTO workerNode;
 
     public String getTaskId() {
         return taskId;
@@ -38,12 +39,12 @@ public class TaskDispatchedRequest implements Request<Boolean> {
         this.taskId = taskId;
     }
 
-    public String getWorkerAddress() {
-        return workerAddress;
+    public NodeDTO getWorkerNode() {
+        return workerNode;
     }
 
-    public void setWorkerAddress(String workerAddress) {
-        this.workerAddress = workerAddress;
+    public void setWorkerNode(NodeDTO workerNode) {
+        this.workerNode = workerNode;
     }
 
     public String getJobId() {

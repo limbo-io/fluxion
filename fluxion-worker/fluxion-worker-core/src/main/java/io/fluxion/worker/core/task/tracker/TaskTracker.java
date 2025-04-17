@@ -29,6 +29,7 @@ import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.worker.core.AbstractTracker;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
+import io.fluxion.worker.core.remote.WorkerClientConverter;
 import io.fluxion.worker.core.task.Task;
 import org.apache.commons.lang3.BooleanUtils;
 
@@ -87,11 +88,11 @@ public class TaskTracker extends AbstractTracker {
             run();
             return true;
         } catch (RejectedExecutionException e) {
-            log.error("Schedule subTask in worker failed, maybe work thread exhausted subTask:{}", JacksonUtils.toJSONString(task), e);
+            log.error("Schedule Task in worker failed, maybe work thread exhausted task:{}", JacksonUtils.toJSONString(task), e);
             destroy();
             return false;
         } catch (Exception e) {
-            log.error("Schedule subTask in worker failed, subTask:{}", JacksonUtils.toJSONString(task), e);
+            log.error("Schedule Task in worker failed, task:{}", JacksonUtils.toJSONString(task), e);
             destroy();
             return false;
         }
@@ -111,7 +112,7 @@ public class TaskTracker extends AbstractTracker {
                 // 执行成功
                 reportSuccess();
             } catch (Throwable throwable) {
-                log.error("[SubTaskTracker] run error", throwable);
+                log.error("[TaskTracker] run error", throwable);
                 reportFail(throwable);
             } finally {
                 destroy();
@@ -123,8 +124,8 @@ public class TaskTracker extends AbstractTracker {
             request.setTaskId(task.getId());
             request.setJobId(task.getJobId());
             request.setReportAt(TimeUtils.currentLocalDateTime());
-            request.setWorkerAddress(workerContext.address());
-            NodeDTO remote = task.remoteNode();
+            request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
+            NodeDTO remote = WorkerClientConverter.toDTO(task.getRemoteNode());
             workerContext.call(API_TASK_REPORT, remote.getHost(), remote.getPort(), request);
         }, 1, WorkerRemoteConstant.TASK_REPORT_SECONDS, TimeUnit.SECONDS);
     }
@@ -134,19 +135,19 @@ public class TaskTracker extends AbstractTracker {
             TaskDispatchedRequest request = new TaskDispatchedRequest();
             request.setTaskId(task.getId());
             request.setJobId(task.getJobId());
-            request.setWorkerAddress(workerContext.address());
-            NodeDTO remote = task.remoteNode();
+            request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
+            NodeDTO remote = WorkerClientConverter.toDTO(task.getRemoteNode());
             Response<Boolean> response = workerContext.call(API_TASK_DISPATCHED, remote.getHost(), remote.getPort(), request);
             return response.success() && BooleanUtils.isTrue(response.getData());
         } catch (Exception e) {
-            log.error("reportDispatched fail subTask={}", task.getId(), e);
+            log.error("reportDispatched fail taskId={}", task.getId(), e);
             return false;
         }
     }
 
     public void destroy() {
         if (!destroyed.compareAndSet(false, true)) {
-            log.info("SubTaskTracker subTaskId: {} has been destroyed", task.getId());
+            log.info("TaskTracker taskId: {} has been destroyed", task.getId());
             return;
         }
         if (statusReportFuture != null) {
@@ -156,7 +157,7 @@ public class TaskTracker extends AbstractTracker {
             processFuture.cancel(true);
         }
         workerContext.deleteTask(task.getId());
-        log.info("SubTaskTracker subTaskId: {} destroyed success", task.getId());
+        log.info("TaskTracker task: {} destroyed success", JacksonUtils.toJSONString(task));
     }
 
     private boolean reportStart() {
@@ -164,13 +165,13 @@ public class TaskTracker extends AbstractTracker {
             TaskStartRequest request = new TaskStartRequest();
             request.setTaskId(task.getId());
             request.setJobId(task.getJobId());
-            request.setWorkerAddress(workerContext.address());
+            request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
             request.setReportAt(TimeUtils.currentLocalDateTime());
-            NodeDTO remote = task.remoteNode();
+            NodeDTO remote = WorkerClientConverter.toDTO(task.getRemoteNode());
             Response<Boolean> response = workerContext.call(API_TASK_START, remote.getHost(), remote.getPort(), request);
             return response.success() && BooleanUtils.isTrue(response.getData());
         } catch (Exception e) {
-            log.error("reportStart fail subTask={}", task.getId(), e);
+            log.error("reportStart fail taskId={}", task.getId(), e);
             return false;
         }
     }
@@ -181,11 +182,11 @@ public class TaskTracker extends AbstractTracker {
             request.setTaskId(task.getId());
             request.setJobId(task.getJobId());
             request.setReportAt(TimeUtils.currentLocalDateTime());
-            request.setWorkerAddress(workerContext.address());
-            NodeDTO remote = task.remoteNode();
+            request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
+            NodeDTO remote = WorkerClientConverter.toDTO(task.getRemoteNode());
             workerContext.call(API_TASK_SUCCESS, remote.getHost(), remote.getPort(), request); // todo @d later 如果上报失败需要记录，定时重试
         } catch (Exception e) {
-            log.error("reportSuccess fail subTask={}", task.getId(), e);
+            log.error("reportSuccess fail taskId={}", task.getId(), e);
             // todo @d later 如果上报失败需要记录，定时重试
         }
     }
@@ -196,12 +197,12 @@ public class TaskTracker extends AbstractTracker {
             request.setTaskId(task.getId());
             request.setJobId(task.getJobId());
             request.setReportAt(TimeUtils.currentLocalDateTime());
-            request.setWorkerAddress(workerContext.address());
+            request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
             request.setErrorMsg(throwable.getMessage());
-            NodeDTO remote = task.remoteNode();
+            NodeDTO remote = WorkerClientConverter.toDTO(task.getRemoteNode());
             workerContext.call(API_TASK_FAIL, remote.getHost(), remote.getPort(), request); // todo @d later 如果上报失败需要记录，定时重试
         } catch (Exception e) {
-            log.error("reportFail fail subTask={}", task.getId(), e);
+            log.error("reportFail fail taskId={}", task.getId(), e);
             // todo @d later 如果上报失败需要记录，定时重试
         }
     }
