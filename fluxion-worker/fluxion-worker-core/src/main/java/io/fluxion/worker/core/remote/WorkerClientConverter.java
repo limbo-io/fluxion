@@ -16,13 +16,17 @@
 
 package io.fluxion.worker.core.remote;
 
-import io.fluxion.remote.core.api.request.TaskDispatchRequest;
-import io.fluxion.remote.core.api.request.JobDispatchRequest;
+import io.fluxion.remote.core.api.dto.NodeDTO;
+import io.fluxion.remote.core.api.request.worker.JobDispatchRequest;
+import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
+import io.fluxion.remote.core.cluster.BaseNode;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.ExecuteMode;
+import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.constants.TaskStatus;
+import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.job.Job;
 import io.fluxion.worker.core.task.Task;
-import io.fluxion.worker.core.WorkerContext;
 
 /**
  * @author PengQ
@@ -41,9 +45,24 @@ public class WorkerClientConverter {
     public static Task toTask(TaskDispatchRequest request, WorkerContext workerContext) {
         Task task = new Task(request.getTaskId(), request.getJobId());
         task.setStatus(TaskStatus.CREATED);
-        task.setWorkerAddress(workerContext.address());
-        task.setRemoteAddress(request.getRemoteAddress());
+        task.setWorkerNode(workerContext.node());
+        task.setRemoteNode(toNode(request.getRemoteNode()));
         return task;
+    }
+
+    public static Node toNode(NodeDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        return new BaseNode(Protocol.parse(dto.getProtocol()), dto.getHost(), dto.getPort());
+    }
+
+    public static NodeDTO toDTO(Node node) {
+        NodeDTO dto = new NodeDTO();
+        dto.setPort(node.port());
+        dto.setHost(node.host());
+        dto.setProtocol(node.protocol().value);
+        return dto;
     }
 
 }

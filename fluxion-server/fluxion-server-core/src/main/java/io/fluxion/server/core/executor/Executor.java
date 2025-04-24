@@ -20,6 +20,7 @@ import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.ExecutableType;
+import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.executor.option.OvertimeOption;
@@ -85,7 +86,9 @@ public class Executor implements Executable {
 
     @Override
     public void execute(RunContext context) {
-        Job job = job(context.executionId(), TimeUtils.currentLocalDateTime());
+        Job job = newRefJob("");
+        job.setExecution(context.execution());
+        job.setTriggerAt(TimeUtils.currentLocalDateTime());
         // 保存数据
         Cmd.send(new JobsCreateCmd(Collections.singletonList(job)));
         // 执行
@@ -93,8 +96,13 @@ public class Executor implements Executable {
     }
 
     @Override
-    public boolean success(String refId, String executionId, LocalDateTime time) {
-        return Cmd.send(new ExecutionSuccessCmd(executionId, time));
+    public boolean success(Job job, LocalDateTime time) {
+        return Cmd.send(new ExecutionSuccessCmd(job.getExecution().getId(), time));
+    }
+
+    @Override
+    public boolean fail(Job job, LocalDateTime time) {
+        return Cmd.send(new ExecutionFailCmd(job.getExecution().getId(), time));
     }
 
     @Override
@@ -103,19 +111,15 @@ public class Executor implements Executable {
     }
 
     @Override
-    public Job job(String refId, String executionId, LocalDateTime triggerAt) {
+    public Job newRefJob(String refId) {
         ExecutorJob job = new ExecutorJob();
         job.setAppId(config.getAppId());
         job.setExecutorName(config.executorName());
         job.setDispatchOption(config.getDispatchOption());
         job.setExecuteMode(config.getExecuteMode());
-        job.setExecutionId(executionId);
-        job.setTriggerAt(triggerAt);
         job.setRefId(refId);
+        job.setRetryOption(retryOption);
         return job;
     }
 
-    private Job job(String executionId, LocalDateTime triggerAt) {
-        return job("", executionId, triggerAt);
-    }
 }

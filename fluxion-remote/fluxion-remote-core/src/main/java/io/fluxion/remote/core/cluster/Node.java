@@ -19,10 +19,15 @@ package io.fluxion.remote.core.cluster;
 import io.fluxion.remote.core.constants.Protocol;
 
 /**
+ * Node
+ * 目前先设计成单协议接口
+ * 后续多协议情况下可能为 多协议 + 多端口方式
  * @author Devil
  */
 public interface Node {
-
+    /**
+     * 唯一标识
+     */
     String id();
 
     Protocol protocol();
@@ -30,4 +35,10 @@ public interface Node {
     String host();
 
     int port();
+
+    default String address() {
+        return (protocol() == null ? "" : protocol().value + "://")
+            + (host() == null ? "" : host() + ":")
+            + port();
+    }
 }

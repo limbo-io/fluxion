@@ -18,15 +18,11 @@ package io.fluxion.worker.core.remote;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
-import io.fluxion.remote.core.api.request.JobDispatchRequest;
-import io.fluxion.remote.core.api.request.TaskDispatchRequest;
-import io.fluxion.remote.core.api.request.TaskDispatchedRequest;
-import io.fluxion.remote.core.api.request.TaskFailRequest;
-import io.fluxion.remote.core.api.request.TaskReportRequest;
-import io.fluxion.remote.core.api.request.TaskStartRequest;
-import io.fluxion.remote.core.api.request.TaskSuccessRequest;
+import io.fluxion.remote.core.api.request.worker.JobDispatchRequest;
+import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
+import io.fluxion.remote.core.api.request.worker.TaskReportRequest;
+import io.fluxion.remote.core.api.response.worker.TaskReportResponse;
 import io.fluxion.remote.core.client.server.ClientHandler;
-import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
@@ -52,8 +48,11 @@ public class WorkerClientHandler implements ClientHandler {
 
     private final WorkerContext workerContext;
 
-    public WorkerClientHandler(WorkerContext workerContext) {
+    private final TaskRepository taskRepository;
+
+    public WorkerClientHandler(WorkerContext workerContext, TaskRepository taskRepository) {
         this.workerContext = workerContext;
+        this.taskRepository = taskRepository;
     }
 
     @Override
@@ -66,20 +65,8 @@ public class WorkerClientHandler implements ClientHandler {
                 case WorkerRemoteConstant.API_TASK_DISPATCH: {
                     return Response.ok(taskDispatch(data));
                 }
-                case WorkerRemoteConstant.API_TASK_DISPATCHED: {
-                    return Response.ok(taskDispatched(data));
-                }
-                case WorkerRemoteConstant.API_TASK_START: {
-                    return Response.ok(taskStart(data));
-                }
                 case WorkerRemoteConstant.API_TASK_REPORT: {
                     return Response.ok(taskReport(data));
-                }
-                case WorkerRemoteConstant.API_TASK_SUCCESS: {
-                    return Response.ok(taskSuccess(data));
-                }
-                case WorkerRemoteConstant.API_TASK_FAIL: {
-                    return Response.ok(taskFail(data));
                 }
             }
             String msg = "Invalid request, Path NotFound.";
@@ -104,11 +91,11 @@ public class WorkerClientHandler implements ClientHandler {
                 tracker = new BasicJobTracker(job, executor, workerContext);
                 break;
             case BROADCAST:
-                tracker = new BroadcastJobTracker(job, executor, workerContext);
+                tracker = new BroadcastJobTracker(job, executor, workerContext, taskRepository);
                 break;
             case MAP:
             case MAP_REDUCE:
-                tracker = new MapReduceJobTracker(job, executor, workerContext);
+                tracker = new MapReduceJobTracker(job, executor, workerContext, taskRepository);
                 break;
             default:
                 throw new IllegalArgumentException("unknown execute mode:" + job.getExecuteMode());
@@ -116,6 +103,9 @@ public class WorkerClientHandler implements ClientHandler {
         return tracker.start();
     }
 
+    /**
+     * 接收worker下发的task
+     */
     private boolean taskDispatch(String data) {
         TaskDispatchRequest request = JacksonUtils.toType(data, TaskDispatchRequest.class);
         Executor executor = workerContext.executor(request.getExecutorName());
@@ -127,73 +117,18 @@ public class WorkerClientHandler implements ClientHandler {
         return tracker.start();
     }
 
-    private boolean taskDispatched(String data) {
-        TaskDispatchedRequest request = JacksonUtils.toType(data, TaskDispatchedRequest.class);
-        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
-        if (task == null || TaskStatus.CREATED != task.getStatus()) {
-            return false;
-        }
-        task.setWorkerAddress(request.getWorkerAddress());
-        return taskRepository().dispatched(task);
-    }
-
-    private boolean taskStart(String data) {
-        TaskStartRequest request = JacksonUtils.toType(data, TaskStartRequest.class);
-        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
-        if (task == null || !task.getWorkerAddress().equals(request.getWorkerAddress())) {
-            return false;
-        }
-        task.setLastReportAt(request.getReportAt());
-        return taskRepository().start(task);
-    }
-
-    private boolean taskReport(String data) {
+    private TaskReportResponse taskReport(String data) {
         TaskReportRequest request = JacksonUtils.toType(data, TaskReportRequest.class);
-        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
-        if (task == null || !task.getWorkerAddress().equals(request.getWorkerAddress())) {
-            return false;
+        JobTracker tracker = workerContext.getJob(request.getJobId());
+        if (tracker == null) {
+            log.error("[TaskReport] not found tracker request:{}", request);
+            return new TaskReportResponse();
         }
-        task.setLastReportAt(request.getReportAt());
-        return taskRepository().report(task);
-    }
-
-    private boolean taskSuccess(String data) {
-        TaskSuccessRequest request = JacksonUtils.toType(data, TaskSuccessRequest.class);
-        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
-        if (task == null || !task.getWorkerAddress().equals(request.getWorkerAddress())) {
-            return false;
+        if (tracker instanceof DistributedJobTracker) {
+            return ((DistributedJobTracker) tracker).report(request);
         }
-        task.setLastReportAt(request.getReportAt());
-        task.setResult(request.getResult());
-        boolean updated = taskRepository().success(task);
-        if (!updated) {
-            return false;
-        }
-        DistributedJobTracker tracker = (DistributedJobTracker) workerContext.getJob(request.getJobId());
-        tracker.success(task);
-        return true;
-    }
-
-    private boolean taskFail(String data) {
-        TaskFailRequest request = JacksonUtils.toType(data, TaskFailRequest.class);
-        Task task = taskRepository().getById(request.getJobId(), request.getTaskId());
-        if (task == null || !task.getWorkerAddress().equals(request.getWorkerAddress())) {
-            return false;
-        }
-        task.setLastReportAt(request.getReportAt());
-        task.setErrorMsg(request.getErrorMsg());
-        task.setErrorStackTrace(request.getErrorStackTrace());
-        boolean updated = taskRepository().fail(task);
-        if (!updated) {
-            return false;
-        }
-        DistributedJobTracker tracker = (DistributedJobTracker) workerContext.getJob(request.getJobId());
-        tracker.fail(task);
-        return true;
-    }
-
-    private TaskRepository taskRepository() {
-        return workerContext.taskRepository();
+        log.error("[TaskReport] tracker type error request:{}", request);
+        return new TaskReportResponse();
     }
 
 }

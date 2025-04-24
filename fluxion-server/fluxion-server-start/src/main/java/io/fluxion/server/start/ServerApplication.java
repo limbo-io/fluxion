@@ -32,7 +32,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  */
 @SpringBootApplication(exclude = {
     JpaJavaxAutoConfiguration.class, // 目前不需要这些功能
-    TransactionAutoConfiguration.class, // 给Cmd和Query都套了事务
+    TransactionAutoConfiguration.class, // 给Cmd和Query都套了事务，不需要
 })
 @ComponentScan(basePackages = "io.fluxion")
 @EnableTransactionManagement

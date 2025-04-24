@@ -17,13 +17,16 @@
 package io.fluxion.server.core.job.runner;
 
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.remote.core.api.request.JobDispatchRequest;
+import io.fluxion.remote.core.api.Response;
+import io.fluxion.remote.core.api.request.worker.JobDispatchRequest;
+import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
 import io.fluxion.server.core.job.ExecutorJob;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
+import io.fluxion.server.core.job.cmd.JobReportCmd;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
@@ -35,12 +38,15 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Devil
  */
 @Component
 public class ExecutorJobRunner extends JobRunner {
+
+    private static final int MAX_DISPATCH_FAILED_TIMES = 3;
 
     @Override
     public JobType type() {
@@ -54,28 +60,45 @@ public class ExecutorJobRunner extends JobRunner {
             executorJob.getAppId(), executorJob.getExecutorName(),
             executorJob.getDispatchOption(), true, true
         )).getWorkers();
-        workers = CollectionUtils.isEmpty(workers) ? Collections.emptyList() : workers;
-        Worker worker = workers.stream().filter(Objects::nonNull).findAny().orElse(null);
-        Boolean dispatched = false;
-        if (worker != null) {
-            // 远程调用处理任务
-            JobDispatchRequest request = new JobDispatchRequest();
-            request.setJobId(job.getJobId());
-            request.setExecutorName(executorJob.getExecutorName());
-            request.setExecuteMode(executorJob.getExecuteMode().mode);
-            // call
-            dispatched = BrokerContext.call(
-                WorkerRemoteConstant.API_JOB_DISPATCH, worker.getHost(), worker.getPort(), request
-            );
+        workers = CollectionUtils.isEmpty(workers) ? Collections.emptyList() : workers.stream().filter(Objects::nonNull).collect(Collectors.toList());
+        int dispatchFailedCount = 0;
+        boolean dispatched = false;
+        Worker worker = null;
+        while (dispatchFailedCount < MAX_DISPATCH_FAILED_TIMES) {
+            worker = workers.stream().findAny().orElse(null);
+            if (worker != null) {
+                // 远程调用处理任务
+                JobDispatchRequest request = new JobDispatchRequest();
+                request.setJobId(job.getJobId());
+                request.setExecutorName(executorJob.getExecutorName());
+                request.setExecuteMode(executorJob.getExecuteMode().mode);
+                // call
+                Response<Boolean> dispatchRes = BrokerContext.call(
+                    WorkerRemoteConstant.API_JOB_DISPATCH, worker.getHost(), worker.getPort(), request
+                );
+                dispatched = dispatchRes.success() && BooleanUtils.isTrue(dispatchRes.getData());
+            }
+            if (dispatched) {
+                break;
+            }
+            // 下发失败
+            dispatchFailedCount++;
         }
-
-        String workerAddress = worker == null ? null : worker.getAddress();
-        if (!BooleanUtils.isTrue(dispatched)) {
+        if (!dispatched) {
             Cmd.send(new ExecutableFailCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),
-                "dispatch fail worker:" + workerAddress,
-                null
+                null,
+                "dispatch fail worker:" + (worker == null ? null : worker.id())
+            ));
+        } else {
+            Cmd.send(new JobReportCmd(
+                job.getJobId(),
+                worker,
+                TimeUtils.currentLocalDateTime(),
+                null,
+                JobStatus.DISPATCHED,
+                null, null
             ));
         }
     }

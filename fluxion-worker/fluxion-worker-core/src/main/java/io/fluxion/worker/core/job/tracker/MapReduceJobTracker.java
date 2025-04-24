@@ -16,15 +16,18 @@
 
 package io.fluxion.worker.core.job.tracker;
 
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.NodeDTO;
-import io.fluxion.remote.core.api.request.JobWorkersRequest;
-import io.fluxion.remote.core.api.request.TaskDispatchRequest;
+import io.fluxion.remote.core.api.request.broker.JobWorkersRequest;
+import io.fluxion.remote.core.api.response.broker.JobWorkersResponse;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.executor.MapExecutor;
 import io.fluxion.worker.core.executor.MapReduceExecutor;
 import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.remote.WorkerClientConverter;
 import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.task.repository.TaskRepository;
 
@@ -32,121 +35,68 @@ import java.util.List;
 import java.util.Map;
 
 import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_WORKERS;
-import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_DISPATCH;
 
 /**
  * @author Devil
  */
 public class MapReduceJobTracker extends DistributedJobTracker {
 
-    public MapReduceJobTracker(Job job, Executor executor, WorkerContext workerContext) {
-        super(job, executor, workerContext);
+    public MapReduceJobTracker(Job job, Executor executor, WorkerContext workerContext, TaskRepository taskRepository) {
+        super(job, executor, workerContext, taskRepository);
     }
 
     @Override
     public void run() {
-        try {
-            // 反馈执行中 -- 排除由于网络问题导致的失败可能性
-            boolean success = reportStart();
-            if (!success) {
-                // 不成功，可能已经下发给其它节点
-                return;
-            }
-
-            MapReduceExecutor executor = (MapReduceExecutor) this.executor;
-            List<Task> tasks = executor.sharding(job);
-            for (Task task : tasks) {
-                task.setStatus(TaskStatus.CREATED);
-                task.setRemoteAddress(workerContext.address());
-            }
-
-            // 保存
-            TaskRepository taskRepository = workerContext.taskRepository();
-            taskRepository.batchSave(tasks);
-            taskCounter.getTotal().set(tasks.size());
-
-            // 下发
-            boolean dispatched = false;
-            for (Task task : tasks) {
-                dispatched = dispatch(task);
-                if (dispatched) {
-                    taskRepository.dispatched(task);
-                } else {
-                    task.setErrorMsg(String.format("task dispatch fail over limit last worker=%s", task.getWorkerAddress()));
-                    taskRepository.fail(task);
-                    break;
-                }
-            }
-            if (!dispatched) {
-                reportFail("dispatch fail", taskMonitor());
-            }
-        } catch (Throwable throwable) {
-            log.error("[{}] run error", getClass().getSimpleName(), throwable);
-            reportFail(throwable.getMessage(), taskMonitor());
-            destroy();
+        MapReduceExecutor executor = (MapReduceExecutor) this.executor;
+        List<Task> tasks = executor.sharding(job);
+        for (Task task : tasks) {
+            task.setStatus(TaskStatus.CREATED);
+            task.setRemoteNode(workerContext.node());
         }
+
+        // 保存
+        taskRepository.batchSave(tasks);
+        taskCounter.getTotal().set(tasks.size());
+
+        // 下发
+        dispatch(tasks);
     }
 
     @Override
-    public void success(Task task) {
+    public void success() {
         MapExecutor executor = (MapExecutor) this.executor;
-        taskCounter.getSuccess().incrementAndGet();
-        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
-            return;
-        }
         if (taskCounter.getFail().get() > 0) {
-            reportFail("", taskMonitor());
+            job.fail("Task Execute Fail");
+            report();
         } else {
             if (executor instanceof MapReduceExecutor) {
                 MapReduceExecutor reduceExecutor = (MapReduceExecutor) this.executor;
-                Map<String, String> allSubTaskResult = workerContext.taskRepository().getAllSubTaskResult(task.getJobId());
+                Map<String, String> allSubTaskResult = taskRepository.getAllSubTaskResult(job.getId());
                 reduceExecutor.reduce(allSubTaskResult);
             }
-            reportSuccess(taskMonitor());
+            report();
         }
-        destroy();
     }
 
     @Override
-    public void fail(Task task) {
-        taskCounter.getSuccess().incrementAndGet();
-        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
-            return;
-        }
-        reportFail("", taskMonitor());
-        destroy();
+    public void fail() {
+        job.fail("Task Execute Fail");
+        report();
     }
 
-    private boolean dispatch(Task task) {
-        TaskRepository taskRepository = workerContext.taskRepository();
-        while (task.getDispatchFailTimes() < 3) {
-            try {
-                NodeDTO worker = findWorker();
-                task.setWorkerAddress(worker.getHost() + ":" + worker.getPort());
-                TaskDispatchRequest request = new TaskDispatchRequest();
-                request.setJobId(task.getJobId());
-                request.setTaskId(task.getId());
-                request.setExecutorName(executor.name());
-                request.setRemoteAddress(task.getRemoteAddress());
-                boolean dispatched = workerContext.call(API_TASK_DISPATCH, worker.getHost(), worker.getPort(), request);
-                if (dispatched) {
-                    return true;
-                } else {
-                    taskRepository.dispatchFail(task.getJobId(), task.getId());
-                }
-            } catch (Exception e) {
-                log.error("Task dispatch failed: jobId={} taskId={} worker={}", task.getJobId(), task.getId(), task.getWorkerAddress(), e);
-            }
-        }
-        return false;
-    }
-
-    private NodeDTO findWorker() {
+    @Override
+    protected Node findWorker(Task task) {
         JobWorkersRequest request = new JobWorkersRequest();
-        request.setJobId(job.getId());
+        request.setJobId(task.getJobId());
         request.setLoadBalanceSelect(true);
         request.setFilterResource(true);
-        List<NodeDTO> workers = workerContext.call(API_JOB_WORKERS, request).getWorkers();
-        return workers.stream().findFirst().orElse(null);
+        Response<JobWorkersResponse> response = workerContext.call(API_JOB_WORKERS, request);
+        if (!response.success()) {
+            return null;
+        }
+        List<NodeDTO> workers = response.getData().getWorkers();
+        NodeDTO dto = workers.stream().findFirst().orElse(null);
+        return WorkerClientConverter.toNode(dto);
     }
+
 }

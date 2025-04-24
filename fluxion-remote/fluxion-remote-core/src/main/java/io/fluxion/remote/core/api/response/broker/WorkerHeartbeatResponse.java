@@ -14,34 +14,28 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.request;
+package io.fluxion.remote.core.api.response.broker;
 
-import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 
 /**
- * @author Devil
- * @since 2023/8/3
+ * @author PengQ
+ * @since 0.0.1
  */
-public class JobDispatchedRequest implements Request<Boolean> {
+public class WorkerHeartbeatResponse {
 
-    private String jobId;
+    /**
+     * broker拓扑信息
+     */
+    private BrokerTopologyDTO brokerTopology;
 
-    private String workerAddress;
-
-    public String getJobId() {
-        return jobId;
+    public BrokerTopologyDTO getBrokerTopology() {
+        return brokerTopology;
     }
 
-    public void setJobId(String jobId) {
-        this.jobId = jobId;
+    public void setBrokerTopology(BrokerTopologyDTO brokerTopology) {
+        this.brokerTopology = brokerTopology;
     }
 
-    public String getWorkerAddress() {
-        return workerAddress;
-    }
-
-    public void setWorkerAddress(String workerAddress) {
-        this.workerAddress = workerAddress;
-    }
 
 }

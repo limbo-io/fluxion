@@ -18,17 +18,19 @@ package io.fluxion.server.core.job;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * @author Devil
  */
 @Getter
+@NoArgsConstructor
 @AllArgsConstructor
 public class TaskMonitor {
 
-    private int total;
+    private int totalNum;
 
-    private int success;
+    private int successNum;
 
-    private int fail;
+    private int failNum;
 }

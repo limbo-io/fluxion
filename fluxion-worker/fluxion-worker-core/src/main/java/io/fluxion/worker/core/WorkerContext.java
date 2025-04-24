@@ -19,13 +19,14 @@ package io.fluxion.worker.core;
 import io.fluxion.common.thread.NamedThreadFactory;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.LBClient;
+import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.tracker.JobTracker;
-import io.fluxion.worker.core.task.repository.TaskRepository;
 import io.fluxion.worker.core.task.tracker.TaskTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,13 +60,7 @@ public class WorkerContext {
 
     private final String appName;
 
-    private final Protocol protocol;
-
-    private final String address;
-
-    private final String host;
-
-    private final int port;
+    private final BaseNode node;
 
     /**
      * 执行器
@@ -99,28 +94,22 @@ public class WorkerContext {
      * 本机运行的 task
      */
     private final Map<String, TaskTracker> tasks = new ConcurrentHashMap<>();
-    /**
-     * 本机管理的 job
-     */
-    private final TaskRepository taskRepository;
 
     /**
      * 任务执行线程池
      */
-    private ExecutorService taskProcessExecutor;
+    private ExecutorService processExecutor;
 
     /**
      * 任务状态上报线程池
      */
-    private ScheduledExecutorService taskStatusReportExecutor;
+    private ScheduledExecutorService statusReportExecutor;
 
     public WorkerContext(String appName, Protocol protocol, String host, int port,
-                         int queueSize, int concurrency, LBClient brokerClient, TaskRepository taskRepository,
+                         int queueSize, int concurrency, LBClient brokerClient,
                          List<Executor> executors, Map<String, Set<String>> tags) {
         this.appName = appName;
-        this.protocol = protocol;
-        this.host = host;
-        this.port = port;
+        this.node = new BaseNode(protocol, host, port);
         this.executors = executors == null ? Collections.emptyMap() : executors.stream().collect(Collectors.toMap(Executor::name, executor -> executor));
         this.tags = tags == null ? Collections.emptyMap() : tags;
         this.queueSize = queueSize;
@@ -128,14 +117,12 @@ public class WorkerContext {
         this.brokerClient = brokerClient;
         this.client = ClientFactory.create(protocol);
         this.status = new AtomicReference<>(Worker.Status.IDLE);
-        this.address = host + ":" + port;
-        this.taskRepository = taskRepository;
     }
 
     public void initialize() {
         // 初始化工作线程池
         BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(queueSize <= 0 ? concurrency : queueSize);
-        this.taskProcessExecutor = new ThreadPoolExecutor(
+        this.processExecutor = new ThreadPoolExecutor(
             concurrency, concurrency,
             5, TimeUnit.SECONDS, queue,
             NamedThreadFactory.newInstance("FluxionTaskProcessExecutor"),
@@ -144,15 +131,15 @@ public class WorkerContext {
             }
         );
         // 初始化状态上报线程池
-        this.taskStatusReportExecutor = new ScheduledThreadPoolExecutor(
+        this.statusReportExecutor = new ScheduledThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors() * 4,
             NamedThreadFactory.newInstance("FluxionTaskStatusReportExecutor")
         );
     }
 
     public void destroy() {
-        taskProcessExecutor.shutdown();
-        taskStatusReportExecutor.shutdown();
+        processExecutor.shutdown();
+        statusReportExecutor.shutdown();
     }
 
     /**
@@ -170,12 +157,12 @@ public class WorkerContext {
         return status.get();
     }
 
-    public ExecutorService taskProcessExecutor() {
-        return taskProcessExecutor;
+    public ExecutorService processExecutor() {
+        return processExecutor;
     }
 
-    public ScheduledExecutorService taskStatusReportExecutor() {
-        return taskStatusReportExecutor;
+    public ScheduledExecutorService statusReportExecutor() {
+        return statusReportExecutor;
     }
 
     public String appName() {
@@ -192,10 +179,6 @@ public class WorkerContext {
 
     public Map<String, Set<String>> tags() {
         return tags;
-    }
-
-    public String address() {
-        return address;
     }
 
     public int availableQueueNum() {
@@ -246,36 +229,24 @@ public class WorkerContext {
         this.appId = appId;
     }
 
-    public Protocol protocol() {
-        return protocol;
-    }
-
-    public <R> R call(String path, Request<R> request) {
-        R data = brokerClient.call(path, request).getData();
+    public <R> Response<R> call(String path, Request<R> request) {
+        Response<R> response = brokerClient.call(path, request);
         if (log.isDebugEnabled()) {
-            log.debug("Remote Call request:{} result:{}", JacksonUtils.toJSONString(request), data);
+            log.debug("Remote Call path:{} request:{} response:{}", path, JacksonUtils.toJSONString(request), JacksonUtils.toJSONString(response));
         }
-        return data;
+        return response;
     }
 
-    public <R> R call(String path, String host, int port, Request<R> request) {
-        R data = client.call(path, host, port, request).getData();
+    public <R> Response<R> call(String path, String host, int port, Request<R> request) {
+        Response<R> response = client.call(path, host, port, request);
         if (log.isDebugEnabled()) {
-            log.debug("Remote Call host: {} port: {} request:{} result:{}", host, port, JacksonUtils.toJSONString(request), data);
+            log.debug("Remote Call host: {} port: {} path:{} request:{} response:{}", host, port, path, JacksonUtils.toJSONString(request), JacksonUtils.toJSONString(response));
         }
-        return data;
+        return response;
     }
 
-    public String host() {
-        return host;
-    }
-
-    public int port() {
-        return port;
-    }
-
-    public TaskRepository taskRepository() {
-        return taskRepository;
+    public BaseNode node() {
+        return node;
     }
 
 }

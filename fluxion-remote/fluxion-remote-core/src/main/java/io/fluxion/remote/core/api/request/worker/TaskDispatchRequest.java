@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.request;
+package io.fluxion.remote.core.api.request.worker;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.constants.ExecuteMode;
+import io.fluxion.remote.core.api.dto.NodeDTO;
 
 /**
  * dispatch to worker
@@ -25,28 +25,20 @@ import io.fluxion.remote.core.constants.ExecuteMode;
  * @author Devil
  * @since 2023/8/3
  */
-public class JobDispatchRequest implements Request<Boolean> {
+public class TaskDispatchRequest implements Request<Boolean> {
 
     private String jobId;
-    /**
-     * 执行方式
-     *
-     * @see ExecuteMode
-     */
-    private String executeMode;
+
+    private String taskId;
 
     /**
      * 执行器的名称
      */
     private String executorName;
-
-    public String getExecuteMode() {
-        return executeMode;
-    }
-
-    public void setExecuteMode(String executeMode) {
-        this.executeMode = executeMode;
-    }
+    /**
+     * 管理节点
+     */
+    private NodeDTO remoteNode;
 
     public String getJobId() {
         return jobId;
@@ -56,11 +48,27 @@ public class JobDispatchRequest implements Request<Boolean> {
         this.jobId = jobId;
     }
 
+    public String getTaskId() {
+        return taskId;
+    }
+
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
+    }
+
     public String getExecutorName() {
         return executorName;
     }
 
     public void setExecutorName(String executorName) {
         this.executorName = executorName;
+    }
+
+    public NodeDTO getRemoteNode() {
+        return remoteNode;
+    }
+
+    public void setRemoteNode(NodeDTO remoteNode) {
+        this.remoteNode = remoteNode;
     }
 }

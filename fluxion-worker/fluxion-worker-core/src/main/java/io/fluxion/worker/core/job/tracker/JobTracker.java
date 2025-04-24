@@ -18,28 +18,26 @@ package io.fluxion.worker.core.job.tracker;
 
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
-import io.fluxion.remote.core.api.request.JobDispatchedRequest;
-import io.fluxion.remote.core.api.request.JobFailRequest;
-import io.fluxion.remote.core.api.request.JobReportRequest;
-import io.fluxion.remote.core.api.request.JobStartRequest;
-import io.fluxion.remote.core.api.request.JobSuccessRequest;
+import io.fluxion.remote.core.api.request.broker.JobReportRequest;
+import io.fluxion.remote.core.api.response.broker.JobReportResponse;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.BrokerRemoteConstant;
+import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.worker.core.AbstractTracker;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.job.TaskCounter;
+import io.fluxion.worker.core.remote.WorkerClientConverter;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_DISPATCHED;
-import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_FAIL;
 import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_REPORT;
-import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_START;
-import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_SUCCESS;
 
 /**
  * Task执行管理和监控
@@ -47,6 +45,10 @@ import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_SUCC
  * @author Devil
  */
 public abstract class JobTracker extends AbstractTracker {
+    /**
+     * 上报失败最大次数
+     */
+    private static final int MAX_REPORT_FAILED_TIMES = 5;
 
     /**
      * 从 Broker 接收到的任务
@@ -63,11 +65,19 @@ public abstract class JobTracker extends AbstractTracker {
 
     protected Future<?> statusReportFuture;
 
+    protected final TaskCounter taskCounter;
+
+    /**
+     * 上报失败统计
+     */
+    private int reportFailedCount = 0;
+
     public JobTracker(Job job, Executor executor, WorkerContext workerContext) {
         this.job = job;
         this.executor = executor;
         this.workerContext = workerContext;
         this.destroyed = new AtomicBoolean(false);
+        this.taskCounter = new TaskCounter();
     }
 
     @Override
@@ -82,23 +92,41 @@ public abstract class JobTracker extends AbstractTracker {
         }
 
         try {
-            if (!reportDispatched()) {
-                destroy();
-                return true;
+            job.setStatus(JobStatus.DISPATCHED);
+            if (!report().isSuccess()) {
+                return false;
             }
             // 提交执行 正常来说保存成功这里不会被拒绝
-            this.processFuture = workerContext.taskProcessExecutor().submit(this::run);
+            this.processFuture = workerContext.processExecutor().submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        // 反馈执行中 -- 排除由于网络问题导致的失败可能性
+                        job.setStatus(JobStatus.RUNNING);
+                        if (!report().isSuccess()) {
+                            // 不成功，可能已经下发给其它节点
+                            return;
+                        }
+
+                        JobTracker.this.run();
+                    } catch (Throwable throwable) {
+                        log.error("[{}] run error", getClass().getSimpleName(), throwable);
+                        job.fail(throwable.getMessage());
+                        report();
+                    }
+                }
+            });
             // 提交状态监控
-            this.statusReportFuture = workerContext.taskStatusReportExecutor().scheduleAtFixedRate(
+            this.statusReportFuture = workerContext.statusReportExecutor().scheduleAtFixedRate(
                 this::report, 1, BrokerRemoteConstant.JOB_REPORT_SECONDS, TimeUnit.SECONDS
             );
             return true;
-        } catch (RejectedExecutionException e) {
-            log.error("Schedule job in worker failed, maybe work thread exhausted job:{}", JacksonUtils.toJSONString(job), e);
-            destroy();
-            return false;
         } catch (Exception e) {
-            log.error("Schedule job in worker failed, job:{}", JacksonUtils.toJSONString(job), e);
+            if (e instanceof RejectedExecutionException) {
+                log.error("Schedule job in worker failed, maybe work thread exhausted job:{}", JacksonUtils.toJSONString(job), e);
+            } else {
+                log.error("Schedule job in worker failed, job:{}", JacksonUtils.toJSONString(job), e);
+            }
             destroy();
             return false;
         }
@@ -106,7 +134,54 @@ public abstract class JobTracker extends AbstractTracker {
 
     public abstract void run();
 
-    public abstract void report();
+    public JobReportResponse report() {
+        JobReportRequest request = new JobReportRequest();
+        JobReportResponse result;
+        try {
+            TaskMonitorDTO taskMonitor = taskMonitor();
+            request.setJobId(job.getId());
+            request.setReportAt(TimeUtils.currentLocalDateTime());
+            request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
+            request.setTaskMonitor(taskMonitor);
+            request.setStatus(job.getStatus().value);
+
+            request.setResult(job.getResult());
+
+            request.setErrorMsg(job.getErrorMsg());
+
+            Response<JobReportResponse> response = workerContext.call(API_JOB_REPORT, request);
+            if (!response.success() || response.getData() == null) {
+                result = new JobReportResponse();
+            } else {
+                result = response.getData();
+            }
+        } catch (Exception e) {
+            log.error("[JobReport] fail request={}", JacksonUtils.toJSONString(request), e);
+            result = new JobReportResponse();
+        }
+
+        Node currentWorker = WorkerClientConverter.toNode(result.getWorkerNode());
+        boolean sameWorker = workerContext.node() != null && currentWorker != null && workerContext.node().id().equals(currentWorker.id());
+        if (!result.isSuccess() && !sameWorker) {
+            log.warn("[JobReport] task worker change jobId:{} currentWorker:{}",
+                job.getId(), currentWorker == null ? null : currentWorker.address()
+            );
+            destroy();
+            return result;
+        }
+        if (job.getStatus().isFinished()) {
+            if (result.isSuccess()) {
+                destroy();
+            } else {
+                reportFailedCount++;
+                if (reportFailedCount > MAX_REPORT_FAILED_TIMES) {
+                    log.warn("[JobReport] fail more than {} times jobId:{}", MAX_REPORT_FAILED_TIMES, job.getId());
+                    destroy();
+                }
+            }
+        }
+        return result;
+    }
 
     @Override
     public void destroy() {
@@ -124,83 +199,16 @@ public abstract class JobTracker extends AbstractTracker {
         log.info("JobTracker jobId: {} destroyed success", job.getId());
     }
 
-    protected boolean reportDispatched() {
-        try {
-            JobDispatchedRequest request = new JobDispatchedRequest();
-            request.setJobId(job.getId());
-            request.setWorkerAddress(workerContext.address());
-            return workerContext.call(API_JOB_DISPATCHED, request);
-        } catch (Exception e) {
-            log.error("reportDispatched fail jobId={}", job.getId(), e);
-            return false;
-        }
-    }
-
-    protected boolean reportStart() {
-        try {
-            JobStartRequest request = new JobStartRequest();
-            request.setJobId(job.getId());
-            request.setWorkerAddress(workerContext.address());
-            request.setReportAt(TimeUtils.currentLocalDateTime());
-            return workerContext.call(API_JOB_START, request);
-        } catch (Exception e) {
-            log.error("reportStart fail jobId={}", job.getId(), e);
-            return false;
-        }
-    }
-
-    protected boolean reportJob() {
-        return reportJob(null);
-    }
-
-    protected boolean reportJob(TaskMonitorDTO taskMonitor) {
-        JobReportRequest request = new JobReportRequest();
-        request.setJobId(job.getId());
-        request.setReportAt(TimeUtils.currentLocalDateTime());
-        request.setWorkerAddress(workerContext.address());
-        request.setTaskMonitor(taskMonitor);
-        return workerContext.call(API_JOB_REPORT, request);
-    }
-
-    protected void reportSuccess() {
-        reportSuccess(null);
-    }
-
-    protected void reportSuccess(TaskMonitorDTO taskMonitor) {
-        try {
-            JobSuccessRequest request = new JobSuccessRequest();
-            request.setJobId(job.getId());
-            request.setWorkerAddress(workerContext.address());
-            request.setReportAt(TimeUtils.currentLocalDateTime());
-            request.setTaskMonitor(taskMonitor);
-            workerContext.call(API_JOB_SUCCESS, request); // todo @d later 如果上报失败需要记录，定时重试
-        } catch (Exception e) {
-            log.error("reportSuccess fail jobId={}", job.getId(), e);
-            // todo @d later 如果上报失败需要记录，定时重试
-        }
-    }
-
-    protected void reportFail(String errorMsg) {
-        reportFail(errorMsg, null);
-    }
-
-    protected void reportFail(String errorMsg, TaskMonitorDTO taskMonitor) {
-        try {
-            JobFailRequest request = new JobFailRequest();
-            request.setJobId(job.getId());
-            request.setWorkerAddress(workerContext.address());
-            request.setReportAt(TimeUtils.currentLocalDateTime());
-            request.setErrorMsg(errorMsg);
-            request.setTaskMonitor(taskMonitor);
-            workerContext.call(API_JOB_FAIL, request); // todo @d later 如果上报失败需要记录，定时重试
-        } catch (Exception e) {
-            log.error("reportFail fail jobId={}", job.getId(), e);
-            // todo @d later 如果上报失败需要记录，定时重试
-        }
-    }
-
     public Job job() {
         return job;
+    }
+
+    private TaskMonitorDTO taskMonitor() {
+        TaskMonitorDTO dto = new TaskMonitorDTO();
+        dto.setTotalNum(taskCounter.getTotal().get());
+        dto.setSuccessNum(taskCounter.getSuccess().get());
+        dto.setFailNum(taskCounter.getFail().get());
+        return dto;
     }
 
 }

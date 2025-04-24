@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.request;
+package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.api.response.BrokerWorkersResponse;
 
 /**
  * ping broker
@@ -25,16 +24,5 @@ import io.fluxion.remote.core.api.response.BrokerWorkersResponse;
  * @author Devil
  * @since 2023/8/3
  */
-public class BrokerWorkersRequest implements Request<BrokerWorkersResponse> {
-
-    private String appId;
-
-    public String getAppId() {
-        return appId;
-    }
-
-    public void setAppId(String appId) {
-        this.appId = appId;
-    }
-
+public class BrokerPingRequest implements Request<Boolean> {
 }

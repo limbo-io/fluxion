@@ -16,7 +16,9 @@
 
 package io.fluxion.worker.core.job;
 
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.ExecuteMode;
+import io.fluxion.remote.core.constants.JobStatus;
 
 /**
  * @author Devil
@@ -32,6 +34,16 @@ public class Job {
      * 执行器的名称
      */
     private String executorName;
+
+    /**
+     * 状态
+     */
+    private JobStatus status;
+
+
+    private String result;
+
+    private String errorMsg;
 
     public ExecuteMode getExecuteMode() {
         return executeMode;
@@ -55,6 +67,32 @@ public class Job {
 
     public void setExecutorName(String executorName) {
         this.executorName = executorName;
+    }
+
+    public JobStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(JobStatus status) {
+        this.status = status;
+    }
+
+    public String getResult() {
+        return result;
+    }
+
+    public void success(String result) {
+        this.result = result;
+        setStatus(JobStatus.SUCCEED);
+    }
+
+    public String getErrorMsg() {
+        return errorMsg;
+    }
+
+    public void fail(String errorMsg) {
+        this.errorMsg = errorMsg;
+        setStatus(JobStatus.FAILED);
     }
 
 }

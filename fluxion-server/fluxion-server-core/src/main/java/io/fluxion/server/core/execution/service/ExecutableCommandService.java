@@ -16,20 +16,12 @@
 
 package io.fluxion.server.core.execution.service;
 
-import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
-import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
-import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
-import io.fluxion.server.core.executor.option.RetryOption;
-import io.fluxion.server.core.job.cmd.JobFailCmd;
-import io.fluxion.server.core.job.cmd.JobRetryCmd;
-import io.fluxion.server.core.job.cmd.JobSuccessCmd;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.core.job.Job;
+import io.fluxion.server.core.job.query.JobByIdQuery;
 import io.fluxion.server.infrastructure.cqrs.Query;
-import io.fluxion.server.infrastructure.dao.entity.JobEntity;
-import io.fluxion.server.infrastructure.dao.repository.JobEntityRepo;
 import io.fluxion.server.infrastructure.dao.tx.TransactionService;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
@@ -39,8 +31,6 @@ import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.time.LocalDateTime;
-import java.util.Optional;
 
 /**
  * @author Devil
@@ -48,9 +38,6 @@ import java.util.Optional;
 @Slf4j
 @Service
 public class ExecutableCommandService {
-
-    @Resource
-    private JobEntityRepo jobEntityRepo;
 
     @Resource
     private DistributedLock distributedLock;
@@ -62,50 +49,38 @@ public class ExecutableCommandService {
 
     @CommandHandler
     public boolean handle(ExecutableSuccessCmd cmd) {
-        JobEntity entity = jobEntityRepo.findById(cmd.getJobId())
-            .orElseThrow(PlatformException.supplier(ErrorCode.PARAM_ERROR, "job not found id:" + cmd.getJobId()));
-        Execution execution = Query.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
-        Executable executable = execution.getExecutable();
-        String lockName = execution.getId() + LOCK_SUFFIX;
+        Job job = Query.query(new JobByIdQuery(cmd.getJobId())).getJob();
+        if (job == null) {
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "job not found id:" + cmd.getJobId());
+        }
+        job.setTaskMonitor(cmd.getMonitor());
+        job.setResult(cmd.getResult());
+
+        String lockName = job.getExecution().getId() + LOCK_SUFFIX;
         return distributedLock.lock(lockName, 2000, 3000,
-            () -> transactionService.transactional(() -> {
-                    String jobId = cmd.getJobId();
-                    LocalDateTime reportAt = cmd.getReportAt();
-                    boolean success = Cmd.send(new JobSuccessCmd(jobId, reportAt, cmd.getMonitor()));
-                    if (!success) {
-                        return false;
-                    }
-                    return executable.success(entity.getRefId(), entity.getExecutionId(), reportAt);
-                }
-            )
+            () -> transactionService.transactional(() -> job.success(cmd.getReportAt()))
         );
     }
 
     @CommandHandler
     public boolean handle(ExecutableFailCmd cmd) {
-        JobEntity entity = jobEntityRepo.findById(cmd.getJobId())
-            .orElseThrow(PlatformException.supplier(ErrorCode.PARAM_ERROR, "job not found id:" + cmd.getJobId()));
-        Execution execution = Query.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
+        Job job = Query.query(new JobByIdQuery(cmd.getJobId())).getJob();
+        if (job == null) {
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "job not found id:" + cmd.getJobId());
+        }
+        job.setTaskMonitor(cmd.getMonitor());
+        job.setErrorMsg(cmd.getErrorMsg());
+
+        Execution execution = job.getExecution();
         String lockName = execution.getId() + LOCK_SUFFIX;
-        return distributedLock.lock(lockName, 2000, 3000,
-            () -> transactionService.transactional(() -> {
-                String jobId = cmd.getJobId();
-                LocalDateTime reportAt = cmd.getReportAt();
-                Executable executable = execution.getExecutable();
-                RetryOption retryOption = Optional.ofNullable(executable.retryOption(entity.getRefId())).orElse(new RetryOption());
-                if (retryOption.canRetry(entity.getRetryTimes())) {
-                    return Cmd.send(new JobRetryCmd());
-                } else if (executable.skipWhenFail(entity.getRefId())) {
-                    return executable.success(entity.getRefId(), entity.getExecutionId(), reportAt);
-                } else {
-                    boolean failed = Cmd.send(new JobFailCmd(jobId, reportAt, cmd.getErrorMsg(), cmd.getMonitor()));
-                    if (!failed) {
-                        return false;
-                    }
-                    return Cmd.send(new ExecutionFailCmd(entity.getExecutionId(), reportAt));
-                }
-            })
-        );
+        try {
+            return distributedLock.lock(lockName, 2000, 3000,
+                () -> transactionService.transactional(() -> job.fail(cmd.getReportAt()))
+            );
+        } catch (Exception e) {
+            log.error("ExecutableFailCmd fail jobId:{}", cmd.getJobId(), e);
+            return false;
+        }
     }
 
 }

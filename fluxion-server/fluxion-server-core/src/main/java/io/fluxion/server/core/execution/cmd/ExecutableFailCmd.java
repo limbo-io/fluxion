@@ -31,11 +31,11 @@ public class ExecutableFailCmd implements ICmd<Boolean> {
 
     private LocalDateTime reportAt;
 
+    private TaskMonitor monitor;
+
     /**
      * 执行失败时候返回的信息
      */
     private String errorMsg;
-
-    private TaskMonitor monitor;
 
 }

@@ -21,7 +21,8 @@ import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.TagDTO;
 import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
-import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
+import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
+import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.BrokerNode;
@@ -50,8 +51,9 @@ public class BrokerClientConverter {
                 .name(e.getName())
                 .build()
             ).collect(Collectors.toList());
+        String id = request.getProtocol() + "://" + request.getHost() + ":" + request.getPort();
         return new Worker(
-            appId, request.getHost(), request.getPort(), Protocol.parse(request.getProtocol()),
+            id, appId, request.getHost(), request.getPort(), Protocol.parse(request.getProtocol()),
             executors, tags, metric, Worker.Status.ONLINE, true
         );
     }
@@ -84,10 +86,17 @@ public class BrokerClientConverter {
             return null;
         }
         NodeDTO dto = new NodeDTO();
-        dto.setProtocol(node.protocol().value);
         dto.setHost(node.host());
         dto.setPort(node.port());
+        dto.setProtocol(node.protocol().value);
         return dto;
+    }
+
+    public static Node toNode(NodeDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        return new BaseNode(Protocol.parse(dto.getProtocol()), dto.getHost(), dto.getPort());
     }
 
     public static List<NodeDTO> toBrokerNodeDTO(List<BrokerNode> nodes) {
@@ -103,7 +112,6 @@ public class BrokerClientConverter {
         }
         return workers.stream().map(w -> {
             NodeDTO dto = new NodeDTO();
-            dto.setProtocol(w.getProtocol().value);
             dto.setHost(w.getHost());
             dto.setPort(w.getPort());
             return dto;
@@ -114,7 +122,7 @@ public class BrokerClientConverter {
         if (dto == null) {
             return null;
         }
-        return new TaskMonitor(dto.getTotal(), dto.getSuccess(), dto.getFail());
+        return new TaskMonitor(dto.getTotalNum(), dto.getSuccessNum(), dto.getFailNum());
     }
 
 }

@@ -19,19 +19,15 @@ public interface Executable {
 
     void execute(RunContext context);
 
-    boolean success(String refId, String executionId, LocalDateTime time);
+    boolean success(Job job, LocalDateTime time);
+
+    boolean fail(Job job, LocalDateTime time);
 
     RetryOption retryOption(String refId);
 
     /**
-     * 执行失败是否继续
-     * true  会继续执行后续作业
-     * false 终止环节
+     * 返回一个 ref 关联类型的job
      */
-    default boolean skipWhenFail(String refId) {
-        return false;
-    }
-
-    Job job(String refId, String executionId, LocalDateTime triggerAt);
+    Job newRefJob(String refId);
 
 }

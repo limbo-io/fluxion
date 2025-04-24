@@ -17,16 +17,18 @@
 package io.fluxion.server.core.workflow;
 
 import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.ExecutableType;
+import io.fluxion.server.core.execution.Execution;
+import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.core.job.ExecutorJob;
 import io.fluxion.server.core.job.InputOutputJob;
 import io.fluxion.server.core.job.Job;
-import io.fluxion.server.core.job.JobStatus;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
 import io.fluxion.server.core.job.query.JobCountByStatusQuery;
 import io.fluxion.server.core.workflow.node.EndNode;
@@ -36,6 +38,7 @@ import io.fluxion.server.core.workflow.node.WorkflowNode;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dag.DAG;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.time.LocalDateTime;
@@ -49,6 +52,7 @@ import java.util.stream.Collectors;
  *
  * @author Devil
  */
+@Slf4j
 public class Workflow implements Executable {
 
     private String id;
@@ -93,22 +97,23 @@ public class Workflow implements Executable {
 
     @Override
     public void execute(RunContext context) {
-        createAndScheduleTasks(context.executionId(), dag.origins());
+        createAndScheduleTasks(context.execution(), dag.origins());
     }
 
     /**
      * 某个 node 成功后执行的逻辑
      */
     @Override
-    public boolean success(String nodeId, String executionId, LocalDateTime time) {
-        List<WorkflowNode> subNodes = dag.subNodes(nodeId);
+    public boolean success(Job job, LocalDateTime time) {
+        Execution execution = job.getExecution();
+        List<WorkflowNode> subNodes = dag.subNodes(job.getRefId());
         if (CollectionUtils.isEmpty(subNodes)) {
             // 最终节点 execution 完成
-            return Cmd.send(new ExecutionSuccessCmd(executionId, time));
+            return Cmd.send(new ExecutionSuccessCmd(execution.getId(), time));
         }
         List<WorkflowNode> continueNodes = new ArrayList<>();
         for (WorkflowNode subNode : subNodes) {
-            if (preNodesSuccess(executionId, dag.preNodes(subNode.id()))) {
+            if (preNodesSuccess(execution.getId(), dag.preNodes(subNode.id()))) {
                 // 前置节点都已经完成，下发
                 continueNodes.add(subNode);
             }
@@ -117,8 +122,18 @@ public class Workflow implements Executable {
         if (CollectionUtils.isEmpty(continueNodes)) {
             return true;
         }
-        createAndScheduleTasks(executionId, continueNodes);
+        createAndScheduleTasks(execution, continueNodes);
         return true;
+    }
+
+    @Override
+    public boolean fail(Job job, LocalDateTime time) {
+        WorkflowNode node = dag.node(job.getRefId());
+        if (node.isSkipWhenFail()) {
+            return success(job, time);
+        } else {
+            return Cmd.send(new ExecutionFailCmd(job.getExecution().getId(), time));
+        }
     }
 
     @Override
@@ -127,10 +142,15 @@ public class Workflow implements Executable {
         return node.getRetryOption();
     }
 
-    private void createAndScheduleTasks(String executionId, List<WorkflowNode> nodes) {
+    private void createAndScheduleTasks(Execution execution, List<WorkflowNode> nodes) {
         LocalDateTime now = TimeUtils.currentLocalDateTime();
         List<Job> jobs = nodes.stream()
-            .map(n -> job(n, executionId, now))
+            .map(n -> {
+                Job job = newRefJob(n.getId());
+                job.setExecution(execution);
+                job.setTriggerAt(now);
+                return job;
+            })
             .collect(Collectors.toList());
         // 保存数据
         Cmd.send(new JobsCreateCmd(jobs));
@@ -155,13 +175,9 @@ public class Workflow implements Executable {
     }
 
     @Override
-    public Job job(String refId, String executionId, LocalDateTime triggerAt) {
-        WorkflowNode node = dag.node(refId);
-        return job(node, executionId, triggerAt);
-    }
-
-    private Job job(WorkflowNode node, String executionId, LocalDateTime triggerAt) {
+    public Job newRefJob(String refId) {
         Job job = null;
+        WorkflowNode node = dag.node(refId);
         if (node instanceof StartNode) {
             job = new InputOutputJob();
         } else if (node instanceof EndNode) {
@@ -176,9 +192,8 @@ public class Workflow implements Executable {
             executorTask.setDispatchOption(executorConfig.getDispatchOption());
             executorTask.setExecuteMode(executorConfig.getExecuteMode());
         }
-        job.setExecutionId(executionId);
-        job.setTriggerAt(triggerAt);
         job.setRefId(node.id());
+        job.setRetryOption(node.getRetryOption());
         return job;
     }
 

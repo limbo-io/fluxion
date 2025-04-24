@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.job.query;
 
-import io.fluxion.server.core.job.JobStatus;
+import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.infrastructure.cqrs.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -34,15 +34,7 @@ public interface BrokerRemoteConstant {
 
     String API_BROKER_PING = "/api/v1/broker/ping";
 
-    String API_JOB_DISPATCHED = "/api/v1/job/dispatched";
-
-    String API_JOB_START = "/api/v1/job/start";
-
     String API_JOB_REPORT = "/api/v1/job/report";
-
-    String API_JOB_SUCCESS = "/api/v1/job/success";
-
-    String API_JOB_FAIL = "/api/v1/job/fail";
 
     String API_JOB_WORKERS = "/api/v1/job/workers";
     // ========== API ==========

@@ -16,6 +16,8 @@
 
 package io.fluxion.server.core.context;
 
+import io.fluxion.server.core.execution.Execution;
+
 /**
  * 运行上下文
  *
@@ -23,20 +25,20 @@ package io.fluxion.server.core.context;
  */
 public class RunContext {
     /**
-     * 执行 id
+     * 执行记录
      */
-    private final String executionId;
+    private final Execution execution;
 
-    private RunContext(String executionId) {
-        this.executionId = executionId;
+    private RunContext(Execution execution) {
+        this.execution = execution;
     }
 
-    public static RunContext of(String executionId) {
-        return new RunContext(executionId);
+    public static RunContext of(Execution execution) {
+        return new RunContext(execution);
     }
 
-    public String executionId() {
-        return executionId;
+    public Execution execution() {
+        return execution;
     }
 
 //    @Getter

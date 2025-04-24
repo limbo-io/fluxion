@@ -16,7 +16,7 @@
 
 package io.fluxion.worker.core.task;
 
-import io.fluxion.remote.core.api.dto.NodeDTO;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.TaskStatus;
 
 import java.time.LocalDateTime;
@@ -31,14 +31,14 @@ public class Task {
     private final String jobId;
 
     /**
-     * 管理节点地址
+     * 管理节点
      */
-    private String remoteAddress;
+    private Node remoteNode;
 
     /**
-     * 执行节点地址
+     * 执行节点
      */
-    private String workerAddress;
+    private Node workerNode;
 
     /**
      * 状态
@@ -81,20 +81,28 @@ public class Task {
         this.jobId = jobId;
     }
 
+    public Node getRemoteNode() {
+        return remoteNode;
+    }
+
+    public void setRemoteNode(Node remoteNode) {
+        this.remoteNode = remoteNode;
+    }
+
+    public Node getWorkerNode() {
+        return workerNode;
+    }
+
+    public void setWorkerNode(Node workerNode) {
+        this.workerNode = workerNode;
+    }
+
     public String getJobId() {
         return jobId;
     }
 
     public String getId() {
         return id;
-    }
-
-    public String getWorkerAddress() {
-        return workerAddress;
-    }
-
-    public void setWorkerAddress(String workerAddress) {
-        this.workerAddress = workerAddress;
     }
 
     public TaskStatus getStatus() {
@@ -161,14 +169,6 @@ public class Task {
         this.errorStackTrace = errorStackTrace;
     }
 
-    public String getRemoteAddress() {
-        return remoteAddress;
-    }
-
-    public void setRemoteAddress(String remoteAddress) {
-        this.remoteAddress = remoteAddress;
-    }
-
     public int getDispatchFailTimes() {
         return dispatchFailTimes;
     }
@@ -177,20 +177,15 @@ public class Task {
         dispatchFailTimes++;
     }
 
-    public NodeDTO remoteNode() {
-        String[] split = remoteAddress.split(":");
-        NodeDTO node = new NodeDTO();
-        node.setHost(split[0]);
-        node.setPort(Integer.parseInt(split[1]));
-        return node;
+    public String workerAddress() {
+        return workerNode == null ? null : workerNode.id();
     }
 
-    public NodeDTO workerNode() {
-        String[] split = workerAddress.split(":");
-        NodeDTO node = new NodeDTO();
-        node.setHost(split[0]);
-        node.setPort(Integer.parseInt(split[1]));
-        return node;
+    /**
+     * 是否相同工作节点
+     */
+    public boolean sameWorker(Node node) {
+        return workerNode != null && node != null && workerNode.id().equals(node.id());
     }
 
 }

@@ -22,10 +22,10 @@ import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerExecutorDTO;
 import io.fluxion.remote.core.api.dto.TagDTO;
-import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
-import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
-import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
-import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
+import io.fluxion.remote.core.api.request.broker.WorkerHeartbeatRequest;
+import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
+import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
+import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.Client;
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.LBClient;
@@ -97,10 +97,11 @@ public class DefaultServerDiscovery implements ServerDiscovery {
     }
 
     private void register() {
+        BaseNode node = workerContext.node();
         WorkerRegisterRequest request = new WorkerRegisterRequest();
-        request.setHost(workerContext.host());
-        request.setPort(workerContext.port());
-        request.setProtocol(workerContext.protocol().value);
+        request.setProtocol(node.protocol().value);
+        request.setHost(node.host());
+        request.setPort(node.port());
         request.setAppName(workerContext.appName());
         request.setSystemInfo(systemInfoDTO());
         request.setTags(tagDTOS(workerContext.tags()));
@@ -120,7 +121,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
 
         public WorkerHeartbeat() {
             this.client = RetryableClient.builder()
-                .client(ClientFactory.create(workerContext.protocol()))
+                .client(ClientFactory.create(workerContext.node().protocol()))
                 .build();
         }
 
@@ -133,7 +134,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
                 }
                 WorkerHeartbeatRequest request = new WorkerHeartbeatRequest();
                 request.setAppId(workerContext.appId());
-                request.setWorkerId(workerContext.address());
+                request.setWorkerId(workerContext.node().address());
                 request.setSystemInfo(systemInfoDTO());
                 request.setTopologyVersion(version);
                 request.setHeartbeatAt(TimeUtils.currentLocalDateTime());

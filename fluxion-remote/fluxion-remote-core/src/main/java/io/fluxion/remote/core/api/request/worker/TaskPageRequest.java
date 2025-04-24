@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.request;
+package io.fluxion.remote.core.api.request.worker;
 
 import io.fluxion.remote.core.api.PageRequest;
 

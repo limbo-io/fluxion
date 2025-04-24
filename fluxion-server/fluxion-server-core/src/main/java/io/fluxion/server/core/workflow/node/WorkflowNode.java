@@ -67,7 +67,7 @@ public abstract class WorkflowNode implements DAGNode, ValidatableConfig {
     /**
      * 重试参数
      */
-    private RetryOption retryOption;
+    private RetryOption retryOption = new RetryOption();
 
     /**
      * 超时参数

@@ -22,19 +22,13 @@ import io.fluxion.remote.core.lb.BaseLBServer;
 import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.remote.core.utils.NetUtils;
 import io.fluxion.worker.core.Worker;
-import io.fluxion.worker.core.persistence.ConnectionFactory;
-import io.fluxion.worker.core.persistence.H2ConnectionFactory;
-import io.fluxion.worker.core.task.repository.DBTaskRepository;
-import io.fluxion.worker.core.task.repository.TaskRepository;
 import io.fluxion.worker.spring.starter.SpringDelegatedWorker;
 import io.fluxion.worker.spring.starter.processor.ExecutorMethodProcessor;
-import io.fluxion.worker.spring.starter.properties.DatasourceProperties;
 import io.fluxion.worker.spring.starter.properties.WorkerProperties;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -43,7 +37,6 @@ import org.springframework.util.Assert;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -62,13 +55,7 @@ import static java.util.stream.Collectors.toSet;
 @EnableConfigurationProperties(WorkerProperties.class)
 public class FluxionWorkerAutoConfiguration {
 
-    private final WorkerProperties properties;
-
     private static final Integer DEFAULT_HTTP_SERVER_PORT = 9787;
-
-    public FluxionWorkerAutoConfiguration(WorkerProperties properties) {
-        this.properties = properties;
-    }
 
     @Value("${spring.application.name}")
     private String springAppName;
@@ -78,24 +65,11 @@ public class FluxionWorkerAutoConfiguration {
         return new ExecutorMethodProcessor();
     }
 
-    @Bean("fluxionTaskRepository")
-    @ConditionalOnMissingBean(TaskRepository.class)
-    public TaskRepository taskRepository() throws SQLException {
-        DatasourceProperties datasource = properties.getDatasource();
-        ConnectionFactory connectionFactory = new H2ConnectionFactory(datasource.getUrl(), datasource.getUsername(), datasource.getPassword());
-        DBTaskRepository taskRepository = new DBTaskRepository(connectionFactory);
-        // 先放这里了后面考虑生命周期
-        if (properties.getDatasource().isInitTable()) {
-            taskRepository.initTable();
-        }
-        return taskRepository;
-    }
-
     /**
      * Worker 实例
      */
     @Bean("fluxionWorker")
-    public Worker worker(WorkerProperties properties, TaskRepository taskRepository) throws MalformedURLException {
+    public Worker worker(WorkerProperties properties) throws MalformedURLException {
         // AppName 优先使用worker配置，否则使用spring配置
         String appName = StringUtils.isBlank(properties.getAppName()) ? springAppName : properties.getAppName();
         Assert.isTrue(StringUtils.isNotBlank(appName), "Worker appName must not blank");
@@ -120,7 +94,7 @@ public class FluxionWorkerAutoConfiguration {
         return new SpringDelegatedWorker(
             appName, properties.getProtocol(), host, port,
             properties.getQueueSize(), properties.getConcurrency(), tags,
-            taskRepository, brokerNodes
+            properties.getDatasource(), brokerNodes
         );
     }
 

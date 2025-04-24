@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.request;
+package io.fluxion.remote.core.api.request.worker;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.dto.NodeDTO;
+import io.fluxion.remote.core.api.response.worker.TaskReportResponse;
+import io.fluxion.remote.core.constants.TaskStatus;
 
 import java.time.LocalDateTime;
 
@@ -24,17 +27,28 @@ import java.time.LocalDateTime;
  * @author Devil
  * @since 2023/8/3
  */
-public class TaskSuccessRequest implements Request<Boolean> {
+public class TaskReportRequest implements Request<TaskReportResponse> {
 
     private String jobId;
 
     private String taskId;
 
-    private String workerAddress;
+    private NodeDTO workerNode;
 
     private LocalDateTime reportAt;
+    /**
+     * task status
+     * @see TaskStatus
+     */
+    private String status;
 
+    // when success
     private String result;
+
+    // when fail
+    private String errorMsg;
+
+    private String errorStackTrace;
 
     public String getTaskId() {
         return taskId;
@@ -52,14 +66,6 @@ public class TaskSuccessRequest implements Request<Boolean> {
         this.reportAt = reportAt;
     }
 
-    public String getWorkerAddress() {
-        return workerAddress;
-    }
-
-    public void setWorkerAddress(String workerAddress) {
-        this.workerAddress = workerAddress;
-    }
-
     public String getJobId() {
         return jobId;
     }
@@ -68,11 +74,43 @@ public class TaskSuccessRequest implements Request<Boolean> {
         this.jobId = jobId;
     }
 
+    public NodeDTO getWorkerNode() {
+        return workerNode;
+    }
+
+    public void setWorkerNode(NodeDTO workerNode) {
+        this.workerNode = workerNode;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     public String getResult() {
         return result;
     }
 
     public void setResult(String result) {
         this.result = result;
+    }
+
+    public String getErrorMsg() {
+        return errorMsg;
+    }
+
+    public void setErrorMsg(String errorMsg) {
+        this.errorMsg = errorMsg;
+    }
+
+    public String getErrorStackTrace() {
+        return errorStackTrace;
+    }
+
+    public void setErrorStackTrace(String errorStackTrace) {
+        this.errorStackTrace = errorStackTrace;
     }
 }

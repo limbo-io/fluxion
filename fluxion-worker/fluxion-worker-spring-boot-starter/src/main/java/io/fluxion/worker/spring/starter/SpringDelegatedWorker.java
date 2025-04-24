@@ -34,13 +34,18 @@ import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.discovery.DefaultServerDiscovery;
 import io.fluxion.worker.core.discovery.ServerDiscovery;
 import io.fluxion.worker.core.executor.Executor;
+import io.fluxion.worker.core.persistence.ConnectionFactory;
+import io.fluxion.worker.core.persistence.H2ConnectionFactory;
 import io.fluxion.worker.core.remote.WorkerClientHandler;
+import io.fluxion.worker.core.task.repository.DBTaskRepository;
 import io.fluxion.worker.core.task.repository.TaskRepository;
 import io.fluxion.worker.spring.starter.processor.event.ExecutorScannedEvent;
 import io.fluxion.worker.spring.starter.processor.event.WorkerReadyEvent;
+import io.fluxion.worker.spring.starter.properties.DatasourceProperties;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.event.EventListener;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,11 +67,11 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
     private final int concurrency;
     private final Map<String, Set<String>> tags;
     private final List<LBServer> brokerNodes;
-    private final TaskRepository taskRepository;
+    private final DatasourceProperties datasourceProperties;
 
     public SpringDelegatedWorker(String appName, Protocol protocol, String host, int port,
                                  int queueSize, int concurrency, Map<String, Set<String>> tags,
-                                 TaskRepository taskRepository, List<LBServer> brokerNodes) {
+                                 DatasourceProperties datasourceProperties, List<LBServer> brokerNodes) {
         this.appName = appName;
         this.protocol = protocol;
         this.host = host;
@@ -75,7 +80,7 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
         this.concurrency = concurrency;
         this.tags = tags;
         this.brokerNodes = brokerNodes;
-        this.taskRepository = taskRepository;
+        this.datasourceProperties = datasourceProperties;
     }
 
 
@@ -92,10 +97,9 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
      * 监听到 WorkerReadyEvent 事件后，注册并启动当前 Worker
      */
     @EventListener(WorkerReadyEvent.class)
-    public void onWorkerReady(WorkerReadyEvent event) {
-        // repository
-        LBServerRepository repository = new EmbeddedLBServerRepository(brokerNodes);
+    public void onWorkerReady(WorkerReadyEvent event) throws SQLException {
         // client
+        LBServerRepository repository = new EmbeddedLBServerRepository(brokerNodes);
         LBClient client = RetryableLBClient.builder()
             .client(ClientFactory.create(protocol))
             .repository(repository)
@@ -104,13 +108,15 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
         // WorkerContext
         WorkerContext workerContext = new WorkerContext(
             appName, protocol, host, port, queueSize, concurrency,
-            client, taskRepository, executors, tags
+            client, executors, tags
         );
+        // repository
+        TaskRepository taskRepository = initTaskRepository(workerContext);
         // Discovery
         ServerDiscovery discovery = new DefaultServerDiscovery(workerContext, client, repository);
         // ClientServer
         ClientServerFactory factory = ClientServerFactory.instance();
-        ClientHandler clientHandler = new WorkerClientHandler(workerContext);
+        ClientHandler clientHandler = new WorkerClientHandler(workerContext, taskRepository);
         ClientServerConfig clientServerConfig = new ClientServerConfig(port, clientHandler);
         AbstractClientServer clientServer = factory.create(clientServerConfig);
         // Worker
@@ -118,6 +124,18 @@ public class SpringDelegatedWorker implements Worker, DisposableBean {
         this.delegated = worker;
         // Start
         worker.start();
+    }
+
+    private TaskRepository initTaskRepository(WorkerContext workerContext) throws SQLException {
+        ConnectionFactory connectionFactory = new H2ConnectionFactory(
+            datasourceProperties.getUrl(), datasourceProperties.getUsername(), datasourceProperties.getPassword()
+        );
+        DBTaskRepository taskRepository = new DBTaskRepository(connectionFactory, workerContext);
+        // 先放这里了后面考虑生命周期
+        if (datasourceProperties.isInitTable()) {
+            taskRepository.initTable();
+        }
+        return taskRepository;
     }
 
     /**

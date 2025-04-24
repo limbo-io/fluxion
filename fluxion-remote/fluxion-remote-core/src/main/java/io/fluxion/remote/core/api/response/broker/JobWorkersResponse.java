@@ -14,28 +14,25 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.response;
+package io.fluxion.remote.core.api.response.broker;
 
-import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
+import io.fluxion.remote.core.api.dto.NodeDTO;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
- * @author PengQ
- * @since 0.0.1
+ * @author Devil
  */
-public class WorkerHeartbeatResponse {
+public class JobWorkersResponse {
 
-    /**
-     * broker拓扑信息
-     */
-    private BrokerTopologyDTO brokerTopology;
+    private List<NodeDTO> workers = Collections.emptyList();
 
-    public BrokerTopologyDTO getBrokerTopology() {
-        return brokerTopology;
+    public List<NodeDTO> getWorkers() {
+        return workers;
     }
 
-    public void setBrokerTopology(BrokerTopologyDTO brokerTopology) {
-        this.brokerTopology = brokerTopology;
+    public void setWorkers(List<NodeDTO> workers) {
+        this.workers = workers;
     }
-
-
 }

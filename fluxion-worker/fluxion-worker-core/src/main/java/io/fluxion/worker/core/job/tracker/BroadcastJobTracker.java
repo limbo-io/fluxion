@@ -16,13 +16,16 @@
 
 package io.fluxion.worker.core.job.tracker;
 
+import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.NodeDTO;
-import io.fluxion.remote.core.api.request.JobWorkersRequest;
-import io.fluxion.remote.core.api.request.TaskDispatchRequest;
+import io.fluxion.remote.core.api.request.broker.JobWorkersRequest;
+import io.fluxion.remote.core.api.response.broker.JobWorkersResponse;
+import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.remote.WorkerClientConverter;
 import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.task.repository.TaskRepository;
 
@@ -30,109 +33,67 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_WORKERS;
-import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_DISPATCH;
 
 /**
  * @author Devil
  */
 public class BroadcastJobTracker extends DistributedJobTracker {
 
-    public BroadcastJobTracker(Job job, Executor executor, WorkerContext workerContext) {
-        super(job, executor, workerContext);
+    public BroadcastJobTracker(Job job, Executor executor, WorkerContext workerContext, TaskRepository taskRepository) {
+        super(job, executor, workerContext, taskRepository);
     }
 
     @Override
     public void run() {
-        try {
-            // 反馈执行中 -- 排除由于网络问题导致的失败可能性
-            boolean success = reportStart();
-            if (!success) {
-                // 不成功，可能已经下发给其它节点
-                return;
-            }
-
-            // 获取所有节点，创建task
-            JobWorkersRequest request = new JobWorkersRequest();
-            request.setJobId(job.getId());
-            List<NodeDTO> workers = workerContext.call(API_JOB_WORKERS, request).getWorkers();
-
-            List<Task> tasks = new ArrayList<>();
-            for (int i = 0; i < workers.size(); i++) {
-                NodeDTO worker = workers.get(i);
-                Task task = new Task("SUB_" + i, job.getId());
-                task.setStatus(TaskStatus.CREATED);
-                task.setRemoteAddress(workerContext.address());
-                task.setWorkerAddress(worker.address());
-                tasks.add(task);
-            }
-
-            // 保存
-            TaskRepository taskRepository = workerContext.taskRepository();
-            taskRepository.batchSave(tasks);
-            taskCounter.getTotal().set(tasks.size());
-
-            // 下发
-            for (Task task : tasks) {
-                boolean dispatched = dispatch(task);
-                if (dispatched) {
-                    taskRepository.dispatched(task);
-                } else {
-                    task.setErrorMsg(String.format("task dispatch fail over limit last worker=%s", task.getWorkerAddress()));
-                    taskRepository.fail(task);
-                }
-            }
-        } catch (Throwable throwable) {
-            log.error("[{}] run error", getClass().getSimpleName(), throwable);
-            reportFail(throwable.getMessage(), taskMonitor());
-            destroy();
+        // 获取所有节点，创建task
+        JobWorkersRequest request = new JobWorkersRequest();
+        request.setJobId(job.getId());
+        Response<JobWorkersResponse> workerResponse = workerContext.call(API_JOB_WORKERS, request);
+        if (!workerResponse.success()) {
+            job.fail("Get Workers Fail");
+            report();
+            return;
         }
+
+        List<NodeDTO> workers = workerResponse.getData().getWorkers();
+
+        List<Task> tasks = new ArrayList<>();
+        for (int i = 0; i < workers.size(); i++) {
+            NodeDTO worker = workers.get(i);
+            Task task = new Task("SUB_" + i, job.getId());
+            task.setStatus(TaskStatus.CREATED);
+            task.setRemoteNode(workerContext.node());
+            task.setWorkerNode(WorkerClientConverter.toNode(worker));
+            tasks.add(task);
+        }
+
+        // 保存
+        taskRepository.batchSave(tasks);
+        taskCounter.getTotal().set(tasks.size());
+
+        // 下发
+        dispatch(tasks);
     }
 
     @Override
-    public void success(Task task) {
-        taskCounter.getSuccess().incrementAndGet();
-        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
-            return;
-        }
-        reportSuccess(taskMonitor());
-        destroy();
+    public void success() {
+        report();
     }
 
     @Override
-    public void fail(Task task) {
-        taskCounter.getFail().incrementAndGet();
-        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
-            return;
-        }
+    public void fail() {
+        // 后面应该根据策略，现在是只要一个成功就是成功
         if (taskCounter.getSuccess().get() > 0) {
-            reportSuccess(taskMonitor());
+            report();
         } else {
-            reportFail("", taskMonitor());
+            job.fail("Task Execute Fail");
+            report();
         }
-        destroy();
     }
 
-    private boolean dispatch(Task task) {
-        TaskRepository taskRepository = workerContext.taskRepository();
-        while (task.getDispatchFailTimes() < 3) {
-            try {
-                TaskDispatchRequest request = new TaskDispatchRequest();
-                request.setJobId(task.getJobId());
-                request.setTaskId(task.getId());
-                request.setExecutorName(executor.name());
-                request.setRemoteAddress(task.getRemoteAddress());
-                NodeDTO worker = task.workerNode();
-                boolean dispatched = workerContext.call(API_TASK_DISPATCH, worker.getHost(), worker.getPort(), request);
-                if (dispatched) {
-                    return true;
-                } else {
-                    taskRepository.dispatchFail(task.getJobId(), task.getId());
-                }
-            } catch (Exception e) {
-                log.error("Task dispatch failed: jobId={} taskId={} worker={}", task.getJobId(), task.getId(), task.getWorkerAddress(), e);
-            }
-        }
-        return false;
+    @Override
+    protected Node findWorker(Task task) {
+        return task.getWorkerNode() == null ? null : task.getWorkerNode();
     }
 
 }

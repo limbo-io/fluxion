@@ -16,10 +16,11 @@
 
 package io.fluxion.worker.core.task.repository;
 
-import io.fluxion.remote.core.api.request.TaskPageRequest;
+import io.fluxion.remote.core.api.request.worker.TaskPageRequest;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.task.Task;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -50,15 +51,37 @@ public interface TaskRepository {
 
     Map<String, String> getAllSubTaskResult(String jobId);
 
-    boolean dispatched(Task task);
+    /**
+     * create -> dispatched
+     */
+    boolean dispatched(String jobId, String taskId, String workerAddress);
 
-    boolean dispatchFail(String jobId, String taskId);
+    /**
+     * dispatched -> running
+     */
+    boolean start(String jobId, String taskId, String workerAddress, LocalDateTime reportAt);
 
-    boolean start(Task task);
+    /**
+     * 修改report时间
+     *
+     * dispatched
+     * 执行/上报两个线程，上报线程先执行
+     *
+     * running
+     */
+    boolean report(String jobId, String taskId, TaskStatus status, String workerAddress, LocalDateTime reportTime);
 
-    boolean report(Task task);
-
+    /**
+     * running -> success
+     */
     boolean success(Task task);
 
+    /**
+     * created -> fail
+     * 下发失败
+     *
+     * running -> fail
+     * 运行失败
+     */
     boolean fail(Task task);
 }

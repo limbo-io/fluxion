@@ -14,23 +14,21 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.request;
+package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
-
-import java.time.LocalDateTime;
+import io.fluxion.remote.core.api.response.broker.JobWorkersResponse;
 
 /**
  * @author Devil
- * @since 2023/8/3
  */
-public class JobStartRequest implements Request<Boolean> {
+public class JobWorkersRequest implements Request<JobWorkersResponse> {
 
     private String jobId;
 
-    private String workerAddress;
+    private boolean filterResource = false;
 
-    private LocalDateTime reportAt;
+    private boolean loadBalanceSelect = false;
 
     public String getJobId() {
         return jobId;
@@ -40,19 +38,19 @@ public class JobStartRequest implements Request<Boolean> {
         this.jobId = jobId;
     }
 
-    public String getWorkerAddress() {
-        return workerAddress;
+    public boolean isFilterResource() {
+        return filterResource;
     }
 
-    public void setWorkerAddress(String workerAddress) {
-        this.workerAddress = workerAddress;
+    public void setFilterResource(boolean filterResource) {
+        this.filterResource = filterResource;
     }
 
-    public LocalDateTime getReportAt() {
-        return reportAt;
+    public boolean isLoadBalanceSelect() {
+        return loadBalanceSelect;
     }
 
-    public void setReportAt(LocalDateTime reportAt) {
-        this.reportAt = reportAt;
+    public void setLoadBalanceSelect(boolean loadBalanceSelect) {
+        this.loadBalanceSelect = loadBalanceSelect;
     }
 }

@@ -21,7 +21,7 @@ package io.fluxion.server.core.workflow;
  */
 public interface WorkflowConstants {
 
-    int FLOW_NODE_MAX_SIZE = 100; // todo @d 配置化 later
+    int FLOW_NODE_MAX_SIZE = 100;
 
     // ========== 校验code ==========
     String FLOW_NODE_EMPTY = "flow_node_empty";
