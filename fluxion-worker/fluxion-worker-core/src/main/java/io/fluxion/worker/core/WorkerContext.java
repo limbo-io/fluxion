@@ -98,12 +98,12 @@ public class WorkerContext {
     /**
      * 任务执行线程池
      */
-    private ExecutorService taskProcessExecutor;
+    private ExecutorService processExecutor;
 
     /**
      * 任务状态上报线程池
      */
-    private ScheduledExecutorService taskStatusReportExecutor;
+    private ScheduledExecutorService statusReportExecutor;
 
     public WorkerContext(String appName, Protocol protocol, String host, int port,
                          int queueSize, int concurrency, LBClient brokerClient,
@@ -122,7 +122,7 @@ public class WorkerContext {
     public void initialize() {
         // 初始化工作线程池
         BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(queueSize <= 0 ? concurrency : queueSize);
-        this.taskProcessExecutor = new ThreadPoolExecutor(
+        this.processExecutor = new ThreadPoolExecutor(
             concurrency, concurrency,
             5, TimeUnit.SECONDS, queue,
             NamedThreadFactory.newInstance("FluxionTaskProcessExecutor"),
@@ -131,15 +131,15 @@ public class WorkerContext {
             }
         );
         // 初始化状态上报线程池
-        this.taskStatusReportExecutor = new ScheduledThreadPoolExecutor(
+        this.statusReportExecutor = new ScheduledThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors() * 4,
             NamedThreadFactory.newInstance("FluxionTaskStatusReportExecutor")
         );
     }
 
     public void destroy() {
-        taskProcessExecutor.shutdown();
-        taskStatusReportExecutor.shutdown();
+        processExecutor.shutdown();
+        statusReportExecutor.shutdown();
     }
 
     /**
@@ -157,12 +157,12 @@ public class WorkerContext {
         return status.get();
     }
 
-    public ExecutorService taskProcessExecutor() {
-        return taskProcessExecutor;
+    public ExecutorService processExecutor() {
+        return processExecutor;
     }
 
-    public ScheduledExecutorService taskStatusReportExecutor() {
-        return taskStatusReportExecutor;
+    public ScheduledExecutorService statusReportExecutor() {
+        return statusReportExecutor;
     }
 
     public String appName() {
@@ -232,7 +232,7 @@ public class WorkerContext {
     public <R> Response<R> call(String path, Request<R> request) {
         Response<R> response = brokerClient.call(path, request);
         if (log.isDebugEnabled()) {
-            log.debug("Remote Call request:{} response:{}", JacksonUtils.toJSONString(request), response);
+            log.debug("Remote Call path:{} request:{} response:{}", path, JacksonUtils.toJSONString(request), JacksonUtils.toJSONString(response));
         }
         return response;
     }
@@ -240,7 +240,7 @@ public class WorkerContext {
     public <R> Response<R> call(String path, String host, int port, Request<R> request) {
         Response<R> response = client.call(path, host, port, request);
         if (log.isDebugEnabled()) {
-            log.debug("Remote Call host: {} port: {} request:{} response:{}", host, port, JacksonUtils.toJSONString(request), response);
+            log.debug("Remote Call host: {} port: {} path:{} request:{} response:{}", host, port, path, JacksonUtils.toJSONString(request), JacksonUtils.toJSONString(response));
         }
         return response;
     }

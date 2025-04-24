@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
-import io.fluxion.server.core.job.JobStatus;
+import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.infrastructure.dao.TableConstants;
 import lombok.Getter;
@@ -97,10 +97,13 @@ public class JobEntity extends BaseEntity {
      */
     private Integer retryTimes;
 
+    private String result;
+
     /**
      * 错误信息
      */
     private String errorMsg;
+
     /**
      * 任务监控数据
      */

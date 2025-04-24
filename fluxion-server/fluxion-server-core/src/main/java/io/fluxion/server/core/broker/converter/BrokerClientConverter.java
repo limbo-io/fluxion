@@ -21,7 +21,8 @@ import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.TagDTO;
 import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
-import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
+import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
+import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.BrokerNode;
@@ -87,7 +88,15 @@ public class BrokerClientConverter {
         NodeDTO dto = new NodeDTO();
         dto.setHost(node.host());
         dto.setPort(node.port());
+        dto.setProtocol(node.protocol().value);
         return dto;
+    }
+
+    public static Node toNode(NodeDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        return new BaseNode(Protocol.parse(dto.getProtocol()), dto.getHost(), dto.getPort());
     }
 
     public static List<NodeDTO> toBrokerNodeDTO(List<BrokerNode> nodes) {

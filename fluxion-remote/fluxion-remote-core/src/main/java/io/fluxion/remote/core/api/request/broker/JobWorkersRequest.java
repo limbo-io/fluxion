@@ -14,42 +14,21 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.request;
+package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
-import io.fluxion.remote.core.api.dto.NodeDTO;
-
-import java.time.LocalDateTime;
+import io.fluxion.remote.core.api.response.broker.JobWorkersResponse;
 
 /**
  * @author Devil
- * @since 2023/8/3
  */
-public class TaskReportRequest implements Request<Boolean> {
+public class JobWorkersRequest implements Request<JobWorkersResponse> {
 
     private String jobId;
 
-    private String taskId;
+    private boolean filterResource = false;
 
-    private NodeDTO workerNode;
-
-    private LocalDateTime reportAt;
-
-    public String getTaskId() {
-        return taskId;
-    }
-
-    public void setTaskId(String taskId) {
-        this.taskId = taskId;
-    }
-
-    public LocalDateTime getReportAt() {
-        return reportAt;
-    }
-
-    public void setReportAt(LocalDateTime reportAt) {
-        this.reportAt = reportAt;
-    }
+    private boolean loadBalanceSelect = false;
 
     public String getJobId() {
         return jobId;
@@ -59,11 +38,19 @@ public class TaskReportRequest implements Request<Boolean> {
         this.jobId = jobId;
     }
 
-    public NodeDTO getWorkerNode() {
-        return workerNode;
+    public boolean isFilterResource() {
+        return filterResource;
     }
 
-    public void setWorkerNode(NodeDTO workerNode) {
-        this.workerNode = workerNode;
+    public void setFilterResource(boolean filterResource) {
+        this.filterResource = filterResource;
+    }
+
+    public boolean isLoadBalanceSelect() {
+        return loadBalanceSelect;
+    }
+
+    public void setLoadBalanceSelect(boolean loadBalanceSelect) {
+        this.loadBalanceSelect = loadBalanceSelect;
     }
 }

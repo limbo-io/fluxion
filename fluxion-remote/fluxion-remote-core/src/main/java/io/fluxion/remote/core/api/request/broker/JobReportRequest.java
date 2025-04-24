@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.request;
+package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
+import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
+import io.fluxion.remote.core.api.response.broker.JobReportResponse;
+import io.fluxion.remote.core.constants.JobStatus;
 
 import java.time.LocalDateTime;
 
@@ -25,22 +28,34 @@ import java.time.LocalDateTime;
  * @author Devil
  * @since 2023/8/3
  */
-public class JobReportRequest implements Request<Boolean> {
+public class JobReportRequest implements Request<JobReportResponse> {
 
     private String jobId;
 
-    private String workerAddress;
+    private NodeDTO workerNode;
 
     private LocalDateTime reportAt;
 
     private TaskMonitorDTO taskMonitor;
 
-    public String getWorkerAddress() {
-        return workerAddress;
+    /**
+     * status
+     * @see JobStatus
+     */
+    private String status;
+
+    // when success
+    private String result;
+
+    // when fail
+    private String errorMsg;
+
+    public NodeDTO getWorkerNode() {
+        return workerNode;
     }
 
-    public void setWorkerAddress(String workerAddress) {
-        this.workerAddress = workerAddress;
+    public void setWorkerNode(NodeDTO workerNode) {
+        this.workerNode = workerNode;
     }
 
     public String getJobId() {
@@ -66,4 +81,29 @@ public class JobReportRequest implements Request<Boolean> {
     public void setTaskMonitor(TaskMonitorDTO taskMonitor) {
         this.taskMonitor = taskMonitor;
     }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getResult() {
+        return result;
+    }
+
+    public void setResult(String result) {
+        this.result = result;
+    }
+
+    public String getErrorMsg() {
+        return errorMsg;
+    }
+
+    public void setErrorMsg(String errorMsg) {
+        this.errorMsg = errorMsg;
+    }
+
 }

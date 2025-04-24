@@ -14,23 +14,16 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.request;
+package io.fluxion.remote.core.api.request.worker;
 
-import io.fluxion.remote.core.api.Request;
-
-import java.time.LocalDateTime;
+import io.fluxion.remote.core.api.PageRequest;
 
 /**
  * @author Devil
- * @since 2023/8/3
  */
-public class JobStartRequest implements Request<Boolean> {
+public class TaskPageRequest extends PageRequest {
 
     private String jobId;
-
-    private String workerAddress;
-
-    private LocalDateTime reportAt;
 
     public String getJobId() {
         return jobId;
@@ -38,21 +31,5 @@ public class JobStartRequest implements Request<Boolean> {
 
     public void setJobId(String jobId) {
         this.jobId = jobId;
-    }
-
-    public String getWorkerAddress() {
-        return workerAddress;
-    }
-
-    public void setWorkerAddress(String workerAddress) {
-        this.workerAddress = workerAddress;
-    }
-
-    public LocalDateTime getReportAt() {
-        return reportAt;
-    }
-
-    public void setReportAt(LocalDateTime reportAt) {
-        this.reportAt = reportAt;
     }
 }

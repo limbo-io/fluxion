@@ -36,4 +36,6 @@ public class ExecutableSuccessCmd implements ICmd<Boolean> {
 
     private TaskMonitor monitor;
 
+    private String result;
+
 }

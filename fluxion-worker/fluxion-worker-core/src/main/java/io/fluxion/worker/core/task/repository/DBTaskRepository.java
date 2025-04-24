@@ -18,8 +18,7 @@ package io.fluxion.worker.core.task.repository;
 
 import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.LocalDateTimeUtils;
-import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.remote.core.api.request.TaskPageRequest;
+import io.fluxion.remote.core.api.request.worker.TaskPageRequest;
 import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
@@ -294,21 +293,19 @@ public class DBTaskRepository implements TaskRepository {
     }
 
     @Override
-    public boolean dispatched(Task task) {
-        String sql = "update " + TABLE_NAME + " set `status` = ?, worker_address = ?, last_report_at = ? " +
-            " where job_id = ? and task_id = ? and `status` = ? ";
+    public boolean dispatched(String jobId, String taskId, String workerAddress) {
+        String sql = "update " + TABLE_NAME + " set `status` = ? " +
+            " where job_id = ? and task_id = ? and `status` = ? and `worker_node` = ? ";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
-            String reportAt = LocalDateTimeUtils.formatYMDHMSS(TimeUtils.currentLocalDateTime());
             ps.setString(++i, TaskStatus.DISPATCHED.value);
-            ps.setString(++i, task.workerAddress());
-            ps.setString(++i, reportAt);
-            ps.setString(++i, task.getJobId());
-            ps.setString(++i, task.getId());
+            ps.setString(++i, jobId);
+            ps.setString(++i, taskId);
             ps.setString(++i, TaskStatus.CREATED.value);
+            ps.setString(++i, workerAddress);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            log.error("TaskRepository.executing error task={}", task, e);
+            log.error("TaskRepository.executing error jobId:{} taskId:{} workerAddress:{}", jobId, taskId, workerAddress, e);
             return false;
         }
     }
@@ -350,51 +347,39 @@ public class DBTaskRepository implements TaskRepository {
         }
     }
 
-    public boolean dispatchFail(String jobId, String taskId) {
-        String sql = "update " + TABLE_NAME + " set `dispatch_fail_times` = `dispatch_fail_times` + 1 where job_id = ? and task_id = ?";
+    public boolean start(String jobId, String taskId, String workerAddress, LocalDateTime reportAt) {
+        String sql = "update " + TABLE_NAME + " set `status` = ?, start_at = ?, last_report_at = ? " +
+            " where job_id = ? and task_id = ? and `status` = ? and worker_address = ? ";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
+            String reportAtStr = LocalDateTimeUtils.formatYMDHMSS(reportAt);
+            ps.setString(++i, TaskStatus.RUNNING.value);
+            ps.setString(++i, reportAtStr);
+            ps.setString(++i, reportAtStr);
             ps.setString(++i, jobId);
             ps.setString(++i, taskId);
-            return ps.executeUpdate() > 0;
-        } catch (Exception e) {
-            log.error("TaskRepository.dispatchFail error jobId={} taskId={}", jobId, taskId, e);
-            return false;
-        }
-    }
-
-    public boolean start(Task task) {
-        String sql = "update " + TABLE_NAME + " set `status` = ?, worker_address = ?, start_at = ?, last_report_at = ? " +
-            " where job_id = ? and task_id = ? and `status` = ? ";
-        try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            int i = 0;
-            String reportAt = LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt());
-            ps.setString(++i, TaskStatus.RUNNING.value);
-            ps.setString(++i, task.workerAddress());
-            ps.setString(++i, reportAt);
-            ps.setString(++i, reportAt);
-            ps.setString(++i, task.getJobId());
-            ps.setString(++i, task.getId());
             ps.setString(++i, TaskStatus.DISPATCHED.value);
+            ps.setString(++i, workerAddress);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            log.error("TaskRepository.executing error task={}", task, e);
+            log.error("TaskRepository.executing error jobId:{} taskId:{} workerAddress:{} reportTime:{}", jobId, taskId, workerAddress, reportAt, e);
             return false;
         }
     }
 
-    public boolean report(Task task) {
+    public boolean report(String jobId, String taskId, TaskStatus status, String workerAddress, LocalDateTime reportAt) {
         String sql = "update " + TABLE_NAME + " set `last_report_at` = ? " +
-            " where job_id = ? and task_id = ? and status = ? ";
+            " where job_id = ? and task_id = ? and status = ? and `worker_address` = ? ";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
-            ps.setString(++i, LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt()));
-            ps.setString(++i, task.getJobId());
-            ps.setString(++i, task.getId());
-            ps.setString(++i, TaskStatus.RUNNING.value);
+            ps.setString(++i, LocalDateTimeUtils.formatYMDHMSS(reportAt));
+            ps.setString(++i, jobId);
+            ps.setString(++i, taskId);
+            ps.setString(++i, status.value);
+            ps.setString(++i, workerAddress);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            log.error("TaskRepository.report error task={}", task, e);
+            log.error("TaskRepository.report error jobId:{} taskId:{} status:{} workerAddress:{} reportTime:{}", jobId, taskId, status, workerAddress, reportAt, e);
             return false;
         }
     }
@@ -418,18 +403,17 @@ public class DBTaskRepository implements TaskRepository {
     }
 
     public boolean fail(Task task) {
-        String sql = "update " + TABLE_NAME + " set `status` = ?, start_at = ?, end_at = ?, error_msg = ?, error_stack_trace = ? " +
-            "where job_id = ? and task_id = ? and `status` = ? ";
+        String sql = "update " + TABLE_NAME + " set `status` = ?, end_at = ?, error_msg = ?, error_stack_trace = ? " +
+            "where job_id = ? and task_id = ? and `status` in (?, ?) ";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
-            String curTimeStr = LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt());
             ps.setString(++i, TaskStatus.FAILED.value);
-            ps.setString(++i, task.getStartAt() == null ? curTimeStr : LocalDateTimeUtils.formatYMDHMSS(task.getStartAt()));
-            ps.setString(++i, curTimeStr);
+            ps.setString(++i, LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt()));
             ps.setString(++i, task.getErrorMsg() == null ? "" : task.getErrorMsg());
             ps.setString(++i, task.getErrorStackTrace() == null ? "" : task.getErrorStackTrace());
             ps.setString(++i, task.getJobId());
             ps.setString(++i, task.getId());
+            ps.setString(++i, TaskStatus.CREATED.value);
             ps.setString(++i, TaskStatus.RUNNING.value);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {

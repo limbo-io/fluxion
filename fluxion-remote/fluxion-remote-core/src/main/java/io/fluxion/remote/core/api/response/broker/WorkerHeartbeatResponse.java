@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.response;
+package io.fluxion.remote.core.api.response.broker;
 
 import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 

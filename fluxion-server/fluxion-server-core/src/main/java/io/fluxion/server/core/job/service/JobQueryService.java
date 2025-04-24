@@ -16,10 +16,12 @@
 
 package io.fluxion.server.core.job.service;
 
+import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
 import io.fluxion.server.core.job.Job;
+import io.fluxion.server.core.job.TaskMonitor;
 import io.fluxion.server.core.job.query.JobByIdQuery;
 import io.fluxion.server.core.job.query.JobCountByStatusQuery;
 import io.fluxion.server.infrastructure.cqrs.Query;
@@ -56,7 +58,14 @@ public class JobQueryService {
         }
         Execution execution = Query.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
         Executable executable = execution.getExecutable();
-        Job job = executable.job(entity.getRefId(), entity.getExecutionId(), entity.getTriggerAt());
+        Job job = executable.newRefJob(entity.getRefId());
+        job.setJobId(entity.getJobId());
+        job.setExecution(execution);
+        job.setTriggerAt(entity.getTriggerAt());
+        job.setRetryTimes(entity.getRetryTimes());
+        job.setTaskMonitor(JacksonUtils.toType(entity.getMonitor(), TaskMonitor.class));
+        job.setErrorMsg(entity.getErrorMsg());
+        job.setResult(entity.getResult());
         return new JobByIdQuery.Response(job);
     }
 

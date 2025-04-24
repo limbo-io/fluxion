@@ -18,8 +18,8 @@ package io.fluxion.worker.core.job.tracker;
 
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.NodeDTO;
-import io.fluxion.remote.core.api.request.JobWorkersRequest;
-import io.fluxion.remote.core.api.response.JobWorkersResponse;
+import io.fluxion.remote.core.api.request.broker.JobWorkersRequest;
+import io.fluxion.remote.core.api.response.broker.JobWorkersResponse;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.WorkerContext;
@@ -45,80 +45,50 @@ public class BroadcastJobTracker extends DistributedJobTracker {
 
     @Override
     public void run() {
-        try {
-            // 反馈执行中 -- 排除由于网络问题导致的失败可能性
-            boolean success = reportStart();
-            if (!success) {
-                // 不成功，可能已经下发给其它节点
-                return;
-            }
-
-            // 获取所有节点，创建task
-            JobWorkersRequest request = new JobWorkersRequest();
-            request.setJobId(job.getId());
-            Response<JobWorkersResponse> workerResponse = workerContext.call(API_JOB_WORKERS, request);
-            if (!workerResponse.success()) {
-                reportFail("Get Workers Fail");
-                destroy();
-                return;
-            }
-
-            List<NodeDTO> workers = workerResponse.getData().getWorkers();
-
-            List<Task> tasks = new ArrayList<>();
-            for (int i = 0; i < workers.size(); i++) {
-                NodeDTO worker = workers.get(i);
-                Task task = new Task("SUB_" + i, job.getId());
-                task.setStatus(TaskStatus.CREATED);
-                task.setRemoteNode(workerContext.node());
-                task.setWorkerNode(WorkerClientConverter.toNode(worker));
-                tasks.add(task);
-            }
-
-            // 保存
-            taskRepository.batchSave(tasks);
-            taskCounter.getTotal().set(tasks.size());
-
-            // 下发
-            for (Task task : tasks) {
-                boolean dispatched = dispatch(task);
-                if (dispatched) {
-                    taskRepository.dispatched(task);
-                } else {
-                    task.setErrorMsg(String.format("task dispatch fail over limit last worker=%s", task.workerAddress()));
-                    taskRepository.fail(task);
-                }
-            }
-            // todo ! 如果全部下发失败了，直接失败
-        } catch (Throwable throwable) {
-            log.error("[{}] run error", getClass().getSimpleName(), throwable);
-            reportFail(throwable.getMessage()); // todo ! 这里没有统计失败个数
-            destroy();
+        // 获取所有节点，创建task
+        JobWorkersRequest request = new JobWorkersRequest();
+        request.setJobId(job.getId());
+        Response<JobWorkersResponse> workerResponse = workerContext.call(API_JOB_WORKERS, request);
+        if (!workerResponse.success()) {
+            job.fail("Get Workers Fail");
+            report();
+            return;
         }
+
+        List<NodeDTO> workers = workerResponse.getData().getWorkers();
+
+        List<Task> tasks = new ArrayList<>();
+        for (int i = 0; i < workers.size(); i++) {
+            NodeDTO worker = workers.get(i);
+            Task task = new Task("SUB_" + i, job.getId());
+            task.setStatus(TaskStatus.CREATED);
+            task.setRemoteNode(workerContext.node());
+            task.setWorkerNode(WorkerClientConverter.toNode(worker));
+            tasks.add(task);
+        }
+
+        // 保存
+        taskRepository.batchSave(tasks);
+        taskCounter.getTotal().set(tasks.size());
+
+        // 下发
+        dispatch(tasks);
     }
 
     @Override
-    public void success(Task task) {
-        taskCounter.getSuccess().incrementAndGet();
-        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
-            return;
-        }
-        reportSuccess();
-        destroy();
+    public void success() {
+        report();
     }
 
     @Override
-    public void fail(Task task) {
-        taskCounter.getFail().incrementAndGet();
-        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
-            return;
-        }
+    public void fail() {
+        // 后面应该根据策略，现在是只要一个成功就是成功
         if (taskCounter.getSuccess().get() > 0) {
-            reportSuccess();
+            report();
         } else {
-            reportFail("");
+            job.fail("Task Execute Fail");
+            report();
         }
-        destroy();
     }
 
     @Override

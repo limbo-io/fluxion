@@ -20,29 +20,23 @@ import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 import io.fluxion.remote.core.api.dto.NodeDTO;
-import io.fluxion.remote.core.api.request.JobDispatchedRequest;
-import io.fluxion.remote.core.api.request.JobFailRequest;
-import io.fluxion.remote.core.api.request.JobReportRequest;
-import io.fluxion.remote.core.api.request.JobStartRequest;
-import io.fluxion.remote.core.api.request.JobSuccessRequest;
-import io.fluxion.remote.core.api.request.JobWorkersRequest;
-import io.fluxion.remote.core.api.request.WorkerHeartbeatRequest;
-import io.fluxion.remote.core.api.request.WorkerRegisterRequest;
-import io.fluxion.remote.core.api.response.JobWorkersResponse;
-import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
-import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
+import io.fluxion.remote.core.api.request.broker.JobReportRequest;
+import io.fluxion.remote.core.api.request.broker.JobWorkersRequest;
+import io.fluxion.remote.core.api.request.broker.WorkerHeartbeatRequest;
+import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
+import io.fluxion.remote.core.api.response.broker.JobReportResponse;
+import io.fluxion.remote.core.api.response.broker.JobWorkersResponse;
+import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
+import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.BrokerRemoteConstant;
+import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.app.cmd.AppSaveCmd;
 import io.fluxion.server.core.broker.converter.BrokerClientConverter;
 import io.fluxion.server.core.broker.query.BrokersQuery;
-import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
-import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
 import io.fluxion.server.core.job.ExecutorJob;
 import io.fluxion.server.core.job.Job;
-import io.fluxion.server.core.job.cmd.JobDispatchedCmd;
 import io.fluxion.server.core.job.cmd.JobReportCmd;
-import io.fluxion.server.core.job.cmd.JobStartCmd;
 import io.fluxion.server.core.job.query.JobByIdQuery;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
@@ -50,8 +44,6 @@ import io.fluxion.server.core.worker.cmd.WorkerSaveCmd;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
-import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
-import io.fluxion.server.infrastructure.id.data.IDType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -75,20 +67,8 @@ public class BrokerClientHandler implements ClientHandler {
                 case BrokerRemoteConstant.API_BROKER_PING: {
                     return Response.ok(true);
                 }
-                case BrokerRemoteConstant.API_JOB_DISPATCHED: {
-                    return Response.ok(jobDispatched(data));
-                }
-                case BrokerRemoteConstant.API_JOB_START: {
-                    return Response.ok(jobStart(data));
-                }
                 case BrokerRemoteConstant.API_JOB_REPORT: {
                     return Response.ok(jobReport(data));
-                }
-                case BrokerRemoteConstant.API_JOB_SUCCESS: {
-                    return Response.ok(jobSuccess(data));
-                }
-                case BrokerRemoteConstant.API_JOB_FAIL: {
-                    return Response.ok(jobFail(data));
                 }
                 case BrokerRemoteConstant.API_JOB_WORKERS: {
                     return Response.ok(jobWorkers(data));
@@ -142,42 +122,18 @@ public class BrokerClientHandler implements ClientHandler {
         return response;
     }
 
-    private boolean jobDispatched(String data) {
-        JobDispatchedRequest request = JacksonUtils.toType(data, JobDispatchedRequest.class);
-        return Cmd.send(new JobDispatchedCmd(
-            request.getJobId(), request.getWorkerAddress()
-        ));
-    }
-
-    private boolean jobStart(String data) {
-        JobStartRequest request = JacksonUtils.toType(data, JobStartRequest.class);
-        return Cmd.send(new JobStartCmd(
-            request.getJobId(), request.getReportAt(), request.getWorkerAddress()
-        ));
-    }
-
-    private boolean jobReport(String data) {
+    private JobReportResponse jobReport(String data) {
         JobReportRequest request = JacksonUtils.toType(data, JobReportRequest.class);
-        return Cmd.send(new JobReportCmd(
-            request.getJobId(), request.getWorkerAddress(),
-            request.getReportAt(), BrokerClientConverter.convert(request.getTaskMonitor())
+        JobReportCmd.Response response = Cmd.send(new JobReportCmd(
+            request.getJobId(), BrokerClientConverter.toNode(request.getWorkerNode()),
+            request.getReportAt(), BrokerClientConverter.convert(request.getTaskMonitor()),
+            JobStatus.parse(request.getStatus()), request.getResult(), request.getErrorMsg()
         ));
-    }
-
-    private boolean jobSuccess(String data) {
-        JobSuccessRequest request = JacksonUtils.toType(data, JobSuccessRequest.class);
-        return Cmd.send(new ExecutableSuccessCmd(
-            request.getJobId(), request.getReportAt(),
-            BrokerClientConverter.convert(request.getTaskMonitor())
-        ));
-    }
-
-    private boolean jobFail(String data) {
-        JobFailRequest request = JacksonUtils.toType(data, JobFailRequest.class);
-        return Cmd.send(new ExecutableFailCmd(
-            request.getJobId(), request.getReportAt(), request.getErrorMsg(),
-            BrokerClientConverter.convert(request.getTaskMonitor())
-        ));
+        JobReportResponse res = new JobReportResponse();
+        res.setSuccess(response.isSuccess());
+        res.setWorkerNode(BrokerClientConverter.toDTO(response.getWorkerNode()));
+        res.setStatus(response.getStatus() == null ? null : response.getStatus().value);
+        return res;
     }
 
     private JobWorkersResponse jobWorkers(String data) {

@@ -16,6 +16,7 @@
 
 package io.fluxion.worker.core.job.tracker;
 
+import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
@@ -35,34 +36,20 @@ public class BasicJobTracker extends JobTracker {
 
     @Override
     public void run() {
-        try {
-            // 反馈执行中 -- 排除由于网络问题导致的失败可能性
-            boolean success = reportStart();
-            if (!success) {
-                // 不成功，可能已经下发给其它节点
-                return;
-            }
+        Task task = new Task("0", job.getId());
+        task.setStatus(TaskStatus.RUNNING);
+        task.setWorkerNode(workerContext.node());
+        task.setRemoteNode(workerContext.node());
 
-            Task task = new Task("0", job.getId());
-            task.setStatus(TaskStatus.RUNNING);
-            task.setWorkerNode(workerContext.node());
-            task.setRemoteNode(workerContext.node());
+        taskCounter.getTotal().set(1);
 
-            taskCounter.getTotal().set(1);
+        // 执行
+        executor.run(task);
 
-            // 执行
-            executor.run(task);
-
-            // 执行成功
-            taskCounter.getSuccess().incrementAndGet();
-            reportSuccess();
-        } catch (Throwable throwable) {
-            log.error("[{}] run error", getClass().getSimpleName(), throwable);
-            taskCounter.getFail().incrementAndGet();
-            reportFail(throwable.getMessage());
-        } finally {
-            destroy();
-        }
+        // 执行成功
+        taskCounter.getSuccess().incrementAndGet();
+        job.success("");
+        report();
     }
 
 }

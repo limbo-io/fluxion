@@ -17,8 +17,8 @@
 package io.fluxion.worker.core.remote;
 
 import io.fluxion.remote.core.api.dto.NodeDTO;
-import io.fluxion.remote.core.api.request.JobDispatchRequest;
-import io.fluxion.remote.core.api.request.TaskDispatchRequest;
+import io.fluxion.remote.core.api.request.worker.JobDispatchRequest;
+import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
 import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.ExecuteMode;

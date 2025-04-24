@@ -16,11 +16,15 @@
 
 package io.fluxion.server.core.job.cmd;
 
+import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.job.TaskMonitor;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -30,14 +34,39 @@ import java.time.LocalDateTime;
 @Getter
 @AllArgsConstructor
 @Builder
-public class JobReportCmd implements ICmd<Boolean> {
+public class JobReportCmd implements ICmd<JobReportCmd.Response> {
 
     private String jobId;
 
-    private String workerAddress;
+    private Node workerNode;
 
     private LocalDateTime reportAt;
 
     private TaskMonitor monitor;
+
+    private JobStatus status;
+
+    // when success
+    private String result;
+
+    // when fail
+    private String errorMsg;
+
+    @Data
+    public static class Response {
+        /**
+         * 是否成功
+         */
+        private boolean success;
+        /**
+         * 当前绑定的工作节点
+         */
+        private Node workerNode;
+
+        /**
+         * 当前状态
+         */
+        private JobStatus status;
+    }
 
 }

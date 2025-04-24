@@ -215,6 +215,7 @@ CREATE TABLE `fluxion_job`
     `worker_address` varchar(64)     NOT NULL DEFAULT '',
     `last_report_at` datetime(3)              DEFAULT NULL,
     `retry_times`    int unsigned    NOT NULL,
+    `result`         TEXT,
     `error_msg`      TEXT,
     `monitor`        varchar(255)    NOT NULL DEFAULT '',
     `is_deleted`     bit(1)          NOT NULL DEFAULT 0,

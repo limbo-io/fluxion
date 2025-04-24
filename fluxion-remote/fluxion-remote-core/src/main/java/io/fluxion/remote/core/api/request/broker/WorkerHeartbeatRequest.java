@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.request;
+package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
-import io.fluxion.remote.core.api.response.WorkerHeartbeatResponse;
+import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
 
 import java.time.LocalDateTime;
 

@@ -18,8 +18,8 @@ package io.fluxion.worker.core.job.tracker;
 
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.NodeDTO;
-import io.fluxion.remote.core.api.request.JobWorkersRequest;
-import io.fluxion.remote.core.api.response.JobWorkersResponse;
+import io.fluxion.remote.core.api.request.broker.JobWorkersRequest;
+import io.fluxion.remote.core.api.response.broker.JobWorkersResponse;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.WorkerContext;
@@ -47,75 +47,41 @@ public class MapReduceJobTracker extends DistributedJobTracker {
 
     @Override
     public void run() {
-        try {
-            // 反馈执行中 -- 排除由于网络问题导致的失败可能性
-            boolean success = reportStart();
-            if (!success) {
-                // 不成功，可能已经下发给其它节点
-                return;
-            }
-
-            MapReduceExecutor executor = (MapReduceExecutor) this.executor;
-            List<Task> tasks = executor.sharding(job);
-            for (Task task : tasks) {
-                task.setStatus(TaskStatus.CREATED);
-                task.setRemoteNode(workerContext.node());
-            }
-
-            // 保存
-            taskRepository.batchSave(tasks);
-            taskCounter.getTotal().set(tasks.size());
-
-            // 下发
-            boolean dispatched = false;
-            for (Task task : tasks) {
-                dispatched = dispatch(task);
-                if (dispatched) {
-                    taskRepository.dispatched(task);
-                } else {
-                    task.setErrorMsg(String.format("task dispatch fail over limit last worker=%s", task.workerAddress()));
-                    taskRepository.fail(task);
-                    break;
-                }
-            }
-            if (!dispatched) {
-                reportFail("dispatch fail");
-            }
-        } catch (Throwable throwable) {
-            log.error("[{}] run error", getClass().getSimpleName(), throwable);
-            reportFail(throwable.getMessage());
-            destroy();
+        MapReduceExecutor executor = (MapReduceExecutor) this.executor;
+        List<Task> tasks = executor.sharding(job);
+        for (Task task : tasks) {
+            task.setStatus(TaskStatus.CREATED);
+            task.setRemoteNode(workerContext.node());
         }
+
+        // 保存
+        taskRepository.batchSave(tasks);
+        taskCounter.getTotal().set(tasks.size());
+
+        // 下发
+        dispatch(tasks);
     }
 
     @Override
-    public void success(Task task) {
-        taskCounter.getSuccess().incrementAndGet();
+    public void success() {
         MapExecutor executor = (MapExecutor) this.executor;
-        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
-            return;
-        }
         if (taskCounter.getFail().get() > 0) {
-            reportFail("");
+            job.fail("Task Execute Fail");
+            report();
         } else {
             if (executor instanceof MapReduceExecutor) {
                 MapReduceExecutor reduceExecutor = (MapReduceExecutor) this.executor;
-                Map<String, String> allSubTaskResult = taskRepository.getAllSubTaskResult(task.getJobId());
+                Map<String, String> allSubTaskResult = taskRepository.getAllSubTaskResult(job.getId());
                 reduceExecutor.reduce(allSubTaskResult);
             }
-            reportSuccess();
+            report();
         }
-        destroy();
     }
 
     @Override
-    public void fail(Task task) {
-        taskCounter.getFail().incrementAndGet();
-        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
-            return;
-        }
-        reportFail("");
-        destroy();
+    public void fail() {
+        job.fail("Task Execute Fail");
+        report();
     }
 
     @Override

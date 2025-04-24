@@ -14,33 +14,49 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.request;
+package io.fluxion.remote.core.api.response.worker;
 
-import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.dto.NodeDTO;
-
-import java.time.LocalDateTime;
+import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.remote.core.constants.TaskStatus;
 
 /**
+ * 失败原因：
+ * 1. task为空
+ * 2. worker节点变化
+ * 3. 前置状态不一致
  * @author Devil
- * @since 2023/8/3
  */
-public class TaskStartRequest implements Request<Boolean> {
-
-    private String jobId;
-
-    private String taskId;
-
+public class TaskReportResponse {
+    /**
+     * 是否成功
+     */
+    private boolean success;
+    /**
+     * task 当前绑定的工作节点
+     */
     private NodeDTO workerNode;
 
-    private LocalDateTime reportAt;
+    /**
+     * task status
+     * @see TaskStatus
+     */
+    private String status;
 
-    public String getTaskId() {
-        return taskId;
+    public String getStatus() {
+        return status;
     }
 
-    public void setTaskId(String taskId) {
-        this.taskId = taskId;
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
     }
 
     public NodeDTO getWorkerNode() {
@@ -49,21 +65,5 @@ public class TaskStartRequest implements Request<Boolean> {
 
     public void setWorkerNode(NodeDTO workerNode) {
         this.workerNode = workerNode;
-    }
-
-    public LocalDateTime getReportAt() {
-        return reportAt;
-    }
-
-    public void setReportAt(LocalDateTime reportAt) {
-        this.reportAt = reportAt;
-    }
-
-    public String getJobId() {
-        return jobId;
-    }
-
-    public void setJobId(String jobId) {
-        this.jobId = jobId;
     }
 }

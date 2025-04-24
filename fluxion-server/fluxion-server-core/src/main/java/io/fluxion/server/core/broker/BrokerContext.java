@@ -19,7 +19,7 @@ package io.fluxion.server.core.broker;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.Response;
-import io.fluxion.remote.core.api.request.BrokerPingRequest;
+import io.fluxion.remote.core.api.request.broker.BrokerPingRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +27,6 @@ import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_BROKER_P
 
 /**
  * @author Devil
- * @date 2025/1/10
  */
 public class BrokerContext {
 
@@ -46,7 +45,7 @@ public class BrokerContext {
     public static <R> Response<R> call(String path, String host, int port, Request<R> request) {
         Response<R> response = broker().client().call(path, host, port, request);
         if (log.isDebugEnabled()) {
-            log.debug("Remote Call host: {} port: {} request:{} response:{}", host, port, JacksonUtils.toJSONString(request), response);
+            log.debug("Remote Call host: {} port: {} path:{} request:{} response:{}", host, port, path, JacksonUtils.toJSONString(request), JacksonUtils.toJSONString(response));
         }
         return response;
     }

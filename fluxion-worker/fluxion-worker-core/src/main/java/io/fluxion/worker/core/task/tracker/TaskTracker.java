@@ -20,29 +20,24 @@ import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.NodeDTO;
-import io.fluxion.remote.core.api.request.TaskDispatchedRequest;
-import io.fluxion.remote.core.api.request.TaskFailRequest;
-import io.fluxion.remote.core.api.request.TaskReportRequest;
-import io.fluxion.remote.core.api.request.TaskStartRequest;
-import io.fluxion.remote.core.api.request.TaskSuccessRequest;
+import io.fluxion.remote.core.api.request.worker.TaskReportRequest;
+import io.fluxion.remote.core.api.response.worker.TaskReportResponse;
+import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.worker.core.AbstractTracker;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.remote.WorkerClientConverter;
 import io.fluxion.worker.core.task.Task;
-import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_DISPATCHED;
-import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_FAIL;
 import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_REPORT;
-import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_START;
-import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_SUCCESS;
 
 /**
  * Task执行管理和监控
@@ -50,6 +45,10 @@ import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_SUC
  * @author Devil
  */
 public class TaskTracker extends AbstractTracker {
+    /**
+     * 上报失败最大次数
+     */
+    private static final int MAX_REPORT_FAILED_TIMES = 5;
 
     private final Task task;
 
@@ -62,6 +61,10 @@ public class TaskTracker extends AbstractTracker {
     private Future<?> processFuture;
 
     private Future<?> statusReportFuture;
+    /**
+     * 上报失败统计
+     */
+    private int reportFailedCount = 0;
 
     public TaskTracker(Task task, Executor executor, WorkerContext workerContext) {
         this.task = task;
@@ -81,10 +84,6 @@ public class TaskTracker extends AbstractTracker {
         }
 
         try {
-            if (!reportDispatched()) {
-                destroy();
-                return true;
-            }
             run();
             return true;
         } catch (RejectedExecutionException e) {
@@ -99,50 +98,81 @@ public class TaskTracker extends AbstractTracker {
     }
 
     private void run() {
+        task.setStatus(TaskStatus.DISPATCHED);
         // 提交执行 正常来说保存成功这里不会被拒绝
-        this.processFuture = workerContext.taskProcessExecutor().submit(() -> {
+        this.processFuture = workerContext.processExecutor().submit(() -> {
             try {
                 // 反馈执行中 -- 排除由于网络问题导致的失败可能性
-                boolean success = reportStart();
-                if (!success) {
+                task.setStatus(TaskStatus.RUNNING);
+                if (!report().isSuccess()) {
                     // 不成功，可能已经下发给其它节点
                     return;
                 }
                 executor.run(task);
                 // 执行成功
-                reportSuccess();
+                task.setStatus(TaskStatus.SUCCEED);
+                report();
             } catch (Throwable throwable) {
                 log.error("[TaskTracker] run error", throwable);
-                reportFail(throwable);
-            } finally {
-                destroy();
+                task.setStatus(TaskStatus.FAILED);
+                task.setErrorMsg(throwable.getMessage());
+                task.setErrorStackTrace(ExceptionUtils.getStackTrace(throwable));
+                report();
             }
         });
         // 提交状态监控
-        this.statusReportFuture = workerContext.taskStatusReportExecutor().scheduleAtFixedRate(() -> {
-            TaskReportRequest request = new TaskReportRequest();
-            request.setTaskId(task.getId());
-            request.setJobId(task.getJobId());
-            request.setReportAt(TimeUtils.currentLocalDateTime());
-            request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
-            NodeDTO remote = WorkerClientConverter.toDTO(task.getRemoteNode());
-            workerContext.call(API_TASK_REPORT, remote.getHost(), remote.getPort(), request);
-        }, 1, WorkerRemoteConstant.TASK_REPORT_SECONDS, TimeUnit.SECONDS);
+        this.statusReportFuture = workerContext.statusReportExecutor().scheduleAtFixedRate(
+            this::report, 1, WorkerRemoteConstant.TASK_REPORT_SECONDS, TimeUnit.SECONDS
+        );
     }
 
-    private boolean reportDispatched() {
+    private TaskReportResponse report() {
+        task.setLastReportAt(TimeUtils.currentLocalDateTime());
+        TaskReportRequest request = new TaskReportRequest();
+        TaskReportResponse result;
         try {
-            TaskDispatchedRequest request = new TaskDispatchedRequest();
             request.setTaskId(task.getId());
             request.setJobId(task.getJobId());
+            request.setReportAt(task.getLastReportAt());
+            request.setStatus(task.getStatus().value);
             request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
+
+            request.setResult(task.getResult());
+
+            request.setErrorMsg(task.getErrorMsg());
+            request.setErrorStackTrace(task.getErrorStackTrace());
+
             NodeDTO remote = WorkerClientConverter.toDTO(task.getRemoteNode());
-            Response<Boolean> response = workerContext.call(API_TASK_DISPATCHED, remote.getHost(), remote.getPort(), request);
-            return response.success() && BooleanUtils.isTrue(response.getData());
+            Response<TaskReportResponse> response = workerContext.call(API_TASK_REPORT, remote.getHost(), remote.getPort(), request);
+            if (!response.success() || response.getData() == null) {
+                result = new TaskReportResponse();
+            } else {
+                result = response.getData();
+            }
         } catch (Exception e) {
-            log.error("reportDispatched fail taskId={}", task.getId(), e);
-            return false;
+            log.error("[TaskReport] fail request={}", JacksonUtils.toJSONString(request), e);
+            result = new TaskReportResponse();
         }
+        Node currentWorker = WorkerClientConverter.toNode(result.getWorkerNode());
+        if (!result.isSuccess() && !task.sameWorker(currentWorker)) {
+            log.warn("[TaskReport] task worker change jobId:{} taskId:{} currentWorker:{}",
+                task.getJobId(), task.getId(), currentWorker == null ? null : currentWorker.address()
+            );
+            destroy();
+            return result;
+        }
+        if (task.getStatus().isFinished()) {
+            if (result.isSuccess()) {
+                destroy();
+            } else {
+                reportFailedCount++;
+                if (reportFailedCount > MAX_REPORT_FAILED_TIMES) {
+                    log.warn("[TaskReport] fail more than {} times jobId:{} taskId:{}", MAX_REPORT_FAILED_TIMES, task.getJobId(), task.getId());
+                    destroy();
+                }
+            }
+        }
+        return result;
     }
 
     public void destroy() {
@@ -158,53 +188,6 @@ public class TaskTracker extends AbstractTracker {
         }
         workerContext.deleteTask(task.getId());
         log.info("TaskTracker task: {} destroyed success", JacksonUtils.toJSONString(task));
-    }
-
-    private boolean reportStart() {
-        try {
-            TaskStartRequest request = new TaskStartRequest();
-            request.setTaskId(task.getId());
-            request.setJobId(task.getJobId());
-            request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
-            request.setReportAt(TimeUtils.currentLocalDateTime());
-            NodeDTO remote = WorkerClientConverter.toDTO(task.getRemoteNode());
-            Response<Boolean> response = workerContext.call(API_TASK_START, remote.getHost(), remote.getPort(), request);
-            return response.success() && BooleanUtils.isTrue(response.getData());
-        } catch (Exception e) {
-            log.error("reportStart fail taskId={}", task.getId(), e);
-            return false;
-        }
-    }
-
-    private void reportSuccess() {
-        try {
-            TaskSuccessRequest request = new TaskSuccessRequest();
-            request.setTaskId(task.getId());
-            request.setJobId(task.getJobId());
-            request.setReportAt(TimeUtils.currentLocalDateTime());
-            request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
-            NodeDTO remote = WorkerClientConverter.toDTO(task.getRemoteNode());
-            workerContext.call(API_TASK_SUCCESS, remote.getHost(), remote.getPort(), request); // todo @d later 如果上报失败需要记录，定时重试
-        } catch (Exception e) {
-            log.error("reportSuccess fail taskId={}", task.getId(), e);
-            // todo @d later 如果上报失败需要记录，定时重试
-        }
-    }
-
-    private void reportFail(Throwable throwable) {
-        try {
-            TaskFailRequest request = new TaskFailRequest();
-            request.setTaskId(task.getId());
-            request.setJobId(task.getJobId());
-            request.setReportAt(TimeUtils.currentLocalDateTime());
-            request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
-            request.setErrorMsg(throwable.getMessage());
-            NodeDTO remote = WorkerClientConverter.toDTO(task.getRemoteNode());
-            workerContext.call(API_TASK_FAIL, remote.getHost(), remote.getPort(), request); // todo @d later 如果上报失败需要记录，定时重试
-        } catch (Exception e) {
-            log.error("reportFail fail taskId={}", task.getId(), e);
-            // todo @d later 如果上报失败需要记录，定时重试
-        }
     }
 
     public Task task() {

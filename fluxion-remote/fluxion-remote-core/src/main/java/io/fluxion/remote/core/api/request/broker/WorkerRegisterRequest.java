@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.request;
+package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.WorkerExecutorDTO;
 import io.fluxion.remote.core.api.dto.TagDTO;
-import io.fluxion.remote.core.api.response.WorkerRegisterResponse;
+import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
 import io.fluxion.remote.core.constants.Protocol;
 
 import javax.validation.constraints.NotEmpty;

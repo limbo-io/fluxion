@@ -17,8 +17,14 @@
 package io.fluxion.server.core.job;
 
 import io.fluxion.common.thread.CommonThreadPool;
+import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.broker.BrokerContext;
+import io.fluxion.server.core.execution.Execution;
+import io.fluxion.server.core.executor.option.RetryOption;
+import io.fluxion.server.core.job.cmd.JobFailCmd;
+import io.fluxion.server.core.job.cmd.JobRetryCmd;
 import io.fluxion.server.core.job.cmd.JobRunCmd;
+import io.fluxion.server.core.job.cmd.JobSuccessCmd;
 import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
@@ -33,8 +39,6 @@ import java.time.LocalDateTime;
 @Data
 public abstract class Job {
 
-    private String executionId;
-
     private String jobId;
 
     /**
@@ -48,10 +52,25 @@ public abstract class Job {
 
     private LocalDateTime triggerAt;
 
+    private Execution execution;
+
     /**
      * 当前是第几次重试
      */
     private int retryTimes = 0;
+
+    private TaskMonitor taskMonitor;
+
+    /**
+     * 重试参数
+     */
+    private RetryOption retryOption = new RetryOption();
+
+    // when success
+    private String result;
+
+    // when error
+    private String errorMsg;
 
     public void schedule() {
         DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
@@ -67,5 +86,25 @@ public abstract class Job {
     }
 
     public abstract JobType type();
+
+    public boolean success(LocalDateTime time) {
+        boolean success = Cmd.send(new JobSuccessCmd(jobId, time, taskMonitor));
+        if (!success) {
+            return false;
+        }
+        return execution.getExecutable().success(this, time);
+    }
+
+    public boolean fail(LocalDateTime time) {
+        if (retryOption.canRetry(retryTimes)) {
+            return Cmd.send(new JobRetryCmd());
+        }
+        // 更新当前job状态
+        boolean failed = Cmd.send(new JobFailCmd(jobId, time, errorMsg, taskMonitor));
+        if (!failed) {
+            return false;
+        }
+        return execution.getExecutable().fail(this, time);
+    }
 
 }

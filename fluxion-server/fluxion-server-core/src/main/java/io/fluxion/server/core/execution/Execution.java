@@ -40,7 +40,7 @@ public class Execution {
     }
 
     public void execute() {
-        RunContext runContext = RunContext.of(id);
+        RunContext runContext = RunContext.of(this);
         executable.execute(runContext);
     }
 

@@ -14,44 +14,25 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.request;
+package io.fluxion.remote.core.api.response.broker;
 
-import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.dto.NodeDTO;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Devil
- * @since 2023/8/3
  */
-public class TaskDispatchedRequest implements Request<Boolean> {
+public class JobWorkersResponse {
 
-    private String jobId;
+    private List<NodeDTO> workers = Collections.emptyList();
 
-    private String taskId;
-
-    private NodeDTO workerNode;
-
-    public String getTaskId() {
-        return taskId;
+    public List<NodeDTO> getWorkers() {
+        return workers;
     }
 
-    public void setTaskId(String taskId) {
-        this.taskId = taskId;
-    }
-
-    public NodeDTO getWorkerNode() {
-        return workerNode;
-    }
-
-    public void setWorkerNode(NodeDTO workerNode) {
-        this.workerNode = workerNode;
-    }
-
-    public String getJobId() {
-        return jobId;
-    }
-
-    public void setJobId(String jobId) {
-        this.jobId = jobId;
+    public void setWorkers(List<NodeDTO> workers) {
+        this.workers = workers;
     }
 }

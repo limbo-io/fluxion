@@ -17,7 +17,7 @@
 package io.fluxion.test;
 
 import io.fluxion.common.utils.json.JacksonUtils;
-import io.fluxion.server.core.broker.cmd.BucketRebalanceCmd;
+import io.fluxion.server.core.job.TaskMonitor;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -27,7 +27,9 @@ public class JsonTest {
 
     @Test
     void test() {
-        System.out.println(JacksonUtils.toJSONString(new BucketRebalanceCmd()));
+        String json = "{\"totalNum\":0,\"successNum\":0,\"failNum\":0}";
+        TaskMonitor taskMonitor = JacksonUtils.toType(json, TaskMonitor.class);
+        System.out.println(taskMonitor);
     }
 
 }

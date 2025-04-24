@@ -18,7 +18,10 @@ package io.fluxion.remote.core.constants;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.google.common.collect.Sets;
 import io.fluxion.common.constants.CommonConstants;
+
+import java.util.Set;
 
 /**
  * @author Devil
@@ -30,8 +33,7 @@ public enum TaskStatus {
      */
     CREATED("created"),
     /**
-     * 队列中
-     * 已下发给worker
+     * 已下发给worker 队列中
      */
     DISPATCHED("dispatched"),
     /**
@@ -49,6 +51,10 @@ public enum TaskStatus {
      */
     PAUSED("paused"),
     ;
+
+    public static final Set<TaskStatus> FINISH_STATUS = Sets.newHashSet(
+        SUCCEED, FAILED, CANCELLED
+    );
 
     @JsonValue
     public final String value;
@@ -70,5 +76,9 @@ public enum TaskStatus {
             }
         }
         return UNKNOWN;
+    }
+
+    public boolean isFinished() {
+        return FINISH_STATUS.contains(this);
     }
 }
