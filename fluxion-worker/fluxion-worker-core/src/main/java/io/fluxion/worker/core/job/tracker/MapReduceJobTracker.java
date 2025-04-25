@@ -27,6 +27,7 @@ import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.executor.MapExecutor;
 import io.fluxion.worker.core.executor.MapReduceExecutor;
 import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.job.JobContext;
 import io.fluxion.worker.core.remote.WorkerClientConverter;
 import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.task.repository.TaskRepository;
@@ -48,7 +49,7 @@ public class MapReduceJobTracker extends DistributedJobTracker {
     @Override
     public void run() {
         MapReduceExecutor executor = (MapReduceExecutor) this.executor;
-        List<Task> tasks = executor.sharding(job);
+        List<Task> tasks = executor.sharding(JobContext.from(job));
         for (Task task : tasks) {
             task.setStatus(TaskStatus.CREATED);
             task.setRemoteNode(workerContext.node());

@@ -93,15 +93,14 @@ public class DBTaskRepository implements TaskRepository {
                 "    `job_id`            varchar(255) NOT NULL DEFAULT '',\n" +
                 "    `worker_address`    varchar(255) NOT NULL DEFAULT '',\n" +
                 "    `status`            varchar(32)     NOT NULL,\n" +
-                "    `trigger_at`        datetime(3) DEFAULT NULL,\n" +
                 "    `start_at`          datetime(3) DEFAULT NULL,\n" +
                 "    `end_at`            datetime(3) DEFAULT NULL,\n" +
                 "    `last_report_at`    datetime(3) DEFAULT NULL," +
                 "    `result`            text DEFAULT NULL,\n" +
                 "    `error_msg`         varchar(255) DEFAULT '',\n" +
                 "    `error_stack_trace` text DEFAULT NULL,\n" +
-                "    `created_at`        datetime                                               NOT NULL DEFAULT CURRENT_TIMESTAMP,\n" +
-                "    `updated_at`        datetime                                               NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n" +
+                "    `created_at`        datetime    NOT NULL DEFAULT CURRENT_TIMESTAMP,\n" +
+                "    `updated_at`        datetime    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n" +
                 "    PRIMARY KEY (`id`),\n" +
                 "    UNIQUE INDEX       `idx_job_task` (`job_id`, `task_id`),\n" +
                 "    INDEX              `idx_report_task` (`last_report_at`, `task_id`)\n" +
@@ -110,6 +109,7 @@ public class DBTaskRepository implements TaskRepository {
         }
     }
 
+    @Override
     public Task getById(String jobId, String taskId) {
         String sql = "select * from " + TABLE_NAME + " where job_id = ? and task_id = ?";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -128,153 +128,7 @@ public class DBTaskRepository implements TaskRepository {
         }
     }
 
-    public Set<String> getIdsByTaskIds(String jobId, Collection<String> taskIds) {
-        if (StringUtils.isBlank(jobId) || CollectionUtils.isEmpty(taskIds)) {
-            return Collections.emptySet();
-        }
-        StringBuilder sb = new StringBuilder();
-        sb.append("select task_id from ").append(TABLE_NAME).append(" where job_id = ? and task_id in (");
-        for (int i = 0; i < taskIds.size(); i++) {
-            sb.append("?,");
-        }
-        sb.deleteCharAt(sb.length() - 1);
-        sb.append(")");
-        try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sb.toString())) {
-            int i = 0;
-            ps.setString(++i, jobId);
-            for (String taskId : taskIds) {
-                ps.setString(++i, taskId);
-            }
-            try (ResultSet rs = ps.executeQuery()) {
-                Set<String> existTaskIds = new HashSet<>();
-                while (rs.next()) {
-                    existTaskIds.add(rs.getString("task_id"));
-                }
-                return existTaskIds;
-            }
-        } catch (Exception e) {
-            log.error("TaskRepository.getExistTaskIds error jobId={} taskIds={}", jobId, taskIds, e);
-            return Collections.emptySet();
-        }
-    }
-
-    public boolean deleteByJobId(String jobId) {
-        String sql = "delete from " + TABLE_NAME + " where job_id = ? ";
-        try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, jobId);
-            return ps.executeUpdate() > 0;
-        } catch (Exception e) {
-            log.error("TaskRepository.deleteByJobId error jobId={} ", jobId, e);
-            return false;
-        }
-    }
-
-    public List<Task> getUnDispatched(String triggerAt, String startId, Integer limit) {
-        String sql = "select * from " + TABLE_NAME +
-            " where last_report_at = ? and trigger_at < ? and status = ? and task_id > ? " +
-            " order by task_id limit ?";
-        try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            int i = 0;
-            ps.setString(++i, DEFAULT_REPORT_TIME_STR);
-            ps.setString(++i, triggerAt);
-            ps.setString(++i, TaskStatus.CREATED.value);
-            ps.setString(++i, startId);
-            ps.setInt(++i, limit);
-            try (ResultSet rs = ps.executeQuery()) {
-                List<Task> tasks = new ArrayList<>();
-                while (rs.next()) {
-                    tasks.add(convert(rs));
-                }
-                return tasks;
-            }
-        } catch (Exception e) {
-            log.error("TaskRepository.getUnScheduled error startId={} limit={}", startId, limit, e);
-            return Collections.emptyList();
-        }
-    }
-
-    public List<Task> getByLastReportBetween(String reportTimeStart, String reportTimeEnd, TaskStatus status, String taskId, Integer limit) {
-        String sql = "select * from " + TABLE_NAME +
-            " where last_report_at >= ? and last_report_at <= ? and status = ? and task_id > ? " +
-            " order by task_id limit ?";
-        try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            int i = 0;
-            ps.setString(++i, reportTimeStart);
-            ps.setString(++i, reportTimeEnd);
-            ps.setString(++i, status.value);
-            ps.setString(++i, taskId);
-            ps.setInt(++i, limit);
-            try (ResultSet rs = ps.executeQuery()) {
-                List<Task> tasks = new ArrayList<>();
-                while (rs.next()) {
-                    tasks.add(convert(rs));
-                }
-                return tasks;
-            }
-        } catch (Exception e) {
-            log.error("TaskRepository.getByLastReportAtBefore error reportTimeStart={} reportTimeEnd={} limit={}", reportTimeStart, reportTimeEnd, limit, e);
-            return Collections.emptyList();
-        }
-    }
-
-    public List<Task> getByJobId(String jobId) {
-        String sql = "select * from " + TABLE_NAME;
-        if (StringUtils.isNotBlank(jobId)) {
-            sql += " where job_id = ?";
-        }
-        try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            if (StringUtils.isNotBlank(jobId)) {
-                ps.setString(1, jobId);
-            }
-            try (ResultSet rs = ps.executeQuery()) {
-                List<Task> tasks = new ArrayList<>();
-                while (rs.next()) {
-                    tasks.add(convert(rs));
-                }
-                return tasks;
-            }
-        } catch (Exception e) {
-            log.error("TaskRepository.queryPage error ", e);
-            return Collections.emptyList();
-        }
-    }
-
-    public List<Task> queryPage(TaskPageRequest request) {
-        String sql = "select * from " + TABLE_NAME + " where job_id = ? LIMIT ? OFFSET ?";
-        try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, request.getJobId());
-            ps.setInt(2, request.getPageSize());
-            ps.setInt(3, request.getOffset());
-            try (ResultSet rs = ps.executeQuery()) {
-                List<Task> tasks = new ArrayList<>();
-                while (rs.next()) {
-                    tasks.add(convert(rs));
-                }
-                return tasks;
-            }
-        } catch (Exception e) {
-            log.error("TaskRepository.queryPage error request={}", request, e);
-            return Collections.emptyList();
-        }
-    }
-
-    public long queryCount(TaskPageRequest request) {
-        String sql = "select count(*) from " + TABLE_NAME + " where job_id = ? ";
-        try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, request.getJobId());
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
-                } else {
-                    return 0L;
-                }
-            }
-        } catch (Exception e) {
-            log.error("TaskRepository.queryCount error request={}", request, e);
-            return 0L;
-        }
-    }
-
+    @Override
     public Map<String, String> getAllSubTaskResult(String jobId) {
         String sql = "select task_id, result from " + TABLE_NAME + " where job_id = ? ";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -310,6 +164,7 @@ public class DBTaskRepository implements TaskRepository {
         }
     }
 
+    @Override
     public boolean batchSave(Collection<Task> tasks) {
         if (CollectionUtils.isEmpty(tasks)) {
             return true;
@@ -346,6 +201,7 @@ public class DBTaskRepository implements TaskRepository {
         }
     }
 
+    @Override
     public boolean start(String jobId, String taskId, String workerAddress, LocalDateTime reportAt) {
         String sql = "update " + TABLE_NAME + " set `status` = ?, start_at = ?, last_report_at = ? " +
             " where job_id = ? and task_id = ? and `status` = ? and worker_address = ? ";
@@ -366,6 +222,7 @@ public class DBTaskRepository implements TaskRepository {
         }
     }
 
+    @Override
     public boolean report(String jobId, String taskId, TaskStatus status, String workerAddress, LocalDateTime reportAt) {
         String sql = "update " + TABLE_NAME + " set `last_report_at` = ? " +
             " where job_id = ? and task_id = ? and status = ? and `worker_address` = ? ";
@@ -383,6 +240,7 @@ public class DBTaskRepository implements TaskRepository {
         }
     }
 
+    @Override
     public boolean success(Task task) {
         String sql = "update " + TABLE_NAME + " set `status` = ?, end_at = ?, `result` = ? " +
             " where job_id = ? and task_id = ? and `status` = ? ";
@@ -401,6 +259,7 @@ public class DBTaskRepository implements TaskRepository {
         }
     }
 
+    @Override
     public boolean fail(Task task) {
         String sql = "update " + TABLE_NAME + " set `status` = ?, end_at = ?, error_msg = ?, error_stack_trace = ? " +
             "where job_id = ? and task_id = ? and `status` in (?, ?) ";
@@ -422,7 +281,6 @@ public class DBTaskRepository implements TaskRepository {
     }
 
     private Task convert(ResultSet rs) throws SQLException {
-        Timestamp triggerAt = rs.getTimestamp("trigger_at");
         Timestamp startAt = rs.getTimestamp("start_at");
         Timestamp endAt = rs.getTimestamp("end_at");
         Timestamp lastReportAt = rs.getTimestamp("last_report_at");

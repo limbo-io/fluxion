@@ -22,6 +22,7 @@ import io.fluxion.server.start.api.app.view.AppView;
 import io.fluxion.server.start.service.AppService;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
@@ -38,5 +39,10 @@ public class AppController {
     @RequestMapping("/api/v1/app/page")
     public PageResponse<AppView> create(@RequestBody AppPageRequest request) {
         return appService.page(request);
+    }
+
+    @RequestMapping("/api/v1/app/get")
+    public AppView get(@RequestParam String id) {
+        return appService.get(id);
     }
 }

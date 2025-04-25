@@ -16,15 +16,12 @@
 
 package io.fluxion.worker.core.task.repository;
 
-import io.fluxion.remote.core.api.request.worker.TaskPageRequest;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.task.Task;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author Devil
@@ -34,20 +31,6 @@ public interface TaskRepository {
     boolean batchSave(Collection<Task> tasks);
 
     Task getById(String jobId, String taskId);
-
-    Set<String> getIdsByTaskIds(String jobId, Collection<String> taskIds);
-
-    boolean deleteByJobId(String jobId);
-
-    List<Task> getUnDispatched(String triggerAt, String startId, Integer limit);
-
-    List<Task> getByLastReportBetween(String reportTimeStart, String reportTimeEnd, TaskStatus status, String taskId, Integer limit);
-
-    List<Task> getByJobId(String jobId);
-
-    List<Task> queryPage(TaskPageRequest request);
-
-    long queryCount(TaskPageRequest request);
 
     Map<String, String> getAllSubTaskResult(String jobId);
 
