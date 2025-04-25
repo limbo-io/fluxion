@@ -46,11 +46,6 @@ public class Task {
     private TaskStatus status;
 
     /**
-     * 预期触发时间
-     */
-    private LocalDateTime triggerAt;
-
-    /**
      * 开始时间
      */
     private LocalDateTime startAt;
@@ -111,14 +106,6 @@ public class Task {
 
     public void setStatus(TaskStatus status) {
         this.status = status;
-    }
-
-    public LocalDateTime getTriggerAt() {
-        return triggerAt;
-    }
-
-    public void setTriggerAt(LocalDateTime triggerAt) {
-        this.triggerAt = triggerAt;
     }
 
     public LocalDateTime getStartAt() {

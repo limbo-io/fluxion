@@ -17,7 +17,7 @@
 package io.fluxion.worker.core.executor;
 
 
-import io.fluxion.worker.core.task.Task;
+import io.fluxion.worker.core.task.TaskContext;
 
 /**
  * 任务执行器
@@ -30,9 +30,9 @@ public interface Executor {
     /**
      * 运行执行器
      *
-     * @param task 任务执行上下文
+     * @param context 任务执行上下文
      */
-    void run(Task task);
+    void run(TaskContext context);
 
 
     /**

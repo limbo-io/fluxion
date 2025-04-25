@@ -30,6 +30,7 @@ import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.remote.WorkerClientConverter;
 import io.fluxion.worker.core.task.Task;
+import io.fluxion.worker.core.task.TaskContext;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.util.concurrent.Future;
@@ -108,7 +109,7 @@ public class TaskTracker extends AbstractTracker {
                     // 不成功，可能已经下发给其它节点
                     return;
                 }
-                executor.run(task);
+                executor.run(TaskContext.from(task));
                 // 执行成功
                 task.setStatus(TaskStatus.SUCCEED);
                 report();

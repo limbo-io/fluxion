@@ -31,6 +31,7 @@ import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
 import io.fluxion.worker.core.job.TaskCounter;
 import io.fluxion.worker.core.remote.WorkerClientConverter;
+import io.fluxion.worker.core.task.repository.TaskRepository;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
@@ -67,17 +68,20 @@ public abstract class JobTracker extends AbstractTracker {
 
     protected final TaskCounter taskCounter;
 
+    protected final TaskRepository taskRepository;
+
     /**
      * 上报失败统计
      */
     private int reportFailedCount = 0;
 
-    public JobTracker(Job job, Executor executor, WorkerContext workerContext) {
+    public JobTracker(Job job, Executor executor, WorkerContext workerContext, TaskRepository taskRepository) {
         this.job = job;
         this.executor = executor;
         this.workerContext = workerContext;
         this.destroyed = new AtomicBoolean(false);
         this.taskCounter = new TaskCounter();
+        this.taskRepository = taskRepository;
     }
 
     @Override

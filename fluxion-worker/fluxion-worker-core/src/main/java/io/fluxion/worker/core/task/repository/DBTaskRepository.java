@@ -331,7 +331,6 @@ public class DBTaskRepository implements TaskRepository {
                 ps.setString(++idx, task.workerAddress() == null ? "" : task.workerAddress());
                 ps.setString(++idx, task.getStatus().value);
 
-                ps.setString(++idx, task.getTriggerAt() == null ? null : LocalDateTimeUtils.formatYMDHMSS(task.getTriggerAt()));
                 ps.setString(++idx, task.getStartAt() == null ? null : LocalDateTimeUtils.formatYMDHMSS(task.getStartAt()));
                 ps.setString(++idx, task.getEndAt() == null ? null : LocalDateTimeUtils.formatYMDHMSS(task.getEndAt()));
                 ps.setString(++idx, task.getLastReportAt() == null ? null : LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt()));
@@ -432,7 +431,6 @@ public class DBTaskRepository implements TaskRepository {
         task.setStatus(TaskStatus.parse(rs.getString("status")));
         task.setWorkerNode(addressToNode(rs.getString("worker_address")));
         task.setRemoteNode(workerContext.node());
-        task.setTriggerAt(triggerAt == null ? null : triggerAt.toLocalDateTime());
         task.setStartAt(startAt == null ? null : startAt.toLocalDateTime());
         task.setEndAt(endAt == null ? null : endAt.toLocalDateTime());
         task.setLastReportAt(lastReportAt == null ? null : lastReportAt.toLocalDateTime());

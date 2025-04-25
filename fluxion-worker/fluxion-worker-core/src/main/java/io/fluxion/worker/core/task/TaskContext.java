@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Limbo Team (https://github.com/limbo-io).
+ * Copyright 2025-2030 limbo-io Team (https://github.com/limbo-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,33 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.core.executor;
-
-import io.fluxion.worker.core.job.JobContext;
-import io.fluxion.worker.core.task.Task;
-
-import java.util.List;
+package io.fluxion.worker.core.task;
 
 /**
  * @author Devil
  */
-public abstract class MapExecutor implements Executor {
+public class TaskContext {
 
-    /**
-     * 切分创建多个子task
-     *
-     * @param context 上下文
-     */
-    public abstract List<Task> sharding(JobContext context);
+    private String id;
+
+    private String jobId;
+
+    private TaskContext() {
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getJobId() {
+        return jobId;
+    }
+
+    public static TaskContext from(Task task) {
+        TaskContext context = new TaskContext();
+        context.id = task.getId();
+        context.jobId = task.getJobId();
+        return context;
+    }
+
 }

@@ -41,11 +41,8 @@ import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_DIS
  */
 public abstract class DistributedJobTracker extends JobTracker {
 
-    protected final TaskRepository taskRepository;
-
     public DistributedJobTracker(Job job, Executor executor, WorkerContext workerContext, TaskRepository taskRepository) {
-        super(job, executor, workerContext);
-        this.taskRepository = taskRepository;
+        super(job, executor, workerContext, taskRepository);
     }
 
     public abstract void success();

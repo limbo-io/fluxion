@@ -16,7 +16,6 @@
 
 package io.fluxion.worker.core.job;
 
-import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.ExecuteMode;
 import io.fluxion.remote.core.constants.JobStatus;
 

@@ -16,12 +16,17 @@
 
 package io.fluxion.worker.core.job.tracker;
 
-import io.fluxion.remote.core.constants.JobStatus;
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
 import io.fluxion.worker.core.task.Task;
+import io.fluxion.worker.core.task.TaskContext;
+import io.fluxion.worker.core.task.repository.TaskRepository;
+
+import java.time.LocalDateTime;
+import java.util.Collections;
 
 /**
  * 执行一个任务
@@ -30,8 +35,8 @@ import io.fluxion.worker.core.task.Task;
  */
 public class BasicJobTracker extends JobTracker {
 
-    public BasicJobTracker(Job job, Executor executor, WorkerContext workerContext) {
-        super(job, executor, workerContext);
+    public BasicJobTracker(Job job, Executor executor,  WorkerContext workerContext, TaskRepository taskRepository) {
+        super(job, executor, workerContext, taskRepository);
     }
 
     @Override
@@ -40,16 +45,34 @@ public class BasicJobTracker extends JobTracker {
         task.setStatus(TaskStatus.RUNNING);
         task.setWorkerNode(workerContext.node());
         task.setRemoteNode(workerContext.node());
+        LocalDateTime startTime = TimeUtils.currentLocalDateTime();
+        task.setStartAt(startTime);
+        task.setLastReportAt(startTime);
 
         taskCounter.getTotal().set(1);
+        // 保存
+        taskRepository.batchSave(Collections.singletonList(task));
 
-        // 执行
-        executor.run(task);
-
-        // 执行成功
-        taskCounter.getSuccess().incrementAndGet();
-        job.success("");
-        report();
+        try {
+            // 执行
+            executor.run(TaskContext.from(task));
+            // 执行成功
+            LocalDateTime endTime = TimeUtils.currentLocalDateTime();
+            task.setStatus(TaskStatus.SUCCEED);
+            task.setEndAt(endTime);
+            task.setLastReportAt(endTime);
+            taskRepository.success(task);
+            taskCounter.getSuccess().incrementAndGet();
+            job.success("");
+            report();
+        } catch (Exception e) {
+            LocalDateTime endTime = TimeUtils.currentLocalDateTime();
+            task.setStatus(TaskStatus.FAILED);
+            task.setEndAt(endTime);
+            task.setLastReportAt(endTime);
+            taskRepository.fail(task);
+            throw new RuntimeException(e);
+        }
     }
 
 }
