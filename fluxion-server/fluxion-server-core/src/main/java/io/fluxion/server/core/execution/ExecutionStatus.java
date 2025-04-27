@@ -27,9 +27,9 @@ import io.fluxion.common.constants.CommonConstants;
 public enum ExecutionStatus {
     UNKNOWN(CommonConstants.UNKNOWN),
     /**
-     * 已经创建 等待下发
+     * 初始化
      */
-    CREATED("created"),
+    INITED("inited"),
     /**
      * 运行中
      */
@@ -81,7 +81,7 @@ public enum ExecutionStatus {
     }
 
     public boolean isCreated() {
-        return this == CREATED || this == RESTARTED;
+        return this == INITED || this == RESTARTED;
     }
 
     public boolean isRunning() {

@@ -17,9 +17,13 @@
 package io.fluxion.remote.core.api.response.broker;
 
 /**
+ * 失败原因：
+ * 1. job为空
+ * 2. worker节点变化
+ * 3. 前置状态不一致
  * @author Devil
  */
-public class JobReportResponse {
+public class JobStateTransitionResponse {
     /**
      * 是否成功
      */

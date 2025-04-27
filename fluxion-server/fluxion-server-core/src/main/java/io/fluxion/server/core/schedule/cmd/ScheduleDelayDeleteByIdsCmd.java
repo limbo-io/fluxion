@@ -14,30 +14,26 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.constants;
+package io.fluxion.server.core.schedule.cmd;
+
+import io.fluxion.server.core.schedule.ScheduleDelay;
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 /**
- * @author PengQ
- * @since 0.0.1
+ * @author Devil
  */
-public interface BrokerRemoteConstant {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ScheduleDelayDeleteByIdsCmd implements ICmd<Void> {
 
-    /**
-     * 任务上报间隔 秒
-     */
-    int JOB_REPORT_SECONDS = 60;
+    private List<ScheduleDelay.ID> ids;
 
-    // ========== API ==========
-    String API_WORKER_REGISTER = "/api/v1/worker/register";
-
-    String API_WORKER_HEARTBEAT = "/api/v1/worker/heartbeat";
-
-    String API_BROKER_PING = "/api/v1/broker/ping";
-
-    String API_JOB_REPORT = "/api/v1/job/report";
-
-    String API_JOB_STATE_TRANSITION = "/api/v1/job/state-transition";
-
-    String API_JOB_WORKERS = "/api/v1/job/workers";
-    // ========== API ==========
 }

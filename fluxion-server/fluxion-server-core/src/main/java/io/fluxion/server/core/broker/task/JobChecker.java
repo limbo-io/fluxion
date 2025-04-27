@@ -21,6 +21,8 @@ import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 
 /**
+ * 检查异常状态job并进行恢复
+ *
  * todo @d later
  * 1. 加载 create 状态执行TaskRunCmd
  * 2. 加载 dispatched + running 状态 长时间没有心跳 修改为最终态
@@ -37,7 +39,7 @@ public class JobChecker extends CoreTask {
 
     @Override
     public void run() {
-
+        // job create 还没执行 JobRunCmd broker宕机导致还是create状态
     }
 
     @Override

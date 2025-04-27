@@ -19,8 +19,8 @@ package io.fluxion.remote.core.api.request.broker;
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
-import io.fluxion.remote.core.api.response.broker.JobReportResponse;
-import io.fluxion.remote.core.constants.JobStatus;
+import io.fluxion.remote.core.api.response.broker.JobStateTransitionResponse;
+import io.fluxion.remote.core.constants.JobStateEvent;
 
 import java.time.LocalDateTime;
 
@@ -28,7 +28,7 @@ import java.time.LocalDateTime;
  * @author Devil
  * @since 2023/8/3
  */
-public class JobReportRequest implements Request<JobReportResponse> {
+public class JobStateTransitionRequest implements Request<JobStateTransitionResponse> {
 
     private String jobId;
 
@@ -39,10 +39,16 @@ public class JobReportRequest implements Request<JobReportResponse> {
     private TaskMonitorDTO taskMonitor;
 
     /**
-     * status
-     * @see JobStatus
+     * event
+     * @see JobStateEvent
      */
-    private String status;
+    private String event;
+
+    // when success
+    private String result;
+
+    // when fail
+    private String errorMsg;
 
     public NodeDTO getWorkerNode() {
         return workerNode;
@@ -76,12 +82,27 @@ public class JobReportRequest implements Request<JobReportResponse> {
         this.taskMonitor = taskMonitor;
     }
 
-    public String getStatus() {
-        return status;
+    public String getResult() {
+        return result;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setResult(String result) {
+        this.result = result;
     }
 
+    public String getErrorMsg() {
+        return errorMsg;
+    }
+
+    public void setErrorMsg(String errorMsg) {
+        this.errorMsg = errorMsg;
+    }
+
+    public String getEvent() {
+        return event;
+    }
+
+    public void setEvent(String event) {
+        this.event = event;
+    }
 }

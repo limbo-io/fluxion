@@ -71,7 +71,7 @@ public class ExecutionCommandService {
             entity.setExecutableVersion(executable.version());
             entity.setExecutableType(executable.type().value);
             entity.setTriggerAt(cmd.getTriggerAt());
-            entity.setStatus(ExecutionStatus.CREATED.value);
+            entity.setStatus(ExecutionStatus.INITED.value);
             executionEntityRepo.saveAndFlush(entity);
         }
         Execution execution = new Execution(entity.getExecutionId(), executable, ExecutionStatus.parse(entity.getStatus()));
@@ -87,7 +87,7 @@ public class ExecutionCommandService {
             )
             .setParameter("newStatus", ExecutionStatus.RUNNING.value)
             .setParameter("executionId", cmd.getExecutionId())
-            .setParameter("oldStatus", ExecutionStatus.CREATED.value)
+            .setParameter("oldStatus", ExecutionStatus.INITED.value)
             .setParameter("startAt", TimeUtils.currentLocalDateTime())
             .executeUpdate();
     }

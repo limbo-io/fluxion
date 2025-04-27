@@ -16,19 +16,13 @@
 
 package io.fluxion.server.core.job;
 
-import io.fluxion.common.thread.CommonThreadPool;
 import io.fluxion.remote.core.constants.JobStatus;
-import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.cmd.JobRetryCmd;
-import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.cmd.JobSuccessCmd;
-import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
-import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
-import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -48,7 +42,7 @@ public abstract class Job {
      */
     private String refId;
 
-    private JobStatus status = JobStatus.CREATED;
+    private JobStatus status = JobStatus.INITED;
 
     private LocalDateTime triggerAt;
 
@@ -71,19 +65,6 @@ public abstract class Job {
 
     // when error
     private String errorMsg;
-
-    public void schedule() {
-        DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
-        delayedTaskScheduler.schedule(DelayedTaskFactory.create(
-            scheduleId(),
-            triggerAt,
-            delayedTask -> CommonThreadPool.IO.submit(new LoggingTask(() -> Cmd.send(new JobRunCmd(this))))
-        ));
-    }
-
-    private String scheduleId() {
-        return "t_" + jobId;
-    }
 
     public abstract JobType type();
 

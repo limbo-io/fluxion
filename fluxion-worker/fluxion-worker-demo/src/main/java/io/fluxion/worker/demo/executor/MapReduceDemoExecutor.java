@@ -18,7 +18,9 @@ package io.fluxion.worker.demo.executor;
 
 import io.fluxion.worker.core.executor.MapReduceExecutor;
 import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.job.JobContext;
 import io.fluxion.worker.core.task.Task;
+import io.fluxion.worker.core.task.TaskContext;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -32,10 +34,10 @@ import java.util.Map;
 public class MapReduceDemoExecutor extends MapReduceExecutor {
 
     @Override
-    public List<Task> sharding(Job job) {
+    public List<Task> sharding(JobContext context) {
         List<Task> tasks = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
-            Task task = new Task("SUB_" + i, job.getId());
+            Task task = new Task("SUB_" + i, context.getId());
             tasks.add(task);
         }
         return tasks;
@@ -49,7 +51,7 @@ public class MapReduceDemoExecutor extends MapReduceExecutor {
     }
 
     @Override
-    public void run(Task task) {
-        System.out.println("Hello " + task.getId());
+    public void run(TaskContext context) {
+        System.out.println("Hello " + context.getId());
     }
 }

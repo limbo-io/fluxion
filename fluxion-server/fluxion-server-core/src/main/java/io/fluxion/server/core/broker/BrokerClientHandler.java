@@ -21,15 +21,18 @@ import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.request.broker.JobReportRequest;
+import io.fluxion.remote.core.api.request.broker.JobStateTransitionRequest;
 import io.fluxion.remote.core.api.request.broker.JobWorkersRequest;
 import io.fluxion.remote.core.api.request.broker.WorkerHeartbeatRequest;
 import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
 import io.fluxion.remote.core.api.response.broker.JobReportResponse;
+import io.fluxion.remote.core.api.response.broker.JobStateTransitionResponse;
 import io.fluxion.remote.core.api.response.broker.JobWorkersResponse;
 import io.fluxion.remote.core.api.response.broker.WorkerHeartbeatResponse;
 import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.BrokerRemoteConstant;
+import io.fluxion.remote.core.constants.JobStateEvent;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.app.cmd.AppSaveCmd;
 import io.fluxion.server.core.broker.converter.BrokerClientConverter;
@@ -37,6 +40,7 @@ import io.fluxion.server.core.broker.query.BrokersQuery;
 import io.fluxion.server.core.job.ExecutorJob;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.cmd.JobReportCmd;
+import io.fluxion.server.core.job.cmd.JobStateTransitionCmd;
 import io.fluxion.server.core.job.query.JobByIdQuery;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
@@ -69,6 +73,9 @@ public class BrokerClientHandler implements ClientHandler {
                 }
                 case BrokerRemoteConstant.API_JOB_REPORT: {
                     return Response.ok(jobReport(data));
+                }
+                case BrokerRemoteConstant.API_JOB_STATE_TRANSITION: {
+                    return Response.ok(jobStateTransition(data));
                 }
                 case BrokerRemoteConstant.API_JOB_WORKERS: {
                     return Response.ok(jobWorkers(data));
@@ -127,12 +134,22 @@ public class BrokerClientHandler implements ClientHandler {
         JobReportCmd.Response response = Cmd.send(new JobReportCmd(
             request.getJobId(), BrokerClientConverter.toNode(request.getWorkerNode()),
             request.getReportAt(), BrokerClientConverter.convert(request.getTaskMonitor()),
-            JobStatus.parse(request.getStatus()), request.getResult(), request.getErrorMsg()
+            JobStatus.parse(request.getStatus())
         ));
         JobReportResponse res = new JobReportResponse();
         res.setSuccess(response.isSuccess());
-        res.setWorkerNode(BrokerClientConverter.toDTO(response.getWorkerNode()));
-        res.setStatus(response.getStatus() == null ? null : response.getStatus().value);
+        return res;
+    }
+
+    private JobStateTransitionResponse jobStateTransition(String data) {
+        JobStateTransitionRequest request = JacksonUtils.toType(data, JobStateTransitionRequest.class);
+        JobStateTransitionCmd.Response response = Cmd.send(new JobStateTransitionCmd(
+            request.getJobId(), BrokerClientConverter.toNode(request.getWorkerNode()),
+            request.getReportAt(), BrokerClientConverter.convert(request.getTaskMonitor()),
+            JobStateEvent.parse(request.getEvent()), request.getResult(), request.getErrorMsg()
+        ));
+        JobStateTransitionResponse res = new JobStateTransitionResponse();
+        res.setSuccess(response.isSuccess());
         return res;
     }
 

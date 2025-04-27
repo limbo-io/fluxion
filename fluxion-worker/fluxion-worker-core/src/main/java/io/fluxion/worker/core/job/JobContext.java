@@ -14,22 +14,24 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.response.broker;
+package io.fluxion.worker.core.job;
 
 /**
  * @author Devil
  */
-public class JobReportResponse {
-    /**
-     * 是否成功
-     */
-    private boolean success;
+public class JobContext {
 
-    public boolean isSuccess() {
-        return success;
+    private String id;
+
+    private JobContext() {}
+
+    public String getId() {
+        return id;
     }
 
-    public void setSuccess(boolean success) {
-        this.success = success;
+    public static JobContext from(Job job) {
+        JobContext context = new JobContext();
+        context.id = job.getId();
+        return context;
     }
 }

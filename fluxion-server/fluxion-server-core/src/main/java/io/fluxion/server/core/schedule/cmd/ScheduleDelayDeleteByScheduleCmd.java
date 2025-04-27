@@ -26,7 +26,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * 删除 schedule 下关联的delay
+ * 软删除 schedule 下关联的delay
  * @author Devil
  */
 @Getter

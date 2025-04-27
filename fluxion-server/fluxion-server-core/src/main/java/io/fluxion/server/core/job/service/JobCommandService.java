@@ -27,6 +27,7 @@ import io.fluxion.server.core.job.TaskMonitor;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.cmd.JobReportCmd;
 import io.fluxion.server.core.job.cmd.JobRunCmd;
+import io.fluxion.server.core.job.cmd.JobStateTransitionCmd;
 import io.fluxion.server.core.job.cmd.JobSuccessCmd;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
 import io.fluxion.server.core.job.runner.JobRunner;
@@ -113,51 +114,43 @@ public class JobCommandService {
 
     @CommandHandler
     public JobReportCmd.Response handle(JobReportCmd cmd) {
+        String workerAddress = cmd.getWorkerNode().address();
+        boolean success = report(cmd.getJobId(), cmd.getStatus(), workerAddress, cmd.getMonitor(), cmd.getReportAt());
+        return new JobReportCmd.Response(success);
+    }
+
+    @CommandHandler
+    public JobStateTransitionCmd.Response handle(JobStateTransitionCmd cmd) {
         JobEntity entity = jobEntityRepo.findById(cmd.getJobId()).orElse(null);
         if (entity == null) {
-            return new JobReportCmd.Response();
+            return new JobStateTransitionCmd.Response(false);
         }
-        JobStatus currentStatus = JobStatus.parse(entity.getStatus());
-        JobReportCmd.Response response = new JobReportCmd.Response();
-        response.setStatus(currentStatus);
-        response.setWorkerNode(cmd.getWorkerNode());
         if (StringUtils.isNotBlank(entity.getWorkerAddress()) && !cmd.getWorkerNode().address().equals(entity.getWorkerAddress())) {
-            response.setSuccess(false);
-            return response;
+            return new JobStateTransitionCmd.Response(false);
         }
         String workerAddress = cmd.getWorkerNode().address();
         boolean success = false;
-        switch (cmd.getStatus()) {
-            case DISPATCHED:
-                if (JobStatus.CREATED == JobStatus.parse(entity.getStatus())) {
-                    success = dispatched(entity, workerAddress, cmd.getReportAt());
-                } else if (JobStatus.DISPATCHED == JobStatus.parse(entity.getStatus())) {
-                    success = report(entity, cmd.getMonitor(), cmd.getReportAt());
-                }
+        switch (cmd.getEvent()) {
+            case DISPATCH_SUCCESS:
+                success = dispatched(entity, workerAddress, cmd.getReportAt());
                 break;
-            case RUNNING:
-                if (JobStatus.CREATED == JobStatus.parse(entity.getStatus()) // broker上执行的不需要下发状态
-                    || JobStatus.DISPATCHED == JobStatus.parse(entity.getStatus())) {
-                    success = start(entity, workerAddress, cmd.getReportAt());
-                } else if (JobStatus.RUNNING == JobStatus.parse(entity.getStatus())) {
-                    success = report(entity, cmd.getMonitor(), cmd.getReportAt());
-                }
+            case START:
+                success = start(entity, workerAddress, cmd.getReportAt());
                 break;
-            case SUCCEED:
+            case RUN_SUCCESS:
                 success = Cmd.send(new ExecutableSuccessCmd(
                     cmd.getJobId(), cmd.getReportAt(),
                     cmd.getMonitor(), cmd.getResult()
                 ));
                 break;
-            case FAILED:
+            case RUN_FAIL:
                 success = Cmd.send(new ExecutableFailCmd(
                     cmd.getJobId(), cmd.getReportAt(),
                     cmd.getMonitor(), cmd.getErrorMsg()
                 ));
                 break;
         }
-        response.setSuccess(success);
-        return response;
+        return new JobStateTransitionCmd.Response(success);
     }
 
     /**
@@ -167,12 +160,12 @@ public class JobCommandService {
         return transactionService.transactional(() -> {
             int updated = entityManager.createQuery("update JobEntity " +
                     "set status = :newStatus, startAt = :lastReportAt, lastReportAt = :lastReportAt, workerAddress = :workerAddress " +
-                    "where jobId = :jobId and status in :oldStatuses"
+                    "where jobId = :jobId and status = :oldStatuses"
                 )
                 .setParameter("lastReportAt", reportAt)
                 .setParameter("jobId", entity.getJobId())
-                .setParameter("newStatus", JobStatus.RUNNING.value)
-                .setParameter("oldStatuses", Lists.newArrayList(JobStatus.DISPATCHED.value, JobStatus.CREATED.value))
+                .setParameter("newStatus", JobStatus.DISPATCHED.value)
+                .setParameter("oldStatuses", JobStatus.INITED.value)
                 .setParameter("workerAddress", workerAddress)
                 .executeUpdate();
             if (updated <= 0) {
@@ -186,19 +179,18 @@ public class JobCommandService {
     /**
      * 更新上报时间等信息
      */
-    private boolean report(JobEntity entity, TaskMonitor monitor, LocalDateTime reportAt) {
+    private boolean report(String jobId, JobStatus status, String workerAddress, TaskMonitor monitor, LocalDateTime reportAt) {
         return transactionService.transactional(() -> {
             int updated = entityManager.createQuery("update JobEntity " +
                     "set lastReportAt = :lastReportAt, monitor = :monitor, workerAddress = :workerAddress " +
                     "where jobId = :jobId and status = :status"
                 )
                 .setParameter("lastReportAt", reportAt)
-                .setParameter("jobId", entity.getJobId())
-                .setParameter("status", entity.getStatus())
+                .setParameter("jobId", jobId)
+                .setParameter("status", status)
                 .setParameter("monitor", JacksonUtils.toJSONString(monitor))
-                .setParameter("workerAddress", entity.getWorkerAddress())
+                .setParameter("workerAddress", workerAddress)
                 .executeUpdate();
-            Cmd.send(new ExecutionRunningCmd(entity.getExecutionId()));
             return updated > 0;
         });
     }
@@ -214,7 +206,7 @@ public class JobCommandService {
                 .setParameter("newStatus", JobStatus.RUNNING.value)
                 .setParameter("workerAddress", workerAddress)
                 .setParameter("oldStatuses", Lists.newArrayList(
-                    JobStatus.CREATED.value,
+                    JobStatus.INITED.value,
                     JobStatus.DISPATCHED.value
                 ))
                 .executeUpdate();
@@ -273,7 +265,7 @@ public class JobCommandService {
             .setParameter("jobId", cmd.getJobId())
             .setParameter("oldStatus", Lists.newArrayList(
                 JobStatus.RUNNING.value, // 运行时失败
-                JobStatus.CREATED.value // broker下发失败
+                JobStatus.INITED.value // broker下发失败
             ))
             .setParameter("newStatus", JobStatus.FAILED.value)
             .setParameter("errorMsg", cmd.getErrorMsg())

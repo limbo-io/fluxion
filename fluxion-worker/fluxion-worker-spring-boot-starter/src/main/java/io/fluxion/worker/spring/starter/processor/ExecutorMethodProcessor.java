@@ -17,8 +17,7 @@
 package io.fluxion.worker.spring.starter.processor;
 
 import io.fluxion.worker.core.executor.Executor;
-import io.fluxion.worker.core.job.Job;
-import io.fluxion.worker.core.task.Task;
+import io.fluxion.worker.core.task.TaskContext;
 import io.fluxion.worker.spring.starter.processor.event.ExecutorScannedEvent;
 import io.fluxion.worker.spring.starter.processor.event.WorkerReadyEvent;
 import org.springframework.aop.framework.autoproxy.AutoProxyUtils;
@@ -30,7 +29,11 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.BeanInitializationException;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.context.*;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.util.Assert;
 
 import javax.annotation.Nonnull;
@@ -55,12 +58,12 @@ public class ExecutorMethodProcessor implements SmartInitializingSingleton,
 
     static {
         try {
-            M_RUN = Executor.class.getMethod("run", Task.class);
+            M_RUN = Executor.class.getMethod("run", TaskContext.class);
             if (M_RUN.getReturnType() != Void.TYPE) {
                 throw new NoSuchMethodException();
             }
         } catch (NoSuchMethodException e) {
-            throw new IllegalStateException("Can't find \"void run(Task task)\" method in " +
+            throw new IllegalStateException("Can't find \"void run(TaskContext context)\" method in " +
                 Executor.class.getName());
         }
     }

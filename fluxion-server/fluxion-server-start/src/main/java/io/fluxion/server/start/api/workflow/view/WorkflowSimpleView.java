@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 limbo-io Team (https://github.com/limbo-io).
+ * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,38 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.response.broker;
+package io.fluxion.server.start.api.workflow.view;
+
+import lombok.Data;
+
 
 /**
+ * 不带流程配置信息
+ *
  * @author Devil
  */
-public class JobReportResponse {
+@Data
+public class WorkflowSimpleView {
+
+    private String id;
+
     /**
-     * 是否成功
+     * 名称
      */
-    private boolean success;
+    private String name;
 
-    public boolean isSuccess() {
-        return success;
-    }
+    /**
+     * 描述
+     */
+    private String description;
 
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
+    /**
+     * 运行版本
+     */
+    private String publishVersion;
+
+    /**
+     * 草稿版本
+     */
+    private String draftVersion;
 }

@@ -14,22 +14,33 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.response.broker;
+package io.fluxion.worker.core.task;
 
 /**
  * @author Devil
  */
-public class JobReportResponse {
-    /**
-     * 是否成功
-     */
-    private boolean success;
+public class TaskContext {
 
-    public boolean isSuccess() {
-        return success;
+    private String id;
+
+    private String jobId;
+
+    private TaskContext() {
     }
 
-    public void setSuccess(boolean success) {
-        this.success = success;
+    public String getId() {
+        return id;
     }
+
+    public String getJobId() {
+        return jobId;
+    }
+
+    public static TaskContext from(Task task) {
+        TaskContext context = new TaskContext();
+        context.id = task.getId();
+        context.jobId = task.getJobId();
+        return context;
+    }
+
 }

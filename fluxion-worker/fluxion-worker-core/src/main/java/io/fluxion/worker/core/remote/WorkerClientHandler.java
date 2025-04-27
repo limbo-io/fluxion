@@ -88,7 +88,7 @@ public class WorkerClientHandler implements ClientHandler {
         JobTracker tracker;
         switch (job.getExecuteMode()) {
             case STANDALONE:
-                tracker = new BasicJobTracker(job, executor, workerContext);
+                tracker = new BasicJobTracker(job, executor, workerContext, taskRepository);
                 break;
             case BROADCAST:
                 tracker = new BroadcastJobTracker(job, executor, workerContext, taskRepository);
@@ -125,7 +125,7 @@ public class WorkerClientHandler implements ClientHandler {
             return new TaskReportResponse();
         }
         if (tracker instanceof DistributedJobTracker) {
-            return ((DistributedJobTracker) tracker).report(request);
+            return ((DistributedJobTracker) tracker).handleTaskReport(request);
         }
         log.error("[TaskReport] tracker type error request:{}", request);
         return new TaskReportResponse();

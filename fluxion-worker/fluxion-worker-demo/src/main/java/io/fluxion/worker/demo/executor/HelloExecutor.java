@@ -16,8 +16,8 @@
 
 package io.fluxion.worker.demo.executor;
 
-import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.executor.Executor;
+import io.fluxion.worker.core.task.TaskContext;
 import org.springframework.stereotype.Component;
 
 /**
@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class HelloExecutor implements Executor {
     @Override
-    public void run(Task task) {
-        System.out.println("Hello " + task.getId());
+    public void run(TaskContext context) {
+        System.out.println("Hello " + context.getId());
     }
 }

@@ -29,9 +29,9 @@ import java.util.Set;
 public enum JobStatus {
     UNKNOWN(CommonConstants.UNKNOWN),
     /**
-     * 已经创建 等待下发
+     * 初始化
      */
-    CREATED("created"),
+    INITED("inited"),
     /**
      * 队列中
      * 已下发给worker

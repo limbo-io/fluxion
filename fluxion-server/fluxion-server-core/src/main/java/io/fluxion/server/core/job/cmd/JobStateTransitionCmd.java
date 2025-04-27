@@ -17,7 +17,7 @@
 package io.fluxion.server.core.job.cmd;
 
 import io.fluxion.remote.core.cluster.Node;
-import io.fluxion.remote.core.constants.JobStatus;
+import io.fluxion.remote.core.constants.JobStateEvent;
 import io.fluxion.server.core.job.TaskMonitor;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
@@ -33,7 +33,7 @@ import java.time.LocalDateTime;
 @Getter
 @AllArgsConstructor
 @Builder
-public class JobReportCmd implements ICmd<JobReportCmd.Response> {
+public class JobStateTransitionCmd implements ICmd<JobStateTransitionCmd.Response> {
 
     private String jobId;
 
@@ -43,7 +43,11 @@ public class JobReportCmd implements ICmd<JobReportCmd.Response> {
 
     private TaskMonitor monitor;
 
-    private JobStatus status;
+    private JobStateEvent event;
+
+    private String result;
+
+    private String errorMsg;
 
     @Getter
     @AllArgsConstructor

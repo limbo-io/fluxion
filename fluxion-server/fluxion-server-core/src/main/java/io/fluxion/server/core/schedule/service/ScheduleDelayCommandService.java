@@ -26,6 +26,7 @@ import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.schedule.ScheduleDelay;
+import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByIdsCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByScheduleCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelaysCreateCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelaysLoadCmd;
@@ -111,8 +112,8 @@ public class ScheduleDelayCommandService {
 
     private Consumer<DelayedTask> consumer(String scheduleId, ScheduleDelay.ID delayId) {
         return task -> {
-            // 移除不需要调度的
             Trigger trigger = Query.query(new TriggerByIdQuery(scheduleId)).getTrigger();
+            // 移除不需要调度的
             if (!trigger.isEnabled()) {
                 changeDelayStatus(delayId, ScheduleDelay.Status.INIT, ScheduleDelay.Status.INVALID);
                 task.stop();
@@ -120,7 +121,7 @@ public class ScheduleDelayCommandService {
                 return;
             }
             // 非当前节点的，可能重新分配给其他了
-            ScheduleDelayEntity entity = scheduleDelayEntityRepo.findById(ScheduleDelayEntityConverter.convert(delayId)).get();
+            ScheduleDelayEntity entity = scheduleDelayEntityRepo.findById(ScheduleDelayEntityConverter.convert(delayId)).orElse(null);
             String brokerId = BrokerContext.broker().id();
             List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
             if (!buckets.contains(entity.getBucket())
@@ -181,5 +182,15 @@ public class ScheduleDelayCommandService {
             .setParameter("deleted", true)
             .setParameter("scheduleId", cmd.getScheduleId())
             .executeUpdate();
+    }
+
+    @Transactional
+    @CommandHandler
+    public void handle(ScheduleDelayDeleteByIdsCmd cmd) {
+        if (CollectionUtils.isEmpty(cmd.getIds())) {
+            return;
+        }
+        List<ScheduleDelayEntity.ID> ids = cmd.getIds().stream().map(ScheduleDelayEntityConverter::convert).collect(Collectors.toList());
+        scheduleDelayEntityRepo.deleteAllById(ids);
     }
 }

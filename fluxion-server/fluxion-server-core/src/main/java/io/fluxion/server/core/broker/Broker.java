@@ -28,6 +28,7 @@ import io.fluxion.server.core.broker.task.DataCleaner;
 import io.fluxion.server.core.broker.task.ScheduleDelayLoader;
 import io.fluxion.server.core.broker.task.ScheduleLoader;
 import io.fluxion.server.core.broker.task.WorkerChecker;
+import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.schedule.TimingWheelTimer;
 import lombok.extern.slf4j.Slf4j;
@@ -100,10 +101,10 @@ public class Broker {
         for (CoreTask coreTask : coreTasks) {
             switch (coreTask.scheduleType()) {
                 case FIXED_DELAY:
-                    coreThreadPool.scheduleWithFixedDelay(coreTask, coreTask.getDelay(), coreTask.getInterval(), coreTask.getUnit());
+                    coreThreadPool.scheduleWithFixedDelay(new LoggingTask(coreTask), coreTask.getDelay(), coreTask.getInterval(), coreTask.getUnit());
                     break;
                 case FIXED_RATE:
-                    coreThreadPool.scheduleAtFixedRate(coreTask, coreTask.getDelay(), coreTask.getInterval(), coreTask.getUnit());
+                    coreThreadPool.scheduleAtFixedRate(new LoggingTask(coreTask), coreTask.getDelay(), coreTask.getInterval(), coreTask.getUnit());
                     break;
             }
         }

@@ -16,7 +16,7 @@
 
 package io.fluxion.worker.core.executor;
 
-import io.fluxion.worker.core.job.Job;
+import io.fluxion.worker.core.job.JobContext;
 import io.fluxion.worker.core.task.Task;
 
 import java.util.List;
@@ -29,7 +29,7 @@ public abstract class MapExecutor implements Executor {
     /**
      * 切分创建多个子task
      *
-     * @param job 任务
+     * @param context 上下文
      */
-    public abstract List<Task> sharding(Job job);
+    public abstract List<Task> sharding(JobContext context);
 }
