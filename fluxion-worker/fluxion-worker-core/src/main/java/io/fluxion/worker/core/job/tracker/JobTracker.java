@@ -21,9 +21,10 @@ import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
 import io.fluxion.remote.core.api.request.broker.JobReportRequest;
-import io.fluxion.remote.core.api.response.broker.JobReportResponse;
-import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.remote.core.api.request.broker.JobStateTransitionRequest;
+import io.fluxion.remote.core.api.response.broker.JobStateTransitionResponse;
 import io.fluxion.remote.core.constants.BrokerRemoteConstant;
+import io.fluxion.remote.core.constants.JobStateEvent;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.worker.core.AbstractTracker;
 import io.fluxion.worker.core.WorkerContext;
@@ -39,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_REPORT;
+import static io.fluxion.remote.core.constants.BrokerRemoteConstant.API_JOB_STATE_TRANSITION;
 
 /**
  * Task执行管理和监控
@@ -49,7 +51,7 @@ public abstract class JobTracker extends AbstractTracker {
     /**
      * 上报失败最大次数
      */
-    private static final int MAX_REPORT_FAILED_TIMES = 5;
+    private static final int MAX_FINISH_FAILED_TIMES = 5;
 
     /**
      * 从 Broker 接收到的任务
@@ -66,6 +68,8 @@ public abstract class JobTracker extends AbstractTracker {
 
     protected Future<?> statusReportFuture;
 
+    protected Future<?> finishReportFuture;
+
     protected final TaskCounter taskCounter;
 
     protected final TaskRepository taskRepository;
@@ -73,7 +77,7 @@ public abstract class JobTracker extends AbstractTracker {
     /**
      * 上报失败统计
      */
-    private int reportFailedCount = 0;
+    private int finishFailedCount = 0;
 
     public JobTracker(Job job, Executor executor, WorkerContext workerContext, TaskRepository taskRepository) {
         this.job = job;
@@ -97,26 +101,21 @@ public abstract class JobTracker extends AbstractTracker {
 
         try {
             job.setStatus(JobStatus.DISPATCHED);
-            if (!report().isSuccess()) {
-                return false;
-            }
             // 提交执行 正常来说保存成功这里不会被拒绝
             this.processFuture = workerContext.processExecutor().submit(new Runnable() {
                 @Override
                 public void run() {
                     try {
                         // 反馈执行中 -- 排除由于网络问题导致的失败可能性
-                        job.setStatus(JobStatus.RUNNING);
-                        if (!report().isSuccess()) {
-                            // 不成功，可能已经下发给其它节点
+                        jobStart();
+                        if (destroyed.get()) {
                             return;
                         }
 
                         JobTracker.this.run();
                     } catch (Throwable throwable) {
                         log.error("[{}] run error", getClass().getSimpleName(), throwable);
-                        job.fail(throwable.getMessage());
-                        report();
+                        jobFail(throwable.getMessage());
                     }
                 }
             });
@@ -138,9 +137,75 @@ public abstract class JobTracker extends AbstractTracker {
 
     public abstract void run();
 
-    public JobReportResponse report() {
+    protected void jobStart() {
+        job.setStatus(JobStatus.RUNNING);
+        statTransition(JobStateEvent.START);
+    }
+
+    protected void jobSuccess(String result) {
+        job.setStatus(JobStatus.SUCCEED);
+        job.setResult(result);
+        statTransition(JobStateEvent.RUN_SUCCESS);
+    }
+
+    protected void jobFail(String errorMsg) {
+        job.setStatus(JobStatus.FAILED);
+        job.setErrorMsg(errorMsg);
+        statTransition(JobStateEvent.RUN_FAIL);
+    }
+
+    protected void statTransition(JobStateEvent event) {
+        JobStateTransitionRequest request = new JobStateTransitionRequest();
+        try {
+            TaskMonitorDTO taskMonitor = taskMonitor();
+            request.setJobId(job.getId());
+            request.setReportAt(TimeUtils.currentLocalDateTime());
+            request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
+            request.setTaskMonitor(taskMonitor);
+            request.setEvent(event.value);
+
+            request.setResult(job.getResult());
+
+            request.setErrorMsg(job.getErrorMsg());
+
+            Response<JobStateTransitionResponse> response = workerContext.call(API_JOB_STATE_TRANSITION, request);
+            if (response.success() && response.getData() != null && response.getData().isSuccess()) {
+                return;
+            }
+            if (!job.getStatus().isFinished()) {
+                destroy();
+                return;
+            }
+            finishFailedCount++;
+            if (finishFailedCount > MAX_FINISH_FAILED_TIMES) {
+                log.warn("[JobFinish] fail more than {} times jobId:{}", MAX_FINISH_FAILED_TIMES, job.getId());
+                destroy();
+                return;
+            }
+            // 启动定时尝试
+            statTransition(event);
+        } catch (Exception e) {
+            log.error("[obStateTransition] fail request={}", JacksonUtils.toJSONString(request), e);
+            // 启动定时尝试
+            statTransition(event);
+        }
+    }
+
+    /**
+     * 启动定时尝试
+     * @param event 状态事件
+     */
+    private void startFinishSchedule(JobStateEvent event) {
+        this.statusReportFuture = workerContext.statusReportExecutor().scheduleAtFixedRate(
+            () -> statTransition(event), 1, 2, TimeUnit.MINUTES
+        );
+    }
+
+    protected void report() {
+        if (destroyed.get() || job.getStatus().isFinished()) {
+            return;
+        }
         JobReportRequest request = new JobReportRequest();
-        JobReportResponse result;
         try {
             TaskMonitorDTO taskMonitor = taskMonitor();
             request.setJobId(job.getId());
@@ -149,42 +214,10 @@ public abstract class JobTracker extends AbstractTracker {
             request.setTaskMonitor(taskMonitor);
             request.setStatus(job.getStatus().value);
 
-            request.setResult(job.getResult());
-
-            request.setErrorMsg(job.getErrorMsg());
-
-            Response<JobReportResponse> response = workerContext.call(API_JOB_REPORT, request);
-            if (!response.success() || response.getData() == null) {
-                result = new JobReportResponse();
-            } else {
-                result = response.getData();
-            }
+            workerContext.call(API_JOB_REPORT, request);
         } catch (Exception e) {
             log.error("[JobReport] fail request={}", JacksonUtils.toJSONString(request), e);
-            result = new JobReportResponse();
         }
-
-        Node currentWorker = WorkerClientConverter.toNode(result.getWorkerNode());
-        boolean sameWorker = workerContext.node() != null && currentWorker != null && workerContext.node().id().equals(currentWorker.id());
-        if (!result.isSuccess() && !sameWorker) {
-            log.warn("[JobReport] task worker change jobId:{} currentWorker:{}",
-                job.getId(), currentWorker == null ? null : currentWorker.address()
-            );
-            destroy();
-            return result;
-        }
-        if (job.getStatus().isFinished()) {
-            if (result.isSuccess()) {
-                destroy();
-            } else {
-                reportFailedCount++;
-                if (reportFailedCount > MAX_REPORT_FAILED_TIMES) {
-                    log.warn("[JobReport] fail more than {} times jobId:{}", MAX_REPORT_FAILED_TIMES, job.getId());
-                    destroy();
-                }
-            }
-        }
-        return result;
     }
 
     @Override

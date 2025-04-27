@@ -16,27 +16,33 @@
 
 package io.fluxion.server.core.broker.task;
 
+import io.fluxion.common.thread.CommonThreadPool;
+import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.server.core.schedule.ScheduleDelay;
+import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByIdsCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleDelaysLoadCmd;
+import io.fluxion.server.core.schedule.query.ScheduleDelayNextCleanQuery;
+import io.fluxion.server.core.schedule.query.ScheduleDelayNextTriggerQuery;
+import io.fluxion.server.infrastructure.concurrent.LoggingTask;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
+import org.apache.commons.collections4.CollectionUtils;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
- * 数据清理 -- 物理删除
- *
- * todo @d later
- *
- * 1. delay_task 超过7天
- * 2. broker 超过1天
- * 3. worker 超过1天
- * 4. lock 超过一定时间的
+ * 数据清理 -- 物理删除超过7天的数据
  *
  * @author Devil
- * @date 2025/1/9
  */
 public class DataCleaner extends CoreTask {
 
-    private static final int INTERVAL = 10;
-    private static final TimeUnit UNIT = TimeUnit.SECONDS;
+    private static final int INTERVAL = 7;
+    private static final TimeUnit UNIT = TimeUnit.DAYS;
 
     public DataCleaner() {
         super(0, INTERVAL, UNIT);
@@ -44,7 +50,21 @@ public class DataCleaner extends CoreTask {
 
     @Override
     public void run() {
-
+        LocalDateTime endAt = TimeUtils.currentLocalDateTime().plusDays(-INTERVAL);
+        // schedule_delay
+        CommonThreadPool.IO.submit(new LoggingTask(() -> {
+            String lastId = "";
+            List<ScheduleDelay> delays = Query.query(new ScheduleDelayNextCleanQuery(100, lastId, endAt)).getDelays();
+            while (CollectionUtils.isNotEmpty(delays)) {
+                Cmd.send(new ScheduleDelayDeleteByIdsCmd(delays.stream().map(ScheduleDelay::getId).collect(Collectors.toList())));
+                // 拉取后续的
+                lastId = delays.get(delays.size() - 1).getDelayId();
+                delays = Query.query(new ScheduleDelayNextCleanQuery(100, lastId, endAt)).getDelays();
+            }
+        }));
+        // broker
+        // worker
+        // lock
     }
 
     @Override

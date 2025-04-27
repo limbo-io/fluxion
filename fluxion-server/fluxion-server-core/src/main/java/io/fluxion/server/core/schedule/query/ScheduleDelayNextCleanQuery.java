@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,44 +14,39 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.job.cmd;
+package io.fluxion.server.core.schedule.query;
 
-import io.fluxion.remote.core.cluster.Node;
-import io.fluxion.remote.core.constants.JobStatus;
-import io.fluxion.server.core.job.TaskMonitor;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.fluxion.server.core.schedule.ScheduleDelay;
+import io.fluxion.server.infrastructure.cqrs.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Devil
  */
 @Getter
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class JobReportCmd implements ICmd<JobReportCmd.Response> {
+public class ScheduleDelayNextCleanQuery implements IQuery<ScheduleDelayNextCleanQuery.Response> {
 
-    private String jobId;
+    private int limit;
 
-    private Node workerNode;
+    private String lastDelayId;
 
-    private LocalDateTime reportAt;
-
-    private TaskMonitor monitor;
-
-    private JobStatus status;
+    private LocalDateTime endAt;
 
     @Getter
+    @NoArgsConstructor
     @AllArgsConstructor
     public static class Response {
-        /**
-         * 是否成功
-         */
-        private boolean success;
+        private List<ScheduleDelay> delays = Collections.emptyList();
     }
 
 }

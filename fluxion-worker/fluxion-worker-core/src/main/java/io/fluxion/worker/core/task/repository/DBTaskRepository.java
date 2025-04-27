@@ -18,7 +18,6 @@ package io.fluxion.worker.core.task.repository;
 
 import io.fluxion.common.utils.time.Formatters;
 import io.fluxion.common.utils.time.LocalDateTimeUtils;
-import io.fluxion.remote.core.api.request.worker.TaskPageRequest;
 import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
@@ -45,10 +44,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author Devil
@@ -155,7 +152,7 @@ public class DBTaskRepository implements TaskRepository {
             ps.setString(++i, TaskStatus.DISPATCHED.value);
             ps.setString(++i, jobId);
             ps.setString(++i, taskId);
-            ps.setString(++i, TaskStatus.CREATED.value);
+            ps.setString(++i, TaskStatus.INITED.value);
             ps.setString(++i, workerAddress);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
@@ -171,11 +168,11 @@ public class DBTaskRepository implements TaskRepository {
         }
         List<String> values = new ArrayList<>();
         for (Task task : tasks) {
-            values.add(" (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            values.add(" (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         }
         String sql = "insert into " + TABLE_NAME + "(" +
             "task_id, job_id, worker_address, " +
-            "status, trigger_at, start_at, end_at, last_report_at, `result`, error_msg, error_stack_trace " +
+            "status, start_at, end_at, last_report_at, `result`, error_msg, error_stack_trace " +
             ") values " + StringUtils.join(values, ",");
 
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -271,7 +268,7 @@ public class DBTaskRepository implements TaskRepository {
             ps.setString(++i, task.getErrorStackTrace() == null ? "" : task.getErrorStackTrace());
             ps.setString(++i, task.getJobId());
             ps.setString(++i, task.getId());
-            ps.setString(++i, TaskStatus.CREATED.value);
+            ps.setString(++i, TaskStatus.INITED.value);
             ps.setString(++i, TaskStatus.RUNNING.value);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {

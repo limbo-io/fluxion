@@ -44,7 +44,7 @@ public class WorkerClientConverter {
 
     public static Task toTask(TaskDispatchRequest request, WorkerContext workerContext) {
         Task task = new Task(request.getTaskId(), request.getJobId());
-        task.setStatus(TaskStatus.CREATED);
+        task.setStatus(TaskStatus.INITED);
         task.setWorkerNode(workerContext.node());
         task.setRemoteNode(toNode(request.getRemoteNode()));
         return task;

@@ -26,6 +26,10 @@ public class TaskCounter {
 
     AtomicInteger fail = new AtomicInteger(0);
 
+    public boolean isFinished() {
+        return total.get() == success.get() + fail.get();
+    }
+
     public AtomicInteger getTotal() {
         return total;
     }

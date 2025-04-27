@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.executor;
 
+import io.fluxion.common.thread.CommonThreadPool;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.execution.Executable;
@@ -27,7 +28,9 @@ import io.fluxion.server.core.executor.option.OvertimeOption;
 import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.core.job.ExecutorJob;
 import io.fluxion.server.core.job.Job;
+import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
+import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 
 import java.time.LocalDateTime;
@@ -92,7 +95,7 @@ public class Executor implements Executable {
         // 保存数据
         Cmd.send(new JobsCreateCmd(Collections.singletonList(job)));
         // 执行
-        job.schedule();
+        CommonThreadPool.IO.submit(new LoggingTask(() -> Cmd.send(new JobRunCmd(job))));
     }
 
     @Override

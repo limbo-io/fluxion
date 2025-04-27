@@ -51,7 +51,7 @@ public class MapReduceJobTracker extends DistributedJobTracker {
         MapReduceExecutor executor = (MapReduceExecutor) this.executor;
         List<Task> tasks = executor.sharding(JobContext.from(job));
         for (Task task : tasks) {
-            task.setStatus(TaskStatus.CREATED);
+            task.setStatus(TaskStatus.INITED);
             task.setRemoteNode(workerContext.node());
         }
 
@@ -65,24 +65,28 @@ public class MapReduceJobTracker extends DistributedJobTracker {
 
     @Override
     public void success() {
+        if (!taskCounter.isFinished()) {
+            return;
+        }
         MapExecutor executor = (MapExecutor) this.executor;
         if (taskCounter.getFail().get() > 0) {
-            job.fail("Task Execute Fail");
-            report();
+            jobFail("Task Execute Fail");
         } else {
             if (executor instanceof MapReduceExecutor) {
                 MapReduceExecutor reduceExecutor = (MapReduceExecutor) this.executor;
                 Map<String, String> allSubTaskResult = taskRepository.getAllSubTaskResult(job.getId());
                 reduceExecutor.reduce(allSubTaskResult);
             }
-            report();
+            jobSuccess("");
         }
     }
 
     @Override
     public void fail() {
-        job.fail("Task Execute Fail");
-        report();
+        if (!taskCounter.isFinished()) {
+            return;
+        }
+        jobFail("Task Execute Fail");
     }
 
     @Override

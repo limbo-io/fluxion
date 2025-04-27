@@ -52,22 +52,23 @@ public class RetryableLBClient extends LBClient {
         if (CollectionUtils.isEmpty(servers)) {
             throw new IllegalStateException("No alive servers!");
         }
-        for (int i = 1; i <= retryTimes; i++) {
+        int times = 1;
+        for (; times <= retryTimes; times++) {
             LBServer server = select(servers, path);
             if (server == null) {
-                log.warn("No available alive servers after {} tries from load balancer", i);
+                log.warn("No available alive servers after {} tries from load balancer", times);
                 throw new IllegalStateException("Can't get alive server by path=" + path);
             }
             URL newUrl = null;
             try {
                 return client.call(path, server.host(), server.port(), request);
             } catch (Exception e) {
-                log.warn("try {} times... address {} connect fail, try connect new node", i, newUrl, e);
+                log.warn("try {} times... address {} connect fail, try connect new node", times, newUrl, e);
                 servers = servers.stream().filter(s -> !s.id().equals(server.id())).collect(Collectors.toList());
             }
 
         }
-        throw new IllegalStateException("try " + retryTimes + " times... but also fail, throw to out");
+        throw new IllegalStateException("try " + times + " times... but also fail, throw to out");
     }
 
     @Override

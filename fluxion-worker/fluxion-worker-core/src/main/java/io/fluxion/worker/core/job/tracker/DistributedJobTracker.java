@@ -99,7 +99,7 @@ public abstract class DistributedJobTracker extends JobTracker {
         }
     }
 
-    public TaskReportResponse report(TaskReportRequest request) {
+    public TaskReportResponse handleTaskReport(TaskReportRequest request) {
         Task task = taskRepository.getById(request.getJobId(), request.getTaskId());
         TaskReportResponse response = new TaskReportResponse();
         if (task == null) {
@@ -119,7 +119,7 @@ public abstract class DistributedJobTracker extends JobTracker {
         boolean success = false;
         switch (reqStatus) {
             case DISPATCHED:
-                if (TaskStatus.CREATED == task.getStatus()) { // dispatch 后更新晚于 report
+                if (TaskStatus.INITED == task.getStatus()) { // dispatch 后更新晚于 report
                     success = taskRepository.dispatched(task.getJobId(), task.getId(), workerAddress);
                 } else if (TaskStatus.DISPATCHED == task.getStatus()) { // task 还没开始执行时候
                     success = taskRepository.report(task.getJobId(), task.getId(), TaskStatus.DISPATCHED, workerAddress, reportAt);
@@ -133,10 +133,10 @@ public abstract class DistributedJobTracker extends JobTracker {
                 }
                 break;
             case SUCCEED:
-                success = success(request, task);
+                success = handleSuccessRequest(request, task);
                 break;
             case FAILED:
-                success = fail(request, task);
+                success = handleFailRequest(request, task);
                 break;
         }
         response.setSuccess(success);
@@ -146,7 +146,7 @@ public abstract class DistributedJobTracker extends JobTracker {
     /**
      * 更新 running 状态的task为success
      */
-    public boolean success(TaskReportRequest request, Task task) {
+    public boolean handleSuccessRequest(TaskReportRequest request, Task task) {
         if (TaskStatus.RUNNING != task.getStatus()) {
             return false;
         }
@@ -158,10 +158,6 @@ public abstract class DistributedJobTracker extends JobTracker {
             return false;
         }
         taskCounter.getSuccess().incrementAndGet();
-        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
-            return true; // 等所有完成
-        }
-        job.success("");
         success();
         return true;
     }
@@ -169,7 +165,7 @@ public abstract class DistributedJobTracker extends JobTracker {
     /**
      * 更新 running 状态的task为fail
      */
-    public boolean fail(TaskReportRequest request, Task task) {
+    public boolean handleFailRequest(TaskReportRequest request, Task task) {
         if (TaskStatus.RUNNING != task.getStatus()) {
             return false;
         }
@@ -182,9 +178,6 @@ public abstract class DistributedJobTracker extends JobTracker {
             return false;
         }
         taskCounter.getFail().incrementAndGet();
-        if (taskCounter.getTotal().get() != (taskCounter.getFail().get() + taskCounter.getSuccess().get())) {
-            return true; // 等所有完成
-        }
         fail();
         return true;
     }

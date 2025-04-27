@@ -23,6 +23,7 @@ import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
 import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.core.schedule.ScheduleDelayConstants;
 import io.fluxion.server.core.schedule.converter.ScheduleDelayEntityConverter;
+import io.fluxion.server.core.schedule.query.ScheduleDelayNextCleanQuery;
 import io.fluxion.server.core.schedule.query.ScheduleDelayNextTriggerQuery;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
@@ -63,6 +64,22 @@ public class ScheduleDelayQueryService {
             .setMaxResults(query.getLimit())
             .getResultList();
         return new ScheduleDelayNextTriggerQuery.Response(ScheduleDelayEntityConverter.convert(entities));
+    }
+
+    @QueryHandler
+    public ScheduleDelayNextCleanQuery.Response handle(ScheduleDelayNextCleanQuery query) {
+        String brokerId = BrokerContext.broker().id();
+        List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        List<ScheduleDelayEntity> entities = entityManager.createQuery("select e from ScheduleDelayEntity e" +
+                " where e.bucket in :buckets and e.id.triggerAt <= :triggerAt and delayId > :lastDelayId " +
+                " order by id.triggerAt, delayId asc ", ScheduleDelayEntity.class
+            )
+            .setParameter("buckets", buckets)
+            .setParameter("lastDelayId", query.getLastDelayId())
+            .setParameter("triggerAt", query.getEndAt())
+            .setMaxResults(query.getLimit())
+            .getResultList();
+        return new ScheduleDelayNextCleanQuery.Response(ScheduleDelayEntityConverter.convert(entities));
     }
 
 }

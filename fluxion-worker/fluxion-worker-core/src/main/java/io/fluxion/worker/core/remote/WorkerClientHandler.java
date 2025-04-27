@@ -125,7 +125,7 @@ public class WorkerClientHandler implements ClientHandler {
             return new TaskReportResponse();
         }
         if (tracker instanceof DistributedJobTracker) {
-            return ((DistributedJobTracker) tracker).report(request);
+            return ((DistributedJobTracker) tracker).handleTaskReport(request);
         }
         log.error("[TaskReport] tracker type error request:{}", request);
         return new TaskReportResponse();

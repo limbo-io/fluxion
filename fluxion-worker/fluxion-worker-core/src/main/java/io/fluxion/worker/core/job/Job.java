@@ -80,18 +80,16 @@ public class Job {
         return result;
     }
 
-    public void success(String result) {
+    public void setResult(String result) {
         this.result = result;
-        setStatus(JobStatus.SUCCEED);
+    }
+
+    public void setErrorMsg(String errorMsg) {
+        this.errorMsg = errorMsg;
     }
 
     public String getErrorMsg() {
         return errorMsg;
-    }
-
-    public void fail(String errorMsg) {
-        this.errorMsg = errorMsg;
-        setStatus(JobStatus.FAILED);
     }
 
 }

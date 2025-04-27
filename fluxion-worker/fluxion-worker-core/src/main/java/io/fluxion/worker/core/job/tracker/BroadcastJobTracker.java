@@ -28,6 +28,7 @@ import io.fluxion.worker.core.job.Job;
 import io.fluxion.worker.core.remote.WorkerClientConverter;
 import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.task.repository.TaskRepository;
+import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,44 +51,51 @@ public class BroadcastJobTracker extends DistributedJobTracker {
         request.setJobId(job.getId());
         Response<JobWorkersResponse> workerResponse = workerContext.call(API_JOB_WORKERS, request);
         if (!workerResponse.success()) {
-            job.fail("Get Workers Fail");
-            report();
+            jobFail("Get Workers Fail");
             return;
         }
 
         List<NodeDTO> workers = workerResponse.getData().getWorkers();
+        if (CollectionUtils.isEmpty(workers)) {
+            jobSuccess("");
+        } else {
+            List<Task> tasks = new ArrayList<>();
+            for (int i = 0; i < workers.size(); i++) {
+                NodeDTO worker = workers.get(i);
+                Task task = new Task("SUB_" + i, job.getId());
+                task.setStatus(TaskStatus.INITED);
+                task.setRemoteNode(workerContext.node());
+                task.setWorkerNode(WorkerClientConverter.toNode(worker));
+                tasks.add(task);
+            }
 
-        List<Task> tasks = new ArrayList<>();
-        for (int i = 0; i < workers.size(); i++) {
-            NodeDTO worker = workers.get(i);
-            Task task = new Task("SUB_" + i, job.getId());
-            task.setStatus(TaskStatus.CREATED);
-            task.setRemoteNode(workerContext.node());
-            task.setWorkerNode(WorkerClientConverter.toNode(worker));
-            tasks.add(task);
+            // 保存
+            taskRepository.batchSave(tasks);
+            taskCounter.getTotal().set(tasks.size());
+
+            // 下发
+            dispatch(tasks);
         }
-
-        // 保存
-        taskRepository.batchSave(tasks);
-        taskCounter.getTotal().set(tasks.size());
-
-        // 下发
-        dispatch(tasks);
     }
 
     @Override
     public void success() {
-        report();
+        if (!taskCounter.isFinished()) {
+            return;
+        }
+        jobSuccess("");
     }
 
     @Override
     public void fail() {
+        if (!taskCounter.isFinished()) {
+            return;
+        }
         // 后面应该根据策略，现在是只要一个成功就是成功
         if (taskCounter.getSuccess().get() > 0) {
-            report();
+            jobSuccess("");
         } else {
-            job.fail("Task Execute Fail");
-            report();
+            jobFail("All Task Execute Fail");
         }
     }
 

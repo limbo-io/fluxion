@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.workflow;
 
+import io.fluxion.common.thread.CommonThreadPool;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.context.RunContext;
@@ -29,12 +30,14 @@ import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.core.job.ExecutorJob;
 import io.fluxion.server.core.job.InputOutputJob;
 import io.fluxion.server.core.job.Job;
+import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
 import io.fluxion.server.core.job.query.JobCountByStatusQuery;
 import io.fluxion.server.core.workflow.node.EndNode;
 import io.fluxion.server.core.workflow.node.ExecutorNode;
 import io.fluxion.server.core.workflow.node.StartNode;
 import io.fluxion.server.core.workflow.node.WorkflowNode;
+import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dag.DAG;
@@ -156,7 +159,7 @@ public class Workflow implements Executable {
         Cmd.send(new JobsCreateCmd(jobs));
         // 执行
         for (Job job : jobs) {
-            job.schedule();
+            CommonThreadPool.IO.submit(new LoggingTask(() -> Cmd.send(new JobRunCmd(job))));
         }
     }
 

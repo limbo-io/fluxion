@@ -63,8 +63,7 @@ public class BasicJobTracker extends JobTracker {
             task.setLastReportAt(endTime);
             taskRepository.success(task);
             taskCounter.getSuccess().incrementAndGet();
-            job.success("");
-            report();
+            jobSuccess("");
         } catch (Exception e) {
             LocalDateTime endTime = TimeUtils.currentLocalDateTime();
             task.setStatus(TaskStatus.FAILED);
