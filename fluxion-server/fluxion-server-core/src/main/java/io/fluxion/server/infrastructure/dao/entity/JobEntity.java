@@ -48,6 +48,8 @@ public class JobEntity extends BaseEntity {
 
     private String executionId;
 
+    private Integer bucket;
+
     /**
      * @see JobType
      */
@@ -83,7 +85,7 @@ public class JobEntity extends BaseEntity {
     private LocalDateTime endAt;
 
     /**
-     * 执行节点 可能是worker也可能是broker
+     * 执行节点
      */
     private String workerAddress;
 

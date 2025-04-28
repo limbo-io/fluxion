@@ -206,6 +206,7 @@ CREATE TABLE `fluxion_job`
     `id`             bigint unsigned NOT NULL AUTO_INCREMENT,
     `job_id`         varchar(64)     NOT NULL,
     `execution_id`   varchar(64)     NOT NULL,
+    `bucket`         int unsigned    NOT NULL,
     `job_type`       varchar(32)     NOT NULL,
     `ref_id`         varchar(64)     NOT NULL,
     `status`         varchar(32)     NOT NULL,

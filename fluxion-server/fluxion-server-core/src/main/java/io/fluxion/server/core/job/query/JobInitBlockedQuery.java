@@ -23,7 +23,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -42,10 +41,9 @@ public class JobInitBlockedQuery implements IQuery<JobInitBlockedQuery.Response>
     private LocalDateTime endAt;
 
     @Getter
-    @NoArgsConstructor
     @AllArgsConstructor
     public static class Response {
-        private List<String> jobIds = Collections.emptyList();
+        private List<String> jobIds;
     }
 
 }

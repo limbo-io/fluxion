@@ -19,6 +19,7 @@ package io.fluxion.server.core.job.service;
 import com.google.common.collect.Lists;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.constants.JobStatus;
+import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
 import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
@@ -89,9 +90,12 @@ public class JobCommandService {
             String id = Cmd.send(new IDGenerateCmd(IDType.JOB)).getId();
             job.setJobId(id);
         }).map(job -> {
+            String executionId = job.getExecution().getId();
+            int bucket = Cmd.send(new BucketAllotCmd(executionId+ "_" + job.getRefId())).getBucket();
             JobEntity entity = new JobEntity();
             entity.setJobId(job.getJobId());
-            entity.setExecutionId(job.getExecution().getId());
+            entity.setExecutionId(executionId);
+            entity.setBucket(bucket);
             entity.setTriggerAt(job.getTriggerAt());
             entity.setStatus(job.getStatus().value);
             entity.setJobType(job.type().value);

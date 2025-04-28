@@ -17,6 +17,9 @@
 package io.fluxion.server.core.job.service;
 
 import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.remote.core.constants.JobStatus;
+import io.fluxion.server.core.broker.BrokerContext;
+import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
@@ -33,6 +36,8 @@ import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.persistence.EntityManager;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -43,6 +48,9 @@ public class JobQueryService {
 
     @Resource
     private JobEntityRepo jobEntityRepo;
+
+    @Resource
+    private EntityManager entityManager;
 
     @QueryHandler
     public JobCountByStatusQuery.Response handle(JobCountByStatusQuery query) {
@@ -71,14 +79,44 @@ public class JobQueryService {
         return new JobByIdQuery.Response(job);
     }
 
+    /**
+     * 超过触发时间一段时间还是init状态的
+     */
     @QueryHandler
     public JobInitBlockedQuery.Response handle(JobInitBlockedQuery query) {
-
+        String brokerId = BrokerContext.broker().id();
+        List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        List<JobEntity> entities = entityManager.createQuery("select e.jobId from JobEntity e" +
+                " where e.bucket in :buckets and e.triggerAt <= :triggerAt and status = :status and jobId > :lastId " +
+                " order by jobId asc ", JobEntity.class
+            )
+            .setParameter("buckets", buckets)
+            .setParameter("status", JobStatus.INITED.value)
+            .setParameter("lastId", query.getLastJobId())
+            .setParameter("triggerAt", query.getEndAt())
+            .setMaxResults(query.getLimit())
+            .getResultList();
+        return new JobInitBlockedQuery.Response(entities.stream().map(JobEntity::getJobId).collect(Collectors.toList()));
     }
 
+    /**
+     * 运行中且上报时间超过一段时间了
+     */
     @QueryHandler
     public JobUnReportQuery.Response handle(JobUnReportQuery query) {
-
+        String brokerId = BrokerContext.broker().id();
+        List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        List<JobEntity> entities = entityManager.createQuery("select e.jobId from JobEntity e" +
+                " where e.bucket in :buckets and e.lastReportAt <= :lastReportAt and status =:status and jobId > :lastId " +
+                " order by jobId asc ", JobEntity.class
+            )
+            .setParameter("buckets", buckets)
+            .setParameter("status", JobStatus.RUNNING.value)
+            .setParameter("lastId", query.getLastJobId())
+            .setParameter("lastReportAt", query.getEndAt())
+            .setMaxResults(query.getLimit())
+            .getResultList();
+        return new JobUnReportQuery.Response(entities.stream().map(JobEntity::getJobId).collect(Collectors.toList()));
     }
 
 }
