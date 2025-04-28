@@ -20,8 +20,11 @@ import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
 import io.fluxion.remote.core.api.request.worker.TaskReportRequest;
+import io.fluxion.remote.core.api.request.worker.TaskStateTransitionRequest;
 import io.fluxion.remote.core.api.response.worker.TaskReportResponse;
+import io.fluxion.remote.core.api.response.worker.TaskStateTransitionResponse;
 import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.remote.core.constants.TaskStateEvent;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
@@ -72,8 +75,8 @@ public abstract class DistributedJobTracker extends JobTracker {
                 if (response.success() && BooleanUtils.isTrue(response.getData())) {
                     boolean updated = taskRepository.dispatched(task.getJobId(), task.getId(), worker.address());
                     if (!updated) {
-                        // 如果下发的worker先执行任务，会将状态改为running
-                        log.warn("Task dispatch update fail: task:{}", JacksonUtils.toJSONString(task));
+                        // 如果下发的worker先执行任务，会将状态改为running 所以这里可能失败
+                        log.info("Task dispatch update fail: task:{}", JacksonUtils.toJSONString(task));
                     }
                     return true;
                 } else {
@@ -99,43 +102,25 @@ public abstract class DistributedJobTracker extends JobTracker {
         }
     }
 
-    public TaskReportResponse handleTaskReport(TaskReportRequest request) {
+    public TaskStateTransitionResponse handleTaskStateTransition(TaskStateTransitionRequest request) {
         Task task = taskRepository.getById(request.getJobId(), request.getTaskId());
-        TaskReportResponse response = new TaskReportResponse();
-        if (task == null) {
-            response.setSuccess(false);
-            return response;
-        }
-        response.setWorkerNode(WorkerClientConverter.toDTO(task.getWorkerNode()));
-        response.setStatus(task.getStatus().value);
-        if (!task.sameWorker(WorkerClientConverter.toNode(request.getWorkerNode()))) {
+        TaskStateTransitionResponse response = new TaskStateTransitionResponse();
+        if (task == null || !task.sameWorker(WorkerClientConverter.toNode(request.getWorkerNode()))) {
             response.setSuccess(false);
             return response;
         }
         Node worker = WorkerClientConverter.toNode(request.getWorkerNode());
         String workerAddress = worker == null ? null : worker.address();
-        TaskStatus reqStatus = TaskStatus.parse(request.getStatus());
         LocalDateTime reportAt = request.getReportAt();
         boolean success = false;
-        switch (reqStatus) {
-            case DISPATCHED:
-                if (TaskStatus.INITED == task.getStatus()) { // dispatch 后更新晚于 report
-                    success = taskRepository.dispatched(task.getJobId(), task.getId(), workerAddress);
-                } else if (TaskStatus.DISPATCHED == task.getStatus()) { // task 还没开始执行时候
-                    success = taskRepository.report(task.getJobId(), task.getId(), TaskStatus.DISPATCHED, workerAddress, reportAt);
-                }
+        switch (TaskStateEvent.parse(request.getEvent())) {
+            case START:
+                success = taskRepository.start(task.getJobId(), task.getId(), workerAddress, reportAt);
                 break;
-            case RUNNING:
-                if (TaskStatus.DISPATCHED == task.getStatus()) {
-                    success = taskRepository.start(task.getJobId(), task.getId(), workerAddress, reportAt);
-                } else if (TaskStatus.RUNNING == task.getStatus()) {
-                    success = taskRepository.report(task.getJobId(), task.getId(), TaskStatus.RUNNING, workerAddress, reportAt);
-                }
-                break;
-            case SUCCEED:
+            case RUN_SUCCESS:
                 success = handleSuccessRequest(request, task);
                 break;
-            case FAILED:
+            case RUN_FAIL:
                 success = handleFailRequest(request, task);
                 break;
         }
@@ -143,10 +128,21 @@ public abstract class DistributedJobTracker extends JobTracker {
         return response;
     }
 
+    public TaskReportResponse handleTaskReport(TaskReportRequest request) {
+        Node worker = WorkerClientConverter.toNode(request.getWorkerNode());
+        String workerAddress = worker == null ? null : worker.address();
+        LocalDateTime reportAt = request.getReportAt();
+
+        TaskReportResponse response = new TaskReportResponse();
+        boolean success = taskRepository.report(request.getJobId(), request.getTaskId(), TaskStatus.parse(request.getStatus()), workerAddress, reportAt);
+        response.setSuccess(success);
+        return response;
+    }
+
     /**
      * 更新 running 状态的task为success
      */
-    public boolean handleSuccessRequest(TaskReportRequest request, Task task) {
+    public boolean handleSuccessRequest(TaskStateTransitionRequest request, Task task) {
         if (TaskStatus.RUNNING != task.getStatus()) {
             return false;
         }
@@ -165,7 +161,7 @@ public abstract class DistributedJobTracker extends JobTracker {
     /**
      * 更新 running 状态的task为fail
      */
-    public boolean handleFailRequest(TaskReportRequest request, Task task) {
+    public boolean handleFailRequest(TaskStateTransitionRequest request, Task task) {
         if (TaskStatus.RUNNING != task.getStatus()) {
             return false;
         }

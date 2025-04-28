@@ -18,8 +18,8 @@ package io.fluxion.remote.core.api.request.worker;
 
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.dto.NodeDTO;
-import io.fluxion.remote.core.api.response.worker.TaskReportResponse;
-import io.fluxion.remote.core.constants.TaskStatus;
+import io.fluxion.remote.core.api.response.worker.TaskStateTransitionResponse;
+import io.fluxion.remote.core.constants.TaskStateEvent;
 
 import java.time.LocalDateTime;
 
@@ -27,7 +27,7 @@ import java.time.LocalDateTime;
  * @author Devil
  * @since 2023/8/3
  */
-public class TaskReportRequest implements Request<TaskReportResponse> {
+public class TaskStateTransitionRequest implements Request<TaskStateTransitionResponse> {
 
     private String jobId;
 
@@ -37,10 +37,18 @@ public class TaskReportRequest implements Request<TaskReportResponse> {
 
     private LocalDateTime reportAt;
     /**
-     * task status
-     * @see TaskStatus
+     * event
+     * @see TaskStateEvent
      */
-    private String status;
+    private String event;
+
+    // when success
+    private String result;
+
+    // when fail
+    private String errorMsg;
+
+    private String errorStackTrace;
 
     public String getTaskId() {
         return taskId;
@@ -74,12 +82,35 @@ public class TaskReportRequest implements Request<TaskReportResponse> {
         this.workerNode = workerNode;
     }
 
-    public String getStatus() {
-        return status;
+    public String getResult() {
+        return result;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setResult(String result) {
+        this.result = result;
     }
 
+    public String getErrorMsg() {
+        return errorMsg;
+    }
+
+    public void setErrorMsg(String errorMsg) {
+        this.errorMsg = errorMsg;
+    }
+
+    public String getErrorStackTrace() {
+        return errorStackTrace;
+    }
+
+    public void setErrorStackTrace(String errorStackTrace) {
+        this.errorStackTrace = errorStackTrace;
+    }
+
+    public String getEvent() {
+        return event;
+    }
+
+    public void setEvent(String event) {
+        this.event = event;
+    }
 }

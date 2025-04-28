@@ -18,63 +18,33 @@ package io.fluxion.remote.core.constants;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.google.common.collect.Sets;
 import io.fluxion.common.constants.CommonConstants;
-
-import java.util.Set;
 
 /**
  * @author Devil
  */
-public enum JobStatus {
+public enum TaskStateEvent {
     UNKNOWN(CommonConstants.UNKNOWN),
-    /**
-     * 初始化
-     */
-    INITED("inited"),
-    /**
-     * 运行中
-     */
-    RUNNING("running"),
-    SUCCEED("succeed"),
-    FAILED("failed"), // worker拒绝，进入容错策略 失败次数不增加 TERMINATED 作业被手动终止 不再增加一个状态 而是写入 errMsg
-    /**
-     * 重试 调度中
-     */
-    RESTARTED("restarted"),
-    /**
-     * 取消
-     */
-    CANCELLED("cancelled"),
-    /**
-     * 终止
-     */
-    TERMINATED("terminated"),
-    /**
-     * 暂停
-     */
-    PAUSED("paused"),
+    START("start"),
+    RUN_SUCCESS("run_success"),
+    RUN_FAIL("run_fail"),
     ;
-
-    public static final Set<JobStatus> FINISH_STATUS = Sets.newHashSet(
-        SUCCEED, FAILED, CANCELLED, TERMINATED
-    );
 
     @JsonValue
     public final String value;
 
 
-    JobStatus(String type) {
-        this.value = type;
+    TaskStateEvent(String value) {
+        this.value = value;
     }
 
-    public boolean is(String type) {
-        return this.value.equals(type);
+    public boolean is(String value) {
+        return this.value.equals(value);
     }
 
     @JsonCreator
-    public static JobStatus parse(String value) {
-        for (JobStatus v : values()) {
+    public static TaskStateEvent parse(String value) {
+        for (TaskStateEvent v : values()) {
             if (v.is(value)) {
                 return v;
             }
@@ -82,7 +52,4 @@ public enum JobStatus {
         return UNKNOWN;
     }
 
-    public boolean isFinished() {
-        return FINISH_STATUS.contains(this);
-    }
 }

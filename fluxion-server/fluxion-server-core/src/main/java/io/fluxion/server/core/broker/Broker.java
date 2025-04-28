@@ -25,6 +25,7 @@ import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.task.BucketChecker;
 import io.fluxion.server.core.broker.task.CoreTask;
 import io.fluxion.server.core.broker.task.DataCleaner;
+import io.fluxion.server.core.broker.task.JobChecker;
 import io.fluxion.server.core.broker.task.ScheduleDelayLoader;
 import io.fluxion.server.core.broker.task.ScheduleLoader;
 import io.fluxion.server.core.broker.task.WorkerChecker;
@@ -77,7 +78,8 @@ public class Broker {
             new ScheduleDelayLoader(),
             new BucketChecker(),
             new DataCleaner(),
-            new WorkerChecker()
+            new WorkerChecker(),
+            new JobChecker()
         );
         this.clientServer = clientServer;
         this.coreThreadPool = new ScheduledThreadPoolExecutor(

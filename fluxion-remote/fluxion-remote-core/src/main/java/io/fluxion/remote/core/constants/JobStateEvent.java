@@ -25,7 +25,6 @@ import io.fluxion.common.constants.CommonConstants;
  */
 public enum JobStateEvent {
     UNKNOWN(CommonConstants.UNKNOWN),
-    DISPATCH_SUCCESS("dispatch_success"),
     START("start"),
     RUN_SUCCESS("run_success"),
     RUN_FAIL("run_fail"),

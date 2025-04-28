@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 limbo-io Team (https://github.com/limbo-io).
+ * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,26 +14,25 @@
  * limitations under the License.
  */
 
-package io.fluxion.remote.core.api.response.worker;
+package io.fluxion.server.core.job.cmd;
+
+import io.fluxion.server.infrastructure.cqrs.ICmd;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
- * 失败原因：
- * 1. task为空
- * 2. worker节点变化
- * 3. 前置状态不一致
+ * 将状态修改为初始化
+ *
  * @author Devil
  */
-public class TaskReportResponse {
-    /**
-     * 是否成功
-     */
-    private boolean success;
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class JobResetCmd implements ICmd<Void> {
 
-    public boolean isSuccess() {
-        return success;
-    }
+    private String jobId;
 
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
 }

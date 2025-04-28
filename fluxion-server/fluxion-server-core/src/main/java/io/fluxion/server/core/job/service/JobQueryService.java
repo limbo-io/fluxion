@@ -24,6 +24,8 @@ import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.TaskMonitor;
 import io.fluxion.server.core.job.query.JobByIdQuery;
 import io.fluxion.server.core.job.query.JobCountByStatusQuery;
+import io.fluxion.server.core.job.query.JobInitBlockedQuery;
+import io.fluxion.server.core.job.query.JobUnReportQuery;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.JobEntity;
 import io.fluxion.server.infrastructure.dao.repository.JobEntityRepo;
@@ -67,6 +69,16 @@ public class JobQueryService {
         job.setErrorMsg(entity.getErrorMsg());
         job.setResult(entity.getResult());
         return new JobByIdQuery.Response(job);
+    }
+
+    @QueryHandler
+    public JobInitBlockedQuery.Response handle(JobInitBlockedQuery query) {
+
+    }
+
+    @QueryHandler
+    public JobUnReportQuery.Response handle(JobUnReportQuery query) {
+
     }
 
 }

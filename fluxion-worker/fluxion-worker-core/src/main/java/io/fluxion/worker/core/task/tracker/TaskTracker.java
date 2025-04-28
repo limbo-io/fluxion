@@ -21,8 +21,9 @@ import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.request.worker.TaskReportRequest;
-import io.fluxion.remote.core.api.response.worker.TaskReportResponse;
-import io.fluxion.remote.core.cluster.Node;
+import io.fluxion.remote.core.api.request.worker.TaskStateTransitionRequest;
+import io.fluxion.remote.core.api.response.worker.TaskStateTransitionResponse;
+import io.fluxion.remote.core.constants.TaskStateEvent;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.worker.core.AbstractTracker;
@@ -39,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_REPORT;
+import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_STATE_TRANSITION;
 
 /**
  * Task执行管理和监控
@@ -49,7 +51,7 @@ public class TaskTracker extends AbstractTracker {
     /**
      * 上报失败最大次数
      */
-    private static final int MAX_REPORT_FAILED_TIMES = 5;
+    private static final int MAX_FINISH_FAILED_TIMES = 5;
 
     private final Task task;
 
@@ -62,10 +64,12 @@ public class TaskTracker extends AbstractTracker {
     private Future<?> processFuture;
 
     private Future<?> statusReportFuture;
+
+    protected Future<?> finishReportFuture;
     /**
      * 上报失败统计
      */
-    private int reportFailedCount = 0;
+    private int finishFailedCount = 0;
 
     public TaskTracker(Task task, Executor executor, WorkerContext workerContext) {
         this.task = task;
@@ -104,21 +108,16 @@ public class TaskTracker extends AbstractTracker {
         this.processFuture = workerContext.processExecutor().submit(() -> {
             try {
                 // 反馈执行中 -- 排除由于网络问题导致的失败可能性
-                task.setStatus(TaskStatus.RUNNING);
-                if (!report().isSuccess()) {
-                    // 不成功，可能已经下发给其它节点
+                taskStart();
+                if (destroyed.get()) {
                     return;
                 }
                 executor.run(TaskContext.from(task));
                 // 执行成功
-                task.setStatus(TaskStatus.SUCCEED);
-                report();
+                taskSuccess("");
             } catch (Throwable throwable) {
                 log.error("[TaskTracker] run error", throwable);
-                task.setStatus(TaskStatus.FAILED);
-                task.setErrorMsg(throwable.getMessage());
-                task.setErrorStackTrace(ExceptionUtils.getStackTrace(throwable));
-                report();
+                taskFail(throwable.getMessage(), ExceptionUtils.getStackTrace(throwable));
             }
         });
         // 提交状态监控
@@ -127,15 +126,14 @@ public class TaskTracker extends AbstractTracker {
         );
     }
 
-    private TaskReportResponse report() {
+    private void statTransition(TaskStateEvent event) {
         task.setLastReportAt(TimeUtils.currentLocalDateTime());
-        TaskReportRequest request = new TaskReportRequest();
-        TaskReportResponse result;
+        TaskStateTransitionRequest request = new TaskStateTransitionRequest();
         try {
             request.setTaskId(task.getId());
             request.setJobId(task.getJobId());
             request.setReportAt(task.getLastReportAt());
-            request.setStatus(task.getStatus().value);
+            request.setEvent(event.value);
             request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
 
             request.setResult(task.getResult());
@@ -144,36 +142,54 @@ public class TaskTracker extends AbstractTracker {
             request.setErrorStackTrace(task.getErrorStackTrace());
 
             NodeDTO remote = WorkerClientConverter.toDTO(task.getRemoteNode());
-            Response<TaskReportResponse> response = workerContext.call(API_TASK_REPORT, remote.getHost(), remote.getPort(), request);
-            if (!response.success() || response.getData() == null) {
-                result = new TaskReportResponse();
-            } else {
-                result = response.getData();
+            Response<TaskStateTransitionResponse> response = workerContext.call(API_TASK_STATE_TRANSITION, remote.getHost(), remote.getPort(), request);
+            if (response.success() && response.getData() != null && response.getData().isSuccess()) {
+                return;
             }
+            if (!task.getStatus().isFinished()) {
+                destroy();
+                return;
+            }
+            finishFailedCount++;
+            if (finishFailedCount > MAX_FINISH_FAILED_TIMES) {
+                log.warn("[TaskFinish] fail more than {} times jobId:{} taskId:{} event:{}", MAX_FINISH_FAILED_TIMES, task.getJobId(), task.getId(), event);
+                destroy();
+                return;
+            }
+            // 启动定时尝试
+            startFinishSchedule(event);
+        } catch (Exception e) {
+            log.error("[TaskStatTransition] fail request={}", JacksonUtils.toJSONString(request), e);
+            // 启动定时尝试
+            startFinishSchedule(event);
+        }
+    }
+
+    /**
+     * 启动定时尝试
+     * @param event 状态事件
+     */
+    private void startFinishSchedule(TaskStateEvent event) {
+        this.finishReportFuture = workerContext.statusReportExecutor().scheduleAtFixedRate(
+            () -> statTransition(event), 1, 2, TimeUnit.MINUTES
+        );
+    }
+
+    private void report() {
+        task.setLastReportAt(TimeUtils.currentLocalDateTime());
+        TaskReportRequest request = new TaskReportRequest();
+        try {
+            request.setTaskId(task.getId());
+            request.setJobId(task.getJobId());
+            request.setReportAt(task.getLastReportAt());
+            request.setStatus(task.getStatus().value);
+            request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
+
+            NodeDTO remote = WorkerClientConverter.toDTO(task.getRemoteNode());
+            workerContext.call(API_TASK_REPORT, remote.getHost(), remote.getPort(), request);
         } catch (Exception e) {
             log.error("[TaskReport] fail request={}", JacksonUtils.toJSONString(request), e);
-            result = new TaskReportResponse();
         }
-        Node currentWorker = WorkerClientConverter.toNode(result.getWorkerNode());
-        if (!result.isSuccess() && !task.sameWorker(currentWorker)) {
-            log.warn("[TaskReport] task worker change jobId:{} taskId:{} currentWorker:{}",
-                task.getJobId(), task.getId(), currentWorker == null ? null : currentWorker.address()
-            );
-            destroy();
-            return result;
-        }
-        if (task.getStatus().isFinished()) {
-            if (result.isSuccess()) {
-                destroy();
-            } else {
-                reportFailedCount++;
-                if (reportFailedCount > MAX_REPORT_FAILED_TIMES) {
-                    log.warn("[TaskReport] fail more than {} times jobId:{} taskId:{}", MAX_REPORT_FAILED_TIMES, task.getJobId(), task.getId());
-                    destroy();
-                }
-            }
-        }
-        return result;
     }
 
     public void destroy() {
@@ -187,12 +203,33 @@ public class TaskTracker extends AbstractTracker {
         if (processFuture != null) {
             processFuture.cancel(true);
         }
+        if (finishReportFuture != null) {
+            finishReportFuture.cancel(true);
+        }
         workerContext.deleteTask(task.getId());
         log.info("TaskTracker task: {} destroyed success", JacksonUtils.toJSONString(task));
     }
 
     public Task task() {
         return task;
+    }
+
+    protected void taskStart() {
+        task.setStatus(TaskStatus.RUNNING);
+        statTransition(TaskStateEvent.START);
+    }
+
+    protected void taskSuccess(String result) {
+        task.setStatus(TaskStatus.SUCCEED);
+        task.setResult(result);
+        statTransition(TaskStateEvent.RUN_SUCCESS);
+    }
+
+    protected void taskFail(String errorMsg, String errorStackTrace) {
+        task.setStatus(TaskStatus.FAILED);
+        task.setErrorMsg(errorMsg);
+        task.setErrorStackTrace(errorStackTrace);
+        statTransition(TaskStateEvent.RUN_FAIL);
     }
 
 }

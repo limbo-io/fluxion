@@ -17,13 +17,9 @@
 package io.fluxion.remote.core.api.response.worker;
 
 /**
- * 失败原因：
- * 1. task为空
- * 2. worker节点变化
- * 3. 前置状态不一致
  * @author Devil
  */
-public class TaskReportResponse {
+public class TaskStateTransitionResponse {
     /**
      * 是否成功
      */

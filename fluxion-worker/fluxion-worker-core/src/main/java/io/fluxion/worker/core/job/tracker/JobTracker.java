@@ -64,15 +64,15 @@ public abstract class JobTracker extends AbstractTracker {
 
     protected final AtomicBoolean destroyed;
 
-    protected Future<?> processFuture;
-
-    protected Future<?> statusReportFuture;
-
-    protected Future<?> finishReportFuture;
-
     protected final TaskCounter taskCounter;
 
     protected final TaskRepository taskRepository;
+
+    private Future<?> processFuture;
+
+    private Future<?> statusReportFuture;
+
+    private Future<?> finishReportFuture;
 
     /**
      * 上报失败统计
@@ -100,7 +100,6 @@ public abstract class JobTracker extends AbstractTracker {
         }
 
         try {
-            job.setStatus(JobStatus.DISPATCHED);
             // 提交执行 正常来说保存成功这里不会被拒绝
             this.processFuture = workerContext.processExecutor().submit(new Runnable() {
                 @Override
@@ -178,16 +177,16 @@ public abstract class JobTracker extends AbstractTracker {
             }
             finishFailedCount++;
             if (finishFailedCount > MAX_FINISH_FAILED_TIMES) {
-                log.warn("[JobFinish] fail more than {} times jobId:{}", MAX_FINISH_FAILED_TIMES, job.getId());
+                log.warn("[JobFinish] fail more than {} times jobId:{} event:{}", MAX_FINISH_FAILED_TIMES, job.getId(), event);
                 destroy();
                 return;
             }
             // 启动定时尝试
-            statTransition(event);
+            startFinishSchedule(event);
         } catch (Exception e) {
-            log.error("[obStateTransition] fail request={}", JacksonUtils.toJSONString(request), e);
+            log.error("[JobStateTransition] fail request={}", JacksonUtils.toJSONString(request), e);
             // 启动定时尝试
-            statTransition(event);
+            startFinishSchedule(event);
         }
     }
 
@@ -196,7 +195,7 @@ public abstract class JobTracker extends AbstractTracker {
      * @param event 状态事件
      */
     private void startFinishSchedule(JobStateEvent event) {
-        this.statusReportFuture = workerContext.statusReportExecutor().scheduleAtFixedRate(
+        this.finishReportFuture = workerContext.statusReportExecutor().scheduleAtFixedRate(
             () -> statTransition(event), 1, 2, TimeUnit.MINUTES
         );
     }
@@ -231,6 +230,9 @@ public abstract class JobTracker extends AbstractTracker {
         }
         if (processFuture != null) {
             processFuture.cancel(true);
+        }
+        if (finishReportFuture != null) {
+            finishReportFuture.cancel(true);
         }
         workerContext.deleteJob(job.getId());
         log.info("JobTracker jobId: {} destroyed success", job.getId());

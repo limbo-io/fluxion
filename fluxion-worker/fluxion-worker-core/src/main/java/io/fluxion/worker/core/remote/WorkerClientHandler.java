@@ -21,7 +21,9 @@ import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.worker.JobDispatchRequest;
 import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
 import io.fluxion.remote.core.api.request.worker.TaskReportRequest;
+import io.fluxion.remote.core.api.request.worker.TaskStateTransitionRequest;
 import io.fluxion.remote.core.api.response.worker.TaskReportResponse;
+import io.fluxion.remote.core.api.response.worker.TaskStateTransitionResponse;
 import io.fluxion.remote.core.client.server.ClientHandler;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.worker.core.WorkerContext;
@@ -67,6 +69,9 @@ public class WorkerClientHandler implements ClientHandler {
                 }
                 case WorkerRemoteConstant.API_TASK_REPORT: {
                     return Response.ok(taskReport(data));
+                }
+                case WorkerRemoteConstant.API_TASK_STATE_TRANSITION: {
+                    return Response.ok(taskStateTransition(data));
                 }
             }
             String msg = "Invalid request, Path NotFound.";
@@ -129,6 +134,20 @@ public class WorkerClientHandler implements ClientHandler {
         }
         log.error("[TaskReport] tracker type error request:{}", request);
         return new TaskReportResponse();
+    }
+
+    private TaskStateTransitionResponse taskStateTransition(String data) {
+        TaskStateTransitionRequest request = JacksonUtils.toType(data, TaskStateTransitionRequest.class);
+        JobTracker tracker = workerContext.getJob(request.getJobId());
+        if (tracker == null) {
+            log.error("[TaskStateTransition] not found tracker request:{}", request);
+            return new TaskStateTransitionResponse();
+        }
+        if (tracker instanceof DistributedJobTracker) {
+            return ((DistributedJobTracker) tracker).handleTaskStateTransition(request);
+        }
+        log.error("[TaskStateTransition] tracker type error request:{}", request);
+        return new TaskStateTransitionResponse();
     }
 
 }

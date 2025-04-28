@@ -37,7 +37,7 @@ public class Job {
     /**
      * 状态
      */
-    private JobStatus status;
+    private JobStatus status = JobStatus.INITED;
 
 
     private String result;

@@ -40,5 +40,7 @@ public interface WorkerRemoteConstant {
     String API_TASK_DISPATCH = "/api/v1/task/dispatch";
 
     String API_TASK_REPORT = "/api/v1/task/report";
+
+    String API_TASK_STATE_TRANSITION = "/api/v1/task/state-transition";
     // ========== API End ==========
 }

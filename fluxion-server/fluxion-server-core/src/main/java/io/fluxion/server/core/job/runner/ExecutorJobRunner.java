@@ -19,14 +19,12 @@ package io.fluxion.server.core.job.runner;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.worker.JobDispatchRequest;
-import io.fluxion.remote.core.constants.JobStateEvent;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
 import io.fluxion.server.core.job.ExecutorJob;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
-import io.fluxion.server.core.job.cmd.JobStateTransitionCmd;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
@@ -90,15 +88,6 @@ public class ExecutorJobRunner extends JobRunner {
                 TimeUtils.currentLocalDateTime(),
                 null,
                 "dispatch fail worker:" + (worker == null ? null : worker.id())
-            ));
-        } else {
-            Cmd.send(new JobStateTransitionCmd(
-                job.getJobId(),
-                worker,
-                TimeUtils.currentLocalDateTime(),
-                null,
-                JobStateEvent.DISPATCH_SUCCESS,
-                null, null
             ));
         }
     }

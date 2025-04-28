@@ -16,30 +16,86 @@
 
 package io.fluxion.server.core.broker.task;
 
-import io.fluxion.server.core.schedule.ScheduleDelayConstants;
+import io.fluxion.common.thread.CommonThreadPool;
+import io.fluxion.common.utils.time.TimeUtils;
+import io.fluxion.remote.core.constants.BrokerRemoteConstant;
+import io.fluxion.server.core.job.Job;
+import io.fluxion.server.core.job.cmd.JobResetCmd;
+import io.fluxion.server.core.job.cmd.JobRunCmd;
+import io.fluxion.server.core.job.query.JobByIdQuery;
+import io.fluxion.server.core.job.query.JobInitBlockedQuery;
+import io.fluxion.server.core.job.query.JobUnReportQuery;
+import io.fluxion.server.infrastructure.concurrent.LoggingTask;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 检查异常状态job并进行恢复
- *
- * todo @d later
- * 1. 加载 create 状态执行TaskRunCmd
- * 2. 加载 dispatched + running 状态 长时间没有心跳 修改为最终态
- * 3. 判断超时
  *
  * @author Devil
  */
 @Slf4j
 public class JobChecker extends CoreTask {
 
+    private static final int INTERVAL = 1;
+    private static final TimeUnit UNIT = TimeUnit.MINUTES;
+
     public JobChecker() {
-        super(0, ScheduleDelayConstants.LOAD_INTERVAL, ScheduleDelayConstants.LOAD_TIME_UNIT);
+        super(0, INTERVAL, UNIT);
     }
 
     @Override
     public void run() {
-        // job create 还没执行 JobRunCmd broker宕机导致还是create状态
+        // job 创建了(inited) 还没执行 JobRunCmd broker宕机导致还是create状态 重新run
+        CommonThreadPool.IO.submit(new LoggingTask(() -> {
+            LocalDateTime endAt = TimeUtils.currentLocalDateTime().plusMinutes(- INTERVAL);
+            String lastId = "";
+            // 返回的job必定是inited
+            List<String> jobIds = Query.query(new JobInitBlockedQuery(100, lastId, endAt)).getJobIds();
+            while (CollectionUtils.isNotEmpty(jobIds)) {
+                for (String jobId : jobIds) {
+                    CommonThreadPool.IO.submit(new LoggingTask(() -> {
+                        // 初始化状态并运行
+                        Cmd.send(new JobResetCmd(jobId));
+                        Job job = Query.query(new JobByIdQuery(jobId)).getJob();
+                        Cmd.send(new JobRunCmd(job));
+                    }));
+                }
+                // 拉取后续的
+                lastId = jobIds.get(jobIds.size() - 1);
+                jobIds = Query.query(new JobInitBlockedQuery(100, lastId, endAt)).getJobIds();
+            }
+        }));
+
+        // running 但是report已经超过一定时间没有上报
+        CommonThreadPool.IO.submit(new LoggingTask(() -> {
+            LocalDateTime endAt = TimeUtils.currentLocalDateTime().plusSeconds(- 2 * BrokerRemoteConstant.JOB_REPORT_SECONDS);
+            String lastId = "";
+            // 返回的job必定是inited
+            List<String> jobIds = Query.query(new JobUnReportQuery(100, lastId, endAt)).getJobIds();
+            while (CollectionUtils.isNotEmpty(jobIds)) {
+                for (String jobId : jobIds) {
+                    CommonThreadPool.IO.submit(new LoggingTask(() -> {
+                        // 初始化状态并运行
+                        Cmd.send(new JobResetCmd(jobId));
+                        Job job = Query.query(new JobByIdQuery(jobId)).getJob();
+                        Cmd.send(new JobRunCmd(job));
+                    }));
+                }
+                // 拉取后续的
+                lastId = jobIds.get(jobIds.size() - 1);
+                jobIds = Query.query(new JobUnReportQuery(100, lastId, endAt)).getJobIds();
+            }
+        }));
+
+        // running状态 执行超过配置的超时时间 todo
     }
 
     @Override
