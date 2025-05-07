@@ -37,10 +37,10 @@ import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.app.cmd.AppSaveCmd;
 import io.fluxion.server.core.broker.converter.BrokerClientConverter;
 import io.fluxion.server.core.broker.query.BrokersQuery;
-import io.fluxion.server.core.job.ExecutorJob;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.cmd.JobReportCmd;
 import io.fluxion.server.core.job.cmd.JobStateTransitionCmd;
+import io.fluxion.server.core.job.config.ExecutorJobConfig;
 import io.fluxion.server.core.job.query.JobByIdQuery;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
@@ -133,7 +133,7 @@ public class BrokerClientHandler implements ClientHandler {
         JobReportRequest request = JacksonUtils.toType(data, JobReportRequest.class);
         JobReportCmd.Response response = Cmd.send(new JobReportCmd(
             request.getJobId(), BrokerClientConverter.toNode(request.getWorkerNode()),
-            request.getReportAt(), BrokerClientConverter.convert(request.getTaskMonitor()),
+            request.getReportAt(), BrokerClientConverter.convert(request.getMonitor()),
             JobStatus.parse(request.getStatus())
         ));
         JobReportResponse res = new JobReportResponse();
@@ -145,7 +145,7 @@ public class BrokerClientHandler implements ClientHandler {
         JobStateTransitionRequest request = JacksonUtils.toType(data, JobStateTransitionRequest.class);
         JobStateTransitionCmd.Response response = Cmd.send(new JobStateTransitionCmd(
             request.getJobId(), BrokerClientConverter.toNode(request.getWorkerNode()),
-            request.getReportAt(), BrokerClientConverter.convert(request.getTaskMonitor()),
+            request.getReportAt(), BrokerClientConverter.convert(request.getMonitor()),
             JobStateEvent.parse(request.getEvent()), request.getResult(), request.getErrorMsg()
         ));
         JobStateTransitionResponse res = new JobStateTransitionResponse();
@@ -156,13 +156,13 @@ public class BrokerClientHandler implements ClientHandler {
     private JobWorkersResponse jobWorkers(String data) {
         JobWorkersRequest request = JacksonUtils.toType(data, JobWorkersRequest.class);
         Job job = Query.query(new JobByIdQuery(request.getJobId())).getJob();
-        if (!(job instanceof ExecutorJob)) {
+        if (!(job.config() instanceof ExecutorJobConfig)) {
             return new JobWorkersResponse();
         }
-        ExecutorJob executorJob = (ExecutorJob) job;
+        ExecutorJobConfig config = (ExecutorJobConfig) job.config();
         List<Worker> workers = Query.query(new WorkersFilterQuery(
-            executorJob.getAppId(), executorJob.getExecutorName(),
-            executorJob.getDispatchOption(), request.isFilterResource(), request.isLoadBalanceSelect()
+            config.getAppId(), config.getExecutorName(),
+            config.getDispatchOption(), request.isFilterResource(), request.isLoadBalanceSelect()
         )).getWorkers();
         JobWorkersResponse response = new JobWorkersResponse();
         response.setWorkers(BrokerClientConverter.toNodes(workers));

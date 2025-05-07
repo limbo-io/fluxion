@@ -24,7 +24,7 @@ import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.job.Job;
-import io.fluxion.server.core.job.TaskMonitor;
+import io.fluxion.server.core.job.JobMonitor;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.cmd.JobReportCmd;
 import io.fluxion.server.core.job.cmd.JobResetCmd;
@@ -78,7 +78,7 @@ public class JobCommandService {
         List<Job> jobs = new ArrayList<>();
         for (Job job : cmd.getJobs()) {
             // 判断是否已经创建
-            JobEntity entity = jobEntityRepo.findByExecutionIdAndRefIdAndJobType(job.getExecution().getId(), job.getRefId(), job.type().value);
+            JobEntity entity = jobEntityRepo.findByExecutionIdAndRefIdAndJobType(job.getExecutionId(), job.getRefId(), job.getType().value);
             if (entity == null) {
                 jobs.add(job);
             }
@@ -90,7 +90,7 @@ public class JobCommandService {
             String id = Cmd.send(new IDGenerateCmd(IDType.JOB)).getId();
             job.setJobId(id);
         }).map(job -> {
-            String executionId = job.getExecution().getId();
+            String executionId = job.getExecutionId();
             int bucket = Cmd.send(new BucketAllotCmd(executionId+ "_" + job.getRefId())).getBucket();
             JobEntity entity = new JobEntity();
             entity.setJobId(job.getJobId());
@@ -98,7 +98,7 @@ public class JobCommandService {
             entity.setBucket(bucket);
             entity.setTriggerAt(job.getTriggerAt());
             entity.setStatus(job.getStatus().value);
-            entity.setJobType(job.type().value);
+            entity.setJobType(job.getType().value);
             entity.setRefId(job.getRefId());
             entity.setRetryTimes(job.getRetryTimes());
             return entity;
@@ -109,9 +109,9 @@ public class JobCommandService {
     @CommandHandler
     public void handle(JobRunCmd cmd) {
         Job job = cmd.getJob();
-        JobRunner jobRunner = jobRunners.stream().filter(r -> r.type() == job.type()).findFirst().orElse(null);
+        JobRunner jobRunner = jobRunners.stream().filter(r -> r.type() == job.getType()).findFirst().orElse(null);
         if (jobRunner == null) {
-            log.warn("[JobRunCmd] can't find type:{}", job.type());
+            log.warn("[JobRunCmd] can't find type:{}", job.getType());
             return;
         }
         jobRunner.run(job);
@@ -155,13 +155,16 @@ public class JobCommandService {
                 ));
                 break;
         }
+        if (!success && log.isDebugEnabled()) {
+            log.warn("JobStateTransition fail jobId:{} event:{}", entity.getJobId(), cmd.getEvent());
+        }
         return new JobStateTransitionCmd.Response(success);
     }
 
     /**
      * 更新上报时间等信息
      */
-    private boolean report(String jobId, JobStatus status, String workerAddress, TaskMonitor monitor, LocalDateTime reportAt) {
+    private boolean report(String jobId, JobStatus status, String workerAddress, JobMonitor monitor, LocalDateTime reportAt) {
         return transactionService.transactional(() -> {
             int updated = entityManager.createQuery("update JobEntity " +
                     "set lastReportAt = :lastReportAt, monitor = :monitor, workerAddress = :workerAddress " +

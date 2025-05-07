@@ -20,11 +20,9 @@ import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
-import io.fluxion.server.core.execution.Executable;
-import io.fluxion.server.core.execution.Execution;
-import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
 import io.fluxion.server.core.job.Job;
-import io.fluxion.server.core.job.TaskMonitor;
+import io.fluxion.server.core.job.JobType;
+import io.fluxion.server.core.job.JobMonitor;
 import io.fluxion.server.core.job.query.JobByIdQuery;
 import io.fluxion.server.core.job.query.JobCountByStatusQuery;
 import io.fluxion.server.core.job.query.JobInitBlockedQuery;
@@ -66,14 +64,14 @@ public class JobQueryService {
         if (entity == null) {
             return new JobByIdQuery.Response(null);
         }
-        Execution execution = Query.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
-        Executable executable = execution.getExecutable();
-        Job job = executable.newRefJob(entity.getRefId());
+        Job job = new Job();
+        job.setType(JobType.parse(entity.getJobType()));
         job.setJobId(entity.getJobId());
-        job.setExecution(execution);
+        job.setRefId(entity.getRefId());
+        job.setExecutionId(entity.getExecutionId());
         job.setTriggerAt(entity.getTriggerAt());
         job.setRetryTimes(entity.getRetryTimes());
-        job.setTaskMonitor(JacksonUtils.toType(entity.getMonitor(), TaskMonitor.class));
+        job.setJobMonitor(JacksonUtils.toType(entity.getMonitor(), JobMonitor.class));
         job.setErrorMsg(entity.getErrorMsg());
         job.setResult(entity.getResult());
         return new JobByIdQuery.Response(job);
@@ -86,7 +84,7 @@ public class JobQueryService {
     public JobInitBlockedQuery.Response handle(JobInitBlockedQuery query) {
         String brokerId = BrokerContext.broker().id();
         List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
-        List<JobEntity> entities = entityManager.createQuery("select e.jobId from JobEntity e" +
+        List<JobEntity> entities = entityManager.createQuery("select e from JobEntity e" +
                 " where e.bucket in :buckets and e.triggerAt <= :triggerAt and status = :status and jobId > :lastId " +
                 " order by jobId asc ", JobEntity.class
             )
@@ -106,7 +104,7 @@ public class JobQueryService {
     public JobUnReportQuery.Response handle(JobUnReportQuery query) {
         String brokerId = BrokerContext.broker().id();
         List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
-        List<JobEntity> entities = entityManager.createQuery("select e.jobId from JobEntity e" +
+        List<JobEntity> entities = entityManager.createQuery("select e from JobEntity e" +
                 " where e.bucket in :buckets and e.lastReportAt <= :lastReportAt and status =:status and jobId > :lastId " +
                 " order by jobId asc ", JobEntity.class
             )

@@ -17,17 +17,12 @@ public interface Executable {
 
     ExecutableType type();
 
-    void execute(RunContext context);
+    void execute(Execution execution);
 
     boolean success(Job job, LocalDateTime time);
 
     boolean fail(Job job, LocalDateTime time);
 
-    RetryOption retryOption(String refId);
-
-    /**
-     * 返回一个 ref 关联类型的job
-     */
-    Job newRefJob(String refId);
+    Job.Config config(String refId);
 
 }

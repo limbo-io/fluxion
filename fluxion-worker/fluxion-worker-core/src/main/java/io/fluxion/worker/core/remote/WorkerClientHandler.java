@@ -90,10 +90,14 @@ public class WorkerClientHandler implements ClientHandler {
         if (executor == null) {
             throw new IllegalArgumentException("unknown executor name:" + job.getExecutorName());
         }
+        if (!workerContext.status().isRunning()) {
+            log.info("Worker is not running: {}", workerContext.status());
+            return false;
+        }
         JobTracker tracker;
         switch (job.getExecuteMode()) {
             case STANDALONE:
-                tracker = new BasicJobTracker(job, executor, workerContext, taskRepository);
+                tracker = new BasicJobTracker(job, executor, workerContext);
                 break;
             case BROADCAST:
                 tracker = new BroadcastJobTracker(job, executor, workerContext, taskRepository);
@@ -104,6 +108,10 @@ public class WorkerClientHandler implements ClientHandler {
                 break;
             default:
                 throw new IllegalArgumentException("unknown execute mode:" + job.getExecuteMode());
+        }
+        if (!workerContext.saveJob(tracker)) {
+            log.info("Receive job [{}], but already in repository", job.getId());
+            return true;
         }
         return tracker.start();
     }

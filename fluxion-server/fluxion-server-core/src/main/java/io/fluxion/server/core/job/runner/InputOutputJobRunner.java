@@ -21,7 +21,6 @@ import io.fluxion.remote.core.constants.JobStateEvent;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
-import io.fluxion.server.core.job.InputOutputJob;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobStateTransitionCmd;
@@ -43,9 +42,8 @@ public class InputOutputJobRunner extends JobRunner {
 
     @Override
     public void run(Job job) {
-        InputOutputJob inputOutputTask = (InputOutputJob) job;
         JobStateTransitionCmd.Response response = Cmd.send(new JobStateTransitionCmd(
-            inputOutputTask.getJobId(),
+            job.getJobId(),
             BrokerContext.broker().node(),
             TimeUtils.currentLocalDateTime(),
             null,

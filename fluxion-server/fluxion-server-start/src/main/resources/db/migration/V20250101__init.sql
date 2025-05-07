@@ -224,7 +224,9 @@ CREATE TABLE `fluxion_job`
     `updated_at`     datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_job` (`job_id`),
-    UNIQUE KEY `uk_job_execution` (`execution_id`, `ref_id`, `job_type`)
+    UNIQUE KEY `uk_job_execution` (`execution_id`, `ref_id`),
+    KEY `idx_job_status_trigger` (`job_id`, `bucket`, `trigger_at`, `status`),
+    KEY `idx_job_status_report` (`job_id`, `bucket`, `last_report_at`, `status`)
 );
 
 CREATE TABLE `fluxion_worker`

@@ -18,11 +18,10 @@ package io.fluxion.server.core.job.cmd;
 
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.JobStateEvent;
-import io.fluxion.server.core.job.TaskMonitor;
+import io.fluxion.server.core.job.JobMonitor;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -41,7 +40,7 @@ public class JobStateTransitionCmd implements ICmd<JobStateTransitionCmd.Respons
 
     private LocalDateTime reportAt;
 
-    private TaskMonitor monitor;
+    private JobMonitor monitor;
 
     private JobStateEvent event;
 

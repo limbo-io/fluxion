@@ -35,12 +35,7 @@ public interface TaskRepository {
     Map<String, String> getAllSubTaskResult(String jobId);
 
     /**
-     * create -> dispatched
-     */
-    boolean dispatched(String jobId, String taskId, String workerAddress);
-
-    /**
-     * dispatched -> running
+     * init -> running
      */
     boolean start(String jobId, String taskId, String workerAddress, LocalDateTime reportAt);
 

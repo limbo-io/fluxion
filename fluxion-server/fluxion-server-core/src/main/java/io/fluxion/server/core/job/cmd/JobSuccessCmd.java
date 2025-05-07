@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.job.cmd;
 
-import io.fluxion.server.core.job.TaskMonitor;
+import io.fluxion.server.core.job.JobMonitor;
 import io.fluxion.server.infrastructure.cqrs.ICmd;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -34,5 +34,5 @@ public class JobSuccessCmd implements ICmd<Boolean> {
 
     private final LocalDateTime reportAt;
 
-    private TaskMonitor monitor;
+    private JobMonitor monitor;
 }

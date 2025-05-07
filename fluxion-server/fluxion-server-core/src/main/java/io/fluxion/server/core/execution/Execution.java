@@ -16,8 +16,11 @@
 
 package io.fluxion.server.core.execution;
 
-import io.fluxion.server.core.context.RunContext;
+import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
+import io.fluxion.server.infrastructure.cqrs.Query;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 执行记录
@@ -29,19 +32,31 @@ public class Execution {
 
     private final String id;
 
-    private final Executable executable;
-
     private final ExecutionStatus status;
 
-    public Execution(String id, Executable executable, ExecutionStatus status) {
+    private final String executableId;
+
+    private final String executableVersion;
+
+    private final ExecutableType type;
+
+    @Setter(AccessLevel.NONE)
+    @Getter(AccessLevel.NONE)
+    private Executable executable;
+
+    public Execution(String id, ExecutionStatus status, String executableId, String executableVersion, ExecutableType type) {
         this.id = id;
-        this.executable = executable;
+        this.type = type;
         this.status = status;
+        this.executableId = executableId;
+        this.executableVersion = executableVersion;
     }
 
-    public void execute() {
-        RunContext runContext = RunContext.of(this);
-        executable.execute(runContext);
+    public Executable executable() {
+        if (executable == null) {
+            executable = Query.query(new ExecutableByIdQuery(executableId, type, executableVersion)).getExecutable();
+        }
+        return executable;
     }
 
 }

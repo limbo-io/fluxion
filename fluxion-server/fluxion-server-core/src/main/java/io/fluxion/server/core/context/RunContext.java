@@ -16,7 +16,9 @@
 
 package io.fluxion.server.core.context;
 
-import io.fluxion.server.core.execution.Execution;
+import lombok.Getter;
+
+import java.util.Map;
 
 /**
  * 运行上下文
@@ -24,28 +26,12 @@ import io.fluxion.server.core.execution.Execution;
  * @author Devil
  */
 public class RunContext {
-    /**
-     * 执行记录
-     */
-    private final Execution execution;
 
-    private RunContext(Execution execution) {
-        this.execution = execution;
+    @Getter
+    public static class Cache {
+
+        private Map<?, ?> globalVars;
+
+        private Map<String, String> envVars;
     }
-
-    public static RunContext of(Execution execution) {
-        return new RunContext(execution);
-    }
-
-    public Execution execution() {
-        return execution;
-    }
-
-//    @Getter
-//    public static class Cache {
-//
-//        private Map<?, ?> globalVars = null;
-//
-//        private Map<String, String> envVars = null;
-//    }
 }

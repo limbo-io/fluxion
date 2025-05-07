@@ -21,11 +21,13 @@ package io.fluxion.worker.core.task;
  */
 public class TaskContext {
 
-    private String id;
+    private final String id;
 
-    private String jobId;
+    private final String jobId;
 
-    private TaskContext() {
+    public TaskContext(String id, String jobId) {
+        this.id = id;
+        this.jobId = jobId;
     }
 
     public String getId() {
@@ -34,13 +36,6 @@ public class TaskContext {
 
     public String getJobId() {
         return jobId;
-    }
-
-    public static TaskContext from(Task task) {
-        TaskContext context = new TaskContext();
-        context.id = task.getId();
-        context.jobId = task.getJobId();
-        return context;
     }
 
 }

@@ -16,11 +16,12 @@
 
 package io.fluxion.server.core.execution.service;
 
-import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
 import io.fluxion.server.core.job.Job;
+import io.fluxion.server.core.job.cmd.JobSuccessCmd;
 import io.fluxion.server.core.job.query.JobByIdQuery;
+import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.tx.TransactionService;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
@@ -53,10 +54,7 @@ public class ExecutableCommandService {
         if (job == null) {
             throw new PlatformException(ErrorCode.PARAM_ERROR, "job not found id:" + cmd.getJobId());
         }
-        job.setTaskMonitor(cmd.getMonitor());
-        job.setResult(cmd.getResult());
-
-        String lockName = job.getExecution().getId() + LOCK_SUFFIX;
+        String lockName = job.getExecutionId() + LOCK_SUFFIX;
         return distributedLock.lock(lockName, 2000, 3000,
             () -> transactionService.transactional(() -> job.success(cmd.getReportAt()))
         );
@@ -68,11 +66,10 @@ public class ExecutableCommandService {
         if (job == null) {
             throw new PlatformException(ErrorCode.PARAM_ERROR, "job not found id:" + cmd.getJobId());
         }
-        job.setTaskMonitor(cmd.getMonitor());
+        job.setJobMonitor(cmd.getMonitor());
         job.setErrorMsg(cmd.getErrorMsg());
 
-        Execution execution = job.getExecution();
-        String lockName = execution.getId() + LOCK_SUFFIX;
+        String lockName = job.getExecutionId() + LOCK_SUFFIX;
         try {
             return distributedLock.lock(lockName, 2000, 3000,
                 () -> transactionService.transactional(() -> job.fail(cmd.getReportAt()))

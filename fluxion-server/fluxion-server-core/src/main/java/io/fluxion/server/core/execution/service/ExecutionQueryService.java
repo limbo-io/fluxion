@@ -16,13 +16,10 @@
 
 package io.fluxion.server.core.execution.service;
 
-import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.ExecutionStatus;
-import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
-import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
 import io.fluxion.server.infrastructure.dao.repository.ExecutionEntityRepo;
 import org.axonframework.queryhandling.QueryHandler;
@@ -45,13 +42,10 @@ public class ExecutionQueryService {
         if (entity == null) {
             return new ExecutionByIdQuery.Response(null);
         }
-        Executable executable = Query.query(new ExecutableByIdQuery(
-            entity.getExecutableId(), ExecutableType.parse(entity.getExecutableType()), entity.getExecutableVersion()
-        )).getExecutable();
-        if (executable == null) {
-            return new ExecutionByIdQuery.Response(null);
-        }
-        Execution execution = new Execution(entity.getExecutionId(), executable, ExecutionStatus.parse(entity.getStatus()));
+        Execution execution = new Execution(
+            entity.getExecutionId(), ExecutionStatus.parse(entity.getStatus()),
+            entity.getExecutableId(), entity.getExecutableVersion(), ExecutableType.parse(entity.getExecutableType())
+        );
         return new ExecutionByIdQuery.Response(execution);
     }
 

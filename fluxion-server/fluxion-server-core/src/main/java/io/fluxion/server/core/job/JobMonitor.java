@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
+ * Copyright 2025-2030 limbo-io Team (https://github.com/limbo-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,29 +16,21 @@
 
 package io.fluxion.server.core.job;
 
-import io.fluxion.remote.core.constants.ExecuteMode;
-import io.fluxion.server.core.executor.option.DispatchOption;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
- * @author PengQ
- * @since 0.0.1
+ * @author Devil
  */
-@EqualsAndHashCode(callSuper = true)
-@Data
-public class ExecutorJob extends Job {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class JobMonitor {
 
-    private String appId;
+    private Integer totalTaskNum;
 
-    private String executorName;
+    private Integer successTaskNum;
 
-    private ExecuteMode executeMode;
-
-    private DispatchOption dispatchOption = new DispatchOption();
-
-    @Override
-    public JobType type() {
-        return JobType.EXECUTOR;
-    }
+    private Integer failTaskNum;
 }

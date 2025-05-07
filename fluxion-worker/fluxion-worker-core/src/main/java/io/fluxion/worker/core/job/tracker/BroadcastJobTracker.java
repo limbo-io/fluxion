@@ -70,8 +70,7 @@ public class BroadcastJobTracker extends DistributedJobTracker {
             }
 
             // 保存
-            taskRepository.batchSave(tasks);
-            taskCounter.getTotal().set(tasks.size());
+            createTasks(tasks);
 
             // 下发
             dispatch(tasks);
@@ -92,7 +91,7 @@ public class BroadcastJobTracker extends DistributedJobTracker {
             return;
         }
         // 后面应该根据策略，现在是只要一个成功就是成功
-        if (taskCounter.getSuccess().get() > 0) {
+        if (taskCounter.success() > 0) {
             jobSuccess("");
         } else {
             jobFail("All Task Execute Fail");

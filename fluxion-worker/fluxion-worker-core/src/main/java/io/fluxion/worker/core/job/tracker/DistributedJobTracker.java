@@ -16,8 +16,9 @@
 
 package io.fluxion.worker.core.job.tracker;
 
-import io.fluxion.common.utils.json.JacksonUtils;
+import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.Response;
+import io.fluxion.remote.core.api.dto.JobMonitorDTO;
 import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
 import io.fluxion.remote.core.api.request.worker.TaskReportRequest;
 import io.fluxion.remote.core.api.request.worker.TaskStateTransitionRequest;
@@ -32,10 +33,14 @@ import io.fluxion.worker.core.job.Job;
 import io.fluxion.worker.core.remote.WorkerClientConverter;
 import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.task.repository.TaskRepository;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_DISPATCH;
 
@@ -44,8 +49,16 @@ import static io.fluxion.remote.core.constants.WorkerRemoteConstant.API_TASK_DIS
  */
 public abstract class DistributedJobTracker extends JobTracker {
 
+    private Future<?> taskCheckFuture;
+
+    protected final TaskCounter taskCounter;
+
+    private final TaskRepository taskRepository;
+
     public DistributedJobTracker(Job job, Executor executor, WorkerContext workerContext, TaskRepository taskRepository) {
-        super(job, executor, workerContext, taskRepository);
+        super(job, executor, workerContext);
+        this.taskCounter = new TaskCounter();
+        this.taskRepository = taskRepository;
     }
 
     public abstract void success();
@@ -54,10 +67,22 @@ public abstract class DistributedJobTracker extends JobTracker {
 
     protected abstract Node findWorker(Task task);
 
+    @Override
+    protected void postProcessOnStart() {
+        this.taskCheckFuture = null; // todo
+    }
+
+    @Override
+    protected void postProcessOnDestroy() {
+        if (taskCheckFuture != null) {
+            taskCheckFuture.cancel(true);
+        }
+    }
+
     /**
      * 下发task给其它worker
      */
-    protected boolean dispatch(Task task) {
+    private void dispatch(Task task) {
         Node worker = null;
         while (task.getDispatchFailTimes() < 3) {
             try {
@@ -73,12 +98,7 @@ public abstract class DistributedJobTracker extends JobTracker {
                 request.setRemoteNode(WorkerClientConverter.toDTO(task.getRemoteNode()));
                 Response<Boolean> response = workerContext.call(API_TASK_DISPATCH, worker.host(), worker.port(), request);
                 if (response.success() && BooleanUtils.isTrue(response.getData())) {
-                    boolean updated = taskRepository.dispatched(task.getJobId(), task.getId(), worker.address());
-                    if (!updated) {
-                        // 如果下发的worker先执行任务，会将状态改为running 所以这里可能失败
-                        log.info("Task dispatch update fail: task:{}", JacksonUtils.toJSONString(task));
-                    }
-                    return true;
+                    return;
                 } else {
                     task.dispatchFail();
                 }
@@ -88,17 +108,17 @@ public abstract class DistributedJobTracker extends JobTracker {
                 );
             }
         }
-        task.setErrorMsg(String.format("task dispatch fail over limit last worker=%s", worker == null ? null : worker.address()));
-        taskRepository.fail(task);
-        return false;
+        taskFail(
+            task.getId(),
+            TimeUtils.currentLocalDateTime(),
+            String.format("task dispatch fail over limit last worker=%s", worker == null ? null : worker.address()),
+            null
+        );
     }
 
     protected void dispatch(List<Task> tasks) {
         for (Task task : tasks) {
-            boolean dispatched = dispatch(task);
-            if (!dispatched) {
-                taskCounter.getFail().incrementAndGet();
-            }
+            dispatch(task);
         }
     }
 
@@ -146,14 +166,7 @@ public abstract class DistributedJobTracker extends JobTracker {
         if (TaskStatus.RUNNING != task.getStatus()) {
             return false;
         }
-        task.setStatus(TaskStatus.SUCCEED);
-        task.setLastReportAt(request.getReportAt());
-        task.setResult(request.getResult());
-        boolean updated = taskRepository.success(task);
-        if (!updated) {
-            return false;
-        }
-        taskCounter.getSuccess().incrementAndGet();
+        taskSuccess(task.getId(), request.getReportAt(), request.getResult());
         success();
         return true;
     }
@@ -165,17 +178,76 @@ public abstract class DistributedJobTracker extends JobTracker {
         if (TaskStatus.RUNNING != task.getStatus()) {
             return false;
         }
-        task.setStatus(TaskStatus.FAILED);
-        task.setLastReportAt(request.getReportAt());
-        task.setErrorMsg(request.getErrorMsg());
-        task.setErrorStackTrace(request.getErrorStackTrace());
-        boolean updated = taskRepository.fail(task);
-        if (!updated) {
-            return false;
-        }
-        taskCounter.getFail().incrementAndGet();
+        taskFail(task.getId(), request.getReportAt(), request.getErrorMsg(), request.getErrorStackTrace());
         fail();
         return true;
+    }
+
+    @Override
+    protected JobMonitorDTO jobMonitor() {
+        JobMonitorDTO dto = new JobMonitorDTO();
+        dto.setTotalTaskNum(taskCounter.total());
+        dto.setSuccessTaskNum(taskCounter.success());
+        dto.setFailTaskNum(taskCounter.fail());
+        return dto;
+    }
+
+    protected void createTasks(List<Task> tasks) {
+        if (CollectionUtils.isEmpty(tasks)) {
+            return;
+        }
+        taskRepository.batchSave(tasks);
+        taskCounter.total.set(tasks.size());
+    }
+
+    private void taskSuccess(String taskId, LocalDateTime endAt, String result) {
+        Task task = taskRepository.getById(job.getId(), taskId);
+        task.setStatus(TaskStatus.SUCCEED);
+        task.setLastReportAt(endAt);
+        task.setEndAt(endAt);
+        task.setResult(result);
+        taskRepository.success(task);
+        taskCounter.success.incrementAndGet();
+    }
+
+    private void taskFail(String taskId, LocalDateTime endAt, String errorMsg, String errorStack) {
+        Task task = taskRepository.getById(job.getId(), taskId);
+        task.setStatus(TaskStatus.FAILED);
+        task.setLastReportAt(endAt);
+        task.setEndAt(endAt);
+        task.setErrorMsg(errorMsg);
+        task.setErrorStackTrace(errorStack);
+        taskRepository.fail(task);
+        taskCounter.fail.incrementAndGet();
+    }
+
+    protected Map<String, String> getAllSubTaskResult(String jobId) {
+        return taskRepository.getAllSubTaskResult(jobId);
+    }
+
+    protected static class TaskCounter {
+
+        AtomicInteger total = new AtomicInteger(0);
+
+        AtomicInteger success = new AtomicInteger(0);
+
+        AtomicInteger fail = new AtomicInteger(0);
+
+        public boolean isFinished() {
+            return total.get() == success.get() + fail.get();
+        }
+
+        public int total() {
+            return total.get();
+        }
+
+        public int success() {
+            return success.get();
+        }
+
+        public int fail() {
+            return fail.get();
+        }
     }
 
 }

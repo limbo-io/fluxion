@@ -19,35 +19,35 @@ package io.fluxion.remote.core.api.dto;
 /**
  * @author Devil
  */
-public class TaskMonitorDTO {
+public class JobMonitorDTO {
 
-    private int totalNum;
+    private Integer totalTaskNum;
 
-    private int successNum;
+    private Integer successTaskNum;
 
-    private int failNum;
+    private Integer failTaskNum;
 
-    public int getTotalNum() {
-        return totalNum;
+    public Integer getTotalTaskNum() {
+        return totalTaskNum;
     }
 
-    public void setTotalNum(int totalNum) {
-        this.totalNum = totalNum;
+    public void setTotalTaskNum(Integer totalTaskNum) {
+        this.totalTaskNum = totalTaskNum;
     }
 
-    public int getSuccessNum() {
-        return successNum;
+    public Integer getSuccessTaskNum() {
+        return successTaskNum;
     }
 
-    public void setSuccessNum(int successNum) {
-        this.successNum = successNum;
+    public void setSuccessTaskNum(Integer successTaskNum) {
+        this.successTaskNum = successTaskNum;
     }
 
-    public int getFailNum() {
-        return failNum;
+    public Integer getFailTaskNum() {
+        return failTaskNum;
     }
 
-    public void setFailNum(int failNum) {
-        this.failNum = failNum;
+    public void setFailTaskNum(Integer failTaskNum) {
+        this.failTaskNum = failTaskNum;
     }
 }

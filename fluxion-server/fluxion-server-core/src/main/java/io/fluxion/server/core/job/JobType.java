@@ -25,9 +25,14 @@ import io.fluxion.common.constants.CommonConstants;
  */
 public enum JobType {
     UNKNOWN(CommonConstants.UNKNOWN),
-    INPUT_OUTPUT("input_output"),
-    EXECUTOR("executor"),
+    INPUT_OUTPUT(Val.INPUT_OUTPUT),
+    EXECUTOR(Val.EXECUTOR),
     ;
+
+    public interface Val {
+        String INPUT_OUTPUT = "input_output";
+        String EXECUTOR = "executor";
+    }
 
     @JsonValue
     public final String value;

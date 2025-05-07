@@ -56,8 +56,7 @@ public class MapReduceJobTracker extends DistributedJobTracker {
         }
 
         // 保存
-        taskRepository.batchSave(tasks);
-        taskCounter.getTotal().set(tasks.size());
+        createTasks(tasks);
 
         // 下发
         dispatch(tasks);
@@ -69,12 +68,12 @@ public class MapReduceJobTracker extends DistributedJobTracker {
             return;
         }
         MapExecutor executor = (MapExecutor) this.executor;
-        if (taskCounter.getFail().get() > 0) {
+        if (taskCounter.fail() > 0) {
             jobFail("Task Execute Fail");
         } else {
             if (executor instanceof MapReduceExecutor) {
                 MapReduceExecutor reduceExecutor = (MapReduceExecutor) this.executor;
-                Map<String, String> allSubTaskResult = taskRepository.getAllSubTaskResult(job.getId());
+                Map<String, String> allSubTaskResult = getAllSubTaskResult(job.getId());
                 reduceExecutor.reduce(allSubTaskResult);
             }
             jobSuccess("");

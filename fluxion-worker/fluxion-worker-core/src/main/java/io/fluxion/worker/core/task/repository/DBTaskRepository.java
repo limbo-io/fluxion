@@ -144,24 +144,6 @@ public class DBTaskRepository implements TaskRepository {
     }
 
     @Override
-    public boolean dispatched(String jobId, String taskId, String workerAddress) {
-        String sql = "update " + TABLE_NAME + " set `status` = ? " +
-            " where job_id = ? and task_id = ? and `status` = ? and `worker_node` = ? ";
-        try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            int i = 0;
-            ps.setString(++i, TaskStatus.DISPATCHED.value);
-            ps.setString(++i, jobId);
-            ps.setString(++i, taskId);
-            ps.setString(++i, TaskStatus.INITED.value);
-            ps.setString(++i, workerAddress);
-            return ps.executeUpdate() > 0;
-        } catch (Exception e) {
-            log.error("TaskRepository.executing error jobId:{} taskId:{} workerAddress:{}", jobId, taskId, workerAddress, e);
-            return false;
-        }
-    }
-
-    @Override
     public boolean batchSave(Collection<Task> tasks) {
         if (CollectionUtils.isEmpty(tasks)) {
             return true;
@@ -201,7 +183,7 @@ public class DBTaskRepository implements TaskRepository {
     @Override
     public boolean start(String jobId, String taskId, String workerAddress, LocalDateTime reportAt) {
         String sql = "update " + TABLE_NAME + " set `status` = ?, start_at = ?, last_report_at = ? " +
-            " where job_id = ? and task_id = ? and `status` in (?, ?) and worker_address = ? ";
+            " where job_id = ? and task_id = ? and `status` = ? and worker_address = ? ";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
             String reportAtStr = LocalDateTimeUtils.formatYMDHMSS(reportAt);
@@ -211,7 +193,6 @@ public class DBTaskRepository implements TaskRepository {
             ps.setString(++i, jobId);
             ps.setString(++i, taskId);
             ps.setString(++i, TaskStatus.INITED.value);
-            ps.setString(++i, TaskStatus.DISPATCHED.value);
             ps.setString(++i, workerAddress);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {

@@ -19,7 +19,7 @@ package io.fluxion.worker.core.job.tracker;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.Response;
-import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
+import io.fluxion.remote.core.api.dto.JobMonitorDTO;
 import io.fluxion.remote.core.api.request.broker.JobReportRequest;
 import io.fluxion.remote.core.api.request.broker.JobStateTransitionRequest;
 import io.fluxion.remote.core.api.response.broker.JobStateTransitionResponse;
@@ -30,9 +30,8 @@ import io.fluxion.worker.core.AbstractTracker;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
-import io.fluxion.worker.core.job.TaskCounter;
 import io.fluxion.worker.core.remote.WorkerClientConverter;
-import io.fluxion.worker.core.task.repository.TaskRepository;
+import io.fluxion.worker.core.task.TaskContext;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
@@ -62,43 +61,28 @@ public abstract class JobTracker extends AbstractTracker {
 
     protected final WorkerContext workerContext;
 
-    protected final AtomicBoolean destroyed;
-
-    protected final TaskCounter taskCounter;
-
-    protected final TaskRepository taskRepository;
-
     private Future<?> processFuture;
 
     private Future<?> statusReportFuture;
 
-    private Future<?> finishReportFuture;
+    private final AtomicBoolean destroyed;
+
+    protected Future<?> finishReportFuture;
 
     /**
      * 上报失败统计
      */
     private int finishFailedCount = 0;
 
-    public JobTracker(Job job, Executor executor, WorkerContext workerContext, TaskRepository taskRepository) {
+    public JobTracker(Job job, Executor executor, WorkerContext workerContext) {
         this.job = job;
         this.executor = executor;
         this.workerContext = workerContext;
         this.destroyed = new AtomicBoolean(false);
-        this.taskCounter = new TaskCounter();
-        this.taskRepository = taskRepository;
     }
 
     @Override
     public boolean start() {
-        if (!workerContext.status().isRunning()) {
-            log.info("Worker is not running: {}", workerContext.status());
-            return false;
-        }
-        if (!workerContext.saveJob(this)) {
-            log.info("Receive job [{}], but already in repository", job.getId());
-            return true;
-        }
-
         try {
             // 提交执行 正常来说保存成功这里不会被拒绝
             this.processFuture = workerContext.processExecutor().submit(new Runnable() {
@@ -111,7 +95,9 @@ public abstract class JobTracker extends AbstractTracker {
                             return;
                         }
 
-                        JobTracker.this.run();
+                        // 执行
+                        executor.run(new TaskContext("0", job.getId()));
+                        jobSuccess("");
                     } catch (Throwable throwable) {
                         log.error("[{}] run error", getClass().getSimpleName(), throwable);
                         jobFail(throwable.getMessage());
@@ -122,6 +108,7 @@ public abstract class JobTracker extends AbstractTracker {
             this.statusReportFuture = workerContext.statusReportExecutor().scheduleAtFixedRate(
                 this::report, 1, BrokerRemoteConstant.JOB_REPORT_SECONDS, TimeUnit.SECONDS
             );
+            postProcessOnStart();
             return true;
         } catch (Exception e) {
             if (e instanceof RejectedExecutionException) {
@@ -134,7 +121,9 @@ public abstract class JobTracker extends AbstractTracker {
         }
     }
 
-    public abstract void run();
+    protected void postProcessOnStart() {}
+
+    protected abstract void run();
 
     protected void jobStart() {
         job.setStatus(JobStatus.RUNNING);
@@ -156,11 +145,11 @@ public abstract class JobTracker extends AbstractTracker {
     protected void statTransition(JobStateEvent event) {
         JobStateTransitionRequest request = new JobStateTransitionRequest();
         try {
-            TaskMonitorDTO taskMonitor = taskMonitor();
+            JobMonitorDTO monitor = jobMonitor();
             request.setJobId(job.getId());
             request.setReportAt(TimeUtils.currentLocalDateTime());
             request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
-            request.setTaskMonitor(taskMonitor);
+            request.setMonitor(monitor);
             request.setEvent(event.value);
 
             request.setResult(job.getResult());
@@ -206,11 +195,11 @@ public abstract class JobTracker extends AbstractTracker {
         }
         JobReportRequest request = new JobReportRequest();
         try {
-            TaskMonitorDTO taskMonitor = taskMonitor();
+            JobMonitorDTO monitor = jobMonitor();
             request.setJobId(job.getId());
             request.setReportAt(TimeUtils.currentLocalDateTime());
             request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
-            request.setTaskMonitor(taskMonitor);
+            request.setMonitor(monitor);
             request.setStatus(job.getStatus().value);
 
             workerContext.call(API_JOB_REPORT, request);
@@ -234,20 +223,19 @@ public abstract class JobTracker extends AbstractTracker {
         if (finishReportFuture != null) {
             finishReportFuture.cancel(true);
         }
+        postProcessOnDestroy();
         workerContext.deleteJob(job.getId());
         log.info("JobTracker jobId: {} destroyed success", job.getId());
     }
+
+    protected void postProcessOnDestroy() {}
 
     public Job job() {
         return job;
     }
 
-    private TaskMonitorDTO taskMonitor() {
-        TaskMonitorDTO dto = new TaskMonitorDTO();
-        dto.setTotalNum(taskCounter.getTotal().get());
-        dto.setSuccessNum(taskCounter.getSuccess().get());
-        dto.setFailNum(taskCounter.getFail().get());
-        return dto;
+    protected JobMonitorDTO jobMonitor() {
+        return new JobMonitorDTO();
     }
 
 }

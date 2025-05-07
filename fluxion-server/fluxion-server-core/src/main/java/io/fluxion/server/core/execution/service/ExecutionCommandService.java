@@ -74,7 +74,10 @@ public class ExecutionCommandService {
             entity.setStatus(ExecutionStatus.INITED.value);
             executionEntityRepo.saveAndFlush(entity);
         }
-        Execution execution = new Execution(entity.getExecutionId(), executable, ExecutionStatus.parse(entity.getStatus()));
+        Execution execution = new Execution(
+            entity.getExecutionId(), ExecutionStatus.parse(entity.getStatus()),
+            entity.getExecutableId(), entity.getExecutableVersion(), executable.type()
+        );
         return new ExecutionCreateCmd.Response(execution);
     }
 

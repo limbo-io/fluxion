@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-package io.fluxion.test;
+package io.fluxion.server.core.job.config;
 
-import io.fluxion.common.utils.json.JacksonUtils;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import io.fluxion.remote.core.constants.ExecuteMode;
+import io.fluxion.server.core.executor.option.DispatchOption;
 import io.fluxion.server.core.job.Job;
-import io.fluxion.server.core.job.JobMonitor;
-import org.junit.jupiter.api.Test;
+import io.fluxion.server.core.job.JobType;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * @author Devil
  */
-public class JsonTest {
+@EqualsAndHashCode(callSuper = true)
+@Data
+@JsonTypeName(JobType.Val.EXECUTOR)
+public class ExecutorJobConfig extends Job.Config {
 
-    @Test
-    void test() {
-        String json = "{\"totalNum\":0,\"successNum\":0,\"failNum\":0}";
-        JobMonitor taskMonitor = JacksonUtils.toType(json, JobMonitor.class);
-        System.out.println(taskMonitor);
-    }
+    private String appId;
 
-    @Test
-    void test2() {
-        String json = "{\"type\":\"executor\"}";
-        Job.Config config = JacksonUtils.toType(json, Job.Config.class);
-        System.out.println(config);
-    }
+    private String executorName;
+
+    private ExecuteMode executeMode;
+
+    private DispatchOption dispatchOption = new DispatchOption();
 
 }

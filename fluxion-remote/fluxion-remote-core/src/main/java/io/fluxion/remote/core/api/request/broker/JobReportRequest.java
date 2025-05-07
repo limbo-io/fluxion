@@ -18,7 +18,7 @@ package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.dto.NodeDTO;
-import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
+import io.fluxion.remote.core.api.dto.JobMonitorDTO;
 import io.fluxion.remote.core.api.response.broker.JobReportResponse;
 import io.fluxion.remote.core.constants.JobStatus;
 
@@ -36,7 +36,7 @@ public class JobReportRequest implements Request<JobReportResponse> {
 
     private LocalDateTime reportAt;
 
-    private TaskMonitorDTO taskMonitor;
+    private JobMonitorDTO monitor;
 
     /**
      * status
@@ -68,12 +68,12 @@ public class JobReportRequest implements Request<JobReportResponse> {
         this.reportAt = reportAt;
     }
 
-    public TaskMonitorDTO getTaskMonitor() {
-        return taskMonitor;
+    public JobMonitorDTO getMonitor() {
+        return monitor;
     }
 
-    public void setTaskMonitor(TaskMonitorDTO taskMonitor) {
-        this.taskMonitor = taskMonitor;
+    public void setMonitor(JobMonitorDTO monitor) {
+        this.monitor = monitor;
     }
 
     public String getStatus() {

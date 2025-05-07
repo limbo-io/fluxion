@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.schedule.service;
 
-import io.fluxion.common.thread.CommonThreadPool;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
@@ -34,7 +33,6 @@ import io.fluxion.server.core.schedule.converter.ScheduleDelayEntityConverter;
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
-import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
@@ -136,15 +134,18 @@ public class ScheduleDelayCommandService {
                 Executable executable = Query.query(new ExecutableByIdQuery(
                     trigger.executableId(), trigger.getConfig().getExecuteConfig().type()
                 )).getExecutable();
-                // 创建执行记录
-                Execution execution = Cmd.send(new ExecutionCreateCmd(
-                    trigger.getId(),
-                    TriggerType.SCHEDULE,
-                    executable,
-                    task.triggerAt()
-                )).getExecution();
-                // 异步执行
-                CommonThreadPool.IO.submit(new LoggingTask(execution::execute));
+                transactionService.transactional(() -> {
+                    // 创建执行记录
+                    Execution execution = Cmd.send(new ExecutionCreateCmd(
+                        trigger.getId(),
+                        TriggerType.SCHEDULE,
+                        executable,
+                        task.triggerAt()
+                    )).getExecution();
+                    // 执行
+                    executable.execute(execution);
+                });
+                // 成功状态
                 changeDelayStatus(delayId, ScheduleDelay.Status.RUNNING, ScheduleDelay.Status.SUCCEED);
             } catch (Exception e) {
                 log.error("ScheduleDelay run error id:{}", JacksonUtils.toJSONString(delayId), e);

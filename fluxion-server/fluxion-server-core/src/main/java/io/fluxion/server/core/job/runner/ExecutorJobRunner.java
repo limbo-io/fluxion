@@ -22,9 +22,9 @@ import io.fluxion.remote.core.api.request.worker.JobDispatchRequest;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
-import io.fluxion.server.core.job.ExecutorJob;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
+import io.fluxion.server.core.job.config.ExecutorJobConfig;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
@@ -53,10 +53,10 @@ public class ExecutorJobRunner extends JobRunner {
 
     @Override
     public void run(Job job) {
-        ExecutorJob executorJob = (ExecutorJob) job;
+        ExecutorJobConfig config = (ExecutorJobConfig) job.config();
         List<Worker> workers = Query.query(new WorkersFilterQuery(
-            executorJob.getAppId(), executorJob.getExecutorName(),
-            executorJob.getDispatchOption(), true, true
+            config.getAppId(), config.getExecutorName(),
+            config.getDispatchOption(), true, true
         )).getWorkers();
         workers = CollectionUtils.isEmpty(workers) ? Collections.emptyList() : workers.stream().filter(Objects::nonNull).collect(Collectors.toList());
         int dispatchFailedCount = 0;
@@ -68,8 +68,8 @@ public class ExecutorJobRunner extends JobRunner {
                 // 远程调用处理任务
                 JobDispatchRequest request = new JobDispatchRequest();
                 request.setJobId(job.getJobId());
-                request.setExecutorName(executorJob.getExecutorName());
-                request.setExecuteMode(executorJob.getExecuteMode().mode);
+                request.setExecutorName(config.getExecutorName());
+                request.setExecuteMode(config.getExecuteMode().mode);
                 // call
                 Response<Boolean> dispatchRes = BrokerContext.call(
                     WorkerRemoteConstant.API_JOB_DISPATCH, worker.getHost(), worker.getPort(), request

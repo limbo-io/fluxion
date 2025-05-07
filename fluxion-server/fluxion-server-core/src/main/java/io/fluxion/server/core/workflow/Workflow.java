@@ -19,19 +19,18 @@ package io.fluxion.server.core.workflow;
 import io.fluxion.common.thread.CommonThreadPool;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.JobStatus;
-import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.executor.config.ExecutorConfig;
-import io.fluxion.server.core.executor.option.RetryOption;
-import io.fluxion.server.core.job.ExecutorJob;
-import io.fluxion.server.core.job.InputOutputJob;
 import io.fluxion.server.core.job.Job;
+import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
+import io.fluxion.server.core.job.config.ExecutorJobConfig;
+import io.fluxion.server.core.job.config.InputOutputConfig;
 import io.fluxion.server.core.job.query.JobCountByStatusQuery;
 import io.fluxion.server.core.workflow.node.EndNode;
 import io.fluxion.server.core.workflow.node.ExecutorNode;
@@ -99,8 +98,8 @@ public class Workflow implements Executable {
     }
 
     @Override
-    public void execute(RunContext context) {
-        createAndScheduleTasks(context.execution(), dag.origins());
+    public void execute(Execution execution) {
+        createAndScheduleTasks(execution.getId(), dag.origins());
     }
 
     /**
@@ -108,15 +107,15 @@ public class Workflow implements Executable {
      */
     @Override
     public boolean success(Job job, LocalDateTime time) {
-        Execution execution = job.getExecution();
+        String executionId = job.getExecutionId();
         List<WorkflowNode> subNodes = dag.subNodes(job.getRefId());
         if (CollectionUtils.isEmpty(subNodes)) {
             // 最终节点 execution 完成
-            return Cmd.send(new ExecutionSuccessCmd(execution.getId(), time));
+            return Cmd.send(new ExecutionSuccessCmd(executionId, time));
         }
         List<WorkflowNode> continueNodes = new ArrayList<>();
         for (WorkflowNode subNode : subNodes) {
-            if (preNodesSuccess(execution.getId(), dag.preNodes(subNode.id()))) {
+            if (preNodesSuccess(executionId, dag.preNodes(subNode.id()))) {
                 // 前置节点都已经完成，下发
                 continueNodes.add(subNode);
             }
@@ -125,7 +124,7 @@ public class Workflow implements Executable {
         if (CollectionUtils.isEmpty(continueNodes)) {
             return true;
         }
-        createAndScheduleTasks(execution, continueNodes);
+        createAndScheduleTasks(executionId, continueNodes);
         return true;
     }
 
@@ -135,22 +134,50 @@ public class Workflow implements Executable {
         if (node.isSkipWhenFail()) {
             return success(job, time);
         } else {
-            return Cmd.send(new ExecutionFailCmd(job.getExecution().getId(), time));
+            return Cmd.send(new ExecutionFailCmd(job.getExecutionId(), time));
         }
     }
 
     @Override
-    public RetryOption retryOption(String refId) {
+    public Job.Config config(String refId) {
         WorkflowNode node = dag.node(refId);
-        return node.getRetryOption();
+        if (node instanceof StartNode || node instanceof EndNode) {
+            InputOutputConfig config = new InputOutputConfig();
+            config.setRetryOption(node.getRetryOption());
+            return config;
+        } else if (node instanceof ExecutorNode) {
+            ExecutorJobConfig config = new ExecutorJobConfig();
+            config.setRetryOption(node.getRetryOption());
+            ExecutorNode executorNode = (ExecutorNode) node;
+            ExecutorConfig executorConfig = executorNode.getExecutor();
+            config.setAppId(executorConfig.getAppId());
+            config.setExecutorName(executorConfig.executorName());
+            config.setDispatchOption(executorConfig.getDispatchOption());
+            config.setExecuteMode(executorConfig.getExecuteMode());
+            return config;
+        } else {
+            return null;
+        }
     }
 
-    private void createAndScheduleTasks(Execution execution, List<WorkflowNode> nodes) {
+    private JobType jobType(String refId) {
+        WorkflowNode node = dag.node(refId);
+        if (node instanceof StartNode || node instanceof EndNode) {
+            return JobType.INPUT_OUTPUT;
+        } else if (node instanceof ExecutorNode) {
+            return JobType.EXECUTOR;
+        }
+        return JobType.UNKNOWN;
+    }
+
+    private void createAndScheduleTasks(String executionId, List<WorkflowNode> nodes) {
         LocalDateTime now = TimeUtils.currentLocalDateTime();
         List<Job> jobs = nodes.stream()
             .map(n -> {
-                Job job = newRefJob(n.getId());
-                job.setExecution(execution);
+                Job job = new Job();
+                job.setRefId(n.getId());
+                job.setType(jobType(n.getId()));
+                job.setExecutionId(executionId);
                 job.setTriggerAt(now);
                 return job;
             })
@@ -175,29 +202,6 @@ public class Workflow implements Executable {
             Collections.singletonList(JobStatus.SUCCEED)
         )).getCount();
         return count >= preNodes.size();
-    }
-
-    @Override
-    public Job newRefJob(String refId) {
-        Job job = null;
-        WorkflowNode node = dag.node(refId);
-        if (node instanceof StartNode) {
-            job = new InputOutputJob();
-        } else if (node instanceof EndNode) {
-            job = new InputOutputJob();
-        } else if (node instanceof ExecutorNode) {
-            ExecutorNode executorNode = (ExecutorNode) node;
-            job = new ExecutorJob();
-            ExecutorJob executorTask = (ExecutorJob) job;
-            ExecutorConfig executorConfig = executorNode.getExecutor();
-            executorTask.setAppId(executorConfig.getAppId());
-            executorTask.setExecutorName(executorConfig.executorName());
-            executorTask.setDispatchOption(executorConfig.getDispatchOption());
-            executorTask.setExecuteMode(executorConfig.getExecuteMode());
-        }
-        job.setRefId(node.id());
-        job.setRetryOption(node.getRetryOption());
-        return job;
     }
 
 }

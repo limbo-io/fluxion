@@ -33,10 +33,6 @@ public enum TaskStatus {
      */
     INITED("inited"),
     /**
-     * 已下发给worker 队列中
-     */
-    DISPATCHED("dispatched"),
-    /**
      * 运行中
      */
     RUNNING("running"),

@@ -20,15 +20,17 @@ import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.ExecutableType;
+import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.executor.option.OvertimeOption;
 import io.fluxion.server.core.executor.option.RetryOption;
-import io.fluxion.server.core.job.ExecutorJob;
 import io.fluxion.server.core.job.Job;
+import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
+import io.fluxion.server.core.job.config.ExecutorJobConfig;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 
 import java.time.LocalDateTime;
@@ -86,9 +88,9 @@ public class Executor implements Executable {
     }
 
     @Override
-    public void execute(RunContext context) {
-        Job job = newRefJob("");
-        job.setExecution(context.execution());
+    public void execute(Execution execution) {
+        Job job = new Job();
+        job.setType(JobType.EXECUTOR);
         job.setTriggerAt(TimeUtils.currentLocalDateTime());
         // 保存数据
         Cmd.send(new JobsCreateCmd(Collections.singletonList(job)));
@@ -98,29 +100,23 @@ public class Executor implements Executable {
 
     @Override
     public boolean success(Job job, LocalDateTime time) {
-        return Cmd.send(new ExecutionSuccessCmd(job.getExecution().getId(), time));
+        return Cmd.send(new ExecutionSuccessCmd(job.getExecutionId(), time));
     }
 
     @Override
     public boolean fail(Job job, LocalDateTime time) {
-        return Cmd.send(new ExecutionFailCmd(job.getExecution().getId(), time));
+        return Cmd.send(new ExecutionFailCmd(job.getExecutionId(), time));
     }
 
     @Override
-    public RetryOption retryOption(String refId) {
-        return retryOption;
-    }
-
-    @Override
-    public Job newRefJob(String refId) {
-        ExecutorJob job = new ExecutorJob();
-        job.setAppId(config.getAppId());
-        job.setExecutorName(config.executorName());
-        job.setDispatchOption(config.getDispatchOption());
-        job.setExecuteMode(config.getExecuteMode());
-        job.setRefId(refId);
-        job.setRetryOption(retryOption);
-        return job;
+    public Job.Config config(String refId) {
+        ExecutorJobConfig jobConfig = new ExecutorJobConfig();
+        jobConfig.setAppId(config.getAppId());
+        jobConfig.setExecutorName(config.executorName());
+        jobConfig.setDispatchOption(config.getDispatchOption());
+        jobConfig.setExecuteMode(config.getExecuteMode());
+        jobConfig.setRetryOption(retryOption);
+        return jobConfig;
     }
 
 }

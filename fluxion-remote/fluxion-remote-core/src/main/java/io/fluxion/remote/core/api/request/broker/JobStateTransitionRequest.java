@@ -18,7 +18,7 @@ package io.fluxion.remote.core.api.request.broker;
 
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.dto.NodeDTO;
-import io.fluxion.remote.core.api.dto.TaskMonitorDTO;
+import io.fluxion.remote.core.api.dto.JobMonitorDTO;
 import io.fluxion.remote.core.api.response.broker.JobStateTransitionResponse;
 import io.fluxion.remote.core.constants.JobStateEvent;
 
@@ -36,7 +36,7 @@ public class JobStateTransitionRequest implements Request<JobStateTransitionResp
 
     private LocalDateTime reportAt;
 
-    private TaskMonitorDTO taskMonitor;
+    private JobMonitorDTO monitor;
 
     /**
      * event
@@ -74,12 +74,12 @@ public class JobStateTransitionRequest implements Request<JobStateTransitionResp
         this.reportAt = reportAt;
     }
 
-    public TaskMonitorDTO getTaskMonitor() {
-        return taskMonitor;
+    public JobMonitorDTO getMonitor() {
+        return monitor;
     }
 
-    public void setTaskMonitor(TaskMonitorDTO taskMonitor) {
-        this.taskMonitor = taskMonitor;
+    public void setMonitor(JobMonitorDTO monitor) {
+        this.monitor = monitor;
     }
 
     public String getResult() {

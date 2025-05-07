@@ -103,7 +103,6 @@ public class TaskTracker extends AbstractTracker {
     }
 
     private void run() {
-        task.setStatus(TaskStatus.DISPATCHED);
         // 提交执行 正常来说保存成功这里不会被拒绝
         this.processFuture = workerContext.processExecutor().submit(() -> {
             try {
@@ -112,7 +111,7 @@ public class TaskTracker extends AbstractTracker {
                 if (destroyed.get()) {
                     return;
                 }
-                executor.run(TaskContext.from(task));
+                executor.run(new TaskContext(task.getId(), task.getJobId()));
                 // 执行成功
                 taskSuccess("");
             } catch (Throwable throwable) {

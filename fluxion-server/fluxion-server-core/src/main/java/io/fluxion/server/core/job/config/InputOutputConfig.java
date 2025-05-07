@@ -14,23 +14,19 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.job;
+package io.fluxion.server.core.job.config;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import io.fluxion.server.core.job.Job;
+import io.fluxion.server.core.job.JobType;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * @author Devil
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-public class TaskMonitor {
-
-    private int totalNum;
-
-    private int successNum;
-
-    private int failNum;
+@EqualsAndHashCode(callSuper = true)
+@Data
+@JsonTypeName(JobType.Val.INPUT_OUTPUT)
+public class InputOutputConfig extends Job.Config {
 }

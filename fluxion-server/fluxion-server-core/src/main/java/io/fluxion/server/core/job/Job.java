@@ -16,14 +16,23 @@
 
 package io.fluxion.server.core.job;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
+import io.fluxion.common.utils.json.JacksonTypeIdResolver;
 import io.fluxion.remote.core.constants.JobStatus;
+import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
+import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
 import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.cmd.JobRetryCmd;
 import io.fluxion.server.core.job.cmd.JobSuccessCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.cqrs.Query;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -31,7 +40,7 @@ import java.time.LocalDateTime;
  * @author Devil
  */
 @Data
-public abstract class Job {
+public class Job {
 
     private String jobId;
 
@@ -46,19 +55,16 @@ public abstract class Job {
 
     private LocalDateTime triggerAt;
 
-    private Execution execution;
+    private String executionId;
 
     /**
      * 当前是第几次重试
      */
     private int retryTimes = 0;
 
-    private TaskMonitor taskMonitor;
+    private JobMonitor jobMonitor;
 
-    /**
-     * 重试参数
-     */
-    private RetryOption retryOption = new RetryOption();
+    private JobType type;
 
     // when success
     private String result;
@@ -66,26 +72,65 @@ public abstract class Job {
     // when error
     private String errorMsg;
 
-    public abstract JobType type();
+    @Setter(AccessLevel.NONE)
+    @Getter(AccessLevel.NONE)
+    private Execution execution;
+
+    @Setter(AccessLevel.NONE)
+    @Getter(AccessLevel.NONE)
+    private Job.Config config;
 
     public boolean success(LocalDateTime time) {
-        boolean success = Cmd.send(new JobSuccessCmd(jobId, time, taskMonitor));
+        boolean success = Cmd.send(new JobSuccessCmd(jobId, time, jobMonitor));
         if (!success) {
             return false;
         }
-        return execution.getExecutable().success(this, time);
+        return execution().executable().success(this, time);
     }
 
     public boolean fail(LocalDateTime time) {
-        if (retryOption.canRetry(retryTimes)) {
+        if (config().retryOption.canRetry(retryTimes)) {
             return Cmd.send(new JobRetryCmd());
         }
         // 更新当前job状态
-        boolean failed = Cmd.send(new JobFailCmd(jobId, time, errorMsg, taskMonitor));
+        boolean failed = Cmd.send(new JobFailCmd(jobId, time, errorMsg, jobMonitor));
         if (!failed) {
             return false;
         }
-        return execution.getExecutable().fail(this, time);
+        return execution().executable().fail(this, time);
+    }
+
+    @JsonTypeInfo(
+        use = JsonTypeInfo.Id.CLASS,
+        include = JsonTypeInfo.As.EXISTING_PROPERTY,
+        property = "type",
+        visible = true
+    )
+    @JsonTypeIdResolver(JacksonTypeIdResolver.class)
+    @Data
+    public static abstract class Config {
+
+        private String type;
+
+        /**
+         * 重试参数
+         */
+        private RetryOption retryOption = new RetryOption();
+    }
+
+    public Execution execution() {
+        if (execution == null) {
+            execution = Query.query(new ExecutionByIdQuery(executionId)).getExecution();
+        }
+        return execution;
+    }
+
+    public Job.Config config() {
+        if (config == null) {
+            Executable executable = execution().executable();
+            config = executable.config(refId);
+        }
+        return config;
     }
 
 }
