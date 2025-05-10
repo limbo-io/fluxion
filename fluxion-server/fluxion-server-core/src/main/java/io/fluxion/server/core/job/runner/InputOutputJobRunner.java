@@ -19,11 +19,11 @@ package io.fluxion.server.core.job.runner;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.JobStateEvent;
 import io.fluxion.server.core.broker.BrokerContext;
-import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
-import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
+import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.cmd.JobStateTransitionCmd;
+import io.fluxion.server.core.job.cmd.JobSuccessCmd;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -58,7 +58,7 @@ public class InputOutputJobRunner extends JobRunner {
             if (log.isDebugEnabled()) {
                 log.debug("InputOutputTaskRunner taskId:{}", job.getJobId());
             }
-            Cmd.send(new ExecutableSuccessCmd(
+            Cmd.send(new JobSuccessCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),
                 null,
@@ -66,11 +66,11 @@ public class InputOutputJobRunner extends JobRunner {
             ));
         } catch (Exception e) {
             log.error("InputOutputTaskRunner error", e);
-            Cmd.send(new ExecutableFailCmd(
+            Cmd.send(new JobFailCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),
-                null,
-                e.getMessage()
+                e.getMessage(),
+                null
             ));
         }
     }

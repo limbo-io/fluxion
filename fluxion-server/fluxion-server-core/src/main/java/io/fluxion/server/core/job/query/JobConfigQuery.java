@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 limbo-io Team (https://github.com/limbo-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,27 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.execution.cmd;
+package io.fluxion.server.core.job.query;
 
-import io.fluxion.server.core.job.JobMonitor;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.fluxion.server.core.job.Job;
+import io.fluxion.server.infrastructure.cqrs.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
-
+/**
+ * @author Devil
+ */
 @Getter
 @AllArgsConstructor
-public class ExecutableFailCmd implements ICmd<Boolean> {
+public class JobConfigQuery implements IQuery<JobConfigQuery.Response> {
 
-    private String jobId;
+    private String executionId;
 
-    private LocalDateTime reportAt;
+    private String refId;
 
-    private JobMonitor monitor;
-
-    /**
-     * 执行失败时候返回的信息
-     */
-    private String errorMsg;
-
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private Job.Config config;
+    }
 }

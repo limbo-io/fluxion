@@ -20,25 +20,33 @@ import com.google.common.collect.Lists;
 import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
-import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
-import io.fluxion.server.core.execution.cmd.ExecutableSuccessCmd;
+import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
+import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobMonitor;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.cmd.JobReportCmd;
 import io.fluxion.server.core.job.cmd.JobResetCmd;
+import io.fluxion.server.core.job.cmd.JobRetryCmd;
 import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.cmd.JobStateTransitionCmd;
 import io.fluxion.server.core.job.cmd.JobSuccessCmd;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
+import io.fluxion.server.core.job.query.JobConfigQuery;
 import io.fluxion.server.core.job.runner.JobRunner;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.JobEntity;
+import io.fluxion.server.infrastructure.dao.entity.JobRecordEntity;
 import io.fluxion.server.infrastructure.dao.repository.JobEntityRepo;
+import io.fluxion.server.infrastructure.dao.repository.JobRecordEntityRepo;
 import io.fluxion.server.infrastructure.dao.tx.TransactionService;
+import io.fluxion.server.infrastructure.exception.ErrorCode;
+import io.fluxion.server.infrastructure.exception.PlatformException;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
+import io.fluxion.server.infrastructure.lock.DistributedLock;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -64,6 +72,9 @@ public class JobCommandService {
     private JobEntityRepo jobEntityRepo;
 
     @Resource
+    private JobRecordEntityRepo jobRecordEntityRepo;
+
+    @Resource
     private List<JobRunner> jobRunners;
 
     @Resource
@@ -71,6 +82,11 @@ public class JobCommandService {
 
     @Resource
     private TransactionService transactionService;
+
+    @Resource
+    private DistributedLock distributedLock;
+
+    private static final String LOCK_SUFFIX = "_Execution_Lock";
 
     @Transactional
     @CommandHandler
@@ -91,7 +107,7 @@ public class JobCommandService {
             job.setJobId(id);
         }).map(job -> {
             String executionId = job.getExecutionId();
-            int bucket = Cmd.send(new BucketAllotCmd(executionId+ "_" + job.getRefId())).getBucket();
+            int bucket = Cmd.send(new BucketAllotCmd(executionId + "_" + job.getRefId())).getBucket();
             JobEntity entity = new JobEntity();
             entity.setJobId(job.getJobId());
             entity.setExecutionId(executionId);
@@ -128,6 +144,7 @@ public class JobCommandService {
     public JobStateTransitionCmd.Response handle(JobStateTransitionCmd cmd) {
         JobEntity entity = jobEntityRepo.findById(cmd.getJobId()).orElse(null);
         if (entity == null) {
+            log.warn("JobStateTransitionCmd job not found jobId:{} event:{}", cmd.getJobId(), cmd.getEvent());
             return new JobStateTransitionCmd.Response(false);
         }
         String workerAddress = cmd.getWorkerNode().address();
@@ -140,7 +157,7 @@ public class JobCommandService {
                 if (StringUtils.isNotBlank(entity.getWorkerAddress()) && !cmd.getWorkerNode().address().equals(entity.getWorkerAddress())) {
                     return new JobStateTransitionCmd.Response(false);
                 }
-                success = Cmd.send(new ExecutableSuccessCmd(
+                success = Cmd.send(new JobSuccessCmd(
                     cmd.getJobId(), cmd.getReportAt(),
                     cmd.getMonitor(), cmd.getResult()
                 ));
@@ -149,9 +166,9 @@ public class JobCommandService {
                 if (StringUtils.isNotBlank(entity.getWorkerAddress()) && !cmd.getWorkerNode().address().equals(entity.getWorkerAddress())) {
                     return new JobStateTransitionCmd.Response(false);
                 }
-                success = Cmd.send(new ExecutableFailCmd(
+                success = Cmd.send(new JobFailCmd(
                     cmd.getJobId(), cmd.getReportAt(),
-                    cmd.getMonitor(), cmd.getErrorMsg()
+                    cmd.getErrorMsg(), cmd.getMonitor()
                 ));
                 break;
         }
@@ -172,7 +189,7 @@ public class JobCommandService {
                 )
                 .setParameter("lastReportAt", reportAt)
                 .setParameter("jobId", jobId)
-                .setParameter("status", status)
+                .setParameter("status", status.value)
                 .setParameter("monitor", JacksonUtils.toJSONString(monitor))
                 .setParameter("workerAddress", workerAddress)
                 .executeUpdate();
@@ -200,23 +217,23 @@ public class JobCommandService {
         });
     }
 
-
     @Transactional
     @CommandHandler
     public boolean handle(JobSuccessCmd cmd) {
         JobEntity entity = jobEntityRepo.findById(cmd.getJobId()).orElse(null);
         if (entity == null) {
-            log.warn("JobSuccessCmd not found jobId:{}", cmd.getJobId());
-            return false;
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "job not found id:" + cmd.getJobId());
         }
+
         int updated = entityManager.createQuery("update JobEntity " +
-                "set lastReportAt = :lastReportAt, status = :newStatus, startAt = :startAt, endAt = :endAt, monitor = :monitor " +
+                "set lastReportAt = :lastReportAt, status = :newStatus, startAt = :startAt, endAt = :endAt, monitor = :monitor, result = :result " +
                 "where jobId = :jobId and status = :oldStatus "
             )
             .setParameter("lastReportAt", cmd.getReportAt())
             .setParameter("startAt", entity.getStartAt() == null ? cmd.getReportAt() : entity.getStartAt())
             .setParameter("endAt", cmd.getReportAt())
             .setParameter("jobId", cmd.getJobId())
+            .setParameter("result", cmd.getResult())
             .setParameter("oldStatus", JobStatus.RUNNING.value)
             .setParameter("newStatus", JobStatus.SUCCEED.value)
             .setParameter("monitor", cmd.getMonitor() == null ? "" : JacksonUtils.toJSONString(cmd.getMonitor()))
@@ -225,7 +242,23 @@ public class JobCommandService {
             log.warn("JobSuccessCmd update fail jobId:{}", cmd.getJobId());
             return false;
         }
-        return true;
+        // 保存记录
+        JobRecordEntity recordEntity = new JobRecordEntity();
+        recordEntity.setId(new JobRecordEntity.ID(
+            cmd.getJobId(), entity.getRetryTimes()
+        ));
+        recordEntity.setStartAt(entity.getStartAt());
+        recordEntity.setEndAt(cmd.getReportAt());
+        recordEntity.setStatus(JobStatus.SUCCEED.value);
+        recordEntity.setWorkerAddress(entity.getWorkerAddress());
+        recordEntity.setResult(cmd.getResult());
+        jobRecordEntityRepo.saveAndFlush(recordEntity);
+
+        String lockName = entity.getExecutionId() + LOCK_SUFFIX;
+        return distributedLock.lock(lockName, 2000, 3000, () -> {
+            Execution execution = Query.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
+            return execution.executable().success(entity.getExecutionId(), entity.getRefId(), cmd.getReportAt());
+        });
     }
 
     @Transactional
@@ -233,12 +266,12 @@ public class JobCommandService {
     public boolean handle(JobFailCmd cmd) {
         JobEntity entity = jobEntityRepo.findById(cmd.getJobId()).orElse(null);
         if (entity == null) {
-            log.warn("JobFailCmd not found jobId:{}", cmd.getJobId());
-            return false;
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "job not found id:" + cmd.getJobId());
         }
+
         int updated = entityManager.createQuery("update JobEntity " +
                 "set lastReportAt = :lastReportAt, status = :newStatus, startAt = :startAt, endAt = :endAt," +
-                " errorMsg = :errorMsg, monitor =:monitor " +
+                " monitor =:monitor " +
                 "where jobId = :jobId and status in :oldStatus "
             )
             .setParameter("lastReportAt", cmd.getReportAt())
@@ -250,14 +283,35 @@ public class JobCommandService {
                 JobStatus.INITED.value // broker下发失败
             ))
             .setParameter("newStatus", JobStatus.FAILED.value)
-            .setParameter("errorMsg", cmd.getErrorMsg())
             .setParameter("monitor", cmd.getMonitor() == null ? "" : JacksonUtils.toJSONString(cmd.getMonitor()))
             .executeUpdate();
         if (updated <= 0) {
             log.warn("JobFailCmd update fail jobId:{}", cmd.getJobId());
             return false;
         }
-        return true;
+        // 保存记录
+        JobRecordEntity recordEntity = new JobRecordEntity();
+        recordEntity.setId(new JobRecordEntity.ID(
+            cmd.getJobId(), entity.getRetryTimes()
+        ));
+        recordEntity.setStartAt(entity.getStartAt());
+        recordEntity.setEndAt(cmd.getReportAt());
+        recordEntity.setStatus(JobStatus.FAILED.value);
+        recordEntity.setWorkerAddress(entity.getWorkerAddress());
+        recordEntity.setErrorMsg(cmd.getErrorMsg());
+        jobRecordEntityRepo.saveAndFlush(recordEntity);
+
+        // 重试逻辑
+        Job.Config config = Query.query(new JobConfigQuery(entity.getExecutionId(), entity.getRefId())).getConfig();
+        if (config.getRetryOption().canRetry(entity.getRetryTimes())) {
+            return Cmd.send(new JobRetryCmd());
+        }
+        String lockName = entity.getExecutionId() + LOCK_SUFFIX;
+        return distributedLock.lock(lockName, 2000, 3000, () -> {
+                Execution execution = Query.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
+                return execution.executable().fail(entity.getExecutionId(), entity.getRefId(), cmd.getReportAt());
+            }
+        );
     }
 
     /**

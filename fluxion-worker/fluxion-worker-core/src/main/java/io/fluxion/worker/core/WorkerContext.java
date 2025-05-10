@@ -89,11 +89,11 @@ public class WorkerContext {
     /**
      * 本机运行的 job
      */
-    private final Map<String, JobTracker> jobs = new ConcurrentHashMap<>();
+    private final Map<String, JobTracker> jobTrackers = new ConcurrentHashMap<>();
     /**
      * 本机运行的 task
      */
-    private final Map<String, TaskTracker> tasks = new ConcurrentHashMap<>();
+    private final Map<String, TaskTracker> taskTrackers = new ConcurrentHashMap<>();
 
     /**
      * 任务执行线程池
@@ -182,7 +182,7 @@ public class WorkerContext {
     }
 
     public int availableQueueNum() {
-        return queueSize - jobs.size() - tasks.size();
+        return queueSize - jobTrackers.size() - taskTrackers.size();
     }
 
     /**
@@ -190,12 +190,12 @@ public class WorkerContext {
      *
      * @param tracker 任务执行上下文
      */
-    public boolean saveTask(TaskTracker tracker) {
-        return tasks.putIfAbsent(tracker.task().getId(), tracker) == null;
+    public boolean saveTaskTracker(TaskTracker tracker) {
+        return taskTrackers.putIfAbsent(tracker.id(), tracker) == null;
     }
 
-    public void deleteTask(String taskId) {
-        tasks.remove(taskId);
+    public void deleteTaskTracker(TaskTracker tracker) {
+        taskTrackers.remove(tracker.id());
     }
 
     /**
@@ -203,22 +203,22 @@ public class WorkerContext {
      *
      * @param tracker 任务执行上下文
      */
-    public boolean saveJob(JobTracker tracker) {
+    public boolean saveJobTracker(JobTracker tracker) {
         // 剩余可分配任务数
         int availableQueueNum = availableQueueNum();
         if (availableQueueNum <= 0) {
             log.info("Worker's queue is full, limit: {}", availableQueueNum);
             return false;
         }
-        return jobs.putIfAbsent(tracker.job().getId(), tracker) == null;
+        return jobTrackers.putIfAbsent(tracker.job().getId(), tracker) == null;
     }
 
-    public void deleteJob(String jobId) {
-        jobs.remove(jobId);
+    public void deleteJobTracker(String jobId) {
+        jobTrackers.remove(jobId);
     }
 
-    public JobTracker getJob(String jobId) {
-        return jobs.get(jobId);
+    public JobTracker getJobTracker(String jobId) {
+        return jobTrackers.get(jobId);
     }
 
     public String appId() {

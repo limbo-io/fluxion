@@ -229,6 +229,24 @@ CREATE TABLE `fluxion_job`
     KEY `idx_job_status_report` (`job_id`, `bucket`, `last_report_at`, `status`)
 );
 
+CREATE TABLE `fluxion_job_record`
+(
+    `id`             bigint unsigned NOT NULL AUTO_INCREMENT,
+    `job_id`         varchar(64)     NOT NULL,
+    `times`          int unsigned    NOT NULL,
+    `start_at`       datetime(3)              DEFAULT NULL,
+    `end_at`         datetime(3)              DEFAULT NULL,
+    `status`         varchar(32)     NOT NULL,
+    `worker_address` varchar(64)     NOT NULL DEFAULT '',
+    `result`         TEXT,
+    `error_msg`      TEXT,
+    `is_deleted`     bit(1)          NOT NULL DEFAULT 0,
+    `created_at`     datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`     datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_job_record` (`job_id`, `times`)
+);
+
 CREATE TABLE `fluxion_worker`
 (
     `id`         bigint unsigned NOT NULL AUTO_INCREMENT,

@@ -22,6 +22,7 @@ import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -38,6 +39,16 @@ public class ScheduleEntityConverter {
             return Collections.emptyList();
         }
         return entities.stream().map(ScheduleEntityConverter::convert).collect(Collectors.toList());
+    }
+
+    public static void assemble(ScheduleEntity entity, ScheduleOption scheduleOption) {
+        entity.setScheduleType(scheduleOption.getType().value);
+        entity.setStartTime(scheduleOption.getStartTime() == null ? TimeUtils.currentLocalDateTime() : scheduleOption.getStartTime());
+        entity.setEndTime(scheduleOption.getEndTime());
+        entity.setScheduleDelay(scheduleOption.getDelay() == null ? 0L : scheduleOption.getDelay().getSeconds());
+        entity.setScheduleInterval(scheduleOption.getInterval() == null ? 0L : scheduleOption.getInterval().getSeconds());
+        entity.setScheduleCron(scheduleOption.getCron() == null ? StringUtils.EMPTY : scheduleOption.getCron());
+        entity.setScheduleCronType(scheduleOption.getCronType() == null ? StringUtils.EMPTY : scheduleOption.getCronType());
     }
 
     public static ScheduleEntity convert(Schedule schedule) {

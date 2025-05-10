@@ -160,7 +160,7 @@ public class DBTaskRepository implements TaskRepository {
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int idx = 0;
             for (Task task : tasks) {
-                ps.setString(++idx, task.getId());
+                ps.setString(++idx, task.getTaskId());
                 ps.setString(++idx, task.getJobId());
                 ps.setString(++idx, task.workerAddress() == null ? "" : task.workerAddress());
                 ps.setString(++idx, task.getStatus().value);
@@ -182,18 +182,18 @@ public class DBTaskRepository implements TaskRepository {
 
     @Override
     public boolean start(String jobId, String taskId, String workerAddress, LocalDateTime reportAt) {
-        String sql = "update " + TABLE_NAME + " set `status` = ?, start_at = ?, last_report_at = ? " +
-            " where job_id = ? and task_id = ? and `status` = ? and worker_address = ? ";
+        String sql = "update " + TABLE_NAME + " set `status` = ?, start_at = ?, last_report_at = ?, worker_address = ? " +
+            " where job_id = ? and task_id = ? and `status` = ? ";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
             String reportAtStr = LocalDateTimeUtils.formatYMDHMSS(reportAt);
             ps.setString(++i, TaskStatus.RUNNING.value);
             ps.setString(++i, reportAtStr);
             ps.setString(++i, reportAtStr);
+            ps.setString(++i, workerAddress);
             ps.setString(++i, jobId);
             ps.setString(++i, taskId);
             ps.setString(++i, TaskStatus.INITED.value);
-            ps.setString(++i, workerAddress);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             log.error("TaskRepository.executing error jobId:{} taskId:{} workerAddress:{} reportTime:{}", jobId, taskId, workerAddress, reportAt, e);
@@ -229,7 +229,7 @@ public class DBTaskRepository implements TaskRepository {
             ps.setString(++i, LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt()));
             ps.setString(++i, task.getResult());
             ps.setString(++i, task.getJobId());
-            ps.setString(++i, task.getId());
+            ps.setString(++i, task.getTaskId());
             ps.setString(++i, TaskStatus.RUNNING.value);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
@@ -249,7 +249,7 @@ public class DBTaskRepository implements TaskRepository {
             ps.setString(++i, task.getErrorMsg() == null ? "" : task.getErrorMsg());
             ps.setString(++i, task.getErrorStackTrace() == null ? "" : task.getErrorStackTrace());
             ps.setString(++i, task.getJobId());
-            ps.setString(++i, task.getId());
+            ps.setString(++i, task.getTaskId());
             ps.setString(++i, TaskStatus.INITED.value);
             ps.setString(++i, TaskStatus.RUNNING.value);
             return ps.executeUpdate() > 0;

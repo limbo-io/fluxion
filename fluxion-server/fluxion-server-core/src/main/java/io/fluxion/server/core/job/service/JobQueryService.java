@@ -20,10 +20,14 @@ import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
+import io.fluxion.server.core.execution.Executable;
+import io.fluxion.server.core.execution.Execution;
+import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.JobMonitor;
 import io.fluxion.server.core.job.query.JobByIdQuery;
+import io.fluxion.server.core.job.query.JobConfigQuery;
 import io.fluxion.server.core.job.query.JobCountByStatusQuery;
 import io.fluxion.server.core.job.query.JobInitBlockedQuery;
 import io.fluxion.server.core.job.query.JobUnReportQuery;
@@ -72,7 +76,6 @@ public class JobQueryService {
         job.setTriggerAt(entity.getTriggerAt());
         job.setRetryTimes(entity.getRetryTimes());
         job.setJobMonitor(JacksonUtils.toType(entity.getMonitor(), JobMonitor.class));
-        job.setErrorMsg(entity.getErrorMsg());
         job.setResult(entity.getResult());
         return new JobByIdQuery.Response(job);
     }
@@ -115,6 +118,14 @@ public class JobQueryService {
             .setMaxResults(query.getLimit())
             .getResultList();
         return new JobUnReportQuery.Response(entities.stream().map(JobEntity::getJobId).collect(Collectors.toList()));
+    }
+
+    @QueryHandler
+    public JobConfigQuery.Response handle(JobConfigQuery query) {
+        Execution execution = Query.query(new ExecutionByIdQuery(query.getExecutionId())).getExecution();
+        Executable executable = execution.executable();
+        Job.Config config = executable.config(query.getRefId());
+        return new JobConfigQuery.Response(config);
     }
 
 }

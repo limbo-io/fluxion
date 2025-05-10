@@ -65,7 +65,7 @@ public class WorkerClientHandler implements ClientHandler {
                     return Response.ok(jobDispatch(data));
                 }
                 case WorkerRemoteConstant.API_TASK_DISPATCH: {
-                    return Response.ok(taskDispatch(data));
+                    return Response.ok(taskReceive(data));
                 }
                 case WorkerRemoteConstant.API_TASK_REPORT: {
                     return Response.ok(taskReport(data));
@@ -109,7 +109,7 @@ public class WorkerClientHandler implements ClientHandler {
             default:
                 throw new IllegalArgumentException("unknown execute mode:" + job.getExecuteMode());
         }
-        if (!workerContext.saveJob(tracker)) {
+        if (!workerContext.saveJobTracker(tracker)) {
             log.info("Receive job [{}], but already in repository", job.getId());
             return true;
         }
@@ -119,7 +119,7 @@ public class WorkerClientHandler implements ClientHandler {
     /**
      * 接收worker下发的task
      */
-    private boolean taskDispatch(String data) {
+    private boolean taskReceive(String data) {
         TaskDispatchRequest request = JacksonUtils.toType(data, TaskDispatchRequest.class);
         Executor executor = workerContext.executor(request.getExecutorName());
         if (executor == null) {
@@ -132,7 +132,7 @@ public class WorkerClientHandler implements ClientHandler {
 
     private TaskReportResponse taskReport(String data) {
         TaskReportRequest request = JacksonUtils.toType(data, TaskReportRequest.class);
-        JobTracker tracker = workerContext.getJob(request.getJobId());
+        JobTracker tracker = workerContext.getJobTracker(request.getJobId());
         if (tracker == null) {
             log.error("[TaskReport] not found tracker request:{}", request);
             return new TaskReportResponse();
@@ -146,13 +146,13 @@ public class WorkerClientHandler implements ClientHandler {
 
     private TaskStateTransitionResponse taskStateTransition(String data) {
         TaskStateTransitionRequest request = JacksonUtils.toType(data, TaskStateTransitionRequest.class);
-        JobTracker tracker = workerContext.getJob(request.getJobId());
+        JobTracker tracker = workerContext.getJobTracker(request.getJobId());
         if (tracker == null) {
             log.error("[TaskStateTransition] not found tracker request:{}", request);
             return new TaskStateTransitionResponse();
         }
         if (tracker instanceof DistributedJobTracker) {
-            return ((DistributedJobTracker) tracker).handleTaskStateTransition(request);
+            return ((DistributedJobTracker) tracker).handleTaskStateTransitionRequest(request);
         }
         log.error("[TaskStateTransition] tracker type error request:{}", request);
         return new TaskStateTransitionResponse();

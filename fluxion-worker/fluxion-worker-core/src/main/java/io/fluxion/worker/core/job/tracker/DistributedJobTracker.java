@@ -82,7 +82,7 @@ public abstract class DistributedJobTracker extends JobTracker {
     /**
      * 下发task给其它worker
      */
-    private void dispatch(Task task) {
+    public void dispatch(Task task) {
         Node worker = null;
         while (task.getDispatchFailTimes() < 3) {
             try {
@@ -93,7 +93,7 @@ public abstract class DistributedJobTracker extends JobTracker {
 
                 TaskDispatchRequest request = new TaskDispatchRequest();
                 request.setJobId(task.getJobId());
-                request.setTaskId(task.getId());
+                request.setTaskId(task.getTaskId());
                 request.setExecutorName(executor.name());
                 request.setRemoteNode(WorkerClientConverter.toDTO(task.getRemoteNode()));
                 Response<Boolean> response = workerContext.call(API_TASK_DISPATCH, worker.host(), worker.port(), request);
@@ -104,28 +104,28 @@ public abstract class DistributedJobTracker extends JobTracker {
                 }
             } catch (Exception e) {
                 log.error("Task dispatch failed: jobId:{} taskId:{} worker:{}",
-                    task.getJobId(), task.getId(), worker == null ? null : worker.address(), e
+                    task.getJobId(), task.getTaskId(), worker == null ? null : worker.address(), e
                 );
             }
         }
         taskFail(
-            task.getId(),
+            task.getTaskId(),
             TimeUtils.currentLocalDateTime(),
             String.format("task dispatch fail over limit last worker=%s", worker == null ? null : worker.address()),
             null
         );
     }
 
-    protected void dispatch(List<Task> tasks) {
+    public void dispatch(List<Task> tasks) {
         for (Task task : tasks) {
             dispatch(task);
         }
     }
 
-    public TaskStateTransitionResponse handleTaskStateTransition(TaskStateTransitionRequest request) {
+    public TaskStateTransitionResponse handleTaskStateTransitionRequest(TaskStateTransitionRequest request) {
         Task task = taskRepository.getById(request.getJobId(), request.getTaskId());
         TaskStateTransitionResponse response = new TaskStateTransitionResponse();
-        if (task == null || !task.sameWorker(WorkerClientConverter.toNode(request.getWorkerNode()))) {
+        if (task == null) {
             response.setSuccess(false);
             return response;
         }
@@ -135,13 +135,17 @@ public abstract class DistributedJobTracker extends JobTracker {
         boolean success = false;
         switch (TaskStateEvent.parse(request.getEvent())) {
             case START:
-                success = taskRepository.start(task.getJobId(), task.getId(), workerAddress, reportAt);
+                success = taskRepository.start(task.getJobId(), task.getTaskId(), workerAddress, reportAt);
                 break;
             case RUN_SUCCESS:
-                success = handleSuccessRequest(request, task);
+                if (task.sameWorker(WorkerClientConverter.toNode(request.getWorkerNode()))) {
+                    success = handleSuccessRequest(request, task);
+                }
                 break;
             case RUN_FAIL:
-                success = handleFailRequest(request, task);
+                if (task.sameWorker(WorkerClientConverter.toNode(request.getWorkerNode()))) {
+                    success = handleFailRequest(request, task);
+                }
                 break;
         }
         response.setSuccess(success);
@@ -166,7 +170,7 @@ public abstract class DistributedJobTracker extends JobTracker {
         if (TaskStatus.RUNNING != task.getStatus()) {
             return false;
         }
-        taskSuccess(task.getId(), request.getReportAt(), request.getResult());
+        taskSuccess(task.getTaskId(), request.getReportAt(), request.getResult());
         success();
         return true;
     }
@@ -178,7 +182,7 @@ public abstract class DistributedJobTracker extends JobTracker {
         if (TaskStatus.RUNNING != task.getStatus()) {
             return false;
         }
-        taskFail(task.getId(), request.getReportAt(), request.getErrorMsg(), request.getErrorStackTrace());
+        taskFail(task.getTaskId(), request.getReportAt(), request.getErrorMsg(), request.getErrorStackTrace());
         fail();
         return true;
     }

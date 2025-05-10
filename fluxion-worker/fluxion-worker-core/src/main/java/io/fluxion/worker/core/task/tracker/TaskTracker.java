@@ -83,13 +83,32 @@ public class TaskTracker extends AbstractTracker {
             log.info("Worker is not running: {}", workerContext.status());
             return false;
         }
-        if (!workerContext.saveTask(this)) {
-            log.info("Receive task [{}], but already in repository", task.getId());
+        if (!workerContext.saveTaskTracker(this)) {
+            log.info("Receive task [{}], but already in repository", task.getTaskId());
             return true;
         }
 
         try {
-            run();
+            // 提交执行 正常来说保存成功这里不会被拒绝
+            this.processFuture = workerContext.processExecutor().submit(() -> {
+                try {
+                    // 反馈执行中 -- 排除由于网络问题导致的失败可能性
+                    taskStart();
+                    if (destroyed.get()) {
+                        return;
+                    }
+                    executor.run(new TaskContext(task.getTaskId(), task.getJobId()));
+                    // 执行成功
+                    taskSuccess("");
+                } catch (Throwable throwable) {
+                    log.error("[TaskTracker] run error", throwable);
+                    taskFail(throwable.getMessage(), ExceptionUtils.getStackTrace(throwable));
+                }
+            });
+            // 提交状态监控
+            this.statusReportFuture = workerContext.statusReportExecutor().scheduleAtFixedRate(
+                this::report, 1, WorkerRemoteConstant.TASK_REPORT_SECONDS, TimeUnit.SECONDS
+            );
             return true;
         } catch (RejectedExecutionException e) {
             log.error("Schedule Task in worker failed, maybe work thread exhausted task:{}", JacksonUtils.toJSONString(task), e);
@@ -102,34 +121,11 @@ public class TaskTracker extends AbstractTracker {
         }
     }
 
-    private void run() {
-        // 提交执行 正常来说保存成功这里不会被拒绝
-        this.processFuture = workerContext.processExecutor().submit(() -> {
-            try {
-                // 反馈执行中 -- 排除由于网络问题导致的失败可能性
-                taskStart();
-                if (destroyed.get()) {
-                    return;
-                }
-                executor.run(new TaskContext(task.getId(), task.getJobId()));
-                // 执行成功
-                taskSuccess("");
-            } catch (Throwable throwable) {
-                log.error("[TaskTracker] run error", throwable);
-                taskFail(throwable.getMessage(), ExceptionUtils.getStackTrace(throwable));
-            }
-        });
-        // 提交状态监控
-        this.statusReportFuture = workerContext.statusReportExecutor().scheduleAtFixedRate(
-            this::report, 1, WorkerRemoteConstant.TASK_REPORT_SECONDS, TimeUnit.SECONDS
-        );
-    }
-
     private void statTransition(TaskStateEvent event) {
         task.setLastReportAt(TimeUtils.currentLocalDateTime());
         TaskStateTransitionRequest request = new TaskStateTransitionRequest();
         try {
-            request.setTaskId(task.getId());
+            request.setTaskId(task.getTaskId());
             request.setJobId(task.getJobId());
             request.setReportAt(task.getLastReportAt());
             request.setEvent(event.value);
@@ -143,15 +139,15 @@ public class TaskTracker extends AbstractTracker {
             NodeDTO remote = WorkerClientConverter.toDTO(task.getRemoteNode());
             Response<TaskStateTransitionResponse> response = workerContext.call(API_TASK_STATE_TRANSITION, remote.getHost(), remote.getPort(), request);
             if (response.success() && response.getData() != null && response.getData().isSuccess()) {
+                if (task.getStatus().isFinished()) {
+                    destroy();
+                }
                 return;
             }
-            if (!task.getStatus().isFinished()) {
-                destroy();
-                return;
-            }
+            // 请求失败
             finishFailedCount++;
             if (finishFailedCount > MAX_FINISH_FAILED_TIMES) {
-                log.warn("[TaskFinish] fail more than {} times jobId:{} taskId:{} event:{}", MAX_FINISH_FAILED_TIMES, task.getJobId(), task.getId(), event);
+                log.warn("[TaskFinish] fail more than {} times jobId:{} taskId:{} event:{}", MAX_FINISH_FAILED_TIMES, task.getJobId(), task.getTaskId(), event);
                 destroy();
                 return;
             }
@@ -178,7 +174,7 @@ public class TaskTracker extends AbstractTracker {
         task.setLastReportAt(TimeUtils.currentLocalDateTime());
         TaskReportRequest request = new TaskReportRequest();
         try {
-            request.setTaskId(task.getId());
+            request.setTaskId(task.getTaskId());
             request.setJobId(task.getJobId());
             request.setReportAt(task.getLastReportAt());
             request.setStatus(task.getStatus().value);
@@ -193,7 +189,7 @@ public class TaskTracker extends AbstractTracker {
 
     public void destroy() {
         if (!destroyed.compareAndSet(false, true)) {
-            log.info("TaskTracker taskId: {} has been destroyed", task.getId());
+            log.info("TaskTracker taskId: {} has been destroyed", task.getTaskId());
             return;
         }
         if (statusReportFuture != null) {
@@ -205,7 +201,7 @@ public class TaskTracker extends AbstractTracker {
         if (finishReportFuture != null) {
             finishReportFuture.cancel(true);
         }
-        workerContext.deleteTask(task.getId());
+        workerContext.deleteTaskTracker(this);
         log.info("TaskTracker task: {} destroyed success", JacksonUtils.toJSONString(task));
     }
 
@@ -229,6 +225,10 @@ public class TaskTracker extends AbstractTracker {
         task.setErrorMsg(errorMsg);
         task.setErrorStackTrace(errorStackTrace);
         statTransition(TaskStateEvent.RUN_FAIL);
+    }
+
+    public String id() {
+        return task.getJobId() + ":" + task.getTaskId();
     }
 
 }

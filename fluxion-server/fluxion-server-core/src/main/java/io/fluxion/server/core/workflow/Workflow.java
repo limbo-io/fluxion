@@ -99,16 +99,19 @@ public class Workflow implements Executable {
 
     @Override
     public void execute(Execution execution) {
-        createAndScheduleTasks(execution.getId(), dag.origins());
+        List<Job> jobs = createJobs(execution.getId(), dag.origins());
+        // 执行
+        for (Job job : jobs) {
+            CommonThreadPool.IO.submit(new LoggingTask(() -> Cmd.send(new JobRunCmd(job))));
+        }
     }
 
     /**
      * 某个 node 成功后执行的逻辑
      */
     @Override
-    public boolean success(Job job, LocalDateTime time) {
-        String executionId = job.getExecutionId();
-        List<WorkflowNode> subNodes = dag.subNodes(job.getRefId());
+    public boolean success(String executionId, String refId, LocalDateTime time) {
+        List<WorkflowNode> subNodes = dag.subNodes(refId);
         if (CollectionUtils.isEmpty(subNodes)) {
             // 最终节点 execution 完成
             return Cmd.send(new ExecutionSuccessCmd(executionId, time));
@@ -124,17 +127,19 @@ public class Workflow implements Executable {
         if (CollectionUtils.isEmpty(continueNodes)) {
             return true;
         }
-        createAndScheduleTasks(executionId, continueNodes);
+        createJobs(executionId, continueNodes);
+        // 待优化：这里不能和execute一样直接异步执行 success是在事务中 由于这里是异步的，
+        // 可能导致input这个任务执行start的时候事务还没提交，查不到数据。交由JobUnRunChecker
         return true;
     }
 
     @Override
-    public boolean fail(Job job, LocalDateTime time) {
-        WorkflowNode node = dag.node(job.getRefId());
+    public boolean fail(String executionId, String refId, LocalDateTime time) {
+        WorkflowNode node = dag.node(refId);
         if (node.isSkipWhenFail()) {
-            return success(job, time);
+            return success(executionId, refId, time);
         } else {
-            return Cmd.send(new ExecutionFailCmd(job.getExecutionId(), time));
+            return Cmd.send(new ExecutionFailCmd(executionId, time));
         }
     }
 
@@ -170,7 +175,7 @@ public class Workflow implements Executable {
         return JobType.UNKNOWN;
     }
 
-    private void createAndScheduleTasks(String executionId, List<WorkflowNode> nodes) {
+    private List<Job> createJobs(String executionId, List<WorkflowNode> nodes) {
         LocalDateTime now = TimeUtils.currentLocalDateTime();
         List<Job> jobs = nodes.stream()
             .map(n -> {
@@ -184,10 +189,7 @@ public class Workflow implements Executable {
             .collect(Collectors.toList());
         // 保存数据
         Cmd.send(new JobsCreateCmd(jobs));
-        // 执行
-        for (Job job : jobs) {
-            CommonThreadPool.IO.submit(new LoggingTask(() -> Cmd.send(new JobRunCmd(job))));
-        }
+        return jobs;
     }
 
     private boolean preNodesSuccess(String executionId, List<WorkflowNode> preNodes) {

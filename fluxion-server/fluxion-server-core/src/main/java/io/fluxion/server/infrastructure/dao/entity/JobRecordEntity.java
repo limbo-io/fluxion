@@ -16,26 +16,34 @@
 
 package io.fluxion.server.infrastructure.dao.entity;
 
+import io.fluxion.remote.core.constants.JobStatus;
+import io.fluxion.server.infrastructure.dao.TableConstants;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
 
 import javax.persistence.Embeddable;
 import javax.persistence.EmbeddedId;
+import javax.persistence.Entity;
+import javax.persistence.Table;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
 /**
- * 一个任务运行记录
+ * 一个任务运行记录，job最终状态的一次记录
  *
  * @author Devil
  * @since 2021/9/1
  */
-//@Setter
-//@Getter
-//@Table(name = TableConstants.FLUXION_TASK_RECORD)
-//@Entity
-//@DynamicInsert
-//@DynamicUpdate
+@Setter
+@Getter
+@Table(name = TableConstants.FLUXION_JOB_RECORD)
+@Entity
+@DynamicInsert
+@DynamicUpdate
 public class JobRecordEntity extends BaseEntity {
 
     @EmbeddedId
@@ -44,22 +52,29 @@ public class JobRecordEntity extends BaseEntity {
     /**
      * 开始时间
      */
-    private Long startAt;
+    private LocalDateTime startAt;
 
     /**
      * 结束时间
      */
-    private Long endAt;
+    private LocalDateTime endAt;
 
     /**
-     * 下发节点
+     * 状态
+     *
+     * @see JobStatus
      */
-    private String brokerUrl;
+    private String status;
 
     /**
      * 执行节点
      */
     private String workerAddress;
+
+    /**
+     * 本次执行结果
+     */
+    private String result;
 
     /**
      * 错误信息
@@ -77,11 +92,11 @@ public class JobRecordEntity extends BaseEntity {
     @Embeddable
     public static class ID implements Serializable {
 
-        private String taskId;
+        private String jobId;
 
         /**
          * 第几次执行
          */
-        private int time;
+        private int times;
     }
 }

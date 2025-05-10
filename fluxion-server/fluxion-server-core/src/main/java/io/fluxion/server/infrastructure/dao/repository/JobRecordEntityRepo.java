@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 limbo-io Team (https://github.com/limbo-io).
+ * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,15 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.execution.cmd;
+package io.fluxion.server.infrastructure.dao.repository;
 
-import io.fluxion.server.core.job.JobMonitor;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-import java.time.LocalDateTime;
+import io.fluxion.server.infrastructure.dao.entity.JobRecordEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 /**
  * @author Devil
  */
-@Getter
-@AllArgsConstructor
-public class ExecutableSuccessCmd implements ICmd<Boolean> {
-
-    private String jobId;
-
-    private LocalDateTime reportAt;
-
-    private JobMonitor monitor;
-
-    private String result;
-
+@Repository
+public interface JobRecordEntityRepo extends JpaRepository<JobRecordEntity, JobRecordEntity.ID> {
 }

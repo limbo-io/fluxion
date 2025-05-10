@@ -31,7 +31,6 @@ import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
 import io.fluxion.worker.core.remote.WorkerClientConverter;
-import io.fluxion.worker.core.task.TaskContext;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
@@ -96,8 +95,7 @@ public abstract class JobTracker extends AbstractTracker {
                         }
 
                         // 执行
-                        executor.run(new TaskContext("0", job.getId()));
-                        jobSuccess("");
+                        JobTracker.this.run();
                     } catch (Throwable throwable) {
                         log.error("[{}] run error", getClass().getSimpleName(), throwable);
                         jobFail(throwable.getMessage());
@@ -121,7 +119,8 @@ public abstract class JobTracker extends AbstractTracker {
         }
     }
 
-    protected void postProcessOnStart() {}
+    protected void postProcessOnStart() {
+    }
 
     protected abstract void run();
 
@@ -158,12 +157,12 @@ public abstract class JobTracker extends AbstractTracker {
 
             Response<JobStateTransitionResponse> response = workerContext.call(API_JOB_STATE_TRANSITION, request);
             if (response.success() && response.getData() != null && response.getData().isSuccess()) {
+                if (job.getStatus().isFinished()) {
+                    destroy();
+                }
                 return;
             }
-            if (!job.getStatus().isFinished()) {
-                destroy();
-                return;
-            }
+            // 请求失败
             finishFailedCount++;
             if (finishFailedCount > MAX_FINISH_FAILED_TIMES) {
                 log.warn("[JobFinish] fail more than {} times jobId:{} event:{}", MAX_FINISH_FAILED_TIMES, job.getId(), event);
@@ -224,11 +223,12 @@ public abstract class JobTracker extends AbstractTracker {
             finishReportFuture.cancel(true);
         }
         postProcessOnDestroy();
-        workerContext.deleteJob(job.getId());
+        workerContext.deleteJobTracker(job.getId());
         log.info("JobTracker jobId: {} destroyed success", job.getId());
     }
 
-    protected void postProcessOnDestroy() {}
+    protected void postProcessOnDestroy() {
+    }
 
     public Job job() {
         return job;

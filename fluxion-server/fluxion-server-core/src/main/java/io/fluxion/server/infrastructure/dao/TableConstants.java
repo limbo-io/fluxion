@@ -32,7 +32,7 @@ public interface TableConstants {
     String FLUXION_LOCK = "fluxion_lock";
     String FLUXION_EXECUTION = "fluxion_execution";
     String FLUXION_JOB = "fluxion_job";
-    String FLUXION_TASK_RECORD = "fluxion_task_record";
+    String FLUXION_JOB_RECORD = "fluxion_job_record";
     String FLUXION_APP = "fluxion_app";
     String FLUXION_WORKER = "fluxion_worker";
     String FLUXION_WORKER_EXECUTOR = "fluxion_worker_executor";

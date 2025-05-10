@@ -42,6 +42,7 @@ import io.fluxion.server.core.job.cmd.JobReportCmd;
 import io.fluxion.server.core.job.cmd.JobStateTransitionCmd;
 import io.fluxion.server.core.job.config.ExecutorJobConfig;
 import io.fluxion.server.core.job.query.JobByIdQuery;
+import io.fluxion.server.core.job.query.JobConfigQuery;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerSaveCmd;
@@ -156,13 +157,14 @@ public class BrokerClientHandler implements ClientHandler {
     private JobWorkersResponse jobWorkers(String data) {
         JobWorkersRequest request = JacksonUtils.toType(data, JobWorkersRequest.class);
         Job job = Query.query(new JobByIdQuery(request.getJobId())).getJob();
-        if (!(job.config() instanceof ExecutorJobConfig)) {
+        Job.Config config = Query.query(new JobConfigQuery(job.getExecutionId(), job.getRefId())).getConfig();
+        if (!(config instanceof ExecutorJobConfig)) {
             return new JobWorkersResponse();
         }
-        ExecutorJobConfig config = (ExecutorJobConfig) job.config();
+        ExecutorJobConfig executorJobConfig = (ExecutorJobConfig) config;
         List<Worker> workers = Query.query(new WorkersFilterQuery(
-            config.getAppId(), config.getExecutorName(),
-            config.getDispatchOption(), request.isFilterResource(), request.isLoadBalanceSelect()
+            executorJobConfig.getAppId(), executorJobConfig.getExecutorName(),
+            executorJobConfig.getDispatchOption(), request.isFilterResource(), request.isLoadBalanceSelect()
         )).getWorkers();
         JobWorkersResponse response = new JobWorkersResponse();
         response.setWorkers(BrokerClientConverter.toNodes(workers));

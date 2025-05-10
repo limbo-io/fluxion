@@ -16,8 +16,8 @@
 
 package io.fluxion.server.core.executor;
 
+import io.fluxion.common.thread.CommonThreadPool;
 import io.fluxion.common.utils.time.TimeUtils;
-import io.fluxion.server.core.context.RunContext;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.execution.Execution;
@@ -31,7 +31,9 @@ import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
 import io.fluxion.server.core.job.config.ExecutorJobConfig;
+import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -95,17 +97,17 @@ public class Executor implements Executable {
         // 保存数据
         Cmd.send(new JobsCreateCmd(Collections.singletonList(job)));
         // 执行
-        Cmd.send(new JobRunCmd(job));
+        CommonThreadPool.IO.submit(new LoggingTask(() -> Cmd.send(new JobRunCmd(job))));
     }
 
     @Override
-    public boolean success(Job job, LocalDateTime time) {
-        return Cmd.send(new ExecutionSuccessCmd(job.getExecutionId(), time));
+    public boolean success(String executionId, String refId, LocalDateTime time) {
+        return Cmd.send(new ExecutionSuccessCmd(executionId, time));
     }
 
     @Override
-    public boolean fail(Job job, LocalDateTime time) {
-        return Cmd.send(new ExecutionFailCmd(job.getExecutionId(), time));
+    public boolean fail(String executionId, String refId, LocalDateTime time) {
+        return Cmd.send(new ExecutionFailCmd(executionId, time));
     }
 
     @Override

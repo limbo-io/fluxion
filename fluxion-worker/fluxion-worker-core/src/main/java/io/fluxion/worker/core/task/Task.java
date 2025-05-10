@@ -26,7 +26,7 @@ import java.time.LocalDateTime;
  */
 public class Task {
 
-    private final String id;
+    private final String taskId;
 
     private final String jobId;
 
@@ -72,7 +72,7 @@ public class Task {
     private int dispatchFailTimes = 0;
 
     public Task(String id, String jobId) {
-        this.id = id;
+        this.taskId = id;
         this.jobId = jobId;
     }
 
@@ -96,8 +96,8 @@ public class Task {
         return jobId;
     }
 
-    public String getId() {
-        return id;
+    public String getTaskId() {
+        return taskId;
     }
 
     public TaskStatus getStatus() {

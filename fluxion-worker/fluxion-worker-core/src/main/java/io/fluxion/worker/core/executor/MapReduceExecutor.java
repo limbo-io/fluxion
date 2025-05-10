@@ -16,8 +16,6 @@
 
 package io.fluxion.worker.core.executor;
 
-import io.fluxion.worker.core.job.Job;
-
 import java.util.Map;
 
 /**

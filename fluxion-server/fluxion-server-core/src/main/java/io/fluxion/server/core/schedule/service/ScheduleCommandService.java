@@ -17,6 +17,8 @@
 package io.fluxion.server.core.schedule.service;
 
 import com.google.common.collect.Lists;
+import io.fluxion.common.utils.MD5Utils;
+import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.common.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
 import io.fluxion.server.core.schedule.Schedule;
@@ -67,33 +69,34 @@ public class ScheduleCommandService {
     @Transactional
     @CommandHandler
     public void handle(ScheduleSaveCmd cmd) {
-        Schedule newSchedule = new Schedule();
-        newSchedule.setId(cmd.getId());
-        newSchedule.setOption(cmd.getOption());
-
-        Schedule oldSchedule = Query.query(new ScheduleByIdQuery(cmd.getId())).getSchedule();
-        // 触发时间设置
-        if (oldSchedule == null) {
+        ScheduleEntity entity = scheduleEntityRepo.findByScheduleIdAndDeleted(cmd.getId(), false);
+        if (entity == null) {
+            // 新增
+            entity = new ScheduleEntity();
+            entity.setScheduleId(cmd.getId());
             BasicCalculation calculation = new BasicCalculation(
-                null, null, newSchedule.getOption()
+                null, null, cmd.getOption()
             );
-            newSchedule.setNextTriggerAt(calculation.triggerAt());
-
-        }
-        // bucket分配
-        ScheduleEntity entity = ScheduleEntityConverter.convert(newSchedule);
-        if (oldSchedule == null) {
+            entity.setNextTriggerAt(calculation.triggerAt());
             int bucket = Cmd.send(new BucketAllotCmd(entity.getScheduleId())).getBucket();
             entity.setBucket(bucket);
-        }
-
-        scheduleEntityRepo.saveAndFlush(entity);
-        // 判断版本是否变化 变化就要先删delay(等待状态) 后创建新的并调度
-        if (oldSchedule == null || !newSchedule.version().equals(oldSchedule.version())) {
-            Cmd.send(new ScheduleDelayDeleteByScheduleCmd(newSchedule.getId(), Lists.newArrayList(
-                ScheduleDelay.Status.INIT
-            )));
-            Cmd.send(new ScheduleTriggerCmd(newSchedule));
+            // 配置信息
+            ScheduleEntityConverter.assemble(entity, cmd.getOption());
+            scheduleEntityRepo.saveAndFlush(entity);
+            // 创建调度
+            Cmd.send(new ScheduleTriggerCmd(ScheduleEntityConverter.convert(entity)));
+        } else {
+            String oldVersion = MD5Utils.md5(JacksonUtils.toJSONString(ScheduleEntityConverter.toOption(entity)));
+            String newVersion = MD5Utils.md5(JacksonUtils.toJSONString(cmd.getOption()));
+            ScheduleEntityConverter.assemble(entity, cmd.getOption());
+            scheduleEntityRepo.saveAndFlush(entity);
+            // 判断版本是否变化 变化就要先删delay(等待状态) 后创建新的并调度
+            if (!oldVersion.equals(newVersion)) {
+                Cmd.send(new ScheduleDelayDeleteByScheduleCmd(cmd.getId(), Lists.newArrayList(
+                    ScheduleDelay.Status.INIT
+                )));
+                Cmd.send(new ScheduleTriggerCmd(ScheduleEntityConverter.convert(entity)));
+            }
         }
     }
 

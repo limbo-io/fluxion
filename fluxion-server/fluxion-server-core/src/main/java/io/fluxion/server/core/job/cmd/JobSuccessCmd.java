@@ -35,4 +35,6 @@ public class JobSuccessCmd implements ICmd<Boolean> {
     private final LocalDateTime reportAt;
 
     private JobMonitor monitor;
+
+    private String result;
 }

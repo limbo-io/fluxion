@@ -21,10 +21,11 @@ import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.worker.JobDispatchRequest;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.broker.BrokerContext;
-import io.fluxion.server.core.execution.cmd.ExecutableFailCmd;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
+import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.config.ExecutorJobConfig;
+import io.fluxion.server.core.job.query.JobConfigQuery;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
@@ -53,7 +54,7 @@ public class ExecutorJobRunner extends JobRunner {
 
     @Override
     public void run(Job job) {
-        ExecutorJobConfig config = (ExecutorJobConfig) job.config();
+        ExecutorJobConfig config = (ExecutorJobConfig) Query.query(new JobConfigQuery(job.getExecutionId(), job.getRefId())).getConfig();
         List<Worker> workers = Query.query(new WorkersFilterQuery(
             config.getAppId(), config.getExecutorName(),
             config.getDispatchOption(), true, true
@@ -83,11 +84,11 @@ public class ExecutorJobRunner extends JobRunner {
             dispatchFailedCount++;
         }
         if (!dispatched) {
-            Cmd.send(new ExecutableFailCmd(
+            Cmd.send(new JobFailCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),
-                null,
-                "dispatch fail worker:" + (worker == null ? null : worker.id())
+                "dispatch fail worker:" + (worker == null ? null : worker.id()),
+                null
             ));
         }
     }

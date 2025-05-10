@@ -99,6 +99,9 @@ public class JobEntity extends BaseEntity {
      */
     private Integer retryTimes;
 
+    /**
+     * 最后一次的执行结果
+     */
     private String result;
 
     /**

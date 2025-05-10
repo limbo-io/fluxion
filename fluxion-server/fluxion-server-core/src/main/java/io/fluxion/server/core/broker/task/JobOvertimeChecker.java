@@ -14,38 +14,34 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.schedule;
+package io.fluxion.server.core.broker.task;
 
-import io.fluxion.server.infrastructure.schedule.ScheduleOption;
-import lombok.Data;
+import io.fluxion.server.infrastructure.schedule.ScheduleType;
+import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 /**
+ * running状态 执行超过配置的超时时间 todo
+ *
  * @author Devil
  */
-@Data
-public class Schedule {
+@Slf4j
+public class JobOvertimeChecker extends CoreTask {
 
-    private String id;
+    private static final int INTERVAL = 1;
+    private static final TimeUnit UNIT = TimeUnit.MINUTES;
 
-    private ScheduleOption option;
+    public JobOvertimeChecker() {
+        super(0, INTERVAL, UNIT);
+    }
 
-    /**
-     * 上次触发时间
-     */
-    private LocalDateTime lastTriggerAt;
+    @Override
+    public void run() {
+    }
 
-    /**
-     * 上次回调时间
-     */
-    private LocalDateTime lastFeedbackAt;
-
-    /**
-     * 下次触发时间
-     */
-    private LocalDateTime nextTriggerAt;
-
-    private boolean enabled;
-
+    @Override
+    public ScheduleType scheduleType() {
+        return ScheduleType.FIXED_DELAY;
+    }
 }
