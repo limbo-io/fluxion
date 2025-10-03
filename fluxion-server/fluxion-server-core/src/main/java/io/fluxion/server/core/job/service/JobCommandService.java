@@ -17,7 +17,6 @@
 package io.fluxion.server.core.job.service;
 
 import com.google.common.collect.Lists;
-import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
 import io.fluxion.server.core.execution.Execution;
@@ -47,6 +46,7 @@ import io.fluxion.server.infrastructure.exception.PlatformException;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
 import io.fluxion.server.infrastructure.lock.DistributedLock;
+import io.limbo.utils.json.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;

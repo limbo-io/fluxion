@@ -19,12 +19,12 @@ package io.fluxion.test;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import io.fluxion.common.utils.ReflectionUtils;
-import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.broker.WorkerRegisterRequest;
 import io.fluxion.remote.core.api.response.broker.WorkerRegisterResponse;
 import io.fluxion.server.core.workflow.query.WorkflowByIdQuery;
+import io.limbo.utils.json.JacksonUtils;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Type;

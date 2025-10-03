@@ -14,30 +14,23 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.spring.starter.processor.event;
+package io.fluxion.worker.springboot.starter.processor.event;
 
-import io.fluxion.worker.core.executor.Executor;
 import org.springframework.context.ApplicationEvent;
 
-import java.util.List;
+import java.time.Instant;
 
 /**
  * @author Brozen
- * @since 2022-10-24
+ * @since 2022-09-22
  */
-public class ExecutorScannedEvent extends ApplicationEvent {
-
-    private final List<Executor> executors;
+public class WorkerReadyEvent extends ApplicationEvent {
 
     /**
-     * 生成 Executor 扫描完成事件
+     * 生成 Worker ready 事件
      */
-    public ExecutorScannedEvent(List<Executor> executors) {
-        super(executors);
-        this.executors = executors;
+    public WorkerReadyEvent() {
+        super(Instant.now());
     }
 
-    public List<Executor> getExecutors() {
-        return executors;
-    }
 }

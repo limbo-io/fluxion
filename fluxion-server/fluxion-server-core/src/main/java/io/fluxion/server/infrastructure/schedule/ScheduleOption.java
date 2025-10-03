@@ -18,14 +18,14 @@ package io.fluxion.server.infrastructure.schedule;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.fluxion.common.utils.time.TimeUtils;
+import io.limbo.utils.time.TimeUtils;
 import lombok.Getter;
 
 import javax.validation.constraints.NotNull;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
-import static io.fluxion.common.utils.time.TimeUtils.TIME_FOREVER;
+import static io.limbo.utils.time.TimeUtils.TIME_FOREVER;
 
 /**
  * 作业调度配置，值对象。

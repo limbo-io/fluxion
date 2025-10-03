@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.workflow.service;
 
-import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.core.workflow.Workflow;
 import io.fluxion.server.core.workflow.WorkflowConfig;
 import io.fluxion.server.core.workflow.converter.WorkflowEntityConverter;
@@ -27,6 +26,7 @@ import io.fluxion.server.infrastructure.dao.repository.WorkflowEntityRepo;
 import io.fluxion.server.infrastructure.version.model.Version;
 import io.fluxion.server.infrastructure.version.model.VersionMode;
 import io.fluxion.server.infrastructure.version.query.VersionByIdQuery;
+import io.limbo.utils.json.JacksonUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.stereotype.Service;

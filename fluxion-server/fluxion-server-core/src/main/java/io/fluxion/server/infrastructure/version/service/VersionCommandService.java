@@ -16,7 +16,6 @@
 
 package io.fluxion.server.infrastructure.version.service;
 
-import io.fluxion.common.utils.UUIDUtils;
 import io.fluxion.server.infrastructure.dao.entity.VersionEntity;
 import io.fluxion.server.infrastructure.dao.repository.VersionEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
@@ -25,6 +24,7 @@ import io.fluxion.server.infrastructure.version.cmd.VersionSaveCmd;
 import io.fluxion.server.infrastructure.version.model.Version;
 import io.fluxion.server.infrastructure.version.model.VersionGenerateType;
 import io.fluxion.server.infrastructure.version.model.VersionRefType;
+import io.limbo.utils.UUIDUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;

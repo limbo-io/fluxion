@@ -17,8 +17,8 @@
 package io.fluxion.test.core.schedule;
 
 import com.cronutils.model.CronType;
-import io.fluxion.common.utils.time.Formatters;
-import io.fluxion.common.utils.time.TimeUtils;
+import io.limbo.utils.time.Formatters;
+import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;

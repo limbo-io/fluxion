@@ -19,7 +19,7 @@ package io.fluxion.common.utils.json;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import io.fluxion.common.utils.time.TimeUtils;
+import io.limbo.utils.time.TimeUtils;
 
 import java.io.IOException;
 import java.time.LocalDateTime;

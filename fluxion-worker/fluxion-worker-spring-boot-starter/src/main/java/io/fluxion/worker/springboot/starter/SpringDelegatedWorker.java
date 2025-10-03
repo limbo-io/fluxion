@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.spring.starter;
+package io.fluxion.worker.springboot.starter;
 
 import io.fluxion.remote.core.client.ClientFactory;
 import io.fluxion.remote.core.client.LBClient;
@@ -39,9 +39,9 @@ import io.fluxion.worker.core.persistence.H2ConnectionFactory;
 import io.fluxion.worker.core.remote.WorkerClientHandler;
 import io.fluxion.worker.core.task.repository.DBTaskRepository;
 import io.fluxion.worker.core.task.repository.TaskRepository;
-import io.fluxion.worker.spring.starter.processor.event.ExecutorScannedEvent;
-import io.fluxion.worker.spring.starter.processor.event.WorkerReadyEvent;
-import io.fluxion.worker.spring.starter.properties.DatasourceProperties;
+import io.fluxion.worker.springboot.starter.processor.event.ExecutorScannedEvent;
+import io.fluxion.worker.springboot.starter.processor.event.WorkerReadyEvent;
+import io.fluxion.worker.springboot.starter.properties.DatasourceProperties;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.event.EventListener;
 

@@ -16,12 +16,12 @@
 
 package io.fluxion.server.core.trigger.converter;
 
-import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.TriggerConfig;
 import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
 import io.fluxion.server.infrastructure.version.model.Version;
 import io.fluxion.server.infrastructure.version.model.VersionRefType;
+import io.limbo.utils.json.JacksonUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 

@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.lock;
 
-import io.fluxion.common.utils.time.TimeUtils;
+import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.infrastructure.dao.entity.LockEntity;
 import io.fluxion.server.infrastructure.dao.repository.LockEntityRepo;

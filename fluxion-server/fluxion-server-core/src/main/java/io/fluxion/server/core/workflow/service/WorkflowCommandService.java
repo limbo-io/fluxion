@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.workflow.service;
 
-import io.fluxion.common.utils.Lambda;
 import io.fluxion.server.core.workflow.WorkflowConfig;
 import io.fluxion.server.core.workflow.cmd.WorkflowCreateCmd;
 import io.fluxion.server.core.workflow.cmd.WorkflowDeleteCmd;
@@ -33,6 +32,7 @@ import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
 import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import io.fluxion.server.infrastructure.version.cmd.VersionSaveCmd;
+import io.limbo.utils.Lambda;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;

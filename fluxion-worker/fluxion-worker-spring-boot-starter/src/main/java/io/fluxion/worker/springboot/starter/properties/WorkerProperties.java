@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.spring.starter.properties;
+package io.fluxion.worker.springboot.starter.properties;
 
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;

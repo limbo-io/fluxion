@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.spring.starter.processor;
+package io.fluxion.worker.springboot.starter.processor;
 
 import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.TaskContext;
-import io.fluxion.worker.spring.starter.processor.event.ExecutorScannedEvent;
-import io.fluxion.worker.spring.starter.processor.event.WorkerReadyEvent;
+import io.fluxion.worker.springboot.starter.processor.event.ExecutorScannedEvent;
+import io.fluxion.worker.springboot.starter.processor.event.WorkerReadyEvent;
 import org.springframework.aop.framework.autoproxy.AutoProxyUtils;
 import org.springframework.aop.scope.ScopedObject;
 import org.springframework.aop.scope.ScopedProxyUtils;

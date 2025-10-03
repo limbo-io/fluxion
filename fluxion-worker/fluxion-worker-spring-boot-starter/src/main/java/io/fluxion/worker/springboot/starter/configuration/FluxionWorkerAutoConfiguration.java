@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.spring.starter.configuration;
+package io.fluxion.worker.springboot.starter.configuration;
 
 import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.constants.Protocol;
@@ -22,9 +22,9 @@ import io.fluxion.remote.core.lb.BaseLBServer;
 import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.remote.core.utils.NetUtils;
 import io.fluxion.worker.core.Worker;
-import io.fluxion.worker.spring.starter.SpringDelegatedWorker;
-import io.fluxion.worker.spring.starter.processor.ExecutorMethodProcessor;
-import io.fluxion.worker.spring.starter.properties.WorkerProperties;
+import io.fluxion.worker.springboot.starter.SpringDelegatedWorker;
+import io.fluxion.worker.springboot.starter.processor.ExecutorMethodProcessor;
+import io.fluxion.worker.springboot.starter.properties.WorkerProperties;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;

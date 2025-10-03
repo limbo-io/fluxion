@@ -16,9 +16,9 @@
 
 package io.fluxion.server.start.config;
 
-import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.server.infrastructure.exception.PlatformException;
+import io.limbo.utils.json.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;

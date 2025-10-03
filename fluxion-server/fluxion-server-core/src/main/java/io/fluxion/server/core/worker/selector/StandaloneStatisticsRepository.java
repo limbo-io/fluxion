@@ -16,10 +16,10 @@
 
 package io.fluxion.server.core.worker.selector;
 
-import io.fluxion.common.utils.concurrent.Lockable;
 import io.fluxion.remote.core.lb.LBServer;
 import io.fluxion.remote.core.lb.LBServerStatistics;
 import io.fluxion.remote.core.lb.LBServerStatisticsProvider;
+import io.limbo.utils.concurrent.Lockable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

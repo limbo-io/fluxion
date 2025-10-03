@@ -16,10 +16,10 @@
 
 package io.fluxion.server.core.workflow.converter;
 
-import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.server.core.workflow.WorkflowConfig;
 import io.fluxion.server.infrastructure.version.model.Version;
 import io.fluxion.server.infrastructure.version.model.VersionRefType;
+import io.limbo.utils.json.JacksonUtils;
 
 /**
  * @author Devil

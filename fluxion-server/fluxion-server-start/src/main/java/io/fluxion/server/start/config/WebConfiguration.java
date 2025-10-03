@@ -24,7 +24,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.fluxion.common.utils.json.LocalDateTimeTimestampDeserializer;
 import io.fluxion.common.utils.json.LocalDateTimeTimestampSerializer;
-import io.fluxion.common.utils.time.Formatters;
+import io.limbo.utils.time.Formatters;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -68,8 +68,8 @@ public class WebConfiguration implements WebMvcConfigurer {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
         mapper.registerModules(
-            javaTimeModule,
-            new Jdk8Module()
+                javaTimeModule,
+                new Jdk8Module()
         );
         return mapper;
     }

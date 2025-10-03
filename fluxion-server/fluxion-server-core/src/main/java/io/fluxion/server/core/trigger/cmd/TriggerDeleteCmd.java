@@ -17,7 +17,6 @@
 package io.fluxion.server.core.trigger.cmd;
 
 import io.fluxion.server.infrastructure.cqrs.ICmd;
-import io.fluxion.server.infrastructure.cqrs.IEvent;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,7 +29,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TriggerDeleteCmd implements ICmd<Void>, IEvent {
+public class TriggerDeleteCmd implements ICmd<Void> {
 
     private String id;
 

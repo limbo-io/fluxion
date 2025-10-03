@@ -16,9 +16,9 @@
 
 package io.fluxion.remote.core.lb.strategies;
 
-import io.fluxion.common.utils.MD5Utils;
 import io.fluxion.remote.core.lb.Invocation;
 import io.fluxion.remote.core.lb.LBServer;
+import io.limbo.utils.MD5Utils;
 
 import java.util.List;
 import java.util.Map;

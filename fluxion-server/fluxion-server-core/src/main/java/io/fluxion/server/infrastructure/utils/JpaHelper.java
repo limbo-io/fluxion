@@ -16,8 +16,8 @@
 
 package io.fluxion.server.infrastructure.utils;
 
-import io.fluxion.common.utils.Lambda;
 import io.fluxion.remote.core.api.PageRequest;
+import io.limbo.utils.Lambda;
 import org.springframework.data.domain.Pageable;
 
 import javax.persistence.criteria.*;

@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.trigger.service;
 
-import io.fluxion.common.utils.Lambda;
 import io.fluxion.server.core.schedule.cmd.ScheduleDeleteCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDisableCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleEnableCmd;
@@ -45,6 +44,7 @@ import io.fluxion.server.infrastructure.id.data.IDType;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
 import io.fluxion.server.infrastructure.version.cmd.VersionSaveCmd;
+import io.limbo.utils.Lambda;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.axonframework.commandhandling.CommandHandler;

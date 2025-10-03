@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.schedule.task;
 
-import io.fluxion.common.utils.time.TimeUtils;
+import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.BasicCalculation;
 import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;

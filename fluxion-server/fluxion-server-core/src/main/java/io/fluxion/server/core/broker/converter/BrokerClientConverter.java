@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.broker.converter;
 
-import io.fluxion.common.utils.time.TimeUtils;
+import io.limbo.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.TagDTO;

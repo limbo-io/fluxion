@@ -16,7 +16,6 @@
 
 package io.fluxion.server.infrastructure.cqrs;
 
-import io.fluxion.common.utils.json.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.beans.BeansException;
@@ -37,13 +36,7 @@ public class Cmd implements ApplicationContextAware {
     private static CommandGateway GATEWAY;
 
     public static <R, T extends ICmd<R>> R send(T cmd) {
-        CompletableFuture<R> future = asyncSend(cmd);
-        try {
-            return future.get();
-        } catch (Exception e) {
-            log.error("Cmd get response error cmd:{}", JacksonUtils.toJSONString(cmd), e);
-            throw new RuntimeException(e);
-        }
+        return GATEWAY.sendAndWait(cmd);
     }
 
     public static <R, T extends ICmd<R>> CompletableFuture<R> asyncSend(T cmd) {

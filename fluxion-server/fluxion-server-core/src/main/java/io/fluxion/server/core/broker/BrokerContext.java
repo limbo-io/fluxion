@@ -16,10 +16,10 @@
 
 package io.fluxion.server.core.broker;
 
-import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.broker.BrokerPingRequest;
+import io.limbo.utils.json.JacksonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

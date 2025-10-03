@@ -30,7 +30,7 @@
         <logger name="jdbc.resultsettable" level="OFF"/>
         <logger name="jdbc.audit" level="OFF"/>
         <logger name="jdbc.sqlonly" level="OFF"/>
-        <logger name="jdbc.sqltiming" level="INFO"/>
+        <logger name="jdbc.sqltiming" level="WARN"/>
         <Root level="DEBUG">
             <AppenderRef ref="Console" />
         </Root>

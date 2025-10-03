@@ -6,14 +6,14 @@ spring:
 #        format_sql: true
   datasource:
 # mysql
-    driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/fluxion?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true
-    username: root
-    password: root
+#    driver-class-name: com.mysql.jdbc.Driver
+#    url: jdbc:mysql://127.0.0.1:3306/fluxion?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true
+#    username: root
+#    password: root
 
 # h2
-#    driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
-#    url: jdbc:log4jdbc:h2:./fluxion;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=mysql;
+    driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+    url: jdbc:log4jdbc:h2:./fluxion;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=mysql;
 #  h2:
 #    # h2嵌入式数据库控制台，可以通过浏览器访问 ip:port/h2-console
 #    # file 模式 用户名密码都是空

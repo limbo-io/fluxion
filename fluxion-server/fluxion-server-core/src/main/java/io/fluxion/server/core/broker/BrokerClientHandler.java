@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.broker;
 
-import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 import io.fluxion.remote.core.api.dto.NodeDTO;
@@ -49,6 +48,7 @@ import io.fluxion.server.core.worker.cmd.WorkerSaveCmd;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.infrastructure.cqrs.Cmd;
 import io.fluxion.server.infrastructure.cqrs.Query;
+import io.limbo.utils.json.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;

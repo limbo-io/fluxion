@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.schedule.converter;
 
-import io.fluxion.common.utils.time.TimeUtils;
+import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;

@@ -16,9 +16,9 @@
 
 package io.fluxion.server.core.broker;
 
-import io.fluxion.common.utils.MD5Utils;
 import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.constants.Protocol;
+import io.limbo.utils.MD5Utils;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

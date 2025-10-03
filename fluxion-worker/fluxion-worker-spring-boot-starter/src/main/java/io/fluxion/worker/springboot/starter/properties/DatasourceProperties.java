@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.worker.spring.starter.properties;
+package io.fluxion.worker.springboot.starter.properties;
 
 public class DatasourceProperties {
     /**

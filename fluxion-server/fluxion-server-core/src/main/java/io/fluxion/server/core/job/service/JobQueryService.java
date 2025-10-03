@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.job.service;
 
-import io.fluxion.common.utils.json.JacksonUtils;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
@@ -34,6 +33,7 @@ import io.fluxion.server.core.job.query.JobUnReportQuery;
 import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.JobEntity;
 import io.fluxion.server.infrastructure.dao.repository.JobEntityRepo;
+import io.limbo.utils.json.JacksonUtils;
 import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.stereotype.Service;
 
