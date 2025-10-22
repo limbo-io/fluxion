@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.schedule.schedule;
+package io.fluxion.server.infrastructure.schedule.scheduler;
 
-import io.fluxion.server.infrastructure.schedule.scheduler.TaskScheduler;
 import io.fluxion.server.infrastructure.schedule.task.DelayedTask;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since 2022-10-11
  */
 @Slf4j
-public class DelayedTaskScheduler extends TaskScheduler<DelayedTask> {
+public class DelayedTaskScheduler extends AbstractTaskScheduler<DelayedTask> {
 
     public DelayedTaskScheduler(Timer timer) {
         super(timer);

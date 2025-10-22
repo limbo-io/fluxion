@@ -14,27 +14,18 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.schedule.schedule;
+package io.fluxion.server.infrastructure.schedule.scheduler;
 
-import io.fluxion.server.infrastructure.schedule.ScheduleType;
+import java.util.concurrent.TimeUnit;
 
-/**
- * 调度器，封装了调度流程，根据{@link ScheduleType}有不同实现。
- *
- * @author Brozen
- */
-public interface Scheduler<T> {
-
+public interface Timer {
     /**
-     * 进行一次调度 如果任务已存在 不会重复调度
-     * @param executable 待执行的对象
+     * 在一定时间后执行任务
+     *
+     * @param runnable 运行内容
+     * @param delay    延迟
+     * @param unit     时间单位
      */
-    void schedule(T executable);
-
-    /**
-     * 停止调度
-     * @param id 待调度的对象 id
-     */
-    void stop(String id);
+    void schedule(Runnable runnable, long delay, TimeUnit unit);
 
 }

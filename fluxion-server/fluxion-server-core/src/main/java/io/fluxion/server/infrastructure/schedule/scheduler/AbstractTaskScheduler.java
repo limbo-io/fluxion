@@ -17,8 +17,6 @@
 package io.fluxion.server.infrastructure.schedule.scheduler;
 
 import io.limbo.utils.time.TimeUtils;
-import io.fluxion.server.infrastructure.schedule.schedule.Scheduler;
-import io.fluxion.server.infrastructure.schedule.schedule.Timer;
 import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,7 +32,7 @@ import java.util.concurrent.TimeUnit;
  * @since 2022-10-11
  */
 @Slf4j
-public abstract class TaskScheduler<T extends AbstractTask> implements Scheduler<T> {
+public abstract class AbstractTaskScheduler<T extends AbstractTask> implements Scheduler<T> {
 
     private final Timer timer;
 
@@ -45,7 +43,7 @@ public abstract class TaskScheduler<T extends AbstractTask> implements Scheduler
 
     private final TimeUnit SCHEDULE_UNIT = TimeUnit.MILLISECONDS;
 
-    public TaskScheduler(Timer timer) {
+    public AbstractTaskScheduler(Timer timer) {
         this.timer = timer;
         this.scheduling = new ConcurrentHashMap<>();
     }
@@ -84,7 +82,7 @@ public abstract class TaskScheduler<T extends AbstractTask> implements Scheduler
      * 调度
      */
     protected void doSchedule(T task) {
-        TaskScheduler<T> scheduler = this;
+        AbstractTaskScheduler<T> scheduler = this;
         Long delay = calDelay(task);
         if (delay == null) {
             scheduling.remove(task.id());

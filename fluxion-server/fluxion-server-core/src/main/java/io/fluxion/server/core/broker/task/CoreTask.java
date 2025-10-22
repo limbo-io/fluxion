@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class CoreTask implements Runnable {
 
     /**
-     * yanchi 多久开始
+     * 延迟多久开始
      */
     protected final int delay;
 

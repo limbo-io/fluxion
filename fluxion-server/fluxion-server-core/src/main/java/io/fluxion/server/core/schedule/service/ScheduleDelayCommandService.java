@@ -37,7 +37,7 @@ import io.fluxion.server.infrastructure.cqrs.Query;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleDelayEntityRepo;
 import io.fluxion.server.infrastructure.dao.tx.TransactionService;
-import io.fluxion.server.infrastructure.schedule.schedule.DelayedTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.scheduler.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.task.DelayedTask;
 import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
 import io.limbo.utils.json.JacksonUtils;

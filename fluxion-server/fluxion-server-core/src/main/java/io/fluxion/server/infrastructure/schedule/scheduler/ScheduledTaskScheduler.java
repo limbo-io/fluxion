@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.infrastructure.schedule.schedule;
+package io.fluxion.server.infrastructure.schedule.scheduler;
 
 import io.limbo.utils.time.Formatters;
 import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.fluxion.server.infrastructure.schedule.scheduler.TaskScheduler;
 import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,7 +32,7 @@ import java.time.LocalDateTime;
  * @since 2022-10-11
  */
 @Slf4j
-public class ScheduledTaskScheduler extends TaskScheduler<ScheduledTask> {
+public class ScheduledTaskScheduler extends AbstractTaskScheduler<ScheduledTask> {
 
     public ScheduledTaskScheduler(Timer timer) {
         super(timer);
