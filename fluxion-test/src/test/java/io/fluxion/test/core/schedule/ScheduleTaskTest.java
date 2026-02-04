@@ -24,9 +24,9 @@ import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculator;
 import io.fluxion.server.infrastructure.schedule.calculator.ScheduleCalculatorFactory;
-import io.fluxion.server.infrastructure.schedule.scheduler.ScheduledTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.scheduler.PeriodicTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
-import io.fluxion.server.infrastructure.schedule.task.ScheduledTask;
+import io.fluxion.server.infrastructure.schedule.task.PeriodicTask;
 import io.fluxion.server.infrastructure.schedule.task.ScheduledTaskFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.time.DateFormatUtils;
@@ -47,7 +47,7 @@ import java.util.function.Consumer;
 @Slf4j
 class ScheduleTaskTest {
 
-    ScheduledTaskScheduler scheduler = new ScheduledTaskScheduler(new TimingWheelTimer(100L, TimeUnit.MILLISECONDS));
+    PeriodicTaskScheduler scheduler = new PeriodicTaskScheduler(new TimingWheelTimer(100L, TimeUnit.MILLISECONDS));
 
     @Test
     void testTime() {
@@ -151,7 +151,7 @@ class ScheduleTaskTest {
         Assertions.assertTrue(cost >= 5000 && cost < 6000);
     }
 
-    private Consumer<ScheduledTask> buildConsumer(AtomicInteger times, AtomicLong end, long cost) {
+    private Consumer<PeriodicTask> buildConsumer(AtomicInteger times, AtomicLong end, long cost) {
         return task -> {
             log.info("execute {} start triggerAt:{} times:{}", task.id(), task.triggerAt(), times.get());
             try {

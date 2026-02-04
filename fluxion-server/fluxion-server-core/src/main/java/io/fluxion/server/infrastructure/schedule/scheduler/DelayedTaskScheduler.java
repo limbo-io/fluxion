@@ -34,12 +34,27 @@ public class DelayedTaskScheduler extends AbstractTaskScheduler<DelayedTask> {
 
     @Override
     protected void run(DelayedTask task) {
+        // 直接执行延迟任务
         task.run();
     }
 
     @Override
     protected void afterExecute(DelayedTask task, Throwable thrown) {
-        // 执行后移除 之后相同ID的可以再次执行
-        stop(task.id());
+        // 执行后处理，可以在这里添加：
+        // - 结果回调通知
+        // - 日志记录
+        // - 监控上报
+        if (thrown != null) {
+            log.error("DelayedTask [{}] failed: {}", task.id(), thrown.getMessage());
+        } else {
+            log.debug("DelayedTask [{}] completed successfully", task.id());
+        }
+    }
+
+    @Override
+    protected boolean shouldCleanup(DelayedTask task, Throwable thrown) {
+        // 延迟任务只执行一次，执行后需要清理
+        // 即使执行失败也需要清理，以便相同ID的任务可以再次调度
+        return true;
     }
 }

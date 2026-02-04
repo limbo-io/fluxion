@@ -33,16 +33,16 @@ import java.util.function.Consumer;
  * @since 2022/12/19
  */
 @Slf4j
-public class ScheduledTask extends AbstractTask {
+public class PeriodicTask extends AbstractTask {
 
     protected BasicCalculation calculation;
 
     /**
      * 业务逻辑
      */
-    private final Consumer<ScheduledTask> consumer;
+    private final Consumer<PeriodicTask> consumer;
 
-    public ScheduledTask(String id, BasicCalculation calculation, Consumer<ScheduledTask> consumer) {
+    public PeriodicTask(String id, BasicCalculation calculation, Consumer<PeriodicTask> consumer) {
         super(id);
         this.consumer = consumer;
         this.calculation = calculation;
@@ -62,7 +62,7 @@ public class ScheduledTask extends AbstractTask {
         return calculation;
     }
 
-    public ScheduledTask nextTrigger() {
+    public PeriodicTask nextTrigger() {
         LocalDateTime lastTriggerAt = calculation.lastTriggerAt();
         ScheduleOption scheduleOption = calculation.scheduleOption();
         calculation = new BasicCalculation(lastTriggerAt, TimeUtils.currentLocalDateTime(), scheduleOption);

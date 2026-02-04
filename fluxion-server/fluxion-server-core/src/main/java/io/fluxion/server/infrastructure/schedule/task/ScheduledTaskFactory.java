@@ -34,7 +34,7 @@ public class ScheduledTaskFactory {
      * @param cron     cron表达式
      * @param cronType cron表达式类型 {@link CronType}
      */
-    public static ScheduledTask cron(String id, String cron, String cronType, Consumer<ScheduledTask> consumer) {
+    public static PeriodicTask cron(String id, String cron, String cronType, Consumer<PeriodicTask> consumer) {
         return cron(id, null, null, Duration.ZERO, cron, cronType, consumer);
     }
 
@@ -43,41 +43,41 @@ public class ScheduledTaskFactory {
      * @param cron     cron表达式
      * @param cronType cron表达式类型 {@link CronType}
      */
-    public static ScheduledTask cron(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
-                                     Duration delay, String cron, String cronType, Consumer<ScheduledTask> consumer) {
+    public static PeriodicTask cron(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+                                    Duration delay, String cron, String cronType, Consumer<PeriodicTask> consumer) {
         return task(id, lastTriggerAt, lastFeedbackAt,
             new ScheduleOption(ScheduleType.CRON, null, null, delay, null, cron, cronType),
             consumer
         );
     }
 
-    public static ScheduledTask fixDelay(String id, Duration interval, Consumer<ScheduledTask> consumer) {
+    public static PeriodicTask fixDelay(String id, Duration interval, Consumer<PeriodicTask> consumer) {
         return fixDelay(id, null, null, Duration.ZERO, interval, consumer);
     }
 
-    public static ScheduledTask fixDelay(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
-                                         Duration delay, Duration interval, Consumer<ScheduledTask> consumer) {
+    public static PeriodicTask fixDelay(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+                                        Duration delay, Duration interval, Consumer<PeriodicTask> consumer) {
         return task(id, lastTriggerAt, lastFeedbackAt,
             new ScheduleOption(ScheduleType.FIXED_DELAY, null, null, delay, interval, null, null),
             consumer
         );
     }
 
-    public static ScheduledTask fixRate(String id, Duration interval, Consumer<ScheduledTask> consumer) {
+    public static PeriodicTask fixRate(String id, Duration interval, Consumer<PeriodicTask> consumer) {
         return fixRate(id, null, null, Duration.ZERO, interval, consumer);
     }
 
-    public static ScheduledTask fixRate(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
-                                        Duration delay, Duration interval, Consumer<ScheduledTask> consumer) {
+    public static PeriodicTask fixRate(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+                                       Duration delay, Duration interval, Consumer<PeriodicTask> consumer) {
         return task(id, lastTriggerAt, lastFeedbackAt,
             new ScheduleOption(ScheduleType.FIXED_RATE, null, null, delay, interval, null, null),
             consumer
         );
     }
 
-    public static ScheduledTask task(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
-                                     ScheduleOption scheduleOption, Consumer<ScheduledTask> consumer) {
-        return new ScheduledTask(id, new BasicCalculation(
+    public static PeriodicTask task(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+                                    ScheduleOption scheduleOption, Consumer<PeriodicTask> consumer) {
+        return new PeriodicTask(id, new BasicCalculation(
             lastTriggerAt, lastFeedbackAt, scheduleOption
         ), consumer);
     }

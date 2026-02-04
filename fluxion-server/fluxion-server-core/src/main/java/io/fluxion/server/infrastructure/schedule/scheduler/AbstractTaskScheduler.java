@@ -16,106 +16,260 @@
 
 package io.fluxion.server.infrastructure.schedule.scheduler;
 
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * task的调度器
+ * 内存Task的调度器
+ * 1. 异常处理，确保失败时清理资源
+ * 2. 任务状态跟踪（SCHEDULED/RUNNING/COMPLETED/FAILED/CANCELLED）
+ * 3. 使用 ReentrantReadWriteLock 保护状态变更
+ * 4. 添加任务统计信息
+ * 5. 支持查询任务状态和统计
  *
  * @author Brozen
  * @since 2022-10-11
  */
 @Slf4j
 public abstract class AbstractTaskScheduler<T extends AbstractTask> implements Scheduler<T> {
-
-    private final Timer timer;
-
-    /**
-     * 相同ID的task只会存在一个
-     */
-    private final Map<String, T> scheduling;
-
-    private final TimeUnit SCHEDULE_UNIT = TimeUnit.MILLISECONDS;
+    protected final Timer timer;
+    protected final Map<String, T> scheduling;
+    protected final Map<String, TaskState> taskStates;
+    protected final SchedulerStats stats;
+    protected final ReentrantReadWriteLock stateLock;
+    protected final TimeUnit scheduleUnit = TimeUnit.MILLISECONDS;
 
     public AbstractTaskScheduler(Timer timer) {
         this.timer = timer;
         this.scheduling = new ConcurrentHashMap<>();
+        this.taskStates = new ConcurrentHashMap<>();
+        this.stats = new SchedulerStats();
+        this.stateLock = new ReentrantReadWriteLock();
     }
 
-    /**
-     * 基于 taskId 如果已经存在则不会重新调度
-     *
-     * @param task 待执行的对象
-     */
     @Override
     public void schedule(T task) {
-        String scheduleId = task.id();
+        String taskId = task.id();
+
+        stateLock.writeLock().lock();
         try {
-            // 存在就不需要重新放入
-            if (scheduling.putIfAbsent(scheduleId, task) != null) {
+            // 检查任务是否已在活跃状态
+            TaskState currentState = taskStates.get(taskId);
+            if (currentState != null && currentState.isActive()) {
+                log.warn("Task [{}] is already scheduled with state: {}", taskId, currentState);
                 return;
             }
-            doSchedule(task);
-        } catch (Exception e) {
-            log.error("Meta task [{}] execute failed", scheduleId, e);
+
+            // 尝试放入调度表
+            T existing = scheduling.putIfAbsent(taskId, task);
+            if (existing != null && existing != task) {
+                log.warn("Task [{}] already exists with different instance", taskId);
+                return;
+            }
+
+            try {
+                updateState(taskId, TaskState.SCHEDULED);
+                doSchedule(task);
+                stats.recordScheduled();
+            } catch (Exception e) {
+                log.error("Failed to schedule task [{}], cleaning up", taskId, e);
+                cleanup(taskId);
+                stats.recordScheduleFailure();
+                throw e;
+            }
+        } finally {
+            stateLock.writeLock().unlock();
         }
     }
 
-    /**
-     * 计算调度延时
-     */
-    private Long calDelay(T task) {
-        if (task.triggerAt() == null) {
-            return null;
-        }
-        long delay = Duration.between(TimeUtils.currentLocalDateTime(), task.triggerAt()).toMillis();
-        return delay < 0 ? 0 : delay;
-    }
-
-    /**
-     * 调度
-     */
     protected void doSchedule(T task) {
-        AbstractTaskScheduler<T> scheduler = this;
+        String taskId = task.id();
         Long delay = calDelay(task);
+
         if (delay == null) {
-            scheduling.remove(task.id());
+            log.warn("Task [{}] has no trigger time, removing", taskId);
+            cleanup(taskId);
             return;
         }
+
         timer.schedule(() -> {
-            // 已经取消调度了，则不再重新调度作业
-            if (task.stopped()) {
-                scheduling.remove(task.id());
+            // 双重检查
+            TaskState state = taskStates.get(taskId);
+            if (state == null || !state.shouldExecute()) {
+                log.debug("Task [{}] is no longer executable, state: {}", taskId, state);
+                cleanup(taskId);
                 return;
             }
+
+            // 状态转为 RUNNING
+            updateState(taskId, TaskState.RUNNING);
+            stats.recordStarted();
+
             Throwable thrown = null;
             try {
-                scheduler.run(task);
+                log.debug("Executing task [{}]", taskId);
+                run(task);
+                updateState(taskId, TaskState.COMPLETED);
+                stats.recordCompleted();
             } catch (Throwable e) {
-                log.error("[{}] schedule fail id:{}", scheduler.getClass().getSimpleName(), task.id(), e);
                 thrown = e;
+                updateState(taskId, TaskState.FAILED);
+                stats.recordFailed();
+                log.error("Task [{}] execution failed", taskId, e);
             } finally {
                 afterExecute(task, thrown);
+                // 子类决定是否清理
+                if (shouldCleanup(task, thrown)) {
+                    cleanup(taskId);
+                }
             }
-        }, delay, SCHEDULE_UNIT);
+        }, delay, scheduleUnit);
     }
 
     @Override
     public void stop(String id) {
-        T task = scheduling.remove(id);
-        if (task != null) {
+        stateLock.writeLock().lock();
+        try {
+            T task = scheduling.get(id);
+            if (task == null) {
+                return;
+            }
+
+            TaskState state = taskStates.get(id);
+            if (state == null || state.isTerminal()) {
+                return;
+            }
+
             task.stop();
+            updateState(id, TaskState.CANCELLED);
+            stats.recordCancelled();
+            cleanup(id);
+
+            log.debug("Task [{}] stopped", id);
+        } finally {
+            stateLock.writeLock().unlock();
         }
     }
 
+    /**
+     * 计算延迟时间
+     */
+    protected Long calDelay(T task) {
+        LocalDateTime triggerAt = task.triggerAt();
+        if (triggerAt == null) {
+            return null;
+        }
+        long delay = Duration.between(LocalDateTime.now(), triggerAt).toMillis();
+        return Math.max(delay, 0);
+    }
+
+    /**
+     * 更新任务状态
+     */
+    protected void updateState(String taskId, TaskState newState) {
+        TaskState oldState = taskStates.put(taskId, newState);
+        if (oldState != newState) {
+            log.debug("Task [{}] state: {} -> {}", taskId, oldState, newState);
+        }
+    }
+
+    /**
+     * 清理任务资源
+     */
+    protected void cleanup(String taskId) {
+        scheduling.remove(taskId);
+        taskStates.remove(taskId);
+    }
+
+    /**
+     * 子类决定是否在执行后清理
+     */
+    protected abstract boolean shouldCleanup(T task, Throwable thrown);
+
+    /**
+     * 执行任务
+     */
     protected abstract void run(T task);
 
+    /**
+     * 执行后处理
+     */
     protected abstract void afterExecute(T task, Throwable thrown);
+
+    // ==================== 查询方法 ====================
+
+    public TaskState getTaskState(String taskId) {
+        return taskStates.get(taskId);
+    }
+
+    public SchedulerStats getStats() {
+        return stats;
+    }
+
+    public int getActiveTaskCount() {
+        return (int) taskStates.values().stream()
+                .filter(TaskState::isActive)
+                .count();
+    }
+
+    // ==================== 状态枚举 ====================
+
+    public enum TaskState {
+        SCHEDULED,  // 已调度
+        RUNNING,    // 执行中
+        COMPLETED,  // 已完成
+        FAILED,     // 失败
+        CANCELLED;  // 已取消
+
+        public boolean isActive() {
+            return this == SCHEDULED || this == RUNNING;
+        }
+
+        public boolean shouldExecute() {
+            return this == SCHEDULED;
+        }
+
+        public boolean isTerminal() {
+            return this == COMPLETED || this == FAILED || this == CANCELLED;
+        }
+    }
+
+    // ==================== 统计 ====================
+
+    public static class SchedulerStats {
+        private final AtomicLong scheduled = new AtomicLong(0);
+        private final AtomicLong started = new AtomicLong(0);
+        private final AtomicLong completed = new AtomicLong(0);
+        private final AtomicLong failed = new AtomicLong(0);
+        private final AtomicLong cancelled = new AtomicLong(0);
+        private final AtomicLong scheduleFailures = new AtomicLong(0);
+
+        public void recordScheduled() { scheduled.incrementAndGet(); }
+        public void recordStarted() { started.incrementAndGet(); }
+        public void recordCompleted() { completed.incrementAndGet(); }
+        public void recordFailed() { failed.incrementAndGet(); }
+        public void recordCancelled() { cancelled.incrementAndGet(); }
+        public void recordScheduleFailure() { scheduleFailures.incrementAndGet(); }
+
+        public long getScheduled() { return scheduled.get(); }
+        public long getStarted() { return started.get(); }
+        public long getCompleted() { return completed.get(); }
+        public long getFailed() { return failed.get(); }
+        public long getCancelled() { return cancelled.get(); }
+        public long getScheduleFailures() { return scheduleFailures.get(); }
+
+        public double getSuccessRate() {
+            long total = completed.get() + failed.get();
+            return total == 0 ? 0.0 : (double) completed.get() / total * 100;
+        }
+    }
 
 }
