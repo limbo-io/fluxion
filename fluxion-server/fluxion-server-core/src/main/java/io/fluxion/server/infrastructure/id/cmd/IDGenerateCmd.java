@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.id.cmd;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.ICommand;
 import io.fluxion.server.infrastructure.id.data.IDType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,7 +26,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public class IDGenerateCmd implements ICmd<IDGenerateCmd.Response> {
+public class IDGenerateCmd implements ICommand<IDGenerateCmd.Response> {
 
     private final IDType type;
 

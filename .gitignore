@@ -3,6 +3,7 @@
 *.pydevproject
 .metadata
 .gradle
+.factorypath
 bin/
 tmp/
 *.tmp

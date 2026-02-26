@@ -17,7 +17,7 @@
 package io.fluxion.server.core.workflow.query;
 
 import io.fluxion.server.core.workflow.Workflow;
-import io.fluxion.server.infrastructure.cqrs.IQuery;
+import io.limbo.cqrs.core.query.IQuery;
 import io.fluxion.server.infrastructure.version.model.VersionMode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

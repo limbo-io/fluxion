@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.execution.cmd;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -29,7 +29,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ExecutionRunningCmd implements ICmd<Boolean> {
+public class ExecutionRunningCmd implements ICommand<Boolean> {
 
     private String executionId;
 

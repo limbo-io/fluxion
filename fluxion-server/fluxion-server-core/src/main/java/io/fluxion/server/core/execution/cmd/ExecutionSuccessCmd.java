@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.execution.cmd;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -31,7 +31,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ExecutionSuccessCmd implements ICmd<Boolean> {
+public class ExecutionSuccessCmd implements ICommand<Boolean> {
 
     private String executionId;
 

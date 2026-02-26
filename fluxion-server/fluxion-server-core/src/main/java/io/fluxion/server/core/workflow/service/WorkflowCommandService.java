@@ -23,7 +23,7 @@ import io.fluxion.server.core.workflow.cmd.WorkflowDraftCmd;
 import io.fluxion.server.core.workflow.cmd.WorkflowPublishCmd;
 import io.fluxion.server.core.workflow.cmd.WorkflowUpdateCmd;
 import io.fluxion.server.core.workflow.converter.WorkflowEntityConverter;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.WorkflowEntity;
 import io.fluxion.server.infrastructure.dao.repository.WorkflowEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
@@ -35,7 +35,7 @@ import io.fluxion.server.infrastructure.version.cmd.VersionSaveCmd;
 import io.limbo.utils.Lambda;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.axonframework.commandhandling.CommandHandler;
+import io.limbo.cqrs.spring.annotation.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

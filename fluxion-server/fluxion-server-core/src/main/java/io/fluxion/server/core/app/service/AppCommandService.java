@@ -17,13 +17,13 @@
 package io.fluxion.server.core.app.service;
 
 import io.fluxion.server.core.app.cmd.AppSaveCmd;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.AppEntity;
 import io.fluxion.server.infrastructure.dao.repository.AppEntityRepo;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
+import io.limbo.cqrs.spring.annotation.CommandHandler;
 import lombok.extern.slf4j.Slf4j;
-import org.axonframework.commandhandling.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

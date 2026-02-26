@@ -19,7 +19,7 @@ package io.fluxion.server.core.broker.service;
 import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
 import io.fluxion.server.infrastructure.dao.entity.BucketEntity;
 import io.fluxion.server.infrastructure.dao.repository.BucketEntityRepo;
-import org.axonframework.queryhandling.QueryHandler;
+import io.limbo.cqrs.spring.annotation.QueryHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

@@ -19,7 +19,7 @@ package io.fluxion.server.start.service;
 import io.fluxion.remote.core.api.PageResponse;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.query.WorkerByIdsQuery;
-import io.fluxion.server.infrastructure.cqrs.Query;
+import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import io.fluxion.server.infrastructure.dao.repository.WorkerEntityRepo;
 import io.fluxion.server.infrastructure.utils.JpaHelper;

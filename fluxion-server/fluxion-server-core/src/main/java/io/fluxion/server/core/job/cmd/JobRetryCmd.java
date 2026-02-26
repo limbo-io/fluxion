@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.job.cmd;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,7 +30,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class JobRetryCmd implements ICmd<Boolean> {
+public class JobRetryCmd implements ICommand<Boolean> {
 
     private String taskId;
     /**

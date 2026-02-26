@@ -17,7 +17,7 @@
 package io.fluxion.server.core.schedule.cmd;
 
 import io.fluxion.server.core.schedule.ScheduleDelay;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.VoidCommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,7 +32,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ScheduleDelaysCreateCmd implements ICmd<Void> {
+public class ScheduleDelaysCreateCmd implements VoidCommand {
 
     private List<ScheduleDelay> delays;
 

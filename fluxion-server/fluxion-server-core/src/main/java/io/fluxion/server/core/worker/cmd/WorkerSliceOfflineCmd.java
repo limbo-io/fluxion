@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.worker.cmd;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -27,7 +27,7 @@ import java.time.LocalDateTime;
  */
 @Getter
 @AllArgsConstructor
-public class WorkerSliceOfflineCmd implements ICmd<WorkerSliceOfflineCmd.Response> {
+public class WorkerSliceOfflineCmd implements ICommand<WorkerSliceOfflineCmd.Response> {
 
     private LocalDateTime startTime;
 

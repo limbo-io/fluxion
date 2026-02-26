@@ -16,9 +16,9 @@
 
 package io.fluxion.server.infrastructure.tag.cmd;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
 import io.fluxion.server.infrastructure.tag.Tag;
 import io.fluxion.server.infrastructure.tag.TagRefType;
+import io.limbo.cqrs.core.command.VoidCommand;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -31,7 +31,7 @@ import java.util.List;
  */
 @Getter
 @AllArgsConstructor
-public class TagsSaveByRefCmd implements ICmd<Void> {
+public class TagsSaveByRefCmd implements VoidCommand {
 
     /**
      * 关联的数据ID

@@ -17,7 +17,7 @@
 package io.fluxion.server.core.job.cmd;
 
 import io.fluxion.server.core.job.Job;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.VoidCommand;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -28,7 +28,7 @@ import java.util.List;
  */
 @Getter
 @AllArgsConstructor
-public class JobsCreateCmd implements ICmd<Void> {
+public class JobsCreateCmd implements VoidCommand {
 
     private List<Job> jobs;
 

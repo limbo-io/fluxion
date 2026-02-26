@@ -23,7 +23,7 @@ import io.limbo.utils.time.LocalTimeUtils;
 import io.limbo.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.cmd.BucketRebalanceCmd;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.BrokerEntity;
 import io.fluxion.server.infrastructure.dao.repository.BrokerEntityRepo;
 import lombok.extern.slf4j.Slf4j;

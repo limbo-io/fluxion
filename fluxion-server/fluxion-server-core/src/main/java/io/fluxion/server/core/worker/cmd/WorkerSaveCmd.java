@@ -17,7 +17,7 @@
 package io.fluxion.server.core.worker.cmd;
 
 import io.fluxion.server.core.worker.Worker;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -26,7 +26,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public class WorkerSaveCmd implements ICmd<WorkerSaveCmd.Response> {
+public class WorkerSaveCmd implements ICommand<WorkerSaveCmd.Response> {
 
     private Worker worker;
 

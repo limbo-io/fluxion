@@ -16,10 +16,8 @@
 
 package io.fluxion.server.core.trigger.cmd;
 
-import io.fluxion.server.core.execution.ExecuteConfig;
-import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.TriggerConfig;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.VoidCommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,7 +30,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TriggerDraftCmd implements ICmd<Void> {
+public class TriggerDraftCmd implements VoidCommand {
 
     private String id;
 

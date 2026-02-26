@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.tag.query;
 
-import io.fluxion.server.infrastructure.cqrs.IQuery;
+import io.limbo.cqrs.core.query.IQuery;
 import io.fluxion.server.infrastructure.tag.Tag;
 import io.fluxion.server.infrastructure.tag.TagRefType;
 import lombok.AllArgsConstructor;

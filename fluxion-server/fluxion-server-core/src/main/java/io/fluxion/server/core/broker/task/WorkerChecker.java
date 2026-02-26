@@ -21,7 +21,7 @@ import io.limbo.utils.time.LocalDateTimeUtils;
 import io.limbo.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.worker.cmd.WorkerSliceOfflineCmd;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 

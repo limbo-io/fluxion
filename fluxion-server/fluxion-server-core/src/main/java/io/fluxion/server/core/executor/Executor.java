@@ -32,7 +32,7 @@ import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
 import io.fluxion.server.core.job.config.ExecutorJobConfig;
 import io.fluxion.server.infrastructure.concurrent.LoggingTask;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.limbo.cqrs.spring.command.Cmd;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;

@@ -18,7 +18,7 @@ package io.fluxion.server.start.controller;
 
 import io.fluxion.remote.core.api.PageResponse;
 import io.fluxion.server.core.workflow.cmd.*;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.start.api.workflow.request.WorkflowConfigRequest;
 import io.fluxion.server.start.api.workflow.request.WorkflowCreateRequest;
 import io.fluxion.server.start.api.workflow.request.WorkflowPageRequest;

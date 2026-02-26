@@ -23,11 +23,11 @@ import io.fluxion.server.core.schedule.ScheduleConstants;
 import io.fluxion.server.core.schedule.converter.ScheduleEntityConverter;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
 import io.fluxion.server.core.schedule.query.ScheduleNextTriggerQuery;
-import io.fluxion.server.infrastructure.cqrs.Query;
+import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleEntityRepo;
 import lombok.extern.slf4j.Slf4j;
-import org.axonframework.queryhandling.QueryHandler;
+import io.limbo.cqrs.spring.annotation.QueryHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

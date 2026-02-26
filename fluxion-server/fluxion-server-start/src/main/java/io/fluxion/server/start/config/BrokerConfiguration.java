@@ -28,12 +28,10 @@ import io.fluxion.server.core.broker.BrokerClientHandler;
 import io.fluxion.server.core.broker.BrokerManger;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.axonframework.spring.event.AxonStartedEvent;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.event.EventListener;
 import org.springframework.util.Assert;
 
 import javax.annotation.Resource;
@@ -83,7 +81,6 @@ public class BrokerConfiguration {
         }
 
         @Override
-        @EventListener(AxonStartedEvent.class)
         public void start() {
             super.start();
         }

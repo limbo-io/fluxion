@@ -16,10 +16,10 @@
 
 package io.fluxion.server.core.broker.cmd;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.VoidCommand;
 
 /**
  * @author Devil
  */
-public class BucketRebalanceCmd implements ICmd<Void> {
+public class BucketRebalanceCmd implements VoidCommand {
 }

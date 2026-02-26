@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.trigger.cmd;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -29,7 +29,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TriggerCreateCmd implements ICmd<TriggerCreateCmd.Response> {
+public class TriggerCreateCmd implements ICommand<TriggerCreateCmd.Response> {
 
     private String name;
 

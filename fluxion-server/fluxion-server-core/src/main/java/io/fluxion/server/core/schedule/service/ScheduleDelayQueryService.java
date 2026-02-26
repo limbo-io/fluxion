@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.schedule.service;
 
+import io.limbo.cqrs.spring.annotation.QueryHandler;
 import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
@@ -24,10 +25,9 @@ import io.fluxion.server.core.schedule.ScheduleDelayConstants;
 import io.fluxion.server.core.schedule.converter.ScheduleDelayEntityConverter;
 import io.fluxion.server.core.schedule.query.ScheduleDelayNextCleanQuery;
 import io.fluxion.server.core.schedule.query.ScheduleDelayNextTriggerQuery;
-import io.fluxion.server.infrastructure.cqrs.Query;
+import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
 import lombok.extern.slf4j.Slf4j;
-import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

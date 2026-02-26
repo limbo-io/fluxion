@@ -23,7 +23,7 @@ import io.fluxion.server.infrastructure.tag.TagRefType;
 import io.fluxion.server.infrastructure.tag.cmd.TagsSaveByRefCmd;
 import io.fluxion.server.infrastructure.tag.cmd.TagCreateCmd;
 import org.apache.commons.collections4.CollectionUtils;
-import org.axonframework.commandhandling.CommandHandler;
+import io.limbo.cqrs.spring.annotation.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

@@ -32,7 +32,7 @@
         <jackson.version>2.17.2</jackson.version>
         <slf4j>1.7.30</slf4j>
         <netty.version>4.1.109.Final</netty.version>
-        <limbo.framework.version>0.0.1</limbo.framework.version>
+        <limbo.framework.version>0.0.2</limbo.framework.version>
     </properties>
 
     <dependencyManagement>

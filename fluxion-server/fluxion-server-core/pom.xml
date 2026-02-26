@@ -35,16 +35,11 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- Axon -->
+        <!-- CQRS -->
         <dependency>
-            <groupId>org.axonframework</groupId>
-            <artifactId>axon-spring-boot-starter</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.axonframework</groupId>
-                    <artifactId>axon-server-connector</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>io.github.limbo-io</groupId>
+            <artifactId>cqrs-spring-boot-starter</artifactId>
+            <version>${limbo.framework.version}</version>
         </dependency>
 
         <!-- validation -->

@@ -27,7 +27,7 @@ import io.fluxion.server.infrastructure.version.model.VersionRefType;
 import io.limbo.utils.UUIDUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.axonframework.commandhandling.CommandHandler;
+import io.limbo.cqrs.spring.annotation.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

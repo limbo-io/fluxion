@@ -17,7 +17,7 @@
 package io.fluxion.server.core.broker.query;
 
 import io.fluxion.server.core.broker.BrokerNode;
-import io.fluxion.server.infrastructure.cqrs.IQuery;
+import io.limbo.cqrs.core.query.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

@@ -17,7 +17,7 @@
 package io.fluxion.server.start.controller;
 
 import io.fluxion.server.core.workflow.cmd.WorkflowCreateCmd;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.limbo.cqrs.spring.command.Cmd;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

@@ -24,8 +24,8 @@ import io.fluxion.server.core.executor.Executor;
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
 import io.fluxion.server.core.workflow.query.WorkflowByIdQuery;
-import io.fluxion.server.infrastructure.cqrs.Query;
-import org.axonframework.queryhandling.QueryHandler;
+import io.limbo.cqrs.spring.query.Query;
+import io.limbo.cqrs.spring.annotation.QueryHandler;
 import org.springframework.stereotype.Service;
 
 /**

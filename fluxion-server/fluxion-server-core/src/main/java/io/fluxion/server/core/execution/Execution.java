@@ -17,7 +17,7 @@
 package io.fluxion.server.core.execution;
 
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
-import io.fluxion.server.infrastructure.cqrs.Query;
+import io.limbo.cqrs.spring.query.Query;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;

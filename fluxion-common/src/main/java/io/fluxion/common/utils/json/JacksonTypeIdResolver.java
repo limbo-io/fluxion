@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.DatabindContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.jsontype.TypeIdResolver;
-import io.fluxion.common.utils.ReflectionUtils;
+import io.limbo.utils.ReflectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Set;

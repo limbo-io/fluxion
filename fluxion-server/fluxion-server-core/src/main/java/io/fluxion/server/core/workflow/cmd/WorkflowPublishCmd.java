@@ -17,7 +17,7 @@
 package io.fluxion.server.core.workflow.cmd;
 
 import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.ICommand;
 import io.fluxion.server.core.workflow.WorkflowConfig;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,7 +33,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class WorkflowPublishCmd implements ICmd<WorkflowPublishCmd.Response> {
+public class WorkflowPublishCmd implements ICommand<WorkflowPublishCmd.Response> {
 
     private String id;
 

@@ -17,7 +17,7 @@
 package io.fluxion.server.core.broker.task;
 
 import io.fluxion.server.core.broker.cmd.BucketRebalanceCmd;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 
 import java.util.concurrent.TimeUnit;

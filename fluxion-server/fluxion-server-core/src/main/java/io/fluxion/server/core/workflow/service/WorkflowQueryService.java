@@ -20,7 +20,7 @@ import io.fluxion.server.core.workflow.Workflow;
 import io.fluxion.server.core.workflow.WorkflowConfig;
 import io.fluxion.server.core.workflow.converter.WorkflowEntityConverter;
 import io.fluxion.server.core.workflow.query.WorkflowByIdQuery;
-import io.fluxion.server.infrastructure.cqrs.Query;
+import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.WorkflowEntity;
 import io.fluxion.server.infrastructure.dao.repository.WorkflowEntityRepo;
 import io.fluxion.server.infrastructure.version.model.Version;
@@ -28,7 +28,7 @@ import io.fluxion.server.infrastructure.version.model.VersionMode;
 import io.fluxion.server.infrastructure.version.query.VersionByIdQuery;
 import io.limbo.utils.json.JacksonUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.axonframework.queryhandling.QueryHandler;
+import io.limbo.cqrs.spring.annotation.QueryHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

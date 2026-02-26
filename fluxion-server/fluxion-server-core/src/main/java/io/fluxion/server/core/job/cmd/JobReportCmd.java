@@ -19,7 +19,7 @@ package io.fluxion.server.core.job.cmd;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.job.JobMonitor;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,7 +32,7 @@ import java.time.LocalDateTime;
 @Getter
 @AllArgsConstructor
 @Builder
-public class JobReportCmd implements ICmd<JobReportCmd.Response> {
+public class JobReportCmd implements ICommand<JobReportCmd.Response> {
 
     private String jobId;
 

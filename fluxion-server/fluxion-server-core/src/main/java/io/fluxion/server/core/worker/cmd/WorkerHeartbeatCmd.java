@@ -17,7 +17,7 @@
 package io.fluxion.server.core.worker.cmd;
 
 import io.fluxion.server.core.worker.metric.WorkerMetric;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.VoidCommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,7 +30,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class WorkerHeartbeatCmd implements ICmd<Void> {
+public class WorkerHeartbeatCmd implements VoidCommand {
 
     private String workerId;
 

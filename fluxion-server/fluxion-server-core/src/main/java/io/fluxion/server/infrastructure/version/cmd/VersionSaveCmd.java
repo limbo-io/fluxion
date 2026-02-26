@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.version.cmd;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.ICommand;
 import io.fluxion.server.infrastructure.version.model.Version;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,7 +26,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public class VersionSaveCmd implements ICmd<VersionSaveCmd.Response> {
+public class VersionSaveCmd implements ICommand<VersionSaveCmd.Response> {
 
     /**
      * version为空新增

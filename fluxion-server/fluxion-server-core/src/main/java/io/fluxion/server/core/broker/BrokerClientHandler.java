@@ -46,8 +46,8 @@ import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerSaveCmd;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
-import io.fluxion.server.infrastructure.cqrs.Query;
+import io.limbo.cqrs.spring.command.Cmd;
+import io.limbo.cqrs.spring.query.Query;
 import io.limbo.utils.json.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 

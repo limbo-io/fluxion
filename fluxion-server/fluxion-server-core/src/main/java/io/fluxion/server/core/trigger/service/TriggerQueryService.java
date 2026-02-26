@@ -20,7 +20,7 @@ import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.converter.TriggerEntityConverter;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
 import io.fluxion.server.core.trigger.query.TriggerByIdsQuery;
-import io.fluxion.server.infrastructure.cqrs.Query;
+import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
 import io.fluxion.server.infrastructure.dao.repository.TriggerEntityRepo;
 import io.fluxion.server.infrastructure.version.model.Version;
@@ -29,7 +29,7 @@ import io.fluxion.server.infrastructure.version.query.VersionByIdQuery;
 import io.fluxion.server.infrastructure.version.query.VersionByIdsQuery;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.axonframework.queryhandling.QueryHandler;
+import io.limbo.cqrs.spring.annotation.QueryHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

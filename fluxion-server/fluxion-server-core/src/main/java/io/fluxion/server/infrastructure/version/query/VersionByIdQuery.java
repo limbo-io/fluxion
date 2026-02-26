@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.version.query;
 
-import io.fluxion.server.infrastructure.cqrs.IQuery;
+import io.limbo.cqrs.core.query.IQuery;
 import io.fluxion.server.infrastructure.version.model.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

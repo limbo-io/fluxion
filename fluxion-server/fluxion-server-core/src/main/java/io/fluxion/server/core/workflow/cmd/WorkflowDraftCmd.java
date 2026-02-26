@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.workflow.cmd;
 
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.ICommand;
 import io.fluxion.server.core.workflow.WorkflowConfig;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,7 +30,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class WorkflowDraftCmd implements ICmd<WorkflowDraftCmd.Response> {
+public class WorkflowDraftCmd implements ICommand<WorkflowDraftCmd.Response> {
 
     private String id;
 

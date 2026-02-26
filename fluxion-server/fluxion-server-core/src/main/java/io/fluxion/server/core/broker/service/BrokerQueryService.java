@@ -20,7 +20,7 @@ import io.fluxion.server.core.broker.BrokerManger;
 import io.fluxion.server.core.broker.BrokerNode;
 import io.fluxion.server.core.broker.query.BrokersQuery;
 import org.apache.commons.collections4.CollectionUtils;
-import org.axonframework.queryhandling.QueryHandler;
+import io.limbo.cqrs.spring.annotation.QueryHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

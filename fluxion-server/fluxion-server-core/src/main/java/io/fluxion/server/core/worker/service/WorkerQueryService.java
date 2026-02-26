@@ -27,7 +27,7 @@ import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.core.worker.selector.WorkerSelectInvocation;
 import io.fluxion.server.core.worker.selector.WorkerSelector;
 import io.fluxion.server.core.worker.selector.WorkerSelectorFactory;
-import io.fluxion.server.infrastructure.cqrs.Query;
+import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerExecutorEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerMetricEntity;
@@ -38,7 +38,7 @@ import io.fluxion.server.infrastructure.tag.Tag;
 import io.fluxion.server.infrastructure.tag.TagRefType;
 import io.fluxion.server.infrastructure.tag.query.TagsByRefsQuery;
 import org.apache.commons.collections4.CollectionUtils;
-import org.axonframework.queryhandling.QueryHandler;
+import io.limbo.cqrs.spring.annotation.QueryHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

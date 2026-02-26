@@ -22,7 +22,7 @@ import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
 import io.fluxion.server.infrastructure.dao.repository.ExecutionEntityRepo;
-import org.axonframework.queryhandling.QueryHandler;
+import io.limbo.cqrs.spring.annotation.QueryHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

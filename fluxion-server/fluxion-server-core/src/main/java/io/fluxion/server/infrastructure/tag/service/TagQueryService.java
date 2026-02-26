@@ -21,7 +21,7 @@ import io.fluxion.server.infrastructure.dao.entity.TagEntity;
 import io.fluxion.server.infrastructure.dao.repository.TagEntityRepo;
 import io.fluxion.server.infrastructure.tag.Tag;
 import io.fluxion.server.infrastructure.tag.query.TagsByRefsQuery;
-import org.axonframework.queryhandling.QueryHandler;
+import io.limbo.cqrs.spring.annotation.QueryHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

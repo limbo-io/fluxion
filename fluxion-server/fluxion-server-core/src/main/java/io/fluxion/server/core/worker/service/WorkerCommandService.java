@@ -22,7 +22,7 @@ import io.fluxion.server.core.worker.cmd.WorkerSaveCmd;
 import io.fluxion.server.core.worker.cmd.WorkerSliceOfflineCmd;
 import io.fluxion.server.core.worker.converter.WorkerConverter;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerExecutorEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerMetricEntity;
@@ -38,7 +38,7 @@ import io.fluxion.server.infrastructure.tag.cmd.TagsSaveByRefCmd;
 import io.fluxion.server.infrastructure.utils.JpaHelper;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.axonframework.commandhandling.CommandHandler;
+import io.limbo.cqrs.spring.annotation.CommandHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

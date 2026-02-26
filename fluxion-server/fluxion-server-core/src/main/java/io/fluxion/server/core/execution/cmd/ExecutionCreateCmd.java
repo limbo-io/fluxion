@@ -19,7 +19,7 @@ package io.fluxion.server.core.execution.cmd;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.trigger.TriggerType;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,7 +32,7 @@ import java.time.LocalDateTime;
  */
 @Getter
 @AllArgsConstructor
-public class ExecutionCreateCmd implements ICmd<ExecutionCreateCmd.Response> {
+public class ExecutionCreateCmd implements ICommand<ExecutionCreateCmd.Response> {
 
     private String triggerId;
 

@@ -17,7 +17,7 @@
 package io.fluxion.server.core.worker.query;
 
 import io.fluxion.server.core.worker.Worker;
-import io.fluxion.server.infrastructure.cqrs.IQuery;
+import io.limbo.cqrs.core.query.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

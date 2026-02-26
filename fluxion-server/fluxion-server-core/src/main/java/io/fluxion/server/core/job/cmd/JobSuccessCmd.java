@@ -17,7 +17,7 @@
 package io.fluxion.server.core.job.cmd;
 
 import io.fluxion.server.core.job.JobMonitor;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -28,7 +28,7 @@ import java.time.LocalDateTime;
  */
 @Getter
 @AllArgsConstructor
-public class JobSuccessCmd implements ICmd<Boolean> {
+public class JobSuccessCmd implements ICommand<Boolean> {
 
     private final String jobId;
 

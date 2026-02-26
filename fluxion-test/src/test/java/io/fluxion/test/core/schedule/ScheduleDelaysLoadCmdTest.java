@@ -20,7 +20,7 @@ import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelaysCreateCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelaysLoadCmd;
 import io.fluxion.server.core.schedule.converter.ScheduleDelayEntityConverter;
-import io.fluxion.server.infrastructure.cqrs.Cmd;
+import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity.ID;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleDelayEntityRepo;

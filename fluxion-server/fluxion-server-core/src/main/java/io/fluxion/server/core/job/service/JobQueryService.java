@@ -30,11 +30,11 @@ import io.fluxion.server.core.job.query.JobConfigQuery;
 import io.fluxion.server.core.job.query.JobCountByStatusQuery;
 import io.fluxion.server.core.job.query.JobInitBlockedQuery;
 import io.fluxion.server.core.job.query.JobUnReportQuery;
-import io.fluxion.server.infrastructure.cqrs.Query;
+import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.JobEntity;
 import io.fluxion.server.infrastructure.dao.repository.JobEntityRepo;
 import io.limbo.utils.json.JacksonUtils;
-import org.axonframework.queryhandling.QueryHandler;
+import io.limbo.cqrs.spring.annotation.QueryHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

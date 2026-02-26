@@ -17,7 +17,7 @@
 package io.fluxion.server.core.schedule.cmd;
 
 import io.fluxion.server.core.schedule.Schedule;
-import io.fluxion.server.infrastructure.cqrs.ICmd;
+import io.limbo.cqrs.core.command.VoidCommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,7 +30,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ScheduleTriggerCmd implements ICmd<Void> {
+public class ScheduleTriggerCmd implements VoidCommand {
 
     private Schedule schedule;
 
