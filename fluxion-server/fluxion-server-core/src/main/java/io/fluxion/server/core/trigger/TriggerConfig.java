@@ -18,7 +18,7 @@ package io.fluxion.server.core.trigger;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
-import io.fluxion.common.utils.json.JacksonTypeIdResolver;
+import io.fluxion.server.infrastructure.utils.json.JacksonTypeIdResolver;
 import io.fluxion.server.core.execution.ExecuteConfig;
 import io.fluxion.server.infrastructure.validata.ValidatableConfig;
 import lombok.Data;

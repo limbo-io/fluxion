@@ -26,6 +26,7 @@ import io.fluxion.remote.core.utils.NetUtils;
 import io.fluxion.server.core.broker.Broker;
 import io.fluxion.server.core.broker.BrokerClientHandler;
 import io.fluxion.server.core.broker.BrokerManger;
+import io.limbo.utils.ReflectionUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -78,6 +79,7 @@ public class BrokerConfiguration {
         BrokerStarter(Protocol protocol, String host, int port, BrokerManger brokerManger,
                       ClientServer clientServer) {
             super(protocol, host, port, brokerManger, clientServer);
+            ReflectionUtils.configure("io.fluxion");
         }
 
         @Override

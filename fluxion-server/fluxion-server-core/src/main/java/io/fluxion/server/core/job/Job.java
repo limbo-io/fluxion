@@ -18,7 +18,7 @@ package io.fluxion.server.core.job;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
-import io.fluxion.common.utils.json.JacksonTypeIdResolver;
+import io.fluxion.server.infrastructure.utils.json.JacksonTypeIdResolver;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.executor.option.RetryOption;
 import lombok.Data;

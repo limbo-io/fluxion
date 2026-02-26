@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.fluxion.common.utils.json;
+package io.fluxion.server.infrastructure.utils.json;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
