@@ -11,6 +11,11 @@
 
     <artifactId>fluxion-server-start</artifactId>
 
+    <properties>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
     <dependencies>
         <!-- 引入 Starter -->
         <dependency>

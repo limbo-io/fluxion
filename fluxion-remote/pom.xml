@@ -10,7 +10,6 @@
     </parent>
 
     <artifactId>fluxion-remote</artifactId>
-    <version>${revision}</version>
     <packaging>pom</packaging>
     <description>remote call</description>
 

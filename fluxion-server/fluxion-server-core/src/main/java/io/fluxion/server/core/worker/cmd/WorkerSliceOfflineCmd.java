@@ -21,6 +21,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * @author Devil
@@ -39,6 +40,7 @@ public class WorkerSliceOfflineCmd implements ICommand<WorkerSliceOfflineCmd.Res
     @AllArgsConstructor
     public static class Response {
         private long num;
+        private List<String> workerIds;  // 下线的 Worker ID 列表
     }
 
 }

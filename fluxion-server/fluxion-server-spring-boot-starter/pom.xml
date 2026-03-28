@@ -12,11 +12,6 @@
     <artifactId>fluxion-server-spring-boot-starter</artifactId>
     <description>Fluxion Server Spring Boot Starter</description>
 
-    <properties>
-        <!-- 覆盖父 pom 的设置，允许安装到本地仓库 -->
-        <maven.install.skip>false</maven.install.skip>
-    </properties>
-
     <dependencies>
         <!-- 核心模块 -->
         <dependency>

@@ -10,7 +10,6 @@
     </parent>
 
     <artifactId>fluxion-server-core</artifactId>
-    <version>${revision}</version>
     <description>The central operational logic of the platform. About Flow/Schedule/Other</description>
 
     <dependencies>
@@ -69,5 +68,23 @@
             <version>1.18.38</version>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.38</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

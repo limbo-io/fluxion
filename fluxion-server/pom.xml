@@ -10,17 +10,11 @@
     </parent>
 
     <artifactId>fluxion-server</artifactId>
-    <version>${revision}</version>
     <packaging>pom</packaging>
     <modules>
         <module>fluxion-server-core</module>
         <module>fluxion-server-spring-boot-starter</module>
         <module>fluxion-server-start</module>
     </modules>
-
-    <properties>
-        <maven.install.skip>true</maven.install.skip>
-        <maven.deploy.skip>true</maven.deploy.skip>
-    </properties>
 
 </project>

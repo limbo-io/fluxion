@@ -20,12 +20,16 @@ import io.limbo.utils.time.Formatters;
 import io.limbo.utils.time.LocalDateTimeUtils;
 import io.limbo.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
+import io.fluxion.server.core.execution.fault.FaultToleranceCoordinator;
 import io.fluxion.server.core.worker.cmd.WorkerSliceOfflineCmd;
 import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,6 +44,9 @@ public class WorkerChecker extends CoreTask {
 
     private LocalDateTime lastCheckAt = LocalDateTimeUtils.parse("2000-01-01 00:00:00", Formatters.YMD_HMS);
 
+    @Resource
+    private FaultToleranceCoordinator faultToleranceCoordinator;
+
     public WorkerChecker() {
         super(0, WorkerRemoteConstant.HEARTBEAT_TIMEOUT_SECOND, TimeUnit.SECONDS);
     }
@@ -48,16 +55,32 @@ public class WorkerChecker extends CoreTask {
     public void run() {
         try {
             LocalDateTime endTime = TimeUtils.currentLocalDateTime().plusSeconds(-WorkerRemoteConstant.HEARTBEAT_TIMEOUT_SECOND * 2);
-            long num = Cmd.send(new WorkerSliceOfflineCmd(lastCheckAt, endTime, limit)).getNum();
+            List<String> offlineWorkerIds = new ArrayList<>();
+
+            WorkerSliceOfflineCmd.Response response = Cmd.send(new WorkerSliceOfflineCmd(lastCheckAt, endTime, limit));
+            long num = response.getNum();
+
+            // 获取下线的 Worker ID 列表用于故障迁移
+            if (response.getWorkerIds() != null) {
+                offlineWorkerIds.addAll(response.getWorkerIds());
+            }
+
             while (num >= limit) {
-                // 拉取后续的
-                num = Cmd.send(new WorkerSliceOfflineCmd(lastCheckAt, endTime, limit)).getNum();
+                response = Cmd.send(new WorkerSliceOfflineCmd(lastCheckAt, endTime, limit));
+                num = response.getNum();
+                if (response.getWorkerIds() != null) {
+                    offlineWorkerIds.addAll(response.getWorkerIds());
+                }
             }
             lastCheckAt = endTime;
+
+            // 通知容错协调器 Worker 下线
+            for (String workerId : offlineWorkerIds) {
+                faultToleranceCoordinator.onWorkerOffline(workerId);
+            }
         } catch (Exception e) {
             log.error("[{}] execute fail", this.getClass().getSimpleName(), e);
         }
-
     }
 
     @Override

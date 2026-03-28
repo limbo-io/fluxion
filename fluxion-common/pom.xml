@@ -9,7 +9,6 @@
         <version>${revision}</version>
     </parent>
     <artifactId>fluxion-common</artifactId>
-    <version>${revision}</version>
     <description>common model for other model</description>
 
     <dependencies>
@@ -32,12 +31,6 @@
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-validator</artifactId>
             <version>6.0.16.Final</version>
-        </dependency>
-
-        <!-- log -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
         </dependency>
 
     </dependencies>

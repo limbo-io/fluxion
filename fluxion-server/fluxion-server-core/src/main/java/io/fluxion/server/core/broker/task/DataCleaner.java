@@ -51,13 +51,18 @@ public class DataCleaner extends CoreTask {
         LocalDateTime endAt = TimeUtils.currentLocalDateTime().plusDays(-INTERVAL);
         // schedule_delay
         CommonThreadPool.IO.submit(new LoggingTask(() -> {
-            String lastId = "";
-            List<ScheduleDelay> delays = Query.query(new ScheduleDelayNextCleanQuery(100, lastId, endAt)).getDelays();
+            String lastDelayId = "";
+            ScheduleDelayNextCleanQuery.Response response = Query.query(ScheduleDelayNextCleanQuery.builder()
+                .limit(100).lastDelayId(lastDelayId).endAt(endAt).build());
+            List<ScheduleDelay> delays = response.getDelays();
             while (CollectionUtils.isNotEmpty(delays)) {
-                Cmd.send(new ScheduleDelayDeleteByIdsCmd(delays.stream().map(ScheduleDelay::getId).collect(Collectors.toList())));
+                List<ScheduleDelay.ID> ids = delays.stream().map(ScheduleDelay::getId).collect(Collectors.toList());
+                Cmd.send(ScheduleDelayDeleteByIdsCmd.builder().ids(ids).build());
                 // 拉取后续的
-                lastId = delays.get(delays.size() - 1).getDelayId();
-                delays = Query.query(new ScheduleDelayNextCleanQuery(100, lastId, endAt)).getDelays();
+                lastDelayId = delays.get(delays.size() - 1).getDelayId();
+                response = Query.query(ScheduleDelayNextCleanQuery.builder()
+                    .limit(100).lastDelayId(lastDelayId).endAt(endAt).build());
+                delays = response.getDelays();
             }
         }));
         // broker

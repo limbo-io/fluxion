@@ -10,7 +10,6 @@
     </parent>
 
     <artifactId>fluxion-worker</artifactId>
-    <version>${revision}</version>
     <packaging>pom</packaging>
 
     <modules>

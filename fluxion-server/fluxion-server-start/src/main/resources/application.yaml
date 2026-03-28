@@ -33,3 +33,19 @@ spring:
 # log
 logging:
   config: classpath:log4j2.xml
+
+# fluxion fault tolerance configuration
+fluxion:
+  fault-tolerance:
+    retry:
+      max-retries: 5
+      initial-delay: 1s
+      max-delay: 30s
+      multiplier: 2.0
+      jitter: 0.1
+    timeout:
+      default-timeout: 30m
+    failover:
+      enabled: true
+      worker-offline-timeout: 10s
+      max-migrations: 3

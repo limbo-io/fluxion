@@ -32,7 +32,7 @@
         <jackson.version>2.17.2</jackson.version>
         <slf4j>1.7.30</slf4j>
         <netty.version>4.1.109.Final</netty.version>
-        <limbo.framework.version>0.0.2</limbo.framework.version>
+        <limbo.framework.version>0.0.3</limbo.framework.version>
     </properties>
 
     <dependencyManagement>
@@ -192,6 +192,39 @@
                     <testSource>${java.version}</testSource>
                     <testTarget>${java.version}</testTarget>
                 </configuration>
+            </plugin>
+            <!-- Flatten Maven Plugin for CI-friendly versions -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.5.0</version>
+                <configuration>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                    <updatePomFile>true</updatePomFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.install</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

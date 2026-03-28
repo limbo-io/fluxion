@@ -212,7 +212,7 @@ public class JobCommandService {
             if (updated <= 0) {
                 log.warn("JobStart update fail jobId:{}", entity.getJobId());
             }
-            Cmd.send(new ExecutionRunningCmd(entity.getExecutionId()));
+            Cmd.send(ExecutionRunningCmd.builder().executionId(entity.getExecutionId()).build());
             return updated > 0;
         });
     }

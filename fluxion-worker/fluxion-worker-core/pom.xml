@@ -10,7 +10,6 @@
     </parent>
 
     <artifactId>fluxion-worker-core</artifactId>
-    <version>${revision}</version>
 
     <dependencies>
         <dependency>

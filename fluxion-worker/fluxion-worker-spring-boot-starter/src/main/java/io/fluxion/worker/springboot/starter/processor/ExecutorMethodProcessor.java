@@ -20,6 +20,7 @@ import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.task.TaskContext;
 import io.fluxion.worker.springboot.starter.processor.event.ExecutorScannedEvent;
 import io.fluxion.worker.springboot.starter.processor.event.WorkerReadyEvent;
+import io.fluxion.worker.springboot.starter.properties.WorkerProperties;
 import org.springframework.aop.framework.autoproxy.AutoProxyUtils;
 import org.springframework.aop.scope.ScopedObject;
 import org.springframework.aop.scope.ScopedProxyUtils;
@@ -152,8 +153,11 @@ public class ExecutorMethodProcessor implements SmartInitializingSingleton,
         // 所有 Executor 扫描完成
         eventPublisher.publishEvent(new ExecutorScannedEvent(executors));
 
-        // 启动worker
-        eventPublisher.publishEvent(new WorkerReadyEvent());
+        // 启动worker（如果 autoStart 为 true）
+        WorkerProperties workerProperties = applicationContext.getBean(WorkerProperties.class);
+        if (workerProperties.isAutoStart()) {
+            eventPublisher.publishEvent(new WorkerReadyEvent());
+        }
     }
 
 

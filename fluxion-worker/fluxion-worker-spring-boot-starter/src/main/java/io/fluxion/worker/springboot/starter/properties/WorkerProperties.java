@@ -37,6 +37,11 @@ public class WorkerProperties {
     private boolean enabled = true;
 
     /**
+     * 是否自动启动 worker，默认为 true。设为 false 时，需要手动触发 WorkerReadyEvent 来启动。
+     */
+    private boolean autoStart = true;
+
+    /**
      * 应用名
      */
     private String appName;
@@ -91,6 +96,14 @@ public class WorkerProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public boolean isAutoStart() {
+        return autoStart;
+    }
+
+    public void setAutoStart(boolean autoStart) {
+        this.autoStart = autoStart;
     }
 
     public List<URL> getBrokers() {

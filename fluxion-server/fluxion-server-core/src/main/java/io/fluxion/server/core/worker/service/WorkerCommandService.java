@@ -119,19 +119,22 @@ public class WorkerCommandService {
             cmd.getStartTime(), cmd.getEndTime(), JpaHelper.pageable(0, cmd.getLimit())
         );
         if (CollectionUtils.isEmpty(metricEntities)) {
-            return new WorkerSliceOfflineCmd.Response(0);
+            return new WorkerSliceOfflineCmd.Response(0, java.util.Collections.emptyList());
         }
+
+        List<String> workerIds = metricEntities.stream()
+            .map(WorkerMetricEntity::getWorkerId)
+            .collect(Collectors.toList());
+
         entityManager.createQuery("update WorkerEntity " +
                 "set status = :status " +
                 "where workerId in :workerIds"
             )
             .setParameter("status", Worker.Status.OFFLINE.status)
-            .setParameter("workerIds", metricEntities.stream()
-                .map(WorkerMetricEntity::getWorkerId)
-                .collect(Collectors.toList())
-            )
+            .setParameter("workerIds", workerIds)
             .executeUpdate();
-        return new WorkerSliceOfflineCmd.Response(metricEntities.size());
+
+        return new WorkerSliceOfflineCmd.Response(metricEntities.size(), workerIds);
     }
 
 }

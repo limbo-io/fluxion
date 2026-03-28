@@ -21,6 +21,10 @@ import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.worker.JobDispatchRequest;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.broker.BrokerContext;
+import io.fluxion.server.core.execution.fault.ExecutionInfo;
+import io.fluxion.server.core.execution.fault.ExecutionRegistration;
+import io.fluxion.server.core.execution.fault.ExecutionState;
+import io.fluxion.server.core.execution.fault.FaultToleranceCoordinator;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
@@ -30,11 +34,14 @@ import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.limbo.cqrs.spring.command.Cmd;
 import io.limbo.cqrs.spring.query.Query;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -42,10 +49,14 @@ import java.util.stream.Collectors;
 /**
  * @author Devil
  */
+@Slf4j
 @Component
 public class ExecutorJobRunner extends JobRunner {
 
     private static final int MAX_DISPATCH_FAILED_TIMES = 3;
+
+    @Resource
+    private FaultToleranceCoordinator faultToleranceCoordinator;
 
     @Override
     public JobType type() {
@@ -78,6 +89,21 @@ public class ExecutorJobRunner extends JobRunner {
                 dispatched = dispatchRes.success() && BooleanUtils.isTrue(dispatchRes.getData());
             }
             if (dispatched) {
+                // 注册到容错协调器
+                ExecutionInfo executionInfo = ExecutionInfo.builder()
+                    .executionId(job.getExecutionId())
+                    .jobId(job.getJobId())
+                    .taskId(job.getRefId())  // refId: workflow -> nodeId, executor -> null
+                    .workerId(worker.id())
+                    .jobType(JobType.EXECUTOR.name())
+                    .state(ExecutionState.RUNNING)
+                    .startTime(System.currentTimeMillis())
+                    .context(new HashMap<>())
+                    .build();
+                ExecutionRegistration registration = faultToleranceCoordinator.register(executionInfo);
+                if (registration.isRegistered()) {
+                    log.info("[ExecutorJobRunner] Execution registered: executionId={}", job.getExecutionId());
+                }
                 break;
             }
             // 下发失败
