@@ -67,6 +67,11 @@
                 <artifactId>fluxion-worker-spring-boot-starter</artifactId>
                 <version>${revision}</version>
             </dependency>
+            <dependency>
+                <groupId>io.github.limbo-io</groupId>
+                <artifactId>fluxion-server-spring-boot-starter</artifactId>
+                <version>${revision}</version>
+            </dependency>
             <!-- Fluxion End-->
 
             <!-- SpringBoot BOM -->
