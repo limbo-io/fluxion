@@ -18,9 +18,16 @@
     </properties>
 
     <dependencies>
+        <!-- Server Starter -->
+        <dependency>
+            <groupId>io.github.limbo-io</groupId>
+            <artifactId>fluxion-server-spring-boot-starter</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>io.github.limbo-io</groupId>
             <artifactId>fluxion-server-core</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <!-- test -->
