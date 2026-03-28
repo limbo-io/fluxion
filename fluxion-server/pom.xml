@@ -13,8 +13,9 @@
     <version>${revision}</version>
     <packaging>pom</packaging>
     <modules>
-        <module>fluxion-server-start</module>
         <module>fluxion-server-core</module>
+        <module>fluxion-server-spring-boot-starter</module>
+        <module>fluxion-server-start</module>
     </modules>
 
     <properties>

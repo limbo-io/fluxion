@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 Limbo Team (https://github.com/limbo-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,34 +14,35 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.start.config;
+package io.fluxion.server.autoconfigure;
 
 import io.fluxion.remote.core.constants.Protocol;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
+ * Fluxion Server 配置属性
+ *
  * @author Devil
- * @since 2022/7/21
  */
 @Data
-@ConfigurationProperties(prefix = "fluxion.broker")
-public class BrokerProperties {
+@ConfigurationProperties(prefix = FluxionServerProperties.PREFIX)
+public class FluxionServerProperties {
+
+    public static final String PREFIX = "fluxion.broker";
 
     /**
-     * 提供给worker的服务的 host。可以是域名或 IP 地址，如不填写则自动发现本机非 127.0.0.1 的地址。
-     * 多网卡场景下，建议显式配置 host。
+     * 提供给 Worker 的服务地址
      */
     private String host;
 
     /**
-     * 提供给worker的服务 port
-     * 如果未指定此配置，则尝试使用 ${server.port} 配置；如 ${server.port} 配置也不存在，则使用 8080，
+     * 提供给 Worker 的服务端口
      */
     private Integer port = 9785;
 
     /**
-     * RPC 通信协议类型。默认为 http。
+     * RPC 通信协议类型
      */
     private Protocol protocol = Protocol.HTTP;
 
