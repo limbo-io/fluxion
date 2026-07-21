@@ -136,7 +136,8 @@ public class ScheduleCommandService {
             ).triggerAt();
         }
         if (ScheduleType.FIXED_DELAY == schedule.getOption().getType()) {
-            // FIXED_DELAY 只创建一个
+            // FIXED_DELAY: Continue from last completion time, don't create concurrent historical instances
+            // Only create one next trigger point, not multiple
             if (!scheduleTriggerCheck(nextTriggerAt, now, schedule.getOption())) {
                 return;
             }
@@ -149,18 +150,24 @@ public class ScheduleCommandService {
             lastTriggerAt = nextTriggerAt; // 更新上次触发时间
             nextTriggerAt = null; // 反馈的时候计算下次触发时间，先置空
         } else {
-            // CRON FIXED_RATE 创建后续多个
+            // CRON/FIXED_RATE: LATEST_ONLY misfire policy
+            // When broker recovers with multiple missed triggers, only create execution for latest valid trigger
+            LocalDateTime latestValidTrigger = null;
             while (scheduleTriggerCheck(nextTriggerAt, now, schedule.getOption())) {
-                ScheduleDelay delay = new ScheduleDelay(
-                        new ScheduleDelay.ID(schedule.getId(), nextTriggerAt),
-                        ScheduleDelay.Status.INIT
-                );
-                delays.add(delay);
-                lastTriggerAt = nextTriggerAt; // 更新上次触发时间
+                latestValidTrigger = nextTriggerAt;
+                lastTriggerAt = nextTriggerAt; // Track last trigger for schedule update
                 BasicCalculation calculation = new BasicCalculation(
                         lastTriggerAt, lastTriggerAt, schedule.getOption()
                 );
                 nextTriggerAt = calculation.triggerAt();
+            }
+            // Only create delay for the latest valid trigger (skip stale triggers)
+            if (latestValidTrigger != null) {
+                ScheduleDelay delay = new ScheduleDelay(
+                        new ScheduleDelay.ID(schedule.getId(), latestValidTrigger),
+                        ScheduleDelay.Status.INIT
+                );
+                delays.add(delay);
             }
         }
 

@@ -29,6 +29,14 @@ import static io.limbo.utils.time.TimeUtils.TIME_FOREVER;
 
 /**
  * 作业调度配置，值对象。
+ * <p>
+ * <b>Misfire Policy (LATEST_ONLY):</b>
+ * <ul>
+ *     <li><b>CRON/FIXED_RATE:</b> When broker recovers with multiple missed trigger points, 
+ *         only the latest valid trigger time is executed. Stale triggers are skipped.</li>
+ *     <li><b>FIXED_DELAY:</b> Continues from the last completion time. Does not create 
+ *         concurrent historical instances - only schedules the next single trigger point.</li>
+ * </ul>
  *
  * @author Brozen
  * @since 2021-06-01
