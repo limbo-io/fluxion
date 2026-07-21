@@ -70,7 +70,7 @@ public class DatabaseDistributedLock implements DistributedLock {
     @Override
     public <T> T lock(String name, long expire, long wait, Supplier<T> supplier) {
         if (expire <= 0) {
-            throw new PlatformException(ErrorCode.ILLEGAL_ARGUMENT, "expire must be positive");
+            throw new PlatformException(ErrorCode.PARAM_ERROR, "expire must be positive");
         }
         
         Locked locked = doTryLockWithWait(name, expire, wait);
