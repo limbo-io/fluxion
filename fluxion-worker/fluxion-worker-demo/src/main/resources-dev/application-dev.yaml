@@ -1,16 +1,9 @@
 server:
   port: 8084
 
-fluxion:
-  worker:
-    brokers:
-      - http://localhost:9785
-    queue-size: 64
-    tags:
-      - a=b
-      - c=d
-
 spring:
+  application:
+    name: fluxion-worker-demo
   h2:
     # h2嵌入式数据库控制台，可以通过浏览器访问 ip:port/h2-console
     # file 模式 用户名密码都是空
@@ -18,3 +11,19 @@ spring:
     console:
       path: /h2-console
       enabled: true
+
+# Worker 配置
+fluxion:
+  worker:
+    brokers:
+      - http://localhost:9785
+    port: 9787
+    queue-size: 64
+    tags:
+      - env=dev
+      - version=1.0
+
+# 开发环境日志
+logging:
+  level:
+    io.fluxion: DEBUG

@@ -58,8 +58,8 @@
 
 ### 环境要求
 
-- JDK8
-- Mysql
+- JDK 21+
+- MySQL 8.0+
 
 ### Step1: 数据库配置
 
@@ -71,15 +71,29 @@
 | spring.datasource.username | 账号   |
 | spring.datasource.password | 密码   |
 
-### Step2: 服务打包
+MySQL 配置示例：
+```yaml
+spring:
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/fluxion?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&serverTimezone=Asia/Shanghai
+    username: root
+    password: your_password
+    hikari:
+      connection-test-query: SELECT 1
+      connection-init-sql: set names utf8mb4
+```
 
-根据需要修改配置
+### Step2: Broker 配置
 
 | 配置项                                     | 说明                                                                             |
 |-----------------------------------------|--------------------------------------------------------------------------------|
 | fluxion.broker.host                     | 提供给worker的服务的 host。可以是域名或 IP 地址，如不填写则自动发现本机非 127.0.0.1 的地址。多网卡场景下，建议显式配置 host。 |
 | fluxion.broker.port                     | 提供给worker的服务 port 默认 9785，                                                     |
 | fluxion.broker.protocol                 | RPC 通信协议类型。默认为 http                                                            |
+
+### Step3: 服务打包
 
 项目根目录下，执行如下命令打包编译，通过`-P`参数指定环境，如开发环境为`-P dev`
 
@@ -90,7 +104,6 @@ mvn clean package -Dmaven.test.skip=true -Pdev
 ## Worker部署
 
 对于需要使用worker的Web应用（宿主应用），可以参考[Demo](https://github.com/limbo-io/fluxion/tree/master/fluxion-worker/fluxion-worker-demo)。
-
 
 ### Step1: 添加依赖
 
@@ -118,10 +131,37 @@ mvn clean package -Dmaven.test.skip=true -Pdev
 | fluxion.worker.heartbeat | Worker 向 Broker 发送心跳请求的间隔，默认 2 秒。                                    |
 | fluxion.worker.tags      | 标签，k=v形式                                                             |
 
+Worker 配置示例：
+```yaml
+fluxion:
+  worker:
+    brokers:
+      - http://localhost:9785
+    port: 9787
+    tags:
+      - env=prod
+      - region=cn
+```
+
+## 运维操作
+
+详细的运维操作指南，请参考 [docs/guides/operations.md](./docs/guides/operations.md)
+
+涵盖内容：
+- 启动顺序（DB -> Broker -> Worker）
+- 数据库迁移
+- 滚动重启流程
+- Broker 故障恢复
+- 监控指标与告警阈值
+- 故障排查命令
 
 # 前端应用
 
 结合Console接口，提供了对应的官方前端项目：[点击跳转](https://github.com/limbo-io/fluxion-console)
+
+# 架构文档
+
+详细的架构设计文档请参考 [docs/architecture/README.md](./docs/architecture/README.md)
 
 # 参与贡献
 

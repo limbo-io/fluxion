@@ -1,17 +1,21 @@
 server:
   port: 8084
 
-flowjob:
+spring:
+  application:
+    name: fluxion-worker-demo
+
+# Worker 配置（生产环境）
+fluxion:
   worker:
     brokers:
-      - http://localhost:8081
+      - http://localhost:9785
+    port: 9787
     queue-size: 64
     tags:
-      - a=b
-      - c=d
-  agent:
-    brokers:
-      - http://localhost:8081
-    datasource:
-      url: jdbc:h2:mem:fluxion_db;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=mysql;
+      - env=prod
+      - version=1.0
 
+# 日志配置
+logging:
+  config: classpath:log4j2.xml

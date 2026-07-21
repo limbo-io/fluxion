@@ -12,30 +12,37 @@ spring:
       max-request-size: 100MB
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/fluxion?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&serverTimezone=Asia/Shanghai
+    username: root
+    password: 
     hikari:
       connection-test-query: SELECT 1
       connection-init-sql: set names utf8mb4
   jpa:
     hibernate:
       ddl-auto: none
-#      naming:
-#        physical-strategy: org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy
-#        implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
-    show-sql: false  # 日志中显示sql语句
+    show-sql: false
     properties:
       hibernate:
-        enable_lazy_load_no_trans: true # 解决懒加载问题 no Session
+        enable_lazy_load_no_trans: true
   flyway:
     baseline-on-migrate: true
     baseline-version: 0
-
+    enabled: true
 
 # log
 logging:
   config: classpath:log4j2.xml
 
-# fluxion fault tolerance configuration
+# fluxion broker configuration
 fluxion:
+  broker:
+    host: 
+    port: 9785
+    protocol: HTTP
+  
+  # fluxion fault tolerance configuration
   fault-tolerance:
     retry:
       max-retries: 5
