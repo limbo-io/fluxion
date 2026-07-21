@@ -54,4 +54,9 @@ public interface ExecutionEntityRepo extends JpaRepository<ExecutionEntity, Stri
      * Find executions by lease owner (broker ID)
      */
     List<ExecutionEntity> findByLeaseOwner(String leaseOwner);
+
+    /**
+     * Find executions by worker ID or lease owner
+     */
+    List<ExecutionEntity> findByWorkerIdOrLeaseOwner(String workerId, String leaseOwner);
 }

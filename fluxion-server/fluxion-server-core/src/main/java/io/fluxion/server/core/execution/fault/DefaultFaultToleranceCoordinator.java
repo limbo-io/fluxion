@@ -6,11 +6,14 @@ import io.fluxion.server.core.execution.fault.failover.FailoverManager;
 import io.fluxion.server.core.execution.fault.retry.RetryContext;
 import io.fluxion.server.core.execution.fault.retry.RetryStrategy;
 import io.fluxion.server.core.execution.fault.store.ExecutionStateStore;
+import io.fluxion.server.core.execution.fault.store.PersistentExecutionStateRepository;
 import io.fluxion.server.core.execution.fault.timeout.TimeoutManager;
 import io.limbo.cqrs.spring.command.Cmd;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.annotation.Resource;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -23,6 +26,9 @@ public class DefaultFaultToleranceCoordinator implements FaultToleranceCoordinat
     private final RetryStrategy retryStrategy;
     private final TimeoutManager timeoutManager;
     private final FailoverManager failoverManager;
+
+    @Resource
+    private PersistentExecutionStateRepository persistentRepository;
 
     private final Duration defaultTimeout = Duration.ofMinutes(30);
 
@@ -66,7 +72,12 @@ public class DefaultFaultToleranceCoordinator implements FaultToleranceCoordinat
         long timeoutTimestamp = System.currentTimeMillis() + defaultTimeout.toMillis();
         execution.setTimeoutTimestamp(timeoutTimestamp);
 
-        // 添加到状态存储
+        // Persist to DB first (persistent source of truth)
+        if (persistentRepository != null) {
+            persistentRepository.register(execution);
+        }
+
+        // Then update in-memory state store (index for fast access)
         stateStore.add(execution);
 
         // 添加超时监控
@@ -96,6 +107,13 @@ public class DefaultFaultToleranceCoordinator implements FaultToleranceCoordinat
             // 成功完成
             info.setState(ExecutionState.SUCCEEDED);
             info.setEndTime(System.currentTimeMillis());
+            
+            // Remove from both DB and memory
+            if (persistentRepository != null) {
+                persistentRepository.remove(executionId);
+            }
+            stateStore.remove(executionId);
+            
             log.info("[FAULT-SUCCESS] Execution completed successfully: executionId={}", executionId);
         } else {
             // 失败处理
@@ -133,6 +151,13 @@ public class DefaultFaultToleranceCoordinator implements FaultToleranceCoordinat
             // 不可重试错误，标记失败
             info.setState(ExecutionState.FAILED);
             info.setEndTime(System.currentTimeMillis());
+            
+            // Remove from both DB and memory on terminal failure
+            if (persistentRepository != null) {
+                persistentRepository.remove(info.getExecutionId());
+            }
+            stateStore.remove(info.getExecutionId());
+            
             log.error("[FAULT-FATAL] Execution failed permanently: executionId={}, errorCategory={}",
                 info.getExecutionId(), category);
         }
@@ -166,6 +191,12 @@ public class DefaultFaultToleranceCoordinator implements FaultToleranceCoordinat
 
         info.setState(ExecutionState.TIMEOUT);
         info.setEndTime(System.currentTimeMillis());
+
+        // Remove from both DB and memory on timeout
+        if (persistentRepository != null) {
+            persistentRepository.remove(executionId);
+        }
+        stateStore.remove(executionId);
 
         // TODO: 根据配置决定是否重试
     }
