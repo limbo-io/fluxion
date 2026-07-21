@@ -116,7 +116,6 @@
                             <includes>
                                 <!-- 可靠性回归测试套件 -->
                                 <include>**/MultiBrokerReliabilityTest.java</include>
-                                <include>**/RegressionTestSuite.java</include>
                             </includes>
                         </configuration>
                     </plugin>

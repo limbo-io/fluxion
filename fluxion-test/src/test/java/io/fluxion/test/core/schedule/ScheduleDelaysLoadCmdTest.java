@@ -25,7 +25,7 @@ import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity.ID;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleDelayEntityRepo;
 import io.fluxion.server.infrastructure.dao.tx.TransactionService;
-import io.fluxion.test.integration.TestApplication;
+import io.fluxion.test.support.base.TestApplication;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

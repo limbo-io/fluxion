@@ -13,7 +13,7 @@ import io.fluxion.server.core.execution.fault.retry.RetryStrategy;
 import io.fluxion.server.core.execution.fault.store.ExecutionStateStore;
 import io.fluxion.server.core.execution.fault.timeout.TimingWheelTimeoutManager;
 import io.fluxion.server.core.execution.fault.timeout.TimeoutManager;
-import io.fluxion.test.integration.TestApplication;
+import io.fluxion.test.support.base.TestApplication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
