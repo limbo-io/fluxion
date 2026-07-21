@@ -15,6 +15,7 @@
 | [scheduling.md](./scheduling.md) | 任务调度流程 |
 | [execution-state.md](./execution-state.md) | 执行状态与投递语义 |
 | [data-model.md](./data-model.md) | 数据模型设计 |
+| [operations.md](../guides/operations.md) | 运维操作手册 |
 
 ## 快速开始
 
