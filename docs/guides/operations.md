@@ -576,5 +576,249 @@ A: 解决方案：
 
 ---
 
+## 业务幂等性指南
+
+### 框架提供的幂等保护
+
+Fluxion 框架提供**尽力而为**的重复执行防护机制：
+
+| 机制 | 保护级别 | 说明 |
+|------|----------|------|
+| **调度租约 (Schedule Lease)** | 单 Broker | 15秒租约期内独占调度权，过期后可被其他 Broker 接管 |
+| **执行租约 (Execution Lease)** | 单 Broker | 5分钟租约，Broker 故障后其他节点通过条件更新接管 |
+| **围栏检查 (Fencing)** | 执行前 | 使用 MySQL NOW(3) 验证租约有效性，防止"僵尸"执行 |
+| **分发去重 (Dispatch Deduplication)** | Worker 侧 | 同一 execution_id 的重复分发被拒绝 |
+| **尝试计数 (Attempt Tracking)** | 持久化 | 记录执行尝试次数，用于熔断和告警 |
+
+### ⚠️ 业务必须处理的幂等性
+
+**框架不能保证 100% 幂等**，以下场景可能导致重复执行：
+
+1. **分布式时钟偏差**：Broker 间 NOW(3) 差异可能导致短暂窗口期的重复调度
+2. **租约边界竞争**：租约过期瞬间的并发 claim 可能产生竞态
+3. **网络分区**：Worker 完成执行但确认丢失，触发超时重试
+4. **脑裂恢复**：Broker 网络分区解除后，短暂双主可能重复分发
+
+### 业务幂等实现建议
+
+#### 方案1: 数据库唯一约束 (推荐)
+
+```java
+@Service
+public class PaymentExecutor implements JobExecutor {
+    
+    @Autowired
+    private PaymentRecordRepository paymentRepo;
+    
+    @Override
+    public ExecuteResult execute(JobContext context) {
+        String executionId = context.getExecutionId();
+        Map<String, Object> params = context.getParams();
+        String orderNo = params.get("orderNo").toString();
+        
+        try {
+            // 使用数据库唯一约束防止重复支付
+            PaymentRecord record = new PaymentRecord();
+            record.setExecutionId(executionId);  // 唯一索引
+            record.setOrderNo(orderNo);
+            record.setAmount(new BigDecimal(params.get("amount").toString()));
+            record.setStatus("PROCESSING");
+            record.setCreatedAt(LocalDateTime.now());
+            
+            paymentRepo.save(record);
+            
+            // 执行实际支付逻辑
+            doPayment(orderNo, record.getAmount());
+            
+            record.setStatus("SUCCESS");
+            paymentRepo.save(record);
+            
+            return ExecuteResult.success();
+            
+        } catch (DuplicateKeyException e) {
+            // 重复执行，直接返回成功
+            log.info("[IDEMPOTENCY] Duplicate execution detected: executionId={}", executionId);
+            return ExecuteResult.success();
+        }
+    }
+}
+```
+
+#### 方案2: Redis SETNX 分布式锁
+
+```java
+@Service
+public class InventoryExecutor implements JobExecutor {
+    
+    @Autowired
+    private StringRedisTemplate redis;
+    
+    @Override
+    public ExecuteResult execute(JobContext context) {
+        String executionId = context.getExecutionId();
+        String lockKey = "inventory:deduct:" + context.getParams().get("skuId");
+        
+        // 使用 Redis SETNX 保证幂等
+        Boolean locked = redis.opsForValue()
+            .setIfAbsent(lockKey + ":" + executionId, "1", Duration.ofMinutes(10));
+        
+        if (!Boolean.TRUE.equals(locked)) {
+            log.warn("[IDEMPOTENCY] Duplicate inventory deduction: executionId={}", executionId);
+            return ExecuteResult.success(); // 已处理过
+        }
+        
+        try {
+            // 执行库存扣减
+            deductInventory(context.getParams());
+            return ExecuteResult.success();
+        } catch (Exception e) {
+            // 失败时删除锁，允许重试
+            redis.delete(lockKey + ":" + executionId);
+            throw e;
+        }
+    }
+}
+```
+
+#### 方案3: 状态机幂等
+
+```java
+@Service
+public class OrderStateMachineExecutor implements JobExecutor {
+    
+    @Autowired
+    private OrderRepository orderRepo;
+    
+    @Override
+    public ExecuteResult execute(JobContext context) {
+        String orderNo = context.getParams().get("orderNo").toString();
+        String targetState = context.getParams().get("targetState").toString();
+        
+        Order order = orderRepo.findByOrderNo(orderNo);
+        
+        // 状态机检查：目标状态是否已经达成
+        if (order.getState().equals(targetState)) {
+            log.info("[IDEMPOTENCY] Order already in target state: orderNo={}, state={}", 
+                orderNo, targetState);
+            return ExecuteResult.success();
+        }
+        
+        // 状态流转合法性检查
+        if (!isValidTransition(order.getState(), targetState)) {
+            log.error("[IDEMPOTENCY] Invalid state transition: {} -> {}", 
+                order.getState(), targetState);
+            return ExecuteResult.failure("Invalid state transition");
+        }
+        
+        // 执行状态更新（乐观锁防止并发）
+        int updated = orderRepo.updateState(orderNo, targetState, order.getVersion());
+        if (updated == 0) {
+            // 被其他执行更新，重新查询状态
+            order = orderRepo.findByOrderNo(orderNo);
+            if (order.getState().equals(targetState)) {
+                return ExecuteResult.success(); // 目标已达成
+            }
+            return ExecuteResult.retry("Concurrent update, retry");
+        }
+        
+        return ExecuteResult.success();
+    }
+}
+```
+
+### 幂等性检查清单
+
+业务实现 Executor 时，检查以下项目：
+
+- [ ] **是否存在唯一业务键**：如订单号、用户ID+操作类型+日期等
+- [ ] **是否使用数据库唯一约束**：防止重复插入
+- [ ] **是否检查前置状态**：接口幂等不等于"重复调用不报错"
+- [ ] **是否记录执行日志**：便于排查重复执行问题
+- [ ] **超时是否可重入**：长时间任务避免因超时触发无限重试
+- [ ] **是否清理过期幂等记录**：防止存储无限膨胀
+
+### 框架与业务的职责边界
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Fluxion 框架职责                          │
+├─────────────────────────────────────────────────────────────┤
+│ • 调度层面的尽力去重（租约机制）                              │
+│ • 分发层面的去重（Worker 侧过滤）                             │
+│ • 故障后的安全恢复（保守重试）                                │
+│ • 提供 execution_id 用于业务幂等                              │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    业务实现职责                              │
+├─────────────────────────────────────────────────────────────┤
+│ • 最终状态的一致性（幂等或补偿）                              │
+│ • 副作用的可重入性（数据库、外部API）                         │
+│ • 状态机或唯一约束的正确性                                    │
+│ • 执行完成后的幂等记录清理                                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 附录
+
+### 配置参考
+
+**最小生产配置（Broker）**：
+```yaml
+server:
+  port: 9786
+
+spring:
+  application:
+    name: fluxion-broker
+  datasource:
+    url: jdbc:mysql://mysql-host:3306/fluxion?useUnicode=true&characterEncoding=UTF-8
+    username: fluxion
+    password: <secure_password>
+
+fluxion:
+  broker:
+    port: 9785
+    protocol: HTTP
+```
+
+**最小生产配置（Worker）**：
+```yaml
+server:
+  port: 8084
+
+fluxion:
+  worker:
+    brokers:
+      - http://broker-host:9785
+    port: 9787
+    tags:
+      - env=prod
+```
+
+### 常见问题 FAQ
+
+**Q: 任务调度延迟过大怎么办？**
+A: 检查以下几点：
+1. Broker 服务器时间和 Worker 是否同步
+2. 调度线程池是否足够（默认单线程）
+3. 数据库查询性能（schedule_delay 表索引）
+
+**Q: Worker 频繁离线？**
+A: 排查方法：
+1. 检查网络稳定性（心跳超时 10 秒）
+2. 检查 Worker 负载（CPU、内存）
+3. 增加心跳间隔：fluxion.worker.heartbeat=5s
+
+**Q: 数据库连接池耗尽？**
+A: 解决方案：
+1. 增加连接池大小：spring.datasource.hikari.maximum-pool-size=50
+2. 检查慢查询并优化索引
+3. 减少长时间执行的任务
+
+---
+
 *文档版本: 2026-07-21*
 *适用版本: Fluxion 1.x*
