@@ -58,6 +58,21 @@ public class ScheduleDelayEntity extends BaseEntity {
      */
     private String status;
 
+    /**
+     * Broker ID that owns the lease for this delay
+     */
+    private String leaseOwner;
+
+    /**
+     * Lease expiration timestamp - after this time, another broker can claim
+     */
+    private LocalDateTime leaseUntil;
+
+    /**
+     * Number of claim attempts
+     */
+    private Integer attempt;
+
     @Override
     public Object getUid() {
         return id;

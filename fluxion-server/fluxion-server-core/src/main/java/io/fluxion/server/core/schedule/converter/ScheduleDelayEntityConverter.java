@@ -33,9 +33,13 @@ public class ScheduleDelayEntityConverter {
         if (entity == null) {
             return null;
         }
-        return new ScheduleDelay(
+        ScheduleDelay delay = new ScheduleDelay(
             convert(entity.getId()), ScheduleDelay.Status.parse(entity.getStatus())
         );
+        delay.leaseOwner(entity.getLeaseOwner());
+        delay.leaseUntil(entity.getLeaseUntil());
+        delay.attempt(entity.getAttempt());
+        return delay;
     }
 
     public static List<ScheduleDelay> convert(List<ScheduleDelayEntity> entities) {
@@ -60,6 +64,9 @@ public class ScheduleDelayEntityConverter {
         entity.setId(convert(delay.getId()));
         entity.setDelayId(delay.getDelayId());
         entity.setStatus(delay.getStatus().value);
+        entity.setLeaseOwner(delay.getLeaseOwner());
+        entity.setLeaseUntil(delay.getLeaseUntil());
+        entity.setAttempt(delay.getAttempt());
         return entity;
     }
 

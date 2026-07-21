@@ -24,6 +24,7 @@ import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.schedule.ScheduleDelay;
+import io.fluxion.server.core.schedule.ScheduleLeaseMaintainer;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByIdsCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByScheduleCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelaysCreateCmd;
@@ -70,6 +71,9 @@ public class ScheduleDelayCommandService {
     @Resource
     private TransactionService transactionService;
 
+    @Resource
+    private ScheduleLeaseMaintainer leaseMaintainer;
+
     @CommandHandler
     public void handle(ScheduleDelaysCreateCmd cmd) {
         List<ScheduleDelay> delays = cmd.getDelays();
@@ -91,13 +95,34 @@ public class ScheduleDelayCommandService {
         if (CollectionUtils.isEmpty(delays)) {
             return;
         }
-        List<ScheduleDelay.ID> delayIds = delays.stream()
-            .filter(delay -> ScheduleDelay.Status.INIT == delay.getStatus())
-            .map(ScheduleDelay::getId)
-            .collect(Collectors.toList());
 
-        for (ScheduleDelay.ID delayId : delayIds) {
-            // 加载到内存
+        // Filter only INIT delays and attempt to claim them atomically
+        for (ScheduleDelay delay : delays) {
+            if (ScheduleDelay.Status.INIT != delay.getStatus()) {
+                continue;
+            }
+
+            ScheduleDelay.ID delayId = delay.getId();
+
+            // Attempt to claim the delay with lease mechanism
+            // Only claim if trigger time is within the next minute (to avoid claiming too far in advance)
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            java.time.LocalDateTime oneMinuteLater = now.plusMinutes(1);
+
+            if (delayId.getTriggerAt().isAfter(oneMinuteLater)) {
+                // Delay is too far in the future, skip for now
+                // It will be loaded in a future iteration when closer to trigger time
+                continue;
+            }
+
+            boolean claimed = leaseMaintainer.tryClaim(delayId.getScheduleId(), delayId.getTriggerAt());
+            if (!claimed) {
+                // Another broker claimed it or it's no longer available
+                log.debug("Failed to claim delay {}:{}, skipping", delayId.getScheduleId(), delayId.getTriggerAt());
+                continue;
+            }
+
+            // Successfully claimed, now load into in-memory scheduler
             String scheduleId = delayId.getScheduleId();
             DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
             delayedTaskScheduler.schedule(DelayedTaskFactory.create(
@@ -105,31 +130,41 @@ public class ScheduleDelayCommandService {
                 delayId.getTriggerAt(),
                 consumer(scheduleId, delayId)
             ));
+
+            log.debug("Claimed and scheduled delay {}:{}", delayId.getScheduleId(), delayId.getTriggerAt());
         }
     }
 
     private Consumer<DelayedTask> consumer(String scheduleId, ScheduleDelay.ID delayId) {
         return task -> {
+            // First, verify we still own the lease (fencing check)
+            // This prevents split-brain scenarios where broker lost lease but task still fired
+            if (!leaseMaintainer.verifyLease(delayId.getScheduleId(), delayId.getTriggerAt())) {
+                log.warn("Lease verification failed for delay {}:{}, stopping task", scheduleId, delayId.getTriggerAt());
+                task.stop();
+                return;
+            }
+
             Trigger trigger = Query.query(new TriggerByIdQuery(scheduleId)).getTrigger();
-            // 移除不需要调度的
+
+            // Check if trigger is enabled
             if (!trigger.isEnabled()) {
-                changeDelayStatus(delayId, ScheduleDelay.Status.INIT, ScheduleDelay.Status.INVALID);
+                // Transition from CLAIMED to INVALID
+                changeDelayStatus(delayId, ScheduleDelay.Status.CLAIMED, ScheduleDelay.Status.INVALID);
                 task.stop();
                 log.info("Trigger is not enabled id:{}", scheduleId);
                 return;
             }
-            // 非当前节点的，可能重新分配给其他了
-            ScheduleDelayEntity entity = scheduleDelayEntityRepo.findById(ScheduleDelayEntityConverter.convert(delayId)).orElse(null);
-            String brokerId = BrokerContext.broker().id();
-            List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
-            if (!buckets.contains(entity.getBucket())
-                || !changeDelayStatus(delayId, ScheduleDelay.Status.INIT, ScheduleDelay.Status.RUNNING)) {
+
+            // Verify we can transition from CLAIMED to RUNNING atomically with lease check
+            // This guards against concurrent execution attempts
+            if (!leaseMaintainer.transitionToRunning(delayId.getScheduleId(), delayId.getTriggerAt())) {
+                log.info("Failed to transition delay {} to RUNNING, another broker may be processing",
+                    scheduleId);
                 task.stop();
-                log.info("ScheduleDelay is not schedule by current broker scheduleId:{} brokerId:{} bucket:{}",
-                    scheduleId, brokerId, entity.getBucket()
-                );
                 return;
             }
+
             try {
                 Executable executable = Query.query(new ExecutableByIdQuery(
                     trigger.executableId(), trigger.getConfig().getExecuteConfig().type()
@@ -145,7 +180,7 @@ public class ScheduleDelayCommandService {
                     // 执行
                     executable.execute(execution);
                 });
-                // 成功状态
+                // 成功状态: RUNNING -> SUCCEED
                 changeDelayStatus(delayId, ScheduleDelay.Status.RUNNING, ScheduleDelay.Status.SUCCEED);
             } catch (Exception e) {
                 log.error("ScheduleDelay run error id:{}", JacksonUtils.toJSONString(delayId), e);

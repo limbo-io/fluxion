@@ -50,14 +50,24 @@ public class ScheduleDelayQueryService {
         String brokerId = BrokerContext.broker().id();
         List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
         LocalDateTime nextTriggerAt = TimeUtils.currentLocalDateTime().plusSeconds(ScheduleDelayConstants.LOAD_INTERVAL_SECONDS);
-        List<ScheduleDelayEntity> entities = entityManager.createQuery("select e from ScheduleDelayEntity e" +
-                " where e.bucket in :buckets and e.id.triggerAt <= :triggerAt and delayId > :lastDelayId " +
-                " and e.status = :status and e.deleted = false order by id.triggerAt, delayId asc ", ScheduleDelayEntity.class
+
+        // Query delays that are either:
+        // 1. INIT status - available for any broker to claim
+        // 2. CLAIMED status with current broker as lease owner - already owned by us
+        List<ScheduleDelayEntity> entities = entityManager.createQuery(
+                "select e from ScheduleDelayEntity e" +
+                " where e.bucket in :buckets and e.id.triggerAt <= :triggerAt and e.delayId > :lastDelayId " +
+                " and e.deleted = false " +
+                " and ((e.status = :initStatus) " +
+                "      or (e.status = :claimedStatus and e.leaseOwner = :brokerId)) " +
+                " order by e.id.triggerAt, e.delayId asc ", ScheduleDelayEntity.class
             )
             .setParameter("buckets", buckets)
             .setParameter("lastDelayId", query.getLastDelayId())
             .setParameter("triggerAt", nextTriggerAt)
-            .setParameter("status", ScheduleDelay.Status.INIT.value)
+            .setParameter("initStatus", ScheduleDelay.Status.INIT.value)
+            .setParameter("claimedStatus", ScheduleDelay.Status.CLAIMED.value)
+            .setParameter("brokerId", brokerId)
             .setMaxResults(query.getLimit())
             .getResultList();
         return new ScheduleDelayNextTriggerQuery.Response(ScheduleDelayEntityConverter.convert(entities));

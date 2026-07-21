@@ -40,8 +40,35 @@ public class ScheduleDelay {
 
     private Status status;
 
+    /**
+     * Broker ID that owns the lease
+     */
+    private String leaseOwner;
+
+    /**
+     * Lease expiration time
+     */
+    private LocalDateTime leaseUntil;
+
+    /**
+     * Number of claim attempts
+     */
+    private Integer attempt;
+
     public void status(Status status) {
         this.status = status;
+    }
+
+    public void leaseOwner(String leaseOwner) {
+        this.leaseOwner = leaseOwner;
+    }
+
+    public void leaseUntil(LocalDateTime leaseUntil) {
+        this.leaseUntil = leaseUntil;
+    }
+
+    public void attempt(Integer attempt) {
+        this.attempt = attempt;
     }
 
     public ScheduleDelay(ID id, Status status) {
@@ -70,6 +97,10 @@ public class ScheduleDelay {
          * 刚创建
          */
         INIT("init"),
+        /**
+         * 已被Broker认领，等待触发执行
+         */
+        CLAIMED("claimed"),
         /**
          * 运行中
          */
