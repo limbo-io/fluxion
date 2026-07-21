@@ -3,6 +3,7 @@ package io.fluxion.test.integration;
 import io.fluxion.test.integration.executor.ExecutorIntegrationTest;
 import io.fluxion.test.integration.fault.FaultToleranceIntegrationTest;
 import io.fluxion.test.integration.fault.RetryIntegrationTest;
+import io.fluxion.test.integration.reliability.MultiBrokerReliabilityTest;
 import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.Suite;
 
@@ -15,25 +16,32 @@ import org.junit.platform.suite.api.Suite;
  *   - 发布前的全量验证
  * 
  * 包含测试：
- *   ┌─────────────────────────────────────┐
- *   │  ExecutorIntegrationTest            │
- *   │  - 简单任务执行                     │
- *   │  - 并发调度执行                     │
- *   │  - 执行时间精度                     │
- *   ├─────────────────────────────────────┤
- *   │  RetryIntegrationTest               │
- *   │  - 重试直到成功                     │
- *   │  - 重试次数配置                     │
- *   │  - 重试间隔验证                     │
- *   ├─────────────────────────────────────┤
- *   │  FaultToleranceIntegrationTest      │
- *   │  - 执行注册/完成                    │
- *   │  - Worker 离线迁移                  │
- *   └─────────────────────────────────────┘
+ *   ┌─────────────────────────────────────────┐
+ *   │  ExecutorIntegrationTest                  │
+ *   │  - 简单任务执行                           │
+ *   │  - 并发调度执行                           │
+ *   │  - 执行时间精度                           │
+ *   ├─────────────────────────────────────────┤
+ *   │  RetryIntegrationTest                     │
+ *   │  - 重试直到成功                           │
+ *   │  - 重试次数配置                           │
+ *   │  - 重试间隔验证                           │
+ *   ├─────────────────────────────────────────┤
+ *   │  FaultToleranceIntegrationTest            │
+ *   │  - 执行注册/完成                          │
+ *   │  - Worker 离线迁移                        │
+ *   ├─────────────────────────────────────────┤
+ *   │  MultiBrokerReliabilityTest               │
+ *   │  - 并发抢占幂等性                         │
+ *   │  - Broker 重启恢复                        │
+ *   │  - Worker 离线迁移                        │
+ *   │  - 重复分发幂等性                         │
+ *   └─────────────────────────────────────────┘
  * 
  * 执行方式：
  *   1. IDE: 直接运行此类
  *   2. Maven: mvn test -Dtest=RegressionTestSuite
+ *   3. Maven (回归测试 Profile): mvn test -Pregression-test
  *   3. Launcher: TestLauncher.runSuite("regression")
  * 
  * @author Fluxion Test Framework
@@ -48,7 +56,10 @@ import org.junit.platform.suite.api.Suite;
     RetryIntegrationTest.class,
     
     // 容错能力测试
-    FaultToleranceIntegrationTest.class
+    FaultToleranceIntegrationTest.class,
+    
+    // 多 Broker 可靠性测试（新增）
+    MultiBrokerReliabilityTest.class
 })
 public class RegressionTestSuite {
     // 套件类，无需实现

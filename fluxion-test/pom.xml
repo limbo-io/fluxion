@@ -99,5 +99,30 @@
         </plugins>
     </build>
 
+    <profiles>
+        <!-- 回归测试专用 Profile -->
+        <profile>
+            <id>regression-test</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${maven-surefire-plugin.version}</version>
+                        <configuration>
+                            <includes>
+                                <!-- 可靠性回归测试套件 -->
+                                <include>**/MultiBrokerReliabilityTest.java</include>
+                                <include>**/RegressionTestSuite.java</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
