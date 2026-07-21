@@ -16,6 +16,7 @@ local.properties
 # *.http
 *.db
 .flattened-pom.xml
+.DS_Store
 
 # Eclipse Core
 .project

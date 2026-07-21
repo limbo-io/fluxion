@@ -45,9 +45,10 @@ public class FaultToleranceConfiguration {
             ExecutionStateStore stateStore,
             RetryStrategy retryStrategy,
             TimeoutManager timeoutManager,
-            FailoverManager failoverManager) {
+            FailoverManager failoverManager,
+            FaultToleranceProperties properties) {
         return new DefaultFaultToleranceCoordinator(
-            stateStore, retryStrategy, timeoutManager, failoverManager
+            stateStore, retryStrategy, timeoutManager, failoverManager, properties
         );
     }
 }

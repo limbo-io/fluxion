@@ -2,6 +2,7 @@ package io.fluxion.server.core.execution.fault;
 
 import io.fluxion.server.core.execution.cmd.ExecutionMigrateCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionRetryScheduleCmd;
+import io.fluxion.server.core.execution.fault.config.FaultToleranceProperties;
 import io.fluxion.server.core.execution.fault.failover.FailoverManager;
 import io.fluxion.server.core.execution.fault.retry.RetryContext;
 import io.fluxion.server.core.execution.fault.retry.RetryStrategy;
@@ -30,17 +31,26 @@ public class DefaultFaultToleranceCoordinator implements FaultToleranceCoordinat
     @Resource
     private PersistentExecutionStateRepository persistentRepository;
 
-    private final Duration defaultTimeout = Duration.ofMinutes(30);
+    private final FaultToleranceProperties properties;
 
     public DefaultFaultToleranceCoordinator(
             ExecutionStateStore stateStore,
             RetryStrategy retryStrategy,
             TimeoutManager timeoutManager,
-            FailoverManager failoverManager) {
+            FailoverManager failoverManager,
+            FaultToleranceProperties properties) {
         this.stateStore = stateStore;
         this.retryStrategy = retryStrategy;
         this.timeoutManager = timeoutManager;
         this.failoverManager = failoverManager;
+        this.properties = properties;
+    }
+
+    private Duration getDefaultTimeout() {
+        if (properties != null && properties.getTimeout() != null && properties.getTimeout().getDefaultTimeout() != null) {
+            return properties.getTimeout().getDefaultTimeout();
+        }
+        return Duration.ofMinutes(30);
     }
 
     /**
@@ -69,7 +79,8 @@ public class DefaultFaultToleranceCoordinator implements FaultToleranceCoordinat
         }
 
         // 设置超时时间戳
-        long timeoutTimestamp = System.currentTimeMillis() + defaultTimeout.toMillis();
+        Duration timeout = getDefaultTimeout();
+        long timeoutTimestamp = System.currentTimeMillis() + timeout.toMillis();
         execution.setTimeoutTimestamp(timeoutTimestamp);
 
         // Persist to DB first (persistent source of truth)
@@ -81,7 +92,7 @@ public class DefaultFaultToleranceCoordinator implements FaultToleranceCoordinat
         stateStore.add(execution);
 
         // 添加超时监控
-        timeoutManager.addTimeout(execution.getExecutionId(), defaultTimeout, this::onExecutionTimeout);
+        timeoutManager.addTimeout(execution.getExecutionId(), timeout, this::onExecutionTimeout);
 
         log.info("[FAULT] Execution registered successfully: executionId={}", execution.getExecutionId());
 
@@ -189,15 +200,10 @@ public class DefaultFaultToleranceCoordinator implements FaultToleranceCoordinat
 
         log.warn("[FAULT-TIMEOUT] Execution timed out: executionId={}", executionId);
 
-        info.setState(ExecutionState.TIMEOUT);
-        info.setEndTime(System.currentTimeMillis());
-
-        // Remove from both DB and memory on timeout
-        if (persistentRepository != null) {
-            persistentRepository.remove(executionId);
-        }
-        stateStore.remove(executionId);
-
-        // TODO: 根据配置决定是否重试
+        // Apply same failure handling as regular failures (with retry policy)
+        handleFailure(info, ExecutionResult.failed(
+            new RuntimeException("Execution timed out after " + getDefaultTimeout()),
+            ErrorCategory.TRANSIENT
+        ));
     }
 }

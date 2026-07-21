@@ -6,6 +6,7 @@ import io.fluxion.server.core.execution.fault.ExecutionInfo;
 import io.fluxion.server.core.execution.fault.ExecutionRegistration;
 import io.fluxion.server.core.execution.fault.ExecutionResult;
 import io.fluxion.server.core.execution.fault.ExecutionState;
+import io.fluxion.server.core.execution.fault.config.FaultToleranceProperties;
 import io.fluxion.server.core.execution.fault.failover.DefaultFailoverManager;
 import io.fluxion.server.core.execution.fault.failover.FailoverManager;
 import io.fluxion.server.core.execution.fault.retry.ExponentialBackoffRetryStrategy;
@@ -42,8 +43,14 @@ class DefaultFaultToleranceCoordinatorTest {
         timeoutManager = new TimingWheelTimeoutManager();
         failoverManager = new DefaultFailoverManager(store);
 
+        // Configure test-specific timeout (50ms for fast tests)
+        FaultToleranceProperties properties = new FaultToleranceProperties();
+        FaultToleranceProperties.TimeoutConfig timeoutConfig = new FaultToleranceProperties.TimeoutConfig();
+        timeoutConfig.setDefaultTimeout(Duration.ofMillis(50));
+        properties.setTimeout(timeoutConfig);
+
         coordinator = new DefaultFaultToleranceCoordinator(
-            store, retryStrategy, timeoutManager, failoverManager
+            store, retryStrategy, timeoutManager, failoverManager, properties
         );
     }
 
