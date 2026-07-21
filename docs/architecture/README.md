@@ -13,6 +13,7 @@
 | [executor.md](./executor.md) | 执行器模式设计 |
 | [job-types.md](./job-types.md) | 任务类型说明 |
 | [scheduling.md](./scheduling.md) | 任务调度流程 |
+| [execution-state.md](./execution-state.md) | 执行状态与投递语义 |
 | [data-model.md](./data-model.md) | 数据模型设计 |
 
 ## 快速开始
@@ -23,7 +24,8 @@
 2. [modules.md](./modules.md) - 了解项目模块划分
 3. [executor.md](./executor.md) - 了解如何开发执行器
 4. [job-types.md](./job-types.md) - 了解任务类型选择
-5. [data-model.md](./data-model.md) - 了解数据存储设计
+5. [execution-state.md](./execution-state.md) - 了解执行可靠性与投递语义
+6. [data-model.md](./data-model.md) - 了解数据存储设计
 
 ## 适用读者
 
