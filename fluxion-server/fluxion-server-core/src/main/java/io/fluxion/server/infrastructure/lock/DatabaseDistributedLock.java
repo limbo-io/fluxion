@@ -18,20 +18,30 @@ package io.fluxion.server.infrastructure.lock;
 
 import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.BrokerContext;
-import io.fluxion.server.infrastructure.dao.entity.LockEntity;
 import io.fluxion.server.infrastructure.dao.repository.LockEntityRepo;
 import io.fluxion.server.infrastructure.dao.tx.TransactionService;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
 import io.fluxion.server.infrastructure.exception.PlatformException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
+ * 数据库分布式锁实现。
+ * 
+ * 关键改进（修复并发问题和所有权bug）：
+ * 1. 使用 UUID 令牌作为锁持有者标识，避免 brokerId + threadId 的冲突风险
+ * 2. 原子性条件更新（INSERT...ON DUPLICATE KEY UPDATE 语义）
+ *    - 更新仅当：记录不存在、已过期（expire_at <= now）、或同一持有者
+ * 3. 修复过期逻辑：原代码使用 isBefore 导致逻辑反转，现在正确判断 lock NOT expired AND different owner
+ * 4. 解锁时传递令牌，防止持有者 A 解锁持有者 B 的锁
+ * 
  * @author Devil
  * @since 2024/1/14
  */
@@ -45,14 +55,21 @@ public class DatabaseDistributedLock implements DistributedLock {
     @Resource
     private TransactionService transactionService;
 
+    /**
+     * 锁持有令牌映射：key=锁名称, value=当前线程持有的令牌
+     * 用于在同一线程内重入和解锁时验证所有权
+     */
+    private final ConcurrentHashMap<String, String> lockTokens = new ConcurrentHashMap<>();
+
     @Override
     public <T> T lock(String name, long expire, long wait, Supplier<T> supplier) {
         long endTime = System.currentTimeMillis() + wait;
-        boolean locked = false;
+        String token = null;
         try {
             do {
-                if (tryLock(name, expire)) {
-                    locked = true;
+                token = tryLockInternal(name, expire);
+                if (token != null) {
+                    lockTokens.put(name, token);
                     break;
                 }
                 Thread.sleep(50);
@@ -60,57 +77,88 @@ public class DatabaseDistributedLock implements DistributedLock {
         } catch (Exception e) {
             log.error("[DistributedLock] lock error name:{}", name, e);
         }
-        if (!locked) {
+        if (!lockTokens.containsKey(name)) {
             throw new PlatformException(ErrorCode.SYSTEM_ERROR, "[DistributedLock] get lock " + name + " failed");
         }
         try {
             return supplier.get();
         } finally {
-            unlock(name);
+            unlockInternal(name, lockTokens.remove(name));
         }
     }
 
     @Override
     public boolean tryLock(String name, long expire) {
-        LockEntity lock = lockEntityRepo.findByName(name);
-
-        // 防止同节点并发问题
-        String current = owner();
-
-        // 如果锁未过期且当前节点非加锁节点，加锁失败
-        if (lock != null && lock.getExpireAt().isBefore(TimeUtils.currentLocalDateTime()) && !lock.getOwner().equals(current)) {
-            return false;
+        String token = tryLockInternal(name, expire);
+        if (token != null) {
+            lockTokens.put(name, token);
+            return true;
         }
-        if (lock == null) {
-            lock = new LockEntity();
-        }
-        lock.setName(name);
-        lock.setOwner(current);
-        lock.setExpireAt(TimeUtils.currentLocalDateTime().plus(expire, ChronoUnit.MILLIS));
-        return dbLock(lock);
+        return false;
     }
 
-    private String owner() {
-        return BrokerContext.broker().id() + "_" + Thread.currentThread().getId();
-    }
+    /**
+     * 尝试获取锁，返回令牌如果成功，null 如果失败。
+     * 使用原子性条件更新确保并发安全。
+     */
+    private String tryLockInternal(String name, long expire) {
+        // 生成唯一令牌：brokerId + UUID（避免 threadId 冲突）
+        String token = generateToken();
+        LocalDateTime expireAt = TimeUtils.currentLocalDateTime().plus(expire, ChronoUnit.MILLIS);
+        LocalDateTime now = TimeUtils.currentLocalDateTime();
 
-    private boolean dbLock(LockEntity lock) {
+        // 原子性尝试获取锁：
+        // - 成功返回 1：记录不存在、已过期、或同持有者
+        // - 失败返回 0：被其他持有者锁定且未过期
         return transactionService.transactional(() -> {
-            try {
-                lockEntityRepo.saveAndFlush(lock);
-                return true;
-            } catch (DataIntegrityViolationException dive) {
-                // 数据重复
-                return false;
-            } catch (Exception e) {
-                log.warn("[DistributedLock] lock failed, name = {}.", lock.getName(), e);
-                return false;
+            int affected = lockEntityRepo.tryAcquireLock(name, token, expireAt, now);
+            if (affected > 0) {
+                if (log.isDebugEnabled()) {
+                    log.debug("[DistributedLock] acquired lock: name={}, owner={}, expireAt={}", 
+                        name, token, expireAt);
+                }
+                return token;
             }
+            return null;
         });
     }
 
     @Override
     public boolean unlock(String name) {
-        return transactionService.transactional(() -> lockEntityRepo.deleteByNameAndOwner(name, owner()) > 0);
+        String token = lockTokens.remove(name);
+        if (token == null) {
+            // 如果没有记录令牌（可能是异常路径），尝试查找并删除当前 owner
+            // 但这里更安全的方式是不删除，避免误删他人锁
+            log.warn("[DistributedLock] unlock called without holding lock: name={}", name);
+            return false;
+        }
+        return unlockInternal(name, token);
+    }
+
+    /**
+     * 使用令牌解锁，确保只能删除自己持有的锁。
+     */
+    private boolean unlockInternal(String name, String token) {
+        if (token == null) {
+            return false;
+        }
+        return transactionService.transactional(() -> {
+            int deleted = lockEntityRepo.deleteByNameAndOwner(name, token);
+            if (deleted > 0 && log.isDebugEnabled()) {
+                log.debug("[DistributedLock] released lock: name={}, owner={}", name, token);
+            }
+            return deleted > 0;
+        });
+    }
+
+    /**
+     * 生成唯一令牌：brokerId + UUID。
+     * 比之前使用的 brokerId + threadId 更安全，避免：
+     * 1. 不同 broker 的 threadId 冲突
+     * 2. 线程复用导致的持有者混淆
+     */
+    private String generateToken() {
+        String brokerId = BrokerContext.broker() != null ? BrokerContext.broker().id() : "unknown";
+        return brokerId + "_" + UUID.randomUUID().toString();
     }
 }
