@@ -40,6 +40,11 @@ public class JobDispatchRequest implements Request<Boolean> {
      */
     private String executorName;
 
+    /**
+     * 下发尝试次数，用于幂等控制
+     */
+    private int dispatchAttempt;
+
     public String getExecuteMode() {
         return executeMode;
     }
@@ -62,5 +67,13 @@ public class JobDispatchRequest implements Request<Boolean> {
 
     public void setExecutorName(String executorName) {
         this.executorName = executorName;
+    }
+
+    public int getDispatchAttempt() {
+        return dispatchAttempt;
+    }
+
+    public void setDispatchAttempt(int dispatchAttempt) {
+        this.dispatchAttempt = dispatchAttempt;
     }
 }

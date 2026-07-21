@@ -79,8 +79,28 @@ public class WorkerClientHandler implements ClientHandler {
         }
     }
 
+    /**
+     * 任务下发幂等缓存：key = jobId + dispatchAttempt
+     */
+    private final java.util.Map<DispatchCacheKey, DispatchCacheEntry> dispatchCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * 缓存过期时间：10分钟
+     */
+    private static final long DISPATCH_CACHE_EXPIRE_MS = 10 * 60 * 1000;
+
     private boolean jobDispatch(String data) {
         JobDispatchRequest request = JacksonUtils.toType(data, JobDispatchRequest.class);
+
+        // 幂等性检查：相同的(jobId, dispatchAttempt)直接返回缓存结果
+        DispatchCacheKey cacheKey = new DispatchCacheKey(request.getJobId(), request.getDispatchAttempt());
+        DispatchCacheEntry cached = dispatchCache.get(cacheKey);
+        if (cached != null && !cached.isExpired()) {
+            log.info("[WorkerClientHandler] Returning cached dispatch result for job {} attempt {}: success={}",
+                request.getJobId(), request.getDispatchAttempt(), cached.isSuccess());
+            return cached.isSuccess();
+        }
+
         Job job = WorkerClientConverter.toJob(request);
         Executor executor = workerContext.executor(job.getExecutorName());
         if (executor == null) {
@@ -88,6 +108,7 @@ public class WorkerClientHandler implements ClientHandler {
         }
         if (!workerContext.status().isRunning()) {
             log.info("Worker is not running: {}", workerContext.status());
+            cacheDispatchResult(cacheKey, false);
             return false;
         }
         JobTracker tracker;
@@ -107,9 +128,68 @@ public class WorkerClientHandler implements ClientHandler {
         }
         if (!workerContext.saveJobTracker(tracker)) {
             log.info("Receive job [{}], but already in repository", job.getId());
+            cacheDispatchResult(cacheKey, true);
             return true;
         }
-        return tracker.start();
+        boolean success = tracker.start();
+        cacheDispatchResult(cacheKey, success);
+        return success;
+    }
+
+    private void cacheDispatchResult(DispatchCacheKey key, boolean success) {
+        dispatchCache.put(key, new DispatchCacheEntry(success, System.currentTimeMillis()));
+        // 简单清理过期条目（实际生产环境应使用带过期时间的缓存）
+        cleanupExpiredCacheEntries();
+    }
+
+    private void cleanupExpiredCacheEntries() {
+        long now = System.currentTimeMillis();
+        dispatchCache.entrySet().removeIf(entry -> entry.getValue().isExpired(now));
+    }
+
+    /**
+     * 幂等缓存键
+     */
+    private static class DispatchCacheKey {
+        private final String jobId;
+        private final int dispatchAttempt;
+
+        DispatchCacheKey(String jobId, int dispatchAttempt) {
+            this.jobId = jobId;
+            this.dispatchAttempt = dispatchAttempt;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            DispatchCacheKey that = (DispatchCacheKey) o;
+            return dispatchAttempt == that.dispatchAttempt && java.util.Objects.equals(jobId, that.jobId);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hash(jobId, dispatchAttempt);
+        }
+    }
+
+    /**
+     * 幂等缓存条目
+     */
+    private static class DispatchCacheEntry {
+        private final boolean success;
+        private final long timestamp;
+
+        DispatchCacheEntry(boolean success, long timestamp) {
+            this.success = success;
+            this.timestamp = timestamp;
+        }
+
+        boolean isSuccess() { return success; }
+
+        boolean isExpired() { return isExpired(System.currentTimeMillis()); }
+
+        boolean isExpired(long now) { return now - timestamp > DISPATCH_CACHE_EXPIRE_MS; }
     }
 
     /**
