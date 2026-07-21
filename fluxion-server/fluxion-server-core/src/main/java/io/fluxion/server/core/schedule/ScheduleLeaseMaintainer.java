@@ -17,19 +17,14 @@
 package io.fluxion.server.core.schedule;
 
 import io.fluxion.server.core.broker.BrokerContext;
-import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
 import io.fluxion.server.infrastructure.dao.tx.TransactionService;
-import io.limbo.cqrs.spring.query.Query;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 /**
  * Maintains broker leases for schedule delays.
@@ -43,7 +38,6 @@ import java.util.List;
  * @author Devil
  */
 @Slf4j
-@Component
 public class ScheduleLeaseMaintainer {
 
     /**
@@ -51,108 +45,11 @@ public class ScheduleLeaseMaintainer {
      */
     private static final int LEASE_SECONDS = 15;
 
-    /**
-     * Renew owned leases every 10 seconds to prevent expiration
-     */
-    private static final long RENEW_INTERVAL_MS = 10000;
-
-    /**
-     * Scan for reclaimable leases every 5 seconds
-     */
-    private static final long RECLAIM_INTERVAL_MS = 5000;
-
     @Resource
     private EntityManager entityManager;
 
     @Resource
     private TransactionService transactionService;
-
-    /**
-     * Renew leases for delays owned by current broker.
-     * Scheduled every 10 seconds to ensure leases don't expire before next renewal.
-     */
-    @Scheduled(fixedRate = RENEW_INTERVAL_MS)
-    public void renewLeases() {
-        String brokerId = getCurrentBrokerId();
-        if (brokerId == null) {
-            return;
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime newLeaseUntil = now.plusSeconds(LEASE_SECONDS);
-
-        try {
-            int renewed = transactionService.transactional(() ->
-                entityManager.createQuery(
-                        "UPDATE ScheduleDelayEntity e " +
-                        "SET e.leaseUntil = :newLeaseUntil, e.updatedAt = :now " +
-                        "WHERE e.leaseOwner = :brokerId " +
-                        "AND e.status = :status " +
-                        "AND e.deleted = false"
-                    )
-                    .setParameter("newLeaseUntil", newLeaseUntil)
-                    .setParameter("now", now)
-                    .setParameter("brokerId", brokerId)
-                    .setParameter("status", ScheduleDelay.Status.CLAIMED.value)
-                    .executeUpdate()
-            );
-
-            if (renewed > 0 && log.isDebugEnabled()) {
-                log.debug("Renewed {} lease(s) for broker {}", renewed, brokerId);
-            }
-        } catch (Exception e) {
-            log.error("Failed to renew leases for broker {}", brokerId, e);
-        }
-    }
-
-    /**
-     * Scan for expired leases that can be reclaimed.
-     * Scheduled every 5 seconds to allow failover within ~20 seconds.
-     * <p>
-     * Marks expired CLAIMED delays as INIT so they can be re-claimed.
-     */
-    @Scheduled(fixedRate = RECLAIM_INTERVAL_MS)
-    public void reclaimExpiredLeases() {
-        String brokerId = getCurrentBrokerId();
-        if (brokerId == null) {
-            return;
-        }
-
-        List<Integer> buckets = getCurrentBrokerBuckets();
-        if (buckets.isEmpty()) {
-            return;
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-
-        try {
-            // Find and reset delays with expired leases back to INIT status
-            // This allows them to be re-claimed by any broker (including current if applicable)
-            int reclaimed = transactionService.transactional(() ->
-                entityManager.createQuery(
-                        "UPDATE ScheduleDelayEntity e " +
-                        "SET e.status = :newStatus, e.leaseOwner = NULL, " +
-                        "    e.leaseUntil = NULL, e.updatedAt = :now " +
-                        "WHERE e.bucket IN :buckets " +
-                        "AND e.status = :currentStatus " +
-                        "AND e.leaseUntil < :now " +
-                        "AND e.deleted = false"
-                    )
-                    .setParameter("newStatus", ScheduleDelay.Status.INIT.value)
-                    .setParameter("buckets", buckets)
-                    .setParameter("currentStatus", ScheduleDelay.Status.CLAIMED.value)
-                    .setParameter("now", now)
-                    .executeUpdate()
-            );
-
-            if (reclaimed > 0) {
-                log.info("Reclaimed {} expired lease(s) for buckets {}, broker {}",
-                    reclaimed, buckets, brokerId);
-            }
-        } catch (Exception e) {
-            log.error("Failed to reclaim expired leases for broker {}", brokerId, e);
-        }
-    }
 
     /**
      * Atomically claim a delay for the current broker using conditional update.
@@ -178,7 +75,7 @@ public class ScheduleLeaseMaintainer {
             int updated = entityManager.createQuery(
                     "UPDATE ScheduleDelayEntity e " +
                     "SET e.leaseOwner = :brokerId, e.leaseUntil = :leaseUntil, " +
-                    "    e.status = :newStatus, e.attempt = e.attempt + 1, e.updatedAt = :now " +
+                    "    e.status = :newStatus, e.attempt = e.attempt + 1, e.updatedAt = CURRENT_TIMESTAMP " +
                     "WHERE e.id.scheduleId = :scheduleId " +
                     "AND e.id.triggerAt = :triggerAt " +
                     "AND e.status = :initStatus " +
@@ -187,7 +84,6 @@ public class ScheduleLeaseMaintainer {
                 .setParameter("brokerId", brokerId)
                 .setParameter("leaseUntil", leaseUntil)
                 .setParameter("newStatus", ScheduleDelay.Status.CLAIMED.value)
-                .setParameter("now", now)
                 .setParameter("scheduleId", scheduleId)
                 .setParameter("triggerAt", triggerAt)
                 .setParameter("initStatus", ScheduleDelay.Status.INIT.value)
@@ -201,6 +97,7 @@ public class ScheduleLeaseMaintainer {
      * Verify that the current broker still owns the lease.
      * <p>
      * This is the fencing check: before executing, confirm we still have the lease.
+     * Uses MySQL NOW(3) for consistent time comparison across all database operations.
      *
      * @param scheduleId the schedule ID
      * @param triggerAt the trigger time
@@ -212,26 +109,23 @@ public class ScheduleLeaseMaintainer {
             return false;
         }
 
-        LocalDateTime now = LocalDateTime.now();
-
-        Long count = entityManager.createQuery(
-                "SELECT COUNT(e) FROM ScheduleDelayEntity e " +
-                "WHERE e.id.scheduleId = :scheduleId " +
-                "AND e.id.triggerAt = :triggerAt " +
-                "AND e.leaseOwner = :brokerId " +
-                "AND e.leaseUntil > :now " +
-                "AND e.status = :status " +
-                "AND e.deleted = false",
-                Long.class
+        // Use MySQL NOW(3) for consistent time - requires native query
+        Long count = ((Number) entityManager.createNativeQuery(
+                "SELECT COUNT(*) FROM schedule_delay " +
+                "WHERE schedule_id = :scheduleId " +
+                "AND trigger_at = :triggerAt " +
+                "AND lease_owner = :brokerId " +
+                "AND lease_until > NOW(3) " +
+                "AND status = :status " +
+                "AND deleted = false"
             )
             .setParameter("scheduleId", scheduleId)
             .setParameter("triggerAt", triggerAt)
             .setParameter("brokerId", brokerId)
-            .setParameter("now", now)
             .setParameter("status", ScheduleDelay.Status.CLAIMED.value)
-            .getSingleResult();
+            .getSingleResult()).longValue();
 
-        return count != null && count > 0;
+        return count > 0;
     }
 
     /**
@@ -253,7 +147,7 @@ public class ScheduleLeaseMaintainer {
         return transactionService.transactional(() -> {
             int updated = entityManager.createQuery(
                     "UPDATE ScheduleDelayEntity e " +
-                    "SET e.status = :newStatus, e.updatedAt = :now " +
+                    "SET e.status = :newStatus, e.updatedAt = CURRENT_TIMESTAMP " +
                     "WHERE e.id.scheduleId = :scheduleId " +
                     "AND e.id.triggerAt = :triggerAt " +
                     "AND e.leaseOwner = :brokerId " +
@@ -262,10 +156,10 @@ public class ScheduleLeaseMaintainer {
                     "AND e.deleted = false"
                 )
                 .setParameter("newStatus", ScheduleDelay.Status.RUNNING.value)
-                .setParameter("now", now)
                 .setParameter("scheduleId", scheduleId)
                 .setParameter("triggerAt", triggerAt)
                 .setParameter("brokerId", brokerId)
+                .setParameter("now", now)
                 .setParameter("currentStatus", ScheduleDelay.Status.CLAIMED.value)
                 .executeUpdate();
 
@@ -278,13 +172,5 @@ public class ScheduleLeaseMaintainer {
             return null;
         }
         return BrokerContext.broker().id();
-    }
-
-    private List<Integer> getCurrentBrokerBuckets() {
-        String brokerId = getCurrentBrokerId();
-        if (brokerId == null) {
-            return java.util.Collections.emptyList();
-        }
-        return Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
     }
 }
