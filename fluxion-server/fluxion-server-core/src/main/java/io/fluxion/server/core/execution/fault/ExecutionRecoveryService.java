@@ -19,6 +19,7 @@ package io.fluxion.server.core.execution.fault;
 import io.fluxion.server.core.execution.fault.store.ExecutionStateStore;
 import io.fluxion.server.core.execution.fault.store.PersistentExecutionStateRepository;
 import io.fluxion.server.core.execution.fault.timeout.TimeoutManager;
+import io.fluxion.server.core.execution.fault.config.FaultToleranceProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,7 +45,11 @@ public class ExecutionRecoveryService {
     @Resource
     private TimeoutManager timeoutManager;
 
-    private final Duration defaultTimeout = Duration.ofMinutes(30);
+    @Resource
+    private FaultToleranceCoordinator faultToleranceCoordinator;
+
+    @Resource
+    private FaultToleranceProperties properties;
 
     /**
      * Recover active executions for the given broker and buckets.
@@ -58,7 +63,7 @@ public class ExecutionRecoveryService {
         log.info("[RECOVERY] Starting execution recovery for broker={} on buckets={}", brokerId, buckets);
 
         // 1. Query active executions with expired leases from DB
-        List<ExecutionInfo> activeExecutions = persistentRepository.getActiveExecutionsForRecovery();
+        List<ExecutionInfo> activeExecutions = persistentRepository.getActiveExecutionsForRecovery(buckets);
 
         if (activeExecutions.isEmpty()) {
             log.info("[RECOVERY] No active executions to recover for broker={}", brokerId);
@@ -101,12 +106,12 @@ public class ExecutionRecoveryService {
             }
 
             // Calculate remaining timeout
-            long remainingTimeout = defaultTimeout.toMillis();
+            long remainingTimeout = properties.getTimeout().getDefaultTimeout().toMillis();
             if (timeoutTimestamp > 0) {
                 remainingTimeout = Math.max(0, timeoutTimestamp - now);
             } else {
                 // Set timeout timestamp if not set
-                timeoutTimestamp = now + defaultTimeout.toMillis();
+                timeoutTimestamp = now + properties.getTimeout().getDefaultTimeout().toMillis();
                 execution.setTimeoutTimestamp(timeoutTimestamp);
             }
 
@@ -136,9 +141,7 @@ public class ExecutionRecoveryService {
      */
     private boolean tryClaimLease(String executionId, String brokerId) {
         try {
-            LocalDateTime leaseUntil = LocalDateTime.now().plusMinutes(5);
-            persistentRepository.updateState(executionId, ExecutionState.RUNNING, null, brokerId, leaseUntil);
-            return true;
+            return persistentRepository.tryClaimRecoveryLease(executionId, brokerId, 300);
         } catch (Exception e) {
             log.warn("[RECOVERY] Failed to claim lease for execution={}: {}", executionId, e.getMessage());
             return false;
@@ -156,11 +159,8 @@ public class ExecutionRecoveryService {
 
         log.warn("[RECOVERY-TIMEOUT] Recovered execution timed out: executionId={}", executionId);
 
-        info.setState(ExecutionState.TIMEOUT);
-        info.setEndTime(System.currentTimeMillis());
-
-        // Remove from memory and DB
-        executionStateStore.remove(executionId);
-        persistentRepository.remove(executionId);
+        faultToleranceCoordinator.complete(executionId, ExecutionResult.failed(
+            new RuntimeException("Recovered execution timed out"), ErrorCategory.TRANSIENT
+        ));
     }
 }

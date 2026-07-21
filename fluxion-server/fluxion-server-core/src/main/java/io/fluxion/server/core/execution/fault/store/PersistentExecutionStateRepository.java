@@ -86,18 +86,25 @@ public class PersistentExecutionStateRepository {
     /**
      * Get active executions for recovery (those with expired or no leases)
      */
-    public List<ExecutionInfo> getActiveExecutionsForRecovery() {
+    public List<ExecutionInfo> getActiveExecutionsForRecovery(List<Integer> buckets) {
         log.debug("[PERSISTENT-STATE] Querying active executions for recovery");
         
         // Active statuses for fault tolerance purposes
         List<String> activeStatuses = List.of("running", "restarted");
         
-        List<ExecutionEntity> entities = executionEntityRepo.findActiveExecutionsWithExpiredLeases(
-                activeStatuses, LocalDateTime.now());
+        if (buckets.isEmpty()) {
+            return List.of();
+        }
+        List<ExecutionEntity> entities = executionEntityRepo.findActiveExecutionsForRecovery(activeStatuses, buckets);
         
         return entities.stream()
                 .map(this::toExecutionInfo)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public boolean tryClaimRecoveryLease(String executionId, String brokerId, int leaseSeconds) {
+        return executionEntityRepo.claimRecoveryLease(executionId, brokerId, leaseSeconds) == 1;
     }
 
     /**

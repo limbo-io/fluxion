@@ -5,11 +5,11 @@
 ## 快速开始
 
 ```bash
-# 1. 执行快速单元测试（约 1-5 秒）
-mvn test -pl fluxion-test
+# 1. 执行非 MySQL 回归测试
+mvn test -pl fluxion-test -am -Pregression-test
 
-# 2. 执行回归测试（发布前验证）
-mvn test -pl fluxion-test -Pregression-test
+# 2. 执行 MySQL 并发 SQL 集成测试（需要 Docker 或外部 MySQL）
+mvn test -pl fluxion-test -am -Pmysql-integration-test
 
 # 3. 执行全部测试并生成覆盖率报告
 mvn test -pl fluxion-test -Pall-tests jacoco:report
@@ -17,11 +17,11 @@ mvn test -pl fluxion-test -Pall-tests jacoco:report
 
 ## 回归测试（发布前验证）
 
-回归测试套件 (`RegressionTestSuite`) 用于发布前快速验证核心功能是否正常：
+`regression-test` profile 执行除 `integration/mysql` 外的 `*Test`/`*Tests`。使用 `-am` 确保测试运行的是本次构建出的 server/worker 模块，而不是本地 Maven 仓库中的旧依赖。
 
 ```bash
 # 运行回归测试
-mvn test -pl fluxion-test -Pregression-test
+mvn test -pl fluxion-test -am -Pregression-test
 ```
 
 回归测试覆盖以下场景：
@@ -33,6 +33,23 @@ mvn test -pl fluxion-test -Pregression-test
 6. 重试间隔配置
 7. 工作流调度配置
 8. 核心 API 验证
+
+## MySQL 集成测试
+
+lease fencing、数据库锁和 execution recovery 使用 MySQL 专有 SQL，必须在 MySQL 8 上验证，不能使用 H2 替代：
+
+```bash
+# 默认通过 Testcontainers 启动 MySQL 8
+mvn test -pl fluxion-test -am -Pmysql-integration-test
+
+# 无 Docker 时，使用外部 MySQL
+export FLUXION_TEST_MYSQL_URL='jdbc:mysql://127.0.0.1:3306/fluxion_test?useSSL=false&serverTimezone=UTC'
+export FLUXION_TEST_MYSQL_USERNAME=root
+export FLUXION_TEST_MYSQL_PASSWORD='***'
+mvn test -pl fluxion-test -am -Pmysql-integration-test
+```
+
+该 profile 覆盖数据库锁竞争、schedule lease 续租/接管和 execution recovery 的 MySQL 行为。
 
 ## 测试架构
 

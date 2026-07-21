@@ -71,6 +71,7 @@ public class ExecutionCommandService {
         if (entity == null) {
             entity = new ExecutionEntity();
             entity.setExecutionId(Cmd.send(new IDGenerateCmd(IDType.EXECUTION)).getId());
+            entity.setBucket(Math.floorMod(entity.getExecutionId().hashCode(), 64) + 1);
             entity.setTriggerId(cmd.getTriggerId());
             entity.setTriggerType(cmd.getTriggerType().value);
             entity.setExecutableId(executable.id());

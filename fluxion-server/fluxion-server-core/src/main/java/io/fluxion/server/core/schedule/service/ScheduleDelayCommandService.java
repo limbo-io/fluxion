@@ -29,6 +29,8 @@ import io.fluxion.server.core.schedule.cmd.CancelTasksByBucketCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByIdsCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByScheduleCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayReleaseClaimsCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleLeaseReclaimCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleLeaseRenewCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelaysCreateCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelaysLoadCmd;
 import io.fluxion.server.core.schedule.converter.ScheduleDelayEntityConverter;
@@ -101,6 +103,18 @@ public class ScheduleDelayCommandService {
             entity.setBucket(bucket);
         }
         scheduleDelayEntityRepo.saveAllAndFlush(entities);
+    }
+
+    @CommandHandler
+    public void handle(ScheduleLeaseRenewCmd cmd) {
+        int renewed = leaseMaintainer.renewClaims(cmd.getBrokerId(), cmd.getLeaseDurationSeconds());
+        log.debug("Renewed {} schedule leases for broker {}", renewed, cmd.getBrokerId());
+    }
+
+    @CommandHandler
+    public void handle(ScheduleLeaseReclaimCmd cmd) {
+        int reclaimed = leaseMaintainer.reclaimExpiredClaims(cmd.getBuckets());
+        log.debug("Reclaimed {} expired schedule leases for buckets {}", reclaimed, cmd.getBuckets());
     }
 
     @Transactional
@@ -273,13 +287,7 @@ public class ScheduleDelayCommandService {
                 sql.append(" AND execution_token = :executionToken");
             }
             
-            // Add lease validity check for non-terminal transitions
-            boolean isTerminalTransition = (newStatus == ScheduleDelay.Status.SUCCEED || 
-                                            newStatus == ScheduleDelay.Status.FAILED ||
-                                            newStatus == ScheduleDelay.Status.INVALID);
-            if (!isTerminalTransition) {
-                sql.append(" AND lease_until > NOW(3)");
-            }
+            sql.append(" AND lease_until > NOW(3)");
             
             var query = entityManager.createNativeQuery(sql.toString())
                 .setParameter("newStatus", newStatus.value)

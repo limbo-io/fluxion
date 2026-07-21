@@ -20,6 +20,7 @@ import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -40,14 +41,26 @@ public interface ExecutionEntityRepo extends JpaRepository<ExecutionEntity, Stri
      */
     List<ExecutionEntity> findByStatusIn(List<String> statuses);
 
-    /**
-     * Find active executions with expired leases for recovery
-     * Active statuses: RUNNING, RESTARTED (considered as actively running)
-     */
-    @Query("SELECT e FROM ExecutionEntity e WHERE e.status IN :statuses AND (e.leaseUntil IS NULL OR e.leaseUntil < :now)")
-    List<ExecutionEntity> findActiveExecutionsWithExpiredLeases(
+    @Query(value = "SELECT * FROM fluxion_execution " +
+            "WHERE status IN (:statuses) " +
+            "AND (bucket IN (:buckets) OR bucket IS NULL) " +
+            "AND (lease_until IS NULL OR lease_until < NOW(3))", nativeQuery = true)
+    List<ExecutionEntity> findActiveExecutionsForRecovery(
             @Param("statuses") List<String> statuses,
-            @Param("now") LocalDateTime now
+            @Param("buckets") List<Integer> buckets
+    );
+
+    @Modifying
+    @Query(value = "UPDATE fluxion_execution " +
+            "SET recovery_owner = :brokerId, lease_owner = :brokerId, " +
+            "lease_until = DATE_ADD(NOW(3), INTERVAL :leaseSeconds SECOND), state_updated_at = NOW(3) " +
+            "WHERE execution_id = :executionId " +
+            "AND status IN ('running', 'restarted') " +
+            "AND (lease_until IS NULL OR lease_until < NOW(3))", nativeQuery = true)
+    int claimRecoveryLease(
+            @Param("executionId") String executionId,
+            @Param("brokerId") String brokerId,
+            @Param("leaseSeconds") int leaseSeconds
     );
 
     /**

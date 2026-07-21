@@ -127,8 +127,21 @@ mvn flyway:repair -pl fluxion-server/fluxion-server-start
 fluxion-server/fluxion-server-start/src/main/resources/db/migration/
 ├── V20250101__init.sql                    # 初始版本
 ├── V20260714__add_schedule_delay_lease.sql      # 调度延迟租约
-└── V20260714__add_execution_lease_and_attempt.sql # 执行租约和重试
+├── V20260714__add_execution_lease_and_attempt.sql # 执行租约和重试
+└── V20260721__add_execution_bucket_and_recovery_owner.sql # 恢复归属与 bucket
 ```
+
+---
+
+## 调度 lease 与故障接管
+
+每个 Broker 通过 `coreTasks` 维护自己已 claim 的调度记录：lease 有效期为 15 秒，每 10 秒续租一次，并每 5 秒扫描本 Broker bucket 内的过期 claim。lease 的比较和更新由 MySQL `NOW(3)` 完成，避免 Broker 时钟偏差。
+
+- Broker 正常停止时，仍处于 `CLAIMED` 的记录会被释放回 `INIT`，由新 owner 重新 claim。
+- `RUNNING` 记录不在停机时直接重置；已创建的 execution 由 fault-tolerance 根据任务超时或 Worker 下线执行重试。
+- execution recovery 只处理当前 Broker 所属 bucket，并使用条件更新取得 recovery lease，因此不会覆盖原始 `workerId`。
+
+业务执行器仍必须保证幂等。lease 和 fencing 只能降低重复下发概率，不能提供 exactly-once 语义。
 
 ---
 

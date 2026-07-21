@@ -114,6 +114,9 @@
                         <include>**/*Test.java</include>
                         <include>**/*Tests.java</include>
                     </includes>
+                    <excludes>
+                        <exclude>**/integration/mysql/**</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
         </plugins>
@@ -134,9 +137,12 @@
                         <version>${maven-surefire-plugin.version}</version>
                         <configuration>
                             <includes>
-                                <!-- 可靠性回归测试套件 -->
-                                <include>**/MultiBrokerReliabilityTest.java</include>
+                                <include>**/*Test.java</include>
+                                <include>**/*Tests.java</include>
                             </includes>
+                            <excludes>
+                                <exclude>**/integration/mysql/**</exclude>
+                            </excludes>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -163,12 +169,6 @@
                             <includes>
                                 <include>**/mysql/*Test.java</include>
                             </includes>
-                            <!-- Allow environment-based MySQL configuration -->
-                            <environmentVariables>
-                                <FLUXION_TEST_MYSQL_URL>${env.FLUXION_TEST_MYSQL_URL}</FLUXION_TEST_MYSQL_URL>
-                                <FLUXION_TEST_MYSQL_HOST>${env.FLUXION_TEST_MYSQL_HOST}</FLUXION_TEST_MYSQL_HOST>
-                                <FLUXION_TEST_MYSQL_PORT>${env.FLUXION_TEST_MYSQL_PORT}</FLUXION_TEST_MYSQL_PORT>
-                            </environmentVariables>
                         </configuration>
                     </plugin>
                 </plugins>

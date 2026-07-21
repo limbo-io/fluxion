@@ -65,12 +65,18 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @SpringBootApplication
 @ComponentScan(
     basePackages = "io.fluxion",
-    excludeFilters = @ComponentScan.Filter(
-        type = FilterType.ASSIGNABLE_TYPE,
-        // 排除生产环境的数据库分布式锁实现
-        // 使用 LocalDistributedLock 替代
-        classes = DatabaseDistributedLock.class
-    )
+    excludeFilters = {
+        @ComponentScan.Filter(
+            type = FilterType.ASSIGNABLE_TYPE,
+            // 排除生产环境的数据库分布式锁实现
+            // 使用 LocalDistributedLock 替代
+            classes = DatabaseDistributedLock.class
+        ),
+        @ComponentScan.Filter(
+            type = FilterType.REGEX,
+            pattern = "io\\.fluxion\\.test\\.integration\\.mysql\\..*"
+        )
+    }
 )
 @EnableTransactionManagement
 @EntityScan(basePackages = "io.fluxion.**.dao.entity")
