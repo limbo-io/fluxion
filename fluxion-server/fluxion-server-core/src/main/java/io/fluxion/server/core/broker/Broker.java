@@ -29,11 +29,12 @@ import io.fluxion.server.core.broker.task.JobUnRunChecker;
 import io.fluxion.server.core.broker.task.ScheduleDelayLoader;
 import io.fluxion.server.core.broker.task.ScheduleLoader;
 import io.fluxion.server.core.broker.task.WorkerChecker;
+import io.fluxion.server.core.execution.fault.ExecutionRecoveryService;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayReleaseClaimsCmd;
-import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.fluxion.server.infrastructure.schedule.scheduler.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
+import io.limbo.cqrs.spring.command.Cmd;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.Assert;
@@ -67,6 +68,8 @@ public class Broker {
 
     private final DelayedTaskScheduler delayedTaskScheduler;
 
+    private ExecutionRecoveryService recoveryService;
+
     public Broker(Protocol protocol, String host, int port, BrokerManger brokerManger,
                   ClientServer clientServer) {
         Assert.isTrue(Protocol.UNKNOWN != protocol, "protocol is unknown");
@@ -92,6 +95,13 @@ public class Broker {
     }
 
     /**
+     * Set the execution recovery service (called by subclasses)
+     */
+    protected void setRecoveryService(ExecutionRecoveryService recoveryService) {
+        this.recoveryService = recoveryService;
+    }
+
+    /**
      * 启动节点
      */
     public void start() {
@@ -99,6 +109,12 @@ public class Broker {
         BrokerContext.initialize(this);
         // 节点管理
         brokerManger.start();
+        
+        // Recover active executions after bucket initialization
+        if (recoveryService != null) {
+            recoveryService.recoverExecutions(id(), java.util.Collections.emptyList());
+        }
+        
         // 启动服务处理请求
         clientServer.start();
         // 启动核心任务

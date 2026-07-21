@@ -26,6 +26,7 @@ import io.fluxion.remote.core.utils.NetUtils;
 import io.fluxion.server.core.broker.Broker;
 import io.fluxion.server.core.broker.BrokerClientHandler;
 import io.fluxion.server.core.broker.BrokerManger;
+import io.fluxion.server.core.execution.fault.ExecutionRecoveryService;
 import io.limbo.utils.ReflectionUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -58,6 +59,9 @@ public class FluxionServerAutoConfiguration {
     @Resource
     private BrokerManger brokerManger;
 
+    @Resource
+    private ExecutionRecoveryService executionRecoveryService;
+
     @Bean
     @ConditionalOnMissingBean
     public Broker broker() {
@@ -77,7 +81,7 @@ public class FluxionServerAutoConfiguration {
 
         return new FluxionBroker(
             properties.getProtocol(), host, port,
-            brokerManger, clientServer
+            brokerManger, clientServer, executionRecoveryService
         );
     }
 
@@ -87,8 +91,10 @@ public class FluxionServerAutoConfiguration {
     private static class FluxionBroker extends Broker {
 
         FluxionBroker(Protocol protocol, String host, int port,
-                      BrokerManger brokerManger, ClientServer clientServer) {
+                      BrokerManger brokerManger, ClientServer clientServer,
+                      ExecutionRecoveryService recoveryService) {
             super(protocol, host, port, brokerManger, clientServer);
+            setRecoveryService(recoveryService);
             ReflectionUtils.configure("io.fluxion");
         }
 
