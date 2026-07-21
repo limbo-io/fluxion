@@ -73,6 +73,12 @@ public class ScheduleDelayEntity extends BaseEntity {
      */
     private Integer attempt;
 
+    /**
+     * Execution token for fencing RUNNING state transitions.
+     * Generated when transitioning to RUNNING, validated on finish.
+     */
+    private String executionToken;
+
     @Override
     public Object getUid() {
         return id;

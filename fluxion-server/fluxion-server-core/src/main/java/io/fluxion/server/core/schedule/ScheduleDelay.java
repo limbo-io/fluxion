@@ -55,6 +55,12 @@ public class ScheduleDelay {
      */
     private Integer attempt;
 
+    /**
+     * Execution token for fencing RUNNING state transitions.
+     * Generated when transitioning to RUNNING, validated on finish.
+     */
+    private String executionToken;
+
     public void status(Status status) {
         this.status = status;
     }
@@ -69,6 +75,10 @@ public class ScheduleDelay {
 
     public void attempt(Integer attempt) {
         this.attempt = attempt;
+    }
+
+    public void executionToken(String executionToken) {
+        this.executionToken = executionToken;
     }
 
     public ScheduleDelay(ID id, Status status) {

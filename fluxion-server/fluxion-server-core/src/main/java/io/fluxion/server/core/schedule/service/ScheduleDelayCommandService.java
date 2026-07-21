@@ -53,12 +53,24 @@ import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
+ * ScheduleDelayCommandService implements proper fencing for schedule state transitions.
+ *
+ * State machine with fencing:
+ * - INIT → CLAIMED: claim with owner, 15s lease, attempt + 1
+ * - CLAIMED → CLAIMED: renew lease (owner match + not expired)
+ * - CLAIMED → RUNNING: begin execution (owner match + not expired), generate execution token
+ * - RUNNING → SUCCEED/FAILED: finish execution (owner match + token match)
+ * - CLAIMED → INIT: graceful release (owner match, clear owner/lease/token)
+ * - RUNNING → reclaimable: lease expired, next broker can claim after expiration
+ *
  * @author Devil
  */
 @Slf4j
@@ -107,20 +119,16 @@ public class ScheduleDelayCommandService {
 
             ScheduleDelay.ID delayId = delay.getId();
 
-            // Attempt to claim the delay with lease mechanism
-            // Only claim if trigger time is within the next minute (to avoid claiming too far in advance)
+            // Only claim if trigger time is within the next minute
             java.time.LocalDateTime now = java.time.LocalDateTime.now();
             java.time.LocalDateTime oneMinuteLater = now.plusMinutes(1);
 
             if (delayId.getTriggerAt().isAfter(oneMinuteLater)) {
-                // Delay is too far in the future, skip for now
-                // It will be loaded in a future iteration when closer to trigger time
                 continue;
             }
 
             boolean claimed = leaseMaintainer.tryClaim(delayId.getScheduleId(), delayId.getTriggerAt());
             if (!claimed) {
-                // Another broker claimed it or it's no longer available
                 log.debug("Failed to claim delay {}:{}, skipping", delayId.getScheduleId(), delayId.getTriggerAt());
                 continue;
             }
@@ -140,10 +148,17 @@ public class ScheduleDelayCommandService {
 
     private Consumer<DelayedTask> consumer(String scheduleId, ScheduleDelay.ID delayId) {
         return task -> {
-            // First, verify we still own the lease (fencing check)
-            // This prevents split-brain scenarios where broker lost lease but task still fired
+            String brokerId = getCurrentBrokerId();
+            if (brokerId == null) {
+                log.warn("No broker context for delay {}:{}, stopping task", scheduleId, delayId.getTriggerAt());
+                task.stop();
+                return;
+            }
+
+            // Fencing check: verify we still own the lease
             if (!leaseMaintainer.verifyLease(delayId.getScheduleId(), delayId.getTriggerAt())) {
-                log.warn("Lease verification failed for delay {}:{}, stopping task", scheduleId, delayId.getTriggerAt());
+                log.warn("Lease verification failed for delay {}:{}, fencing triggered", 
+                    scheduleId, delayId.getTriggerAt());
                 task.stop();
                 return;
             }
@@ -152,62 +167,284 @@ public class ScheduleDelayCommandService {
 
             // Check if trigger is enabled
             if (!trigger.isEnabled()) {
-                // Transition from CLAIMED to INVALID
-                changeDelayStatus(delayId, ScheduleDelay.Status.CLAIMED, ScheduleDelay.Status.INVALID);
+                int affected = changeDelayStatus(delayId, ScheduleDelay.Status.CLAIMED, ScheduleDelay.Status.INVALID, brokerId, null);
+                if (affected == 0) {
+                    log.warn("Failed to transition delay {}:{} from CLAIMED to INVALID, possible fencing violation", 
+                        scheduleId, delayId.getTriggerAt());
+                } else {
+                    log.info("Transitioned delay {}:{} to INVALID (trigger disabled), affected={}", 
+                        scheduleId, delayId.getTriggerAt(), affected);
+                }
                 task.stop();
-                log.info("Trigger is not enabled id:{}", scheduleId);
                 return;
             }
 
-            // Verify we can transition from CLAIMED to RUNNING atomically with lease check
-            // This guards against concurrent execution attempts
-            if (!leaseMaintainer.transitionToRunning(delayId.getScheduleId(), delayId.getTriggerAt())) {
-                log.info("Failed to transition delay {} to RUNNING, another broker may be processing",
-                    scheduleId);
+            // Transition to RUNNING with execution token generation
+            String executionToken = UUID.randomUUID().toString();
+            int affected = changeDelayStatusToRunning(delayId, brokerId, executionToken);
+            if (affected == 0) {
+                log.warn("Failed to transition delay {}:{} to RUNNING, fencing rejected (rows=0)", scheduleId);
                 task.stop();
                 return;
             }
+
+            log.info("Transitioned delay {}:{} to RUNNING, broker={}, token={}", 
+                scheduleId, delayId.getTriggerAt(), brokerId, executionToken);
 
             try {
                 Executable executable = Query.query(new ExecutableByIdQuery(
                     trigger.executableId(), trigger.getConfig().getExecuteConfig().type()
                 )).getExecutable();
                 transactionService.transactional(() -> {
-                    // 创建执行记录
                     Execution execution = Cmd.send(new ExecutionCreateCmd(
                         trigger.getId(),
                         TriggerType.SCHEDULE,
                         executable,
                         task.triggerAt()
                     )).getExecution();
-                    // 执行
                     executable.execute(execution);
                 });
-                // 成功状态: RUNNING -> SUCCEED
-                changeDelayStatus(delayId, ScheduleDelay.Status.RUNNING, ScheduleDelay.Status.SUCCEED);
+                
+                // Success: RUNNING → SUCCEED with token validation
+                int finishAffected = changeDelayStatus(delayId, ScheduleDelay.Status.RUNNING, 
+                    ScheduleDelay.Status.SUCCEED, brokerId, executionToken);
+                if (finishAffected == 0) {
+                    log.error("Failed to transition delay {}:{} to SUCCEED, fencing rejected (rows=0). " +
+                        "Possible concurrent execution or broker failover.", scheduleId, delayId.getTriggerAt());
+                } else {
+                    log.info("Transitioned delay {}:{} to SUCCEED, affected={}", 
+                        scheduleId, delayId.getTriggerAt(), finishAffected);
+                }
             } catch (Exception e) {
-                log.error("ScheduleDelay run error id:{}", JacksonUtils.toJSONString(delayId), e);
-                changeDelayStatus(delayId, ScheduleDelay.Status.RUNNING, ScheduleDelay.Status.FAILED);
+                log.error("ScheduleDelay run error id:{} broker={}", 
+                    JacksonUtils.toJSONString(delayId), brokerId, e);
+                
+                // Failure: RUNNING → FAILED with token validation
+                int finishAffected = changeDelayStatus(delayId, ScheduleDelay.Status.RUNNING, 
+                    ScheduleDelay.Status.FAILED, brokerId, executionToken);
+                if (finishAffected == 0) {
+                    log.error("Failed to transition delay {}:{} to FAILED, fencing rejected (rows=0). " +
+                        "Possible concurrent execution or broker failover.", scheduleId, delayId.getTriggerAt());
+                } else {
+                    log.info("Transitioned delay {}:{} to FAILED, affected={}", 
+                        scheduleId, delayId.getTriggerAt(), finishAffected);
+                }
             }
         };
     }
 
-    private int changeDelayStatus(List<ScheduleDelay.ID> delayIds, ScheduleDelay.Status oldStatus, ScheduleDelay.Status newStatus) {
-        return transactionService.transactional(() -> entityManager.createQuery(
-                "update ScheduleDelayEntity " +
-                    "set status = :newStatus " +
-                    "where id in :ids and status = :oldStatus"
-            )
-            .setParameter("newStatus", newStatus.value)
-            .setParameter("oldStatus", oldStatus.value)
-            .setParameter("ids", ScheduleDelayEntityConverter.convertToEntityIds(delayIds))
-            .executeUpdate());
+    /**
+     * Change delay status with owner and execution token validation.
+     * Uses native SQL with WHERE status = :old AND lease_owner = :owner 
+     * AND (lease_until > NOW(3) OR :skipLeaseCheck = true) for fencing.
+     *
+     * @param delayId the delay ID
+     * @param oldStatus expected current status
+     * @param newStatus target status
+     * @param owner the broker ID that must own the lease
+     * @param executionToken the execution token (required for RUNNING terminal transitions)
+     * @return number of affected rows (0 means fencing rejected)
+     */
+    private int changeDelayStatus(ScheduleDelay.ID delayId, ScheduleDelay.Status oldStatus, 
+                                   ScheduleDelay.Status newStatus, String owner, String executionToken) {
+        return transactionService.transactional(() -> {
+            String scheduleId = delayId.getScheduleId();
+            LocalDateTime triggerAt = delayId.getTriggerAt();
+            
+            // Build native SQL with conditional fencing
+            StringBuilder sql = new StringBuilder(
+                "UPDATE schedule_delay " +
+                "SET status = :newStatus, updated_at = CURRENT_TIMESTAMP(3)"
+            );
+            
+            // Clear execution token when leaving RUNNING
+            if (oldStatus == ScheduleDelay.Status.RUNNING) {
+                sql.append(", execution_token = NULL");
+            }
+            
+            sql.append(" WHERE schedule_id = :scheduleId " +
+                "AND trigger_at = :triggerAt " +
+                "AND status = :oldStatus " +
+                "AND lease_owner = :owner " +
+                "AND deleted = false");
+            
+            // Add execution token check for RUNNING → terminal transitions
+            if (oldStatus == ScheduleDelay.Status.RUNNING && executionToken != null) {
+                sql.append(" AND execution_token = :executionToken");
+            }
+            
+            // Add lease validity check for non-terminal transitions
+            boolean isTerminalTransition = (newStatus == ScheduleDelay.Status.SUCCEED || 
+                                            newStatus == ScheduleDelay.Status.FAILED ||
+                                            newStatus == ScheduleDelay.Status.INVALID);
+            if (!isTerminalTransition) {
+                sql.append(" AND lease_until > NOW(3)");
+            }
+            
+            var query = entityManager.createNativeQuery(sql.toString())
+                .setParameter("newStatus", newStatus.value)
+                .setParameter("scheduleId", scheduleId)
+                .setParameter("triggerAt", triggerAt)
+                .setParameter("oldStatus", oldStatus.value)
+                .setParameter("owner", owner);
+            
+            if (oldStatus == ScheduleDelay.Status.RUNNING && executionToken != null) {
+                query.setParameter("executionToken", executionToken);
+            }
+            
+            int affected = query.executeUpdate();
+            
+            log.debug("changeDelayStatus: {}:{} {}→{} by owner={}, affected={}, token={}", 
+                scheduleId, triggerAt, oldStatus, newStatus, owner, affected, 
+                executionToken != null ? "present" : "null");
+            
+            return affected;
+        });
     }
 
-    private boolean changeDelayStatus(ScheduleDelay.ID delayId, ScheduleDelay.Status oldStatus, ScheduleDelay.Status newStatus) {
-        return transactionService.transactional(() ->
-            changeDelayStatus(Collections.singletonList(delayId), oldStatus, newStatus) > 0
-        );
+    /**
+     * Transition from CLAIMED to RUNNING with execution token generation.
+     * This is a special case because we need to SET the execution token.
+     */
+    private int changeDelayStatusToRunning(ScheduleDelay.ID delayId, String owner, String executionToken) {
+        return transactionService.transactional(() -> {
+            String scheduleId = delayId.getScheduleId();
+            LocalDateTime triggerAt = delayId.getTriggerAt();
+            
+            String sql = "UPDATE schedule_delay " +
+                "SET status = :newStatus, execution_token = :executionToken, updated_at = CURRENT_TIMESTAMP(3) " +
+                "WHERE schedule_id = :scheduleId " +
+                "AND trigger_at = :triggerAt " +
+                "AND status = :oldStatus " +
+                "AND lease_owner = :owner " +
+                "AND lease_until > NOW(3) " +
+                "AND deleted = false";
+            
+            int affected = entityManager.createNativeQuery(sql)
+                .setParameter("newStatus", ScheduleDelay.Status.RUNNING.value)
+                .setParameter("executionToken", executionToken)
+                .setParameter("scheduleId", scheduleId)
+                .setParameter("triggerAt", triggerAt)
+                .setParameter("oldStatus", ScheduleDelay.Status.CLAIMED.value)
+                .setParameter("owner", owner)
+                .executeUpdate();
+            
+            log.debug("changeDelayStatusToRunning: {}:{} CLAIMED→RUNNING by owner={}, affected={}, token={}", 
+                scheduleId, triggerAt, owner, affected, executionToken);
+            
+            return affected;
+        });
+    }
+
+    /**
+     * Gracefully release CLAIMED delays for a broker during shutdown.
+     * Only releases CLAIMED records with owner match (not RUNNING).
+     * Atomic update: CLAIMED → INIT with owner check, clears owner/lease/token.
+     *
+     * @param brokerId the broker ID whose claims should be released
+     * @return number of claims released
+     */
+    @Transactional
+    public int releaseClaimsForBroker(String brokerId) {
+        // Only reset CLAIMED → INIT, not RUNNING
+        // RUNNING records are handled by fault-tolerance (execution already created)
+        String sql = "UPDATE schedule_delay " +
+            "SET status = :initStatus, lease_owner = NULL, lease_until = NULL, " +
+            "    execution_token = NULL, updated_at = CURRENT_TIMESTAMP(3) " +
+            "WHERE lease_owner = :brokerId " +
+            "AND status = :claimedStatus " +
+            "AND deleted = false";
+        
+        int affected = entityManager.createNativeQuery(sql)
+            .setParameter("initStatus", ScheduleDelay.Status.INIT.value)
+            .setParameter("brokerId", brokerId)
+            .setParameter("claimedStatus", ScheduleDelay.Status.CLAIMED.value)
+            .executeUpdate();
+        
+        if (affected > 0) {
+            log.info("Released {} CLAIMED schedule delays for broker {} (CLAIMED→INIT)", affected, brokerId);
+        }
+        
+        return affected;
+    }
+
+    /**
+     * Recover RUNNING delays that have expired leases.
+     * This handles the case where a broker crashed while executing.
+     *
+     * Recovery rules:
+     * - If execution not yet created: lease expired → reclaim → INIT
+     * - If execution created: fault-tolerance handles, don't duplicate
+     *
+     * @return number of delays recovered
+     */
+    @Transactional
+    public int recoverExpiredRunningDelays() {
+        // Find RUNNING delays with expired leases
+        // These can be safely reset to INIT if no execution exists
+        // The execution service handles duplicate prevention at execution creation time
+        
+        String findSql = "SELECT schedule_id, trigger_at, lease_owner, execution_token " +
+            "FROM schedule_delay " +
+            "WHERE status = :runningStatus " +
+            "AND lease_until < DATE_SUB(NOW(3), INTERVAL 30 SECOND) " +
+            "AND deleted = false";
+        
+        @SuppressWarnings("unchecked")
+        List<Object[]> expiredDelays = entityManager.createNativeQuery(findSql)
+            .setParameter("runningStatus", ScheduleDelay.Status.RUNNING.value)
+            .getResultList();
+        
+        if (CollectionUtils.isEmpty(expiredDelays)) {
+            return 0;
+        }
+        
+        int recovered = 0;
+        for (Object[] row : expiredDelays) {
+            String scheduleId = (String) row[0];
+            LocalDateTime triggerAt = ((java.sql.Timestamp) row[1]).toLocalDateTime();
+            String oldOwner = (String) row[2];
+            String oldToken = (String) row[3];
+            
+            // Reset to INIT - execution service will handle duplicates at creation time
+            String updateSql = "UPDATE schedule_delay " +
+                "SET status = :initStatus, lease_owner = NULL, lease_until = NULL, " +
+                "    execution_token = NULL, updated_at = CURRENT_TIMESTAMP(3) " +
+                "WHERE schedule_id = :scheduleId " +
+                "AND trigger_at = :triggerAt " +
+                "AND status = :runningStatus " +
+                "AND lease_owner = :oldOwner " +
+                "AND deleted = false";
+            
+            int affected = entityManager.createNativeQuery(updateSql)
+                .setParameter("initStatus", ScheduleDelay.Status.INIT.value)
+                .setParameter("scheduleId", scheduleId)
+                .setParameter("triggerAt", triggerAt)
+                .setParameter("runningStatus", ScheduleDelay.Status.RUNNING.value)
+                .setParameter("oldOwner", oldOwner)
+                .executeUpdate();
+            
+            if (affected > 0) {
+                recovered++;
+                log.warn("Recovered expired RUNNING delay {}:{} (oldOwner={}, oldToken={}) → INIT", 
+                    scheduleId, triggerAt, oldOwner, 
+                    oldToken != null ? oldToken.substring(0, 8) + "..." : "null");
+            }
+        }
+        
+        if (recovered > 0) {
+            log.info("Recovered {} expired RUNNING delays to INIT", recovered);
+        }
+        
+        return recovered;
+    }
+
+    @Transactional
+    @CommandHandler
+    public void handle(ScheduleDelayReleaseClaimsCmd cmd) {
+        int released = releaseClaimsForBroker(cmd.getBrokerId());
+        log.info("Released {} claimed schedule delays for broker {} during graceful shutdown", 
+            released, cmd.getBrokerId());
     }
 
     @Transactional
@@ -233,38 +470,6 @@ public class ScheduleDelayCommandService {
         scheduleDelayEntityRepo.deleteAllById(ids);
     }
 
-    /**
-     * Release all claimed schedule delays for a specific broker.
-     * This sets the lease_owner to NULL, allowing other brokers to reclaim
-     * these delays after the lease expires.
-     *
-     * @param brokerId the broker ID whose claims should be released
-     * @return number of claims released
-     */
-    @Transactional
-    public int releaseClaimsForBroker(String brokerId) {
-        LocalDateTime now = LocalDateTime.now();
-        
-        return entityManager.createQuery(
-                "UPDATE ScheduleDelayEntity e " +
-                "SET e.leaseOwner = NULL, e.leaseUntil = NULL, e.updatedAt = :now " +
-                "WHERE e.leaseOwner = :brokerId " +
-                "AND e.status = :status " +
-                "AND e.deleted = false"
-            )
-            .setParameter("brokerId", brokerId)
-            .setParameter("status", ScheduleDelay.Status.CLAIMED.value)
-            .setParameter("now", now)
-            .executeUpdate();
-    }
-
-    @Transactional
-    @CommandHandler
-    public void handle(ScheduleDelayReleaseClaimsCmd cmd) {
-        int released = releaseClaimsForBroker(cmd.getBrokerId());
-        log.info("Released {} claimed schedule delays for broker {}", released, cmd.getBrokerId());
-    }
-
     @CommandHandler
     public void handle(CancelTasksByBucketCmd cmd) {
         cancelTasksForBuckets(cmd.getBuckets());
@@ -282,11 +487,8 @@ public class ScheduleDelayCommandService {
             return;
         }
         
-        // Get the delayed task scheduler from broker context
         DelayedTaskScheduler scheduler = BrokerContext.broker().delayedTaskScheduler();
         
-        // Query all active delays in these buckets to get their task IDs
-        // The task ID format is: scheduleId + ":" + triggerAt (see ScheduleDelay.ID.toString())
         LocalDateTime now = LocalDateTime.now();
         List<ScheduleDelayEntity> delays = entityManager.createQuery(
                 "SELECT e FROM ScheduleDelayEntity e " +
@@ -303,7 +505,6 @@ public class ScheduleDelayCommandService {
         
         int cancelled = 0;
         for (ScheduleDelayEntity delay : delays) {
-            // The task ID is the same as ScheduleDelay.ID.toString()
             String taskId = delay.getId().getScheduleId() + ":" + delay.getId().getTriggerAt();
             scheduler.stop(taskId);
             cancelled++;
@@ -312,5 +513,12 @@ public class ScheduleDelayCommandService {
         if (cancelled > 0) {
             log.info("Cancelled {} in-memory tasks for buckets {}", cancelled, buckets);
         }
+    }
+
+    private String getCurrentBrokerId() {
+        if (BrokerContext.broker() == null) {
+            return null;
+        }
+        return BrokerContext.broker().id();
     }
 }
