@@ -91,6 +91,31 @@ public class ExecutionEntity extends BaseEntity {
      */
     private LocalDateTime endAt;
 
+    /**
+     * Worker ID executing this execution
+     */
+    private String workerId;
+
+    /**
+     * Number of dispatch attempts
+     */
+    private Integer dispatchAttempt;
+
+    /**
+     * Last state update timestamp
+     */
+    private LocalDateTime stateUpdatedAt;
+
+    /**
+     * Broker ID that owns the lease
+     */
+    private String leaseOwner;
+
+    /**
+     * Lease expiration time
+     */
+    private LocalDateTime leaseUntil;
+
     @Override
     public Object getUid() {
         return executionId;

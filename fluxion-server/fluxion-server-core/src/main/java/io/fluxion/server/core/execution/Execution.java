@@ -22,6 +22,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 /**
  * 执行记录
  *
@@ -43,6 +45,31 @@ public class Execution {
     @Setter(AccessLevel.NONE)
     @Getter(AccessLevel.NONE)
     private Executable executable;
+
+    /**
+     * Worker ID executing this execution
+     */
+    private String workerId;
+
+    /**
+     * Number of dispatch attempts
+     */
+    private Integer dispatchAttempt;
+
+    /**
+     * Last state update timestamp
+     */
+    private LocalDateTime stateUpdatedAt;
+
+    /**
+     * Broker ID that owns the lease
+     */
+    private String leaseOwner;
+
+    /**
+     * Lease expiration time
+     */
+    private LocalDateTime leaseUntil;
 
     public Execution(String id, ExecutionStatus status, String executableId, String executableVersion, ExecutableType type) {
         this.id = id;
