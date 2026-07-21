@@ -42,13 +42,55 @@ public class DispatchOption {
     private LoadBalanceType loadBalanceType = LoadBalanceType.RANDOM;
 
     /**
-     * 所需的CPU 小于等于0表示此作业未定义CPU需求。在分发作业时，会根据此方法返回的CPU核心需求数量来检测一个worker是否有能力执行此作业。
+     * 最大允许的CPU负载（百分比），小于等于0表示不限制。
+     * worker的cpuLoad必须 <= maxCpuLoad 才被认为是可用候选者。
      */
+    private Double maxCpuLoad;
+
+    /**
+     * 兼容旧字段名的别名
+     */
+    public Double getMaxCpuLoad() {
+        return maxCpuLoad != null ? maxCpuLoad : cpuRequirement;
+    }
+
+    /**
+     * 兼容旧字段名的别名
+     */
+    public void setMaxCpuLoad(Double maxCpuLoad) {
+        this.maxCpuLoad = maxCpuLoad;
+    }
+
+    /**
+     * @deprecated Use maxCpuLoad instead (语义取反：cpuLoad <= maxCpuLoad)
+     */
+    @Deprecated
     private Double cpuRequirement;
 
     /**
-     * 所需的内存MB数，小于等于0表示此作业未定义内存需求。在分发作业时，会根据此方法返回的内存需求数量来检测一个worker是否有能力执行此作业。
+     * 最小可用内存(MB)，小于等于0表示不限制。
+     * worker的freeMemory必须 >= minFreeMemory 才被认为是可用候选者。
      */
+    private Long minFreeMemory;
+
+    /**
+     * 兼容旧字段名的别名
+     */
+    public Long getMinFreeMemory() {
+        return minFreeMemory != null ? minFreeMemory : ramRequirement;
+    }
+
+    /**
+     * 兼容旧字段名的别名
+     */
+    public void setMinFreeMemory(Long minFreeMemory) {
+        this.minFreeMemory = minFreeMemory;
+    }
+
+    /**
+     * @deprecated Use minFreeMemory instead (语义保持：freeMemory >= minFreeMemory)
+     */
+    @Deprecated
     private Long ramRequirement;
 
     /**

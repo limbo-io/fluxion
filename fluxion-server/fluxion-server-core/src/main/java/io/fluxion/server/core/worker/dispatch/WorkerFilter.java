@@ -75,17 +75,25 @@ public class WorkerFilter {
 
     /**
      * 基于资源过滤
+     * @param maxCpuLoad 最大允许的CPU负载（百分比），worker的cpuLoad必须 <= maxCpuLoad
+     * @param minFreeMemory 最小可用内存(MB)，worker的freeMemory必须 >= minFreeMemory
      */
-    public WorkerFilter filterResources(Double cpuRequirement, Long ramRequirement) {
+    public WorkerFilter filterResources(Double maxCpuLoad, Long minFreeMemory) {
         List<Worker> filterWorkers = workers.stream().filter(worker -> {
             WorkerMetric metric = worker.getMetric();
+            if (metric == null) {
+                return false;
+            }
+            // 队列必须有可用空间
             if (metric.getAvailableQueueNum() <= 0) {
                 return false;
             }
-            if (cpuRequirement != null && metric.getCpuLoad() < cpuRequirement) {
+            // CPU负载必须 <= 最大允许值
+            if (maxCpuLoad != null && maxCpuLoad > 0 && metric.getCpuLoad() > maxCpuLoad) {
                 return false;
             }
-            if (ramRequirement != null && metric.getFreeMemory() < ramRequirement) {
+            // 可用内存必须 >= 最小要求
+            if (minFreeMemory != null && minFreeMemory > 0 && metric.getFreeMemory() < minFreeMemory) {
                 return false;
             }
             return true;

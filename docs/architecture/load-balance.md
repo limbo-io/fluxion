@@ -234,11 +234,34 @@ public class AppointLBStrategy<S extends LBServer> extends AbstractLBStrategy<S>
    - Worker 必须满足任务的标签要求
    - 支持 k=v 形式的键值对过滤
 
-3. 容量检查
-   - CPU 使用率
-   - 内存使用率
-   - 队列长度
+3. 资源限制检查
+   - 队列必须有可用空间 (availableQueueNum > 0)
+   - CPU负载必须不超过最大允许值 (cpuLoad <= maxCpuLoad)
+   - 可用内存必须满足最小要求 (freeMemory >= minFreeMemory)
 ```
+
+### 资源过滤语义
+
+在 `DispatchOption` 中配置资源限制：
+
+```java
+DispatchOption option = new DispatchOption();
+option.setMaxCpuLoad(80.0);     // 最大允许CPU负载（百分比）
+option.setMinFreeMemory(512L);  // 最小可用内存（MB）
+```
+
+**Worker资源检查规则：**
+
+| 资源指标 | 过滤条件 | 说明 |
+|---------|---------|------|
+| 队列空间 | `availableQueueNum > 0` | 必须有可用队列槽位 |
+| CPU负载 | `cpuLoad <= maxCpuLoad` | Worker当前负载不超过最大允许值 |
+| 可用内存 | `freeMemory >= minFreeMemory` | Worker可用内存满足最小要求 |
+
+**注意：**
+- `maxCpuLoad <= 0` 表示不限制CPU
+- `minFreeMemory <= 0` 表示不限制内存
+- 边界值处理：`cpuLoad == maxCpuLoad` 是允许的（通过）
 
 ### 过滤流程
 
