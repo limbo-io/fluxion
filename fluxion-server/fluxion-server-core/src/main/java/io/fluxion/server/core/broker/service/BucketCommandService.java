@@ -67,7 +67,7 @@ public class BucketCommandService {
     @Transactional
     @CommandHandler
     public void handle(BucketRebalanceCmd cmd) {
-        distributedLock.lock(REBALANCE_LOCK, 10000, -1, (Supplier<Void>) () -> {
+        distributedLock.lock(REBALANCE_LOCK, 10000, 3000, (Supplier<Void>) () -> {
             String brokerId = BrokerContext.broker().id();
             List<String> brokerIds = brokerManger.allAlive().stream().map(BrokerNode::id).sorted().collect(Collectors.toList());
             List<BucketEntity> dbEntities = bucketEntityRepo.findAll();

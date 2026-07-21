@@ -29,18 +29,19 @@ import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 /**
- * 数据库分布式锁实现。
+ * 数据库分布式锁实现（MySQL 安全版本）。
  * 
  * 关键改进（修复并发问题和所有权bug）：
- * 1. 使用 UUID 令牌作为锁持有者标识，避免 brokerId + threadId 的冲突风险
- * 2. 原子性条件更新（INSERT...ON DUPLICATE KEY UPDATE 语义）
- *    - 更新仅当：记录不存在、已过期（expire_at <= now）、或同一持有者
- * 3. 修复过期逻辑：原代码使用 isBefore 导致逻辑反转，现在正确判断 lock NOT expired AND different owner
- * 4. 解锁时传递令牌，防止持有者 A 解锁持有者 B 的锁
+ * 1. 使用 ThreadLocal<String> 存储令牌，避免 static map 被失败线程污染
+ * 2. 使用 UUID 令牌作为锁持有者标识，避免 JVM 全局冲突
+ * 3. MySQL INSERT ... ON DUPLICATE KEY UPDATE 原子性条件更新
+ *    - 更新仅当：记录不存在、已过期（expire_at <= NOW(3)）
+ * 4. 解锁时要求传递 Locked 句柄，验证 name + owner 双重匹配
+ * 5. 修复 wait 语义：wait < 0 无限重试，wait >= 0 带抖动退避直到截止
  * 
  * @author Devil
  * @since 2024/1/14
@@ -56,98 +57,174 @@ public class DatabaseDistributedLock implements DistributedLock {
     private TransactionService transactionService;
 
     /**
-     * 锁持有令牌映射：key=锁名称, value=当前线程持有的令牌
-     * 用于在同一线程内重入和解锁时验证所有权
+     * 线程本地锁令牌：每个线程拥有独立的锁持有记录。
+     * ThreadLocal 确保：
+     * 1. 失败的线程不会污染成功线程的令牌
+     * 2. 线程之间天然隔离，无需同步
+     * 3. 线程退出时自动清理，避免内存泄漏
+     * 
+     * key=锁名称, value=当前线程持有的令牌
      */
-    private final ConcurrentHashMap<String, String> lockTokens = new ConcurrentHashMap<>();
+    private final ThreadLocal<java.util.Map<String, String>> threadLocalTokens = ThreadLocal.withInitial(java.util.HashMap::new);
 
     @Override
     public <T> T lock(String name, long expire, long wait, Supplier<T> supplier) {
-        long endTime = System.currentTimeMillis() + wait;
-        String token = null;
-        try {
-            do {
-                token = tryLockInternal(name, expire);
-                if (token != null) {
-                    lockTokens.put(name, token);
-                    break;
-                }
-                Thread.sleep(50);
-            } while (System.currentTimeMillis() < endTime);
-        } catch (Exception e) {
-            log.error("[DistributedLock] lock error name:{}", name, e);
+        if (expire <= 0) {
+            throw new PlatformException(ErrorCode.ILLEGAL_ARGUMENT, "expire must be positive");
         }
-        if (!lockTokens.containsKey(name)) {
+        
+        Locked locked = doTryLockWithWait(name, expire, wait);
+        if (locked == null) {
             throw new PlatformException(ErrorCode.SYSTEM_ERROR, "[DistributedLock] get lock " + name + " failed");
         }
+        
+        // 只有成功获取锁的线程才能执行 supplier
         try {
             return supplier.get();
         } finally {
-            unlockInternal(name, lockTokens.remove(name));
+            unlock(locked);
         }
     }
 
     @Override
     public boolean tryLock(String name, long expire) {
-        String token = tryLockInternal(name, expire);
-        if (token != null) {
-            lockTokens.put(name, token);
+        if (expire <= 0) {
+            return false;
+        }
+        
+        Locked locked = tryAcquireLock(name, expire);
+        if (locked != null) {
+            // 存储令牌到 ThreadLocal
+            threadLocalTokens.get().put(name, locked.token());
             return true;
         }
         return false;
     }
 
     /**
-     * 尝试获取锁，返回令牌如果成功，null 如果失败。
-     * 使用原子性条件更新确保并发安全。
+     * 尝试获取锁，返回 Locked 句柄（包含 name 和 token）。
+     * 使用 MySQL INSERT ... ON DUPLICATE KEY UPDATE 实现原子性条件获取。
      */
-    private String tryLockInternal(String name, long expire) {
-        // 生成唯一令牌：brokerId + UUID（避免 threadId 冲突）
+    public Locked tryAcquireLock(String name, long expire) {
         String token = generateToken();
         LocalDateTime expireAt = TimeUtils.currentLocalDateTime().plus(expire, ChronoUnit.MILLIS);
-        LocalDateTime now = TimeUtils.currentLocalDateTime();
 
-        // 原子性尝试获取锁：
-        // - 成功返回 1：记录不存在、已过期、或同持有者
-        // - 失败返回 0：被其他持有者锁定且未过期
         return transactionService.transactional(() -> {
-            int affected = lockEntityRepo.tryAcquireLock(name, token, expireAt, now);
+            int affected = lockEntityRepo.tryAcquireLock(name, token, expireAt);
             if (affected > 0) {
+                // 原子操作成功：我们取得了锁（无论是新插入还是覆盖了过期记录）
                 if (log.isDebugEnabled()) {
                     log.debug("[DistributedLock] acquired lock: name={}, owner={}, expireAt={}", 
                         name, token, expireAt);
                 }
-                return token;
+                // 存储令牌到 ThreadLocal
+                threadLocalTokens.get().put(name, token);
+                return new Locked(name, token);
             }
             return null;
         });
     }
 
+    /**
+     * 带等待逻辑的锁获取。
+     * 
+     * @param name 锁名称
+     * @param expire 锁过期时间（毫秒）
+     * @param wait 等待时间（毫秒）：<0 表示无限重试，>=0 表示最多等待指定时间
+     * @return Locked 句柄，如果获取失败返回 null
+     */
+    private Locked doTryLockWithWait(String name, long expire, long wait) {
+        final long startTime = System.currentTimeMillis();
+        final long deadline = wait >= 0 ? startTime + wait : Long.MAX_VALUE;
+        
+        // 初始退避间隔：50-150ms 随机
+        long backoffMs = 50 + ThreadLocalRandom.current().nextInt(100);
+        
+        while (true) {
+            Locked locked = tryAcquireLock(name, expire);
+            if (locked != null) {
+                return locked;
+            }
+            
+            // 检查是否超过等待时间
+            long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0) {
+                return null; // 超时，获取失败
+            }
+            
+            // 计算本次休眠时间：取退避间隔和剩余时间的较小值
+            long sleepMs = Math.min(backoffMs, remaining);
+            if (sleepMs <= 0) {
+                return null;
+            }
+            
+            try {
+                Thread.sleep(sleepMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("[DistributedLock] interrupted while waiting for lock: name={}", name);
+                return null;
+            }
+            
+            // 指数退避 + 抖动：上限 2秒
+            backoffMs = Math.min(backoffMs * 2, 2000);
+            backoffMs = backoffMs / 2 + ThreadLocalRandom.current().nextInt((int) backoffMs);
+        }
+    }
+
+    /**
+     * 使用 Locked 句柄释放锁（推荐方式）。
+     * 验证 name + token 双重匹配，防止误释放其他线程的锁。
+     */
+    public boolean unlock(Locked locked) {
+        if (locked == null || locked.token() == null) {
+            return false;
+        }
+        
+        // 验证 ThreadLocal 中存储的令牌匹配
+        String storedToken = threadLocalTokens.get().get(locked.name());
+        if (storedToken == null || !storedToken.equals(locked.token())) {
+            log.warn("[DistributedLock] unlock token mismatch: name={}, expected in thread={}", 
+                locked.name(), storedToken);
+            return false;
+        }
+        
+        threadLocalTokens.get().remove(locked.name());
+        return unlockWithToken(locked.name(), locked.token());
+    }
+
     @Override
     public boolean unlock(String name) {
-        String token = lockTokens.remove(name);
+        String token = threadLocalTokens.get().remove(name);
         if (token == null) {
-            // 如果没有记录令牌（可能是异常路径），尝试查找并删除当前 owner
-            // 但这里更安全的方式是不删除，避免误删他人锁
+            // 如果没有记录令牌（可能是异常路径或未曾持有），拒绝解锁
             log.warn("[DistributedLock] unlock called without holding lock: name={}", name);
             return false;
         }
-        return unlockInternal(name, token);
+        return unlockWithToken(name, token);
     }
 
     /**
      * 使用令牌解锁，确保只能删除自己持有的锁。
+     * 使用 WHERE name=? AND owner=? 确保原子性验证。
      */
-    private boolean unlockInternal(String name, String token) {
-        if (token == null) {
+    private boolean unlockWithToken(String name, String token) {
+        if (name == null || token == null) {
             return false;
         }
+        
         return transactionService.transactional(() -> {
             int deleted = lockEntityRepo.deleteByNameAndOwner(name, token);
-            if (deleted > 0 && log.isDebugEnabled()) {
-                log.debug("[DistributedLock] released lock: name={}, owner={}", name, token);
+            if (deleted > 0) {
+                if (log.isDebugEnabled()) {
+                    log.debug("[DistributedLock] released lock: name={}, owner={}", name, token);
+                }
+                return true;
+            } else {
+                // 删除失败：可能锁已过期被他人获取，或从未持有
+                log.warn("[DistributedLock] unlock failed - not owner or lock expired: name={}", name);
+                return false;
             }
-            return deleted > 0;
         });
     }
 

@@ -35,35 +35,42 @@ public interface LockEntityRepo extends JpaRepository<LockEntity, String> {
     int deleteByNameAndOwner(String name, String owner);
 
     /**
-     * 原子性条件更新或插入锁记录。
+     * 原子性条件更新或插入锁记录（MySQL 方言）。
      * 
      * 成功条件：
      *   1. 记录不存在（新插入）
-     *   2. 记录已过期（expireAt <= now，覆盖）
-     *   3. 记录属于同一 owner（owner 相同，重新加锁/刷新过期时间）
+     *   2. 记录已过期（expire_at <= NOW(3)，覆盖）
      * 
-     * 使用 H2 的 MERGE INTO 实现原子性，避免 find-then-save 的竞争条件。
+     * 使用 MySQL INSERT ... ON DUPLICATE KEY UPDATE 实现原子性，避免 find-then-save 的竞争条件。
+     * 只有在记录不存在或已过期时才会更新 owner，否则 update 操作不影响任何行。
      * 
      * @param name 锁名称
-     * @param owner 锁持有者
+     * @param owner 期望的锁持有者（仅在插入或过期时生效）
      * @param expireAt 过期时间
-     * @param now 当前时间（用于比较过期）
      * @return 影响的行数：1 表示成功获取锁，0 表示获取失败（被其他持有者锁定且未过期）
      */
     @Modifying
     @Query(value = 
-        "MERGE INTO fluxion_lock t " +
-        "USING (SELECT 1) ON (t.name = :name) " +
-        "WHEN NOT MATCHED THEN " +
-        "  INSERT (name, owner, expire_at, is_deleted, created_at, updated_at) " +
-        "  VALUES (:name, :owner, :expireAt, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) " +
-        "WHEN MATCHED AND (t.expire_at <= :now OR t.owner = :owner) THEN " +
-        "  UPDATE SET t.owner = :owner, t.expire_at = :expireAt, t.updated_at = CURRENT_TIMESTAMP",
+        "INSERT INTO fluxion_lock (name, owner, expire_at, is_deleted, created_at, updated_at) " +
+        "VALUES (:name, :owner, :expireAt, 0, NOW(3), NOW(3)) " +
+        "ON DUPLICATE KEY UPDATE " +
+        "  owner = IF(expire_at <= NOW(3), :owner, owner), " +
+        "  expire_at = IF(expire_at <= NOW(3), :expireAt, expire_at), " +
+        "  updated_at = IF(expire_at <= NOW(3), NOW(3), updated_at), " +
+        "  is_deleted = 0",
         nativeQuery = true)
     int tryAcquireLock(
         @Param("name") String name,
         @Param("owner") String owner,
-        @Param("expireAt") LocalDateTime expireAt,
-        @Param("now") LocalDateTime now
+        @Param("expireAt") LocalDateTime expireAt
     );
+
+    /**
+     * 查询锁记录的当前 owner。
+     * 
+     * @param name 锁名称
+     * @return 当前 owner，如果不存在则返回 null
+     */
+    @Query("SELECT l.owner FROM LockEntity l WHERE l.name = :name AND (l.expireAt IS NULL OR l.expireAt > CURRENT_TIMESTAMP)")
+    String findOwnerByName(@Param("name") String name);
 }

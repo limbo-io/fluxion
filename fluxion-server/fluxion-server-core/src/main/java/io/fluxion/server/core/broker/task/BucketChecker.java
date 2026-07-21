@@ -40,8 +40,8 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class BucketChecker extends CoreTask {
 
-    private static final int INTERVAL = 30;
-    private static final TimeUnit UNIT = TimeUnit.DAYS;
+    private static final int INTERVAL = 5;
+    private static final TimeUnit UNIT = TimeUnit.SECONDS;
 
     /**
      * Tracks buckets owned by this broker in the previous check.

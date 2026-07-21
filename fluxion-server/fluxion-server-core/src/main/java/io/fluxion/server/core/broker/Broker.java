@@ -27,8 +27,11 @@ import io.fluxion.server.core.broker.task.CoreTask;
 import io.fluxion.server.core.broker.task.DataCleaner;
 import io.fluxion.server.core.broker.task.JobUnRunChecker;
 import io.fluxion.server.core.broker.task.ScheduleDelayLoader;
+import io.fluxion.server.core.broker.task.ScheduleLeaseRenewTask;
+import io.fluxion.server.core.broker.task.ScheduleLeaseReclaimTask;
 import io.fluxion.server.core.broker.task.ScheduleLoader;
 import io.fluxion.server.core.broker.task.WorkerChecker;
+import io.fluxion.server.core.schedule.ScheduleLeaseProperties;
 import io.fluxion.server.core.execution.fault.ExecutionRecoveryService;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayReleaseClaimsCmd;
 import io.fluxion.server.infrastructure.concurrent.LoggingTask;
@@ -71,7 +74,7 @@ public class Broker {
     private ExecutionRecoveryService recoveryService;
 
     public Broker(Protocol protocol, String host, int port, BrokerManger brokerManger,
-                  ClientServer clientServer) {
+                  ClientServer clientServer, ScheduleLeaseProperties leaseProperties) {
         Assert.isTrue(Protocol.UNKNOWN != protocol, "protocol is unknown");
         Assert.isTrue(StringUtils.isNotBlank(host), "host is null");
 
@@ -84,7 +87,9 @@ public class Broker {
             new BucketChecker(),
             new DataCleaner(),
             new WorkerChecker(),
-            new JobUnRunChecker()
+            new JobUnRunChecker(),
+            new ScheduleLeaseRenewTask(leaseProperties),
+            new ScheduleLeaseReclaimTask(leaseProperties)
         );
         this.clientServer = clientServer;
         this.coreThreadPool = new ScheduledThreadPoolExecutor(

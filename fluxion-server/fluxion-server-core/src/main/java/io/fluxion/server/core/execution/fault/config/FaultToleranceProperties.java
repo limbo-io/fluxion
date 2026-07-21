@@ -29,6 +29,11 @@ public class FaultToleranceProperties {
      */
     private FailoverConfig failover = new FailoverConfig();
 
+    /**
+     * 执行恢复配置
+     */
+    private RecoveryConfig recovery = new RecoveryConfig();
+
     @Data
     public static class RetryConfig {
         private int maxRetries = 5;
@@ -48,5 +53,14 @@ public class FaultToleranceProperties {
         private boolean enabled = true;
         private Duration workerOfflineTimeout = Duration.ofSeconds(10);
         private int maxMigrations = 3;
+    }
+
+    @Data
+    public static class RecoveryConfig {
+        /**
+         * 执行恢复阈值：超过此时间的过期租约可被恢复
+         * Priority: Worker offline < task timeout < broker recovery threshold
+         */
+        private Duration recoveryThreshold = Duration.ofMinutes(30);
     }
 }

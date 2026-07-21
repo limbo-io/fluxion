@@ -116,6 +116,17 @@ public class ExecutionEntity extends BaseEntity {
      */
     private LocalDateTime leaseUntil;
 
+    /**
+     * Bucket number for broker assignment (computed from executionId)
+     */
+    private Integer bucket;
+
+    /**
+     * Recovery owner broker ID (set when broker claims for recovery)
+     * Separate from workerId to preserve actual worker assignment
+     */
+    private String recoveryOwner;
+
     @Override
     public Object getUid() {
         return executionId;
