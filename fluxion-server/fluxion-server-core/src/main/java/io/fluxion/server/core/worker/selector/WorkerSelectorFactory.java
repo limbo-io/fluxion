@@ -16,16 +16,19 @@
 
 package io.fluxion.server.core.worker.selector;
 
+import io.fluxion.remote.core.lb.LBServer;
+import io.fluxion.remote.core.lb.LBServerStatistics;
 import io.fluxion.remote.core.lb.LBServerStatisticsProvider;
 import io.fluxion.remote.core.lb.LoadBalanceType;
 import io.fluxion.remote.core.lb.strategies.*;
-import lombok.Setter;
+import io.fluxion.server.core.worker.Worker;
+import org.apache.commons.lang3.StringUtils;
 
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.Optional;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * {@link WorkerSelector} 工厂
@@ -36,33 +39,118 @@ import java.util.function.Supplier;
 public class WorkerSelectorFactory {
 
     /**
-     * 用于获取 LB 服务的统计信息，LRU、LFU 算法会用到。
-     * 如果确认不使用 LRU、LFU 算法，可以不设置此属性
+     * 用于获取 LB 服务的统计信息，LRU、LFU 算法会用到
      */
-    @Setter
-    private LBServerStatisticsProvider lbServerStatisticsProvider = (sids, interval) -> Collections.emptyList();
+    private final WorkerStatisticsRepository statisticsRepository = new WorkerStatisticsRepository();
 
-    private final Map<LoadBalanceType, Supplier<WorkerSelector>> selectors = new EnumMap<>(LoadBalanceType.class);
+    /**
+     * 缓存选择器实例，key = appId + executorName + loadBalanceType
+     * 保证同一场景下的负载均衡状态可持久化
+     */
+    private final Map<String, WorkerSelector> selectorCache = new ConcurrentHashMap<>();
+
+    private final Map<LoadBalanceType, Supplier<WorkerSelector>> selectorSuppliers = new EnumMap<>(LoadBalanceType.class);
 
     public WorkerSelectorFactory() {
-        selectors.put(LoadBalanceType.RANDOM, () -> new LBStrategyWorkerSelector(new RandomLBStrategy<>()));
-        selectors.put(LoadBalanceType.ROUND_ROBIN, () -> new LBStrategyWorkerSelector(new RoundRobinLBStrategy<>()));
-        selectors.put(LoadBalanceType.LEAST_FREQUENTLY_USED, () -> new LBStrategyWorkerSelector(new LFULBStrategy<>(this.lbServerStatisticsProvider)));
-        selectors.put(LoadBalanceType.LEAST_RECENTLY_USED, () -> new LBStrategyWorkerSelector(new LRULBStrategy<>(this.lbServerStatisticsProvider)));
-        selectors.put(LoadBalanceType.APPOINT, () -> new LBStrategyWorkerSelector(new AppointLBStrategy<>()));
-        selectors.put(LoadBalanceType.CONSISTENT_HASH, () -> new LBStrategyWorkerSelector(new ConsistentHashLBStrategy<>()));
+        selectorSuppliers.put(LoadBalanceType.RANDOM, () -> new LBStrategyWorkerSelector(new RandomLBStrategy<>()));
+        selectorSuppliers.put(LoadBalanceType.ROUND_ROBIN, () -> new LBStrategyWorkerSelector(new RoundRobinLBStrategy<>()));
+        selectorSuppliers.put(LoadBalanceType.LEAST_FREQUENTLY_USED, () -> new LBStrategyWorkerSelector(new LFULBStrategy<>(statisticsRepository)));
+        selectorSuppliers.put(LoadBalanceType.LEAST_RECENTLY_USED, () -> new LBStrategyWorkerSelector(new LRULBStrategy<>(statisticsRepository)));
+        selectorSuppliers.put(LoadBalanceType.APPOINT, () -> new LBStrategyWorkerSelector(new AppointLBStrategy<>()));
+        selectorSuppliers.put(LoadBalanceType.CONSISTENT_HASH, () -> new LBStrategyWorkerSelector(new ConsistentHashLBStrategy<>()));
     }
 
     /**
-     * 根据作业的分发方式，创建一个分发器实例。委托给{@link LoadBalanceType}执行。
+     * 获取或创建选择器实例（复用同一场景的实例以保持状态）
+     *
+     * @param appId           应用ID
+     * @param executorName    执行器名称
+     * @param loadBalanceType 负载均衡类型
+     * @return 作业分发器
+     */
+    public WorkerSelector getOrCreateSelector(String appId, String executorName, LoadBalanceType loadBalanceType) {
+        String key = buildSelectorKey(appId, executorName, loadBalanceType);
+        return selectorCache.computeIfAbsent(key, k -> newSelector(loadBalanceType));
+    }
+
+    /**
+     * 创建新的选择器实例（不复用）
      *
      * @param loadBalanceType 分发类型
      * @return 作业分发器
      */
     public WorkerSelector newSelector(LoadBalanceType loadBalanceType) {
-        return Optional.ofNullable(selectors.get(loadBalanceType))
+        return Optional.ofNullable(selectorSuppliers.get(loadBalanceType))
             .map(Supplier::get)
             .orElseThrow(() -> new IllegalArgumentException("unknown load balance type: " + loadBalanceType));
+    }
+
+    /**
+     * 获取统计信息仓库
+     */
+    public WorkerStatisticsRepository getStatisticsRepository() {
+        return statisticsRepository;
+    }
+
+    /**
+     * 按选择器偏好对候选者排序（最佳优先）
+     */
+    public List<Worker> sortCandidates(LoadBalanceType loadBalanceType, String executorName, List<Worker> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        switch (loadBalanceType) {
+            case LEAST_FREQUENTLY_USED:
+                return sortByLFU(candidates);
+            case LEAST_RECENTLY_USED:
+                return sortByLRU(candidates);
+            case ROUND_ROBIN:
+                // 轮询保留原始顺序，RR策略会维护index状态
+                return new ArrayList<>(candidates);
+            case RANDOM:
+                // 随机打乱
+                List<Worker> shuffled = new ArrayList<>(candidates);
+                Collections.shuffle(shuffled);
+                return shuffled;
+            default:
+                return new ArrayList<>(candidates);
+        }
+    }
+
+    /**
+     * 按LFU排序（使用次数少的优先）
+     */
+    private List<Worker> sortByLFU(List<Worker> candidates) {
+        Set<String> serverIds = candidates.stream().map(LBServer::id).collect(Collectors.toSet());
+        List<LBServerStatistics> stats = statisticsRepository.getStatistics(serverIds, Duration.ofMinutes(10));
+        Map<String, Integer> accessCounts = stats.stream()
+            .collect(Collectors.toMap(LBServerStatistics::serverId, LBServerStatistics::accessTimes));
+
+        return candidates.stream()
+            .sorted(Comparator.comparingInt(w -> accessCounts.getOrDefault(w.id(), 0)))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 按LRU排序（最久未使用的优先）
+     */
+    private List<Worker> sortByLRU(List<Worker> candidates) {
+        Set<String> serverIds = candidates.stream().map(LBServer::id).collect(Collectors.toSet());
+        List<LBServerStatistics> stats = statisticsRepository.getStatistics(serverIds, Duration.ofMinutes(10));
+        Map<String, Long> lastAccessTimes = stats.stream()
+            .collect(Collectors.toMap(
+                LBServerStatistics::serverId,
+                s -> s.latestAccessAt() != null ? s.latestAccessAt().toEpochMilli() : 0L
+            ));
+
+        return candidates.stream()
+            .sorted(Comparator.comparingLong(w -> lastAccessTimes.getOrDefault(w.id(), 0L)))
+            .collect(Collectors.toList());
+    }
+
+    private String buildSelectorKey(String appId, String executorName, LoadBalanceType loadBalanceType) {
+        return appId + ":" + executorName + ":" + loadBalanceType.name();
     }
 
 }

@@ -23,6 +23,7 @@ import io.fluxion.server.core.worker.converter.WorkerConverter;
 import io.fluxion.server.core.worker.dispatch.WorkerFilter;
 import io.fluxion.server.core.worker.query.WorkerByAppQuery;
 import io.fluxion.server.core.worker.query.WorkerByIdsQuery;
+import io.fluxion.server.core.worker.query.WorkerStatisticsQuery;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.core.worker.selector.WorkerSelectInvocation;
 import io.fluxion.server.core.worker.selector.WorkerSelector;
@@ -60,7 +61,7 @@ public class WorkerQueryService {
     @Resource
     private WorkerMetricEntityRepo workerMetricEntityRepo;
 
-    private static final WorkerSelectorFactory WORKER_SELECTOR_FACTORY = new WorkerSelectorFactory();
+    private final WorkerSelectorFactory workerSelectorFactory = new WorkerSelectorFactory();
 
     @QueryHandler
     public WorkerByAppQuery.Response handle(WorkerByAppQuery query) {
@@ -101,12 +102,22 @@ public class WorkerQueryService {
             .filterExecutor(executorName)
             .filterTags(dispatchOption.getTagFilters());
         if (query.isFilterResource()) {
-            workerFilter = workerFilter.filterResources(dispatchOption.getCpuRequirement(), dispatchOption.getRamRequirement());
+            workerFilter = workerFilter.filterResources(dispatchOption.getMaxCpuLoad(), dispatchOption.getMinFreeMemory());
         }
         List<Worker> filterWorkers = workerFilter.get();
+
+        // 候选排序模式：返回所有候选者按选择器偏好排序
+        if (query.isCandidateOrderMode()) {
+            return new WorkersFilterQuery.Response(
+                workerSelectorFactory.sortCandidates(dispatchOption.getLoadBalanceType(), executorName, filterWorkers)
+            );
+        }
+
         if (query.isLoadBalanceSelect()) {
             WorkerSelectInvocation invocation = new WorkerSelectInvocation(executorName, null);
-            WorkerSelector workerSelector = WORKER_SELECTOR_FACTORY.newSelector(dispatchOption.getLoadBalanceType());
+            WorkerSelector workerSelector = workerSelectorFactory.getOrCreateSelector(
+                query.getAppId(), executorName, dispatchOption.getLoadBalanceType()
+            );
             Worker worker = workerSelector.select(invocation, filterWorkers);
             if (worker == null) {
                 return new WorkersFilterQuery.Response(Collections.emptyList());
@@ -116,6 +127,11 @@ public class WorkerQueryService {
         } else {
             return new WorkersFilterQuery.Response(filterWorkers);
         }
+    }
+
+    @QueryHandler
+    public WorkerStatisticsQuery.Response handle(WorkerStatisticsQuery query) {
+        return new WorkerStatisticsQuery.Response(workerSelectorFactory.getStatisticsRepository());
     }
 
 }

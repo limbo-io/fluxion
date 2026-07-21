@@ -14,29 +14,23 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.worker.selector;
+package io.fluxion.server.core.worker.query;
 
-import io.fluxion.server.core.worker.Worker;
+import io.fluxion.server.core.worker.selector.WorkerStatisticsRepository;
+import io.limbo.cqrs.core.query.IQuery;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
+ * 查询Worker统计信息仓库
+ *
  * @author Devil
  */
-public class WorkerStatisticsRepository extends StandaloneStatisticsRepository<WorkerLBStatistics> {
+public class WorkerStatisticsQuery implements IQuery<WorkerStatisticsQuery.Response> {
 
-    @Override
-    public WorkerLBStatistics map(MutableLBStatistics mutableLBStatistics) {
-        return new WorkerLBStatistics(
-                mutableLBStatistics.getServiceId(),
-                mutableLBStatistics.getLastDispatchTaskAt(),
-                mutableLBStatistics.getDispatchTimes()
-        );
+    @Getter
+    @AllArgsConstructor
+    public static class Response {
+        private WorkerStatisticsRepository repository;
     }
-
-    /**
-     * 记录worker的下发
-     */
-    public void recordDispatch(Worker worker) {
-        record(worker);
-    }
-
 }
