@@ -25,8 +25,10 @@ import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.core.schedule.ScheduleLeaseMaintainer;
+import io.fluxion.server.core.schedule.cmd.CancelTasksByBucketCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByIdsCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByScheduleCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleDelayReleaseClaimsCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelaysCreateCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelaysLoadCmd;
 import io.fluxion.server.core.schedule.converter.ScheduleDelayEntityConverter;
@@ -50,6 +52,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
@@ -228,5 +231,86 @@ public class ScheduleDelayCommandService {
         }
         List<ScheduleDelayEntity.ID> ids = cmd.getIds().stream().map(ScheduleDelayEntityConverter::convert).collect(Collectors.toList());
         scheduleDelayEntityRepo.deleteAllById(ids);
+    }
+
+    /**
+     * Release all claimed schedule delays for a specific broker.
+     * This sets the lease_owner to NULL, allowing other brokers to reclaim
+     * these delays after the lease expires.
+     *
+     * @param brokerId the broker ID whose claims should be released
+     * @return number of claims released
+     */
+    @Transactional
+    public int releaseClaimsForBroker(String brokerId) {
+        LocalDateTime now = LocalDateTime.now();
+        
+        return entityManager.createQuery(
+                "UPDATE ScheduleDelayEntity e " +
+                "SET e.leaseOwner = NULL, e.leaseUntil = NULL, e.updatedAt = :now " +
+                "WHERE e.leaseOwner = :brokerId " +
+                "AND e.status = :status " +
+                "AND e.deleted = false"
+            )
+            .setParameter("brokerId", brokerId)
+            .setParameter("status", ScheduleDelay.Status.CLAIMED.value)
+            .setParameter("now", now)
+            .executeUpdate();
+    }
+
+    @Transactional
+    @CommandHandler
+    public void handle(ScheduleDelayReleaseClaimsCmd cmd) {
+        int released = releaseClaimsForBroker(cmd.getBrokerId());
+        log.info("Released {} claimed schedule delays for broker {}", released, cmd.getBrokerId());
+    }
+
+    @CommandHandler
+    public void handle(CancelTasksByBucketCmd cmd) {
+        cancelTasksForBuckets(cmd.getBuckets());
+    }
+
+    /**
+     * Cancel in-memory scheduled tasks for specific buckets.
+     * This stops the tasks in the delayedTaskScheduler but does not modify database state.
+     * The database leases will expire naturally and be reclaimed by the new bucket owner.
+     *
+     * @param buckets list of bucket numbers whose tasks should be cancelled
+     */
+    public void cancelTasksForBuckets(List<Integer> buckets) {
+        if (CollectionUtils.isEmpty(buckets)) {
+            return;
+        }
+        
+        // Get the delayed task scheduler from broker context
+        DelayedTaskScheduler scheduler = BrokerContext.broker().delayedTaskScheduler();
+        
+        // Query all active delays in these buckets to get their task IDs
+        // The task ID format is: scheduleId + ":" + triggerAt (see ScheduleDelay.ID.toString())
+        LocalDateTime now = LocalDateTime.now();
+        List<ScheduleDelayEntity> delays = entityManager.createQuery(
+                "SELECT e FROM ScheduleDelayEntity e " +
+                "WHERE e.bucket IN :buckets " +
+                "AND e.status = :status " +
+                "AND e.deleted = false " +
+                "AND e.id.triggerAt > :now",
+                ScheduleDelayEntity.class
+            )
+            .setParameter("buckets", buckets)
+            .setParameter("status", ScheduleDelay.Status.CLAIMED.value)
+            .setParameter("now", now)
+            .getResultList();
+        
+        int cancelled = 0;
+        for (ScheduleDelayEntity delay : delays) {
+            // The task ID is the same as ScheduleDelay.ID.toString()
+            String taskId = delay.getId().getScheduleId() + ":" + delay.getId().getTriggerAt();
+            scheduler.stop(taskId);
+            cancelled++;
+        }
+        
+        if (cancelled > 0) {
+            log.info("Cancelled {} in-memory tasks for buckets {}", cancelled, buckets);
+        }
     }
 }

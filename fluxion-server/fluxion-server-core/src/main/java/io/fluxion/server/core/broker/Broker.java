@@ -29,6 +29,8 @@ import io.fluxion.server.core.broker.task.JobUnRunChecker;
 import io.fluxion.server.core.broker.task.ScheduleDelayLoader;
 import io.fluxion.server.core.broker.task.ScheduleLoader;
 import io.fluxion.server.core.broker.task.WorkerChecker;
+import io.fluxion.server.core.schedule.cmd.ScheduleDelayReleaseClaimsCmd;
+import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.fluxion.server.infrastructure.schedule.scheduler.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
@@ -118,9 +120,28 @@ public class Broker {
      * 停止
      */
     public void stop() {
+        // Stop accepting new tasks and cancel in-memory scheduled tasks
+        delayedTaskScheduler.stopAll();
+        
+        // Release claimed schedule delays in database
+        releaseClaimedDelays();
+        
         brokerManger.stop();
         coreThreadPool.shutdown();
         clientServer.stop();
+    }
+    
+    /**
+     * Release all claimed schedule delays for this broker.
+     * Sets lease_owner to null so other brokers can reclaim after lease expires.
+     */
+    private void releaseClaimedDelays() {
+        try {
+            Cmd.send(new ScheduleDelayReleaseClaimsCmd(id()));
+            log.info("Sent release claims command for broker {}", id());
+        } catch (Exception e) {
+            log.error("Failed to release claimed delays for broker {}", id(), e);
+        }
     }
 
     public String id() {

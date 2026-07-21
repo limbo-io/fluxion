@@ -160,6 +160,43 @@ public abstract class AbstractTaskScheduler<T extends AbstractTask> implements S
     }
 
     /**
+     * Stop all scheduled tasks.
+     * This cancels all pending tasks in the scheduler.
+     */
+    public void stopAll() {
+        stateLock.writeLock().lock();
+        try {
+            // Create a copy of task IDs to avoid concurrent modification
+            java.util.List<String> taskIds = new java.util.ArrayList<>(scheduling.keySet());
+            int cancelled = 0;
+            
+            for (String taskId : taskIds) {
+                T task = scheduling.get(taskId);
+                if (task == null) {
+                    continue;
+                }
+                
+                TaskState state = taskStates.get(taskId);
+                if (state == null || state.isTerminal()) {
+                    continue;
+                }
+                
+                task.stop();
+                updateState(taskId, TaskState.CANCELLED);
+                stats.recordCancelled();
+                cleanup(taskId);
+                cancelled++;
+            }
+            
+            if (cancelled > 0) {
+                log.info("Stopped {} scheduled tasks", cancelled);
+            }
+        } finally {
+            stateLock.writeLock().unlock();
+        }
+    }
+
+    /**
      * 计算延迟时间
      */
     protected Long calDelay(T task) {
