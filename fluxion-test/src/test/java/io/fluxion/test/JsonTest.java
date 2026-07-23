@@ -18,13 +18,20 @@ package io.fluxion.test;
 
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobMonitor;
+import io.limbo.utils.ReflectionUtils;
 import io.limbo.utils.json.JacksonUtils;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
  * @author Devil
  */
 public class JsonTest {
+
+    @BeforeAll
+    static void configureSubtypeDiscovery() {
+        ReflectionUtils.configure("io.fluxion");
+    }
 
     @Test
     void test() {

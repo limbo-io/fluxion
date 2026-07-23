@@ -18,6 +18,9 @@ package io.fluxion.test.support.base;
 
 import io.fluxion.server.infrastructure.lock.DatabaseDistributedLock;
 import io.fluxion.server.infrastructure.lock.DistributedLock;
+import io.fluxion.server.infrastructure.schedule.scheduler.DelayedTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.scheduler.Timer;
+import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
 import io.fluxion.test.support.environment.LocalDistributedLock;
 import io.limbo.cqrs.spring.config.EnableCqrs;
 import io.limbo.utils.ReflectionUtils;
@@ -31,34 +34,36 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * 【集成测试应用入口】
- * 
+ *
  * 作用：Spring Boot 测试应用的启动类
  *       配置嵌入式测试环境所需的组件和扫描路径
- * 
+ *
  * 与生产环境的不同：
  *   1. 使用 LocalDistributedLock 替换 DatabaseDistributedLock
  *      - 避免依赖数据库锁表
  *      - 单 JVM 内存锁足够测试使用
- *   
+ *
  *   2. 扫描测试专用的 Executor（SimpleTestExecutor 等）
  *      - 位于 io.fluxion.test.support.executors
- *   
+ *
  *   3. 使用 H2 内存数据库（通过 profile 配置）
  *      - 自动建表、无需外部 MySQL
- * 
+ *
  * 加载的组件：
  *   - Broker 核心服务（扫描 io.fluxion.server）
  *   - Worker 核心服务（扫描 io.fluxion.worker）
  *   - 测试专用执行器（SimpleTestExecutor, CounterExecutor, FailingExecutor）
  *   - CQRS Command/Query Handlers（自动扫描）
  *   - H2 数据库 + Flyway 迁移
- * 
+ *
  * 使用方式：
  *   继承 {@link BaseIntegrationTest} 自动使用此配置
  *   或通过 @SpringBootTest(classes = TestApplication.class) 指定
- * 
+ *
  * @author Devil
  * @see BaseIntegrationTest
  */
@@ -98,19 +103,44 @@ public class TestApplication {
 
     /**
      * 【测试专用】本地分布式锁
-     * 
+     *
      * 替换生产环境的 DatabaseDistributedLock
-     * 
+     *
      * 原因：
      *   - 测试环境为单 JVM，不需要跨进程互斥
      *   - 避免依赖数据库锁表，简化测试配置
      *   - 内存锁性能更好，无网络开销
-     * 
+     *
      * @Primary: 优先于被排除的 DatabaseDistributedLock
      */
     @Bean
     @Primary
     public DistributedLock distributedLock() {
         return new LocalDistributedLock();
+    }
+
+    /**
+     * 【测试专用】时间轮定时器
+     *
+     * 提供 Timer 实现用于 DelayedTaskScheduler
+     *
+     * 配置：
+     *   - tickDuration: 100ms（轮询间隔）
+     *   - 使用 HashedWheelTimer 实现高效调度
+     */
+    @Bean
+    public Timer timer() {
+        return new TimingWheelTimer(100, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * 【测试专用】延迟任务调度器
+     *
+     * 用于调度延迟执行的一次性任务
+     * 被 Broker 用于调度 delayed task 的触发
+     */
+    @Bean
+    public DelayedTaskScheduler delayedTaskScheduler(Timer timer) {
+        return new DelayedTaskScheduler(timer);
     }
 }

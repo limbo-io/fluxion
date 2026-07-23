@@ -2,81 +2,34 @@
 
 ## 📁 模块结构
 
-本模块集中存放所有层级的测试代码，便于统一管理和维护。
+本模块集中存放所有层级的测试代码。
 
 ```
 fluxion-test/src/test/java/io/fluxion/test/
 │
-├── support/                          # 【测试基础设施】测试共享组件
+├── support/                          # 测试基础设施
 │   ├── base/                         #   基础测试类
-│   │   ├── BaseUnitTest.java         #     单元测试基类（Mockito）
-│   │   ├── BaseIntegrationTest.java  #   集成测试基类（Spring Boot）
-│   │   └── TestApplication.java      #     测试应用入口
+│   │   ├── BaseIntegrationTest.java  #   集成测试基类
+│   │   └── TestApplication.java    #   测试应用入口
 │   │
-│   ├── environment/                  #   测试环境
-│   │   ├── EmbeddedFluxionEnvironment.java  # 内嵌 Broker + Worker
-│   │   ├── LocalDistributedLock.java   #   本地分布式锁（替代数据库锁）
-│   │   └── TestProfiles.java           #   测试配置常量
-│   │
-│   ├── data/                         #   测试数据
-│   │   └── TestDataFactory.java      #     测试数据工厂
-│   │
-│   ├── assertions/                   #   断言工具
-│   │   └── JobExecutionAssert.java   #     Job 执行断言
-│   │
-│   ├── executors/                    #   测试执行器
-│   │   ├── SimpleTestExecutor.java   #     简单成功执行器
-│   │   ├── CounterExecutor.java      #     计数执行器（验证顺序）
-│   │   └── FailingExecutor.java      #     失败模拟执行器（验证重试）
-│   │
-│   └── launcher/                     #   测试启动器
-│       └── TestLauncher.java         #     测试套件运行器
+│   └── environment/                  #   测试环境
+│       └── LocalDistributedLock.java #   本地分布式锁（替代数据库锁）
 │
-├── unit/                             # 【单元测试】快速纯内存测试
-│   ├── server/
-│   │   ├── schedule/                 #   调度计算测试
-│   │   │   ├── CronScheduleCalculatorTest.java
-│   │   │   ├── FixedRateScheduleCalculatorTest.java
-│   │   │   ├── FixedDelayScheduleCalculatorTest.java
-│   │   │   ├── PeriodicTaskSchedulerTest.java
-│   │   │   └── DelayedTaskSchedulerTest.java
-│   │   │
-│   │   ├── execution/fault/          #   容错组件测试
-│   │   │   ├── DefaultFaultToleranceCoordinatorTest.java
-│   │   │   ├── ExecutionStateTest.java
-│   │   │   ├── retry/
-│   │   │   │   └── ExponentialBackoffRetryStrategyTest.java
-│   │   │   ├── failover/
-│   │   │   │   └── DefaultFailoverManagerTest.java
-│   │   │   └── timeout/
-│   │   │       └── TimingWheelTimeoutManagerTest.java
-│   │   │
-│   │   └── workflow/                 #   工作流测试
-│   │       └── WorkflowTest.java
-│   │
-│   └── worker/                       #   Worker 组件测试
+├── core/                             # 核心模块测试
+│   ├── schedule/                     #   调度组件测试
+│   ├── execution/                    #   执行组件测试
+│   └── broker/                       #   Broker 组件测试
 │
-├── integration/                      # 【集成测试】模块间交互测试
-│   ├── executor/
-│   │   └── ExecutorIntegrationTest.java    # EXECUTOR 类型任务执行链路
-│   │
-│   ├── fault/
-│   │   ├── RetryIntegrationTest.java       # 失败重试机制
-│   │   └── FaultToleranceIntegrationTest.java # 容错组件
-│   │
-│   ├── schedule/                     #   调度集成测试
-│   ├── worker/                         #   Worker 生命周期测试
-│   ├── workflow/                       #   工作流执行测试
-│   └── RegressionTestSuite.java        # 回归测试套件
+├── integration/                      # 集成测试
+│   └── mysql/                        #   MySQL 集成测试
+│       ├── ScheduleLeaseMySqlTest.java
+│       ├── ExecutionRecoveryMySqlTest.java
+│       ├── DistributedLockMySqlTest.java
+│       ├── BrokerMultiNodeLeaseTest.java
+│       └── LeaseBoundaryTest.java
 │
-├── contract/                         # 【契约测试】（预留）
-│   └── BrokerWorkerProtocolTest.java   #   Broker-Worker API 契约
-│
-├── e2e/                              # 【端到端测试】（预留）
-│   └── JobLifecycleE2ETest.java        #   完整任务生命周期
-│
-└── performance/                      # 【性能测试】（预留）
-    └── SchedulingThroughputTest.java   # 调度吞吐量测试
+└── infrastructure/                   # 基础设施测试
+    └── schedule/                     #   调度器测试
 ```
 
 ---
@@ -85,11 +38,8 @@ fluxion-test/src/test/java/io/fluxion/test/
 
 | 层级 | 目录 | 特点 | 执行时间 | 依赖 |
 |------|------|------|---------|------|
-| **单元测试** | `unit/` | 纯内存、无 Spring 上下文 | < 100ms/个 | Mockito |
-| **集成测试** | `integration/` | 内嵌 Broker + Worker + H2 | 秒级 | Spring Boot |
-| **契约测试** | `contract/` | API 接口契约验证 | 秒级 | Spring Boot |
-| **E2E 测试** | `e2e/` | 完整业务流程 | 分钟级 | Spring Boot + 前端 |
-| **性能测试** | `performance/` | 吞吐量、延迟基准 | 分钟级 | JMH/Gatling |
+| **单元测试** | `core/` | 纯内存、无 Spring 上下文 | < 100ms/个 | JUnit |
+| **集成测试** | `integration/mysql/` | MySQL 8 + Spring Boot | 秒级 | Docker/MySQL |
 
 ---
 
@@ -101,25 +51,21 @@ cd fluxion/fluxion-test
 mvn test
 ```
 
-### 运行指定层级测试
+### 运行回归测试（非 MySQL）
 ```bash
-# 仅单元测试
-mvn test -Dtest="io.fluxion.test.unit.**.**"
-
-# 仅集成测试
-mvn test -Dtest="io.fluxion.test.integration.**.**"
-
-# 回归测试套件
-mvn test -Dtest=RegressionTestSuite
+mvn test -pl fluxion-test -am -Pregression-test
 ```
 
-### 使用 TestLauncher 获取命令
+### 运行 MySQL 集成测试
 ```bash
-# 列出可用套件
-mvn exec:java -Dexec.mainClass="io.fluxion.test.support.launcher.TestLauncher"
+# 默认通过 Testcontainers 启动 MySQL 8
+mvn test -pl fluxion-test -am -Pmysql-integration-test
 
-# 运行指定套件
-TestLauncher.runSuite("fault");  // 获取运行容错测试的 Maven 命令
+# 无 Docker 时，使用外部 MySQL
+export FLUXION_TEST_MYSQL_URL='jdbc:mysql://127.0.0.1:3306/fluxion_test'
+export FLUXION_TEST_MYSQL_USERNAME=root
+export FLUXION_TEST_MYSQL_PASSWORD='***'
+mvn test -pl fluxion-test -am -Pmysql-integration-test
 ```
 
 ---
@@ -128,79 +74,61 @@ TestLauncher.runSuite("fault");  // 获取运行容错测试的 Maven 命令
 
 ### 单元测试示例
 ```java
-package io.fluxion.test.unit.server.schedule;
+package io.fluxion.test.core.schedule;
 
-import io.fluxion.test.support.base.BaseUnitTest;
 import org.junit.jupiter.api.Test;
 
-class MyCalculatorTest extends BaseUnitTest {
+class MyCalculatorTest {
     
     @Test
     void shouldCalculateCorrectly() {
-        // 纯 Mockito，无 Spring 上下文
+        // 纯 JUnit，无 Spring 上下文
     }
 }
 ```
 
-### 集成测试示例
+### MySQL 集成测试示例
 ```java
-package io.fluxion.test.integration.executor;
+package io.fluxion.test.integration.mysql;
 
 import io.fluxion.test.support.base.BaseIntegrationTest;
-import io.fluxion.test.support.executors.SimpleTestExecutor;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 
-class MyIntegrationTest extends BaseIntegrationTest {
+@SpringBootTest(classes = MySqlTestApplication.class)
+@ActiveProfiles("test-mysql")
+class MyMySqlTest extends AbstractMySqlIntegrationTest {
     
     @Test
-    void shouldExecuteJob() {
-        // 自动启动 Broker + Worker
-        // 使用 testDataFactory 创建测试数据
-        // 使用 waitForCondition 等待异步结果
+    void shouldWorkWithMySQL() {
+        // 自动连接 Testcontainers MySQL 或外部 MySQL
     }
 }
 ```
-
----
-
-## 📁 关键文件说明
-
-### 测试基础设施 (support/)
-
-| 文件 | 作用 | 使用场景 |
-|------|------|---------|
-| `BaseUnitTest` | 单元测试基类 | 纯算法/工具类测试 |
-| `BaseIntegrationTest` | 集成测试基类 | 需要 Spring 上下文的测试 |
-| `EmbeddedFluxionEnvironment` | 内嵌环境启动 | 自动启动 Broker + Worker |
-| `TestDataFactory` | 测试数据工厂 | 快速创建 Schedule/RetryOption |
-| `SimpleTestExecutor` | 简单执行器 | 验证正常执行流程 |
-| `FailingExecutor` | 失败执行器 | 验证重试机制 |
-| `CounterExecutor` | 计数执行器 | 验证执行顺序 |
 
 ---
 
 ## 🔧 配置说明
 
-### application-test.yml
-测试专用配置文件，使用 H2 内存数据库替代 MySQL。
+### 可用 Maven Profiles
 
-### DirtiesContext
-`BaseIntegrationTest` 默认配置 `@DirtiesContext`，确保每个测试类执行后清理 Spring 上下文。
+| Profile | 说明 |
+|---------|------|
+| `regression-test` | 运行非 MySQL 回归测试（排除 `**/integration/mysql/**`） |
+| `mysql-integration-test` | 仅运行 MySQL 集成测试 |
 
 ---
 
 ## 📝 命名规范
 
-- **单元测试类**: `*Test.java` (如 `CronScheduleCalculatorTest.java`)
-- **集成测试类**: `*IntegrationTest.java` (如 `RetryIntegrationTest.java`)
-- **E2E 测试类**: `*E2ETest.java` (如 `JobLifecycleE2ETest.java`)
+- **单元测试类**: `*Test.java`
+- **MySQL 集成测试类**: `*MySqlTest.java`
 - **测试方法**: `should*When*` 或 `test*` 格式
 
 ---
 
 ## ⚠️ 注意事项
 
-1. **单元测试**不要依赖 Spring 上下文，使用 `BaseUnitTest`
-2. **集成测试**会自动清理数据，不需要手动删库
-3. **执行器**使用静态变量存储记录，测试结束后会自动清理
-4. **超时设置**: 默认 30s，复杂测试可使用 `LONG_TIMEOUT`
+1. **MySQL 集成测试**需要 Docker 或外部 MySQL 8
+2. **ScheduleLease**、**ExecutionRecovery**、**DistributedLock** 必须在 MySQL 上测试（使用 `NOW(3)` 毫秒精度）
+3. 本地测试可使用 `-DskipTests` 跳过测试编译

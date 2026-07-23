@@ -67,6 +67,11 @@ public enum LoadBalanceType {
      */
     CONSISTENT_HASH("consistent_hash"),
 
+    /**
+     * 最小CPU负载。将作业下发给CPU负载最低的worker。
+     */
+    LEAST_CPU_LOAD("least_cpu_load"),
+
     ;
 
     @JsonValue

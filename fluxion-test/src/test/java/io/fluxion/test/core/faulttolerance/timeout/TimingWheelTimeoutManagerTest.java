@@ -3,6 +3,7 @@ package io.fluxion.test.core.faulttolerance.timeout;
 import io.fluxion.server.core.execution.fault.timeout.TimingWheelTimeoutManager;
 import io.fluxion.server.core.execution.fault.timeout.TimeoutCallback;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -12,6 +13,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * T3.3/T5.4: Timeout mechanism unit tests
+ * <p>
+ * Verifies the timing wheel timeout manager that is used by:
+ * - DefaultFaultToleranceCoordinator.onExecutionTimeout
+ * - ExecutionRecoveryService recovery timeout tracking
+ * <p>
+ * Production chain (integration level verification):
+ * TimeoutManager.addTimeout() → (time passes) → TimeoutCallback →
+ * DefaultFaultToleranceCoordinator.onExecutionTimeout() → handleFailure() →
+ * retryStrategy.shouldRetry() → scheduleRetry()
+ * <p>
+ * Note: Full chain with retry trigger requires integration test with real
+ * timeout firing and FaultToleranceCoordinator integration.
+ *
+ * @author Devil
+ */
+@DisplayName("Timeout Manager Unit Tests (T3.3/T5.4)")
 class TimingWheelTimeoutManagerTest {
 
     private TimingWheelTimeoutManager manager;

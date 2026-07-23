@@ -109,6 +109,11 @@ public abstract class AbstractTaskScheduler<T extends AbstractTask> implements S
                 return;
             }
 
+            if (task.stopped()) {
+                cleanup(taskId);
+                return;
+            }
+
             // 状态转为 RUNNING
             updateState(taskId, TaskState.RUNNING);
             stats.recordStarted();

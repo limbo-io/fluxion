@@ -43,11 +43,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * MySQL-specific integration tests for DatabaseDistributedLock.
  * 
+ * T4.2 Implementation Note:
+ * Current implementation uses ThreadLocal tokens, allowing same-thread reacquisition
+ * (testReentrantLock()). This is documented behavior but product review may change
+ * to non-reentrant if business requirements differ.
+ * <p>
  * Tests real MySQL behaviors that H2 cannot properly simulate:
  * - INSERT ... ON DUPLICATE KEY UPDATE for atomic lock acquisition
  * - Concurrent lock takeover with thread-safe token handling
  * - Lock expiration and renewal
  * - Two threads compete for lock → only one gets it
+ * - Same-thread reentrant lock acquisition (current behavior)
  * 
  * These tests verify the MySQL-safe implementation of distributed locking
  * using UUID tokens and ThreadLocal for proper ownership tracking.
@@ -82,7 +88,7 @@ class DistributedLockMySqlTest extends AbstractMySqlIntegrationTest {
     }
 
     @Test
-    @DisplayName("Try lock succeeds when lock is available")
+    @DisplayName("T4.2: Try lock succeeds when lock is available")
     void testTryLockSuccess() {
         // When: Try to acquire lock
         boolean acquired = distributedLock.tryLock(LOCK_NAME, LOCK_EXPIRE_MS);
@@ -90,7 +96,10 @@ class DistributedLockMySqlTest extends AbstractMySqlIntegrationTest {
         // Then: Lock should be acquired
         assertThat(acquired).isTrue();
 
-        // Verify: Trying to acquire again should succeed (reentrant)
+        // Note: Current implementation is REENTRANT (same thread can acquire multiple times)
+        // This is achieved through ThreadLocal token storage
+        // If non-reentrant behavior is required, the implementation needs to check
+        // existing ownership before allowing re-acquisition
         boolean acquiredAgain = distributedLock.tryLock(LOCK_NAME, LOCK_EXPIRE_MS);
         assertThat(acquiredAgain).isTrue();
     }
@@ -286,22 +295,26 @@ class DistributedLockMySqlTest extends AbstractMySqlIntegrationTest {
     }
 
     @Test
-    @DisplayName("Lock is reentrant for same thread")
+    @DisplayName("T4.2: Lock is reentrant for same thread (current implementation)")
     void testReentrantLock() {
-        // When: Acquire lock multiple times
+        // T4.2: Document current reentrant behavior
+        // The lock uses ThreadLocal to store tokens, allowing same-thread reacquisition
+        // If product requires non-reentrant locks, implementation needs modification
+
+        // When: Acquire lock multiple times (reentrant)
         boolean first = distributedLock.tryLock(LOCK_NAME, LOCK_EXPIRE_MS);
         boolean second = distributedLock.tryLock(LOCK_NAME, LOCK_EXPIRE_MS);
         boolean third = distributedLock.tryLock(LOCK_NAME, LOCK_EXPIRE_MS);
 
-        // Then: All acquisitions should succeed
+        // Then: All acquisitions succeed (reentrant behavior)
         assertThat(first).isTrue();
         assertThat(second).isTrue();
         assertThat(third).isTrue();
 
-        // When: Unlock (should clear all reentrant holds in ThreadLocal)
+        // When: Unlock (clears ThreadLocal token)
         distributedLock.unlock(LOCK_NAME);
 
-        // Then: Another broker should be able to acquire after unlock
+        // Then: Another broker can acquire after unlock
         simulateBroker(BROKER_B);
         boolean acquiredByB = distributedLock.tryLock(LOCK_NAME, LOCK_EXPIRE_MS);
         assertThat(acquiredByB).isTrue();

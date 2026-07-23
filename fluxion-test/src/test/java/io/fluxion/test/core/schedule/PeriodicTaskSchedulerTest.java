@@ -186,7 +186,10 @@ class PeriodicTaskSchedulerTest {
 
         scheduler.schedule(task);
 
-        Assertions.assertFalse(timer.hasScheduledTask() || timer.getExecuteCount() > 0);
+        Assertions.assertTrue(timer.hasScheduledTask());
+        timer.executeScheduledTask();
+        Assertions.assertEquals(0, executionCount.get());
+        Assertions.assertTrue(task.stopped());
     }
 
     /**
@@ -220,7 +223,10 @@ class PeriodicTaskSchedulerTest {
 
         scheduler.schedule(task);
 
-        Assertions.assertFalse(timer.hasScheduledTask() || timer.getExecuteCount() > 0);
+        Assertions.assertTrue(timer.hasScheduledTask());
+        timer.executeScheduledTask();
+        Assertions.assertEquals(0, executionCount.get());
+        Assertions.assertTrue(task.stopped());
     }
 
     /**

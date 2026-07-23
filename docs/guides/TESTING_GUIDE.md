@@ -10,9 +10,6 @@ mvn test -pl fluxion-test -am -Pregression-test
 
 # 2. 执行 MySQL 并发 SQL 集成测试（需要 Docker 或外部 MySQL）
 mvn test -pl fluxion-test -am -Pmysql-integration-test
-
-# 3. 执行全部测试并生成覆盖率报告
-mvn test -pl fluxion-test -Pall-tests jacoco:report
 ```
 
 ## 回归测试（发布前验证）
@@ -30,9 +27,8 @@ mvn test -pl fluxion-test -am -Pregression-test
 3. 任务分发配置
 4. Worker 执行配置
 5. 失败重试机制
-6. 重试间隔配置
-7. 工作流调度配置
-8. 核心 API 验证
+6. 工作流调度配置
+7. 核心 API 验证
 
 ## MySQL 集成测试
 
@@ -53,177 +49,45 @@ mvn test -pl fluxion-test -am -Pmysql-integration-test
 
 ## 测试架构
 
-Fluxion 测试采用**六层金字塔**架构：
+Fluxion 测试采用**分层架构**：
 
 ```
-Layer 6: 完整调度链路测试 (End-to-End)
-Layer 5: 跨模块集成测试 (Cross-Module)
-Layer 4: 模块内集成测试 (Module-Integration)
-Layer 3: 组件单元测试 (Component)
-Layer 2: 工具类单元测试 (Utility)
-Layer 1: 基础契约测试 (Contract)
+Layer 1: 单元测试 (Unit Tests)
+Layer 2: MySQL 集成测试 (MySQL Integration Tests)
 ```
 
-## 测试基类体系
+## 可用 Maven Profiles
 
-```
-BaseTest
-  ├── FastUnitTest（无 Spring 上下文）
-  └── SpringBaseTest（@SpringBootTest）
-        ├── ModuleTest
-        │     ├── WorkerModuleTest
-        │     └── ServerModuleTest
-        ├── CrossModuleTest
-        │     ├── WorkerServerLinkTest
-        │     ├── SchedulingLinkTest
-        │     └── FaultToleranceLinkTest
-        └── EndToEndTest
-              ├── SimpleJobE2ETest
-              ├── BroadcastJobE2ETest
-              └── WorkflowE2ETest
-```
+| Profile | 命令 | 说明 |
+|---------|------|------|
+| `regression-test` | `mvn test -pl fluxion-test -am -Pregression-test` | 运行非 MySQL 测试 |
+| `mysql-integration-test` | `mvn test -pl fluxion-test -am -Pmysql-integration-test` | 仅运行 MySQL 集成测试 |
 
-## 测试命名约定
+## MySQL 集成测试清单
 
-| 测试类型 | 类名后缀 | 示例 |
-|---------|---------|------|
-| 快速单元测试 | `*Test` | `RetryStrategyTest` |
-| 模块测试 | `*ModuleTest` | `JobExecutionModuleTest` |
-| 集成测试 | `*IntegrationTest` | `FaultToleranceLinkTest` |
-| 链路测试 | `*LinkTest` | `TriggerScheduleLinkTest` |
-| E2E 测试 | `*E2ETest` | `WorkflowE2ETest` |
+位于 `fluxion-test/src/test/java/io/fluxion/test/integration/mysql/`：
 
-## 详细执行命令
-
-### 1. 快速单元测试（默认）
-
-```bash
-# 执行所有快速单元测试（不包括模块、集成、链路、E2E 测试）
-mvn test -pl fluxion-test
-
-# 或使用默认 profile（效果相同）
-mvn test -pl fluxion-test -Pdefault
-```
-
-### 2. 模块测试
-
-```bash
-# 执行所有模块测试
-mvn test -pl fluxion-test -Pmodule-test
-
-# 执行特定模块测试
-mvn test -pl fluxion-test -Dtest=JobExecutionModuleTest
-```
-
-### 3. 集成测试
-
-```bash
-# 执行所有集成测试
-mvn test -pl fluxion-test -Pintegration-test
-
-# 执行特定的容错集成测试
-mvn test -pl fluxion-test -Dtest=FaultToleranceLinkTest
-```
-
-### 4. 链路测试
-
-```bash
-# 执行所有链路测试
-mvn test -pl fluxion-test -Plink-test
-
-# 执行特定链路测试
-mvn test -pl fluxion-test -Dtest="*TriggerScheduleLinkTest,*ScheduleExecutionLinkTest"
-```
-
-### 5. E2E 测试
-
-```bash
-# 执行所有 E2E 测试
-mvn test -pl fluxion-test -Pe2e
-
-# 执行工作流 E2E 测试
-mvn test -pl fluxion-test -Dtest=WorkflowE2ETest
-```
-
-### 6. 全部测试
-
-```bash
-# 执行所有测试
-mvn test -pl fluxion-test -Pall-tests
-
-# 执行所有测试并生成 JaCoCo 覆盖率报告
-mvn test -pl fluxion-test -Pall-tests jacoco:report
-
-# 查看覆盖率报告
-open fluxion-test/target/site/jacoco/index.html
-```
-
-## 结合 `-am` 参数
-
-在根目录执行时，建议添加 `-am`（also-make）参数，确保依赖模块先被编译：
-
-```bash
-# 完整命令示例
-mvn test -pl fluxion-test -am -Plink-test
-```
-
-## TestLauncher 使用
-
-`TestLauncher` 提供便捷的测试套件执行方式：
-
-```bash
-# 查看可用的测试套件
-java -cp fluxion-test/target/test-classes io.fluxion.test.launcher.TestLauncher
-
-# 执行调度相关测试套件
-java -cp fluxion-test/target/test-classes io.fluxion.test.launcher.TestLauncher scheduling
-# 输出: mvn test -Dtest=*TriggerScheduleLinkTest,*ScheduleExecutionLinkTest
-
-# 执行容错测试套件
-java -cp fluxion-test/target/test-classes io.fluxion.test.launcher.TestLauncher fault-tolerance
-```
-
-### 可用的测试套件
-
-| 套件名称 | 说明 |
-|---------|------|
-| `scheduling` | 调度链路测试（Trigger → Schedule → Execution） |
-| `rpc` | RPC 通信测试（Server ↔ Worker） |
-| `execution` | 任务执行测试 |
-| `fault-tolerance` | 容错机制测试 |
-| `workflow` | 工作流编排测试 |
-| `all-link` | 所有链路和集成测试 |
-| `all-e2e` | 所有 E2E 测试 |
-
-## CI/CD 流水线
-
-项目已配置 GitHub Actions 工作流（`.github/workflows/test.yml`）：
-
-```
-Push/PR → unit-test → module-test → link-test → e2e-test → coverage
-         (1-5秒)     (5-15秒)      (15-30秒)   (60+秒)    (报告)
-```
-
-### 本地模拟 CI 执行
-
-```bash
-# 完整 CI 流程（本地模拟）
-mvn clean
-mvn test -pl fluxion-test -am --batch-mode                    # 单元测试
-mvn test -pl fluxion-test -am -Pmodule-test --batch-mode      # 模块测试
-mvn test -pl fluxion-test -am -Plink-test --batch-mode        # 链路测试
-mvn test -pl fluxion-test -am -Pe2e --batch-mode              # E2E 测试
-mvn test -pl fluxion-test -am -Pall-tests jacoco:report       # 覆盖率
-```
+| 测试类 | 覆盖场景 |
+|--------|----------|
+| `ScheduleLeaseMySqlTest` | Schedule lease 续租、接管、验证 |
+| `ExecutionRecoveryMySqlTest` | Execution recovery、超时重试 |
+| `DistributedLockMySqlTest` | 分布式锁并发、过期、错误 unlock |
+| `BrokerMultiNodeLeaseTest` | 双 Broker lease Command 链路 |
+| `LeaseBoundaryTest` | Lease 参数边界、优雅停机 |
 
 ## 编写新测试
 
-### 1. 快速单元测试
+### 1. 单元测试
 
 ```java
-public class MyUtilityTest extends FastUnitTest {
+package io.fluxion.test.core.schedule;
+
+import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+
+class MyUtilityTest {
     @Test
-    void testMyUtility() {
+    void shouldCalculateCorrectly() {
         // Given
         String input = "hello";
 
@@ -236,138 +100,80 @@ public class MyUtilityTest extends FastUnitTest {
 }
 ```
 
-### 2. 模块测试
+### 2. MySQL 集成测试
 
 ```java
-public class MyWorkerModuleTest extends WorkerModuleTest {
-    @Test
-    void testWorkerFunction() {
-        // 可以直接使用 fluxionWorker
-        assertThat(fluxionWorker).isNotNull();
-        assertThat(fluxionWorker.isRunning()).isTrue();
+package io.fluxion.test.integration.mysql;
 
-        // 使用 testDataFactory 创建测试数据
-        var schedule = testDataFactory.createDelaySchedule(HelloExecutor.NAME, 1000);
+import io.fluxion.test.support.base.BaseIntegrationTest;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+
+@SpringBootTest(classes = MySqlTestApplication.class)
+@ActiveProfiles("test-mysql")
+class MyMySqlTest extends AbstractMySqlIntegrationTest {
+
+    @Test
+    void shouldWorkWithMySQL() {
+        // 使用真实 MySQL 数据库
     }
 }
 ```
 
-### 3. 链路测试
+## CI/CD 流水线
 
-```java
-public class MyLinkTest extends CrossModuleTest {
-    @Test
-    void testScheduleToExecution() {
-        // Given
-        var schedule = testDataFactory.createDelaySchedule(HelloExecutor.NAME, 500);
+项目已配置 GitHub Actions 工作流：
 
-        // When
-        submitSchedule(schedule);
+### `.github/workflows/ci.yml`
 
-        // Then
-        boolean received = waitForTaskReceived(schedule.getId(), Duration.ofSeconds(10));
-        assertThat(received).isTrue();
-    }
-}
+```
+Push/PR → compile → test → regression-test
 ```
 
-### 4. E2E 测试
+### `.github/workflows/test.yml`
 
-```java
-public class MyE2ETest extends EndToEndTest {
-    @Test
-    void testFullWorkflow() {
-        // 可以验证完整的调度链路
-        verifyScheduleLink(scheduleId);
-    }
-}
+```
+Push/PR → unit-test → regression-test → mysql-integration-test
 ```
 
-## 常用工具方法
-
-### 等待工具
-
-```java
-// 等待指定时间
-sleep(Duration.ofMillis(500));
-
-// 等待条件满足（默认 30 秒超时）
-waitForCondition(() -> someCondition());
-
-// 等待条件满足（自定义超时）
-waitForCondition(() -> someCondition(), Duration.ofSeconds(10));
-```
-
-### 断言工具
-
-```java
-// 任务状态断言
-FluxionAssertions.assertThat(execution).hasStatus(ExecutionStatus.SUCCESS);
-FluxionAssertions.assertThat(execution).isSuccess();
-FluxionAssertions.assertThat(execution).isFailed();
-
-// Schedule 断言
-FluxionAssertions.assertThat(schedule).hasRetryCount(3);
-FluxionAssertions.assertThat(schedule).isEnabled();
-
-// 异步等待断言
-FluxionAssertions.assertEventually(
-    () -> testDataFactory.isExecutionCompleted(executionId),
-    Duration.ofSeconds(10),
-    "Execution did not complete in time"
-);
-```
-
-## 常见问题
-
-### 1. 测试启动慢
-
-使用 `FastUnitTest` 代替 `SpringBaseTest`，避免 Spring 上下文启动。
-
-### 2. 测试间数据污染
-
-基类已自动清理数据。如需手动清理：
-```java
-@AfterEach
-void tearDown() {
-    testDataFactory.clearAll();
-    FailingExecutor.clearAll();
-}
-```
-
-### 3. 异步测试不稳定
-
-使用 `waitForCondition()` 代替 `Thread.sleep()`。
-
-### 4. 覆盖率不达标
+### 本地模拟 CI 执行
 
 ```bash
-open fluxion-test/target/site/jacoco/index.html
+# 完整 CI 流程（本地模拟）
+mvn clean
+mvn test -pl fluxion-test -am --batch-mode                    # 单元测试
+mvn test -pl fluxion-test -am -Pregression-test --batch-mode  # 回归测试
+mvn test -pl fluxion-test -am -Pmysql-integration-test        # MySQL 集成测试
 ```
 
-## 测试文件目录结构
+## 测试清理记录
 
-```
-fluxion-test/src/test/java/io/fluxion/test/
-├── BaseTest.java                    # 最基础测试类
-├── FastUnitTest.java                # 快速单元测试基类
-├── SpringBaseTest.java              # SpringBootTest 基类
-├── ModuleTest.java                  # 模块测试基类
-├── WorkerModuleTest.java            # Worker 模块基类
-├── ServerModuleTest.java            # Server 模块基类
-├── CrossModuleTest.java             # 跨模块测试基类
-├── EndToEndTest.java                # E2E 测试基类
-├── assertj/
-│   └── FluxionAssertions.java       # 自定义断言库
-├── data/
-│   └── TestDataFactory.java         # 测试数据工厂
-├── env/
-│   └── EmbeddedFluxionEnvironment.java # 测试环境管理器
-├── executors/                       # 测试执行器集合
-├── link/                            # 调度链路测试
-├── module/                          # 模块测试
-├── integration/                     # 集成测试
-├── e2e/                             # E2E 测试
-└── launcher/
-    └── TestLauncher.java            # 测试启动器
-```
+### 已删除的过期测试
+
+| 测试类 | 删除原因 | 替代方案 |
+|--------|----------|----------|
+| `FencingConditionMySqlTest` | 仅测试 MySQL NOW(3) 临时表，不覆盖业务逻辑 | 使用真实 lease/lock 测试 |
+| `ExecutionRegistrationTest` | 纯 DTO builder 测试，无业务覆盖 | 由集成测试覆盖 |
+| `ExecutionResultTest` | 纯 DTO builder 测试，无业务覆盖 | 由集成测试覆盖 |
+| `ExecutionStateTest` | 纯 enum 测试，无业务覆盖 | 由集成测试覆盖 |
+| `ErrorCategoryTest` | 纯 enum 测试，无业务覆盖 | 由集成测试覆盖 |
+
+### 已重写的测试
+
+| 测试类 | 重写内容 |
+|--------|----------|
+| `ScheduleTaskTest` | 使用 FakeTimer 替代 Thread.sleep |
+
+### 已新增的测试
+
+| 测试类 | 覆盖场景 |
+|--------|----------|
+| `BrokerMultiNodeLeaseTest` | T2.1: 2 Broker Command → Handler → Database 链路 |
+| `LeaseBoundaryTest` | T2.2/T2.3: Lease 参数边界、优雅停机 |
+
+## 注意事项
+
+1. **ScheduleLease**、**ExecutionRecovery**、**DistributedLock** 必须在 MySQL 上测试
+2. `regression-test` 和 `mysql-integration-test` 是 CI 中唯二可用的 profile
+3. 测试文件命名遵循 `*Test.java` 或 `*Tests.java` 模式

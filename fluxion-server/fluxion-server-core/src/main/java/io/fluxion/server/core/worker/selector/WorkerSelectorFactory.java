@@ -58,6 +58,7 @@ public class WorkerSelectorFactory {
         selectorSuppliers.put(LoadBalanceType.LEAST_RECENTLY_USED, () -> new LBStrategyWorkerSelector(new LRULBStrategy<>(statisticsRepository)));
         selectorSuppliers.put(LoadBalanceType.APPOINT, () -> new LBStrategyWorkerSelector(new AppointLBStrategy<>()));
         selectorSuppliers.put(LoadBalanceType.CONSISTENT_HASH, () -> new LBStrategyWorkerSelector(new ConsistentHashLBStrategy<>()));
+        selectorSuppliers.put(LoadBalanceType.LEAST_CPU_LOAD, () -> new LBStrategyWorkerSelector(new LeastCpuLoadLBStrategy()));
     }
 
     /**
@@ -113,6 +114,9 @@ public class WorkerSelectorFactory {
                 List<Worker> shuffled = new ArrayList<>(candidates);
                 Collections.shuffle(shuffled);
                 return shuffled;
+            case LEAST_CPU_LOAD:
+                // 按CPU负载升序排序（负载低的优先）
+                return sortByCpuLoad(candidates);
             default:
                 return new ArrayList<>(candidates);
         }
@@ -147,6 +151,25 @@ public class WorkerSelectorFactory {
         return candidates.stream()
             .sorted(Comparator.comparingLong(w -> lastAccessTimes.getOrDefault(w.id(), 0L)))
             .collect(Collectors.toList());
+    }
+
+    /**
+     * 按CPU负载升序排序（负载低的优先）
+     */
+    private List<Worker> sortByCpuLoad(List<Worker> candidates) {
+        return candidates.stream()
+            .sorted(Comparator.comparingDouble(this::getCpuLoad))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取worker的CPU负载，无指标时返回最大值（排在最后）
+     */
+    private double getCpuLoad(Worker worker) {
+        if (worker.getMetric() == null) {
+            return Double.MAX_VALUE;
+        }
+        return worker.getMetric().getCpuLoad();
     }
 
     private String buildSelectorKey(String appId, String executorName, LoadBalanceType loadBalanceType) {

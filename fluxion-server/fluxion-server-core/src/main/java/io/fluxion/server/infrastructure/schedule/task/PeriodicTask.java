@@ -63,7 +63,7 @@ public class PeriodicTask extends AbstractTask {
     }
 
     public PeriodicTask nextTrigger() {
-        LocalDateTime lastTriggerAt = calculation.lastTriggerAt();
+        LocalDateTime lastTriggerAt = calculation.triggerAt();
         ScheduleOption scheduleOption = calculation.scheduleOption();
         calculation = new BasicCalculation(lastTriggerAt, TimeUtils.currentLocalDateTime(), scheduleOption);
         return this;

@@ -6,12 +6,26 @@ import io.fluxion.server.core.execution.fault.failover.DefaultFailoverManager;
 import io.fluxion.server.core.execution.fault.failover.FailoverResult;
 import io.fluxion.server.core.execution.fault.store.ExecutionStateStore;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * T3.4/T5.3: Worker offline failover unit tests
+ * <p>
+ * Verifies the failover manager that is used by fault tolerance chain:
+ * WorkerChecker detects offline → FaultToleranceCoordinator.onWorkerOffline()
+ * → FailoverManager.markWorkerFailed() → ExecutionMigrateService.migrate()
+ * <p>
+ * Note: Full chain requires Worker lifecycle simulation and is verified at
+ * integration level in production deployment.
+ *
+ * @author Devil
+ */
+@DisplayName("Failover Manager Unit Tests (T3.4/T5.3)")
 class DefaultFailoverManagerTest {
 
     private ExecutionStateStore store;

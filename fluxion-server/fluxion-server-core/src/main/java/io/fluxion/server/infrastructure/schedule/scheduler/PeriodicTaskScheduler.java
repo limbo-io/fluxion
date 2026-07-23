@@ -98,10 +98,15 @@ public class PeriodicTaskScheduler extends AbstractTaskScheduler<PeriodicTask> {
             log.debug("ScheduledTask [{}] completed successfully", taskId);
         }
 
-        // 如果任务被停止，记录日志
         if (task.stopped()) {
             log.info("Task [{}] is stopped, will not reschedule", taskId);
+            return;
         }
+
+        // The next trigger has already been scheduled by run().  Restore the
+        // executable state after AbstractTaskScheduler marks this invocation
+        // completed, otherwise the next timer callback is rejected.
+        updateState(taskId, TaskState.SCHEDULED);
     }
 
     @Override

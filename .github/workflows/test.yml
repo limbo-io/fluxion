@@ -7,122 +7,94 @@ on:
     branches: [ master, develop ]
 
 jobs:
-  # 快速单元测试
+  # 快速单元测试（非 MySQL 测试）
   unit-test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up JDK 21
       uses: actions/setup-java@v3
       with:
         java-version: '21'
         distribution: 'temurin'
-    
+
     - name: Cache Maven dependencies
       uses: actions/cache@v3
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
-    
+
     - name: Run Unit Tests
       run: mvn test -pl fluxion-test -am --batch-mode
 
-  # 模块测试
-  module-test:
+  # 回归测试
+  regression-test:
     runs-on: ubuntu-latest
     needs: unit-test
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up JDK 21
       uses: actions/setup-java@v3
       with:
         java-version: '21'
         distribution: 'temurin'
-    
+
     - name: Cache Maven dependencies
       uses: actions/cache@v3
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
-    
-    - name: Run Module Tests
-      run: mvn test -pl fluxion-test -am -Pmodule-test --batch-mode
 
-  # 链路测试（包含集成测试）
-  link-test:
+    - name: Run Regression Tests
+      run: mvn test -pl fluxion-test -am -Pregression-test --batch-mode
+
+  # MySQL 集成测试
+  mysql-integration-test:
     runs-on: ubuntu-latest
-    needs: module-test
+    needs: regression-test
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: fluxion_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
     - uses: actions/checkout@v3
-    
-    - name: Set up JDK 21
-      uses: actions/setup-java@v3
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-    
-    - name: Cache Maven dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
-    
-    - name: Run Link Tests
-      run: mvn test -pl fluxion-test -am -Plink-test --batch-mode
 
-  # E2E 测试
-  e2e-test:
-    runs-on: ubuntu-latest
-    needs: link-test
-    steps:
-    - uses: actions/checkout@v3
-    
     - name: Set up JDK 21
       uses: actions/setup-java@v3
       with:
         java-version: '21'
         distribution: 'temurin'
-    
-    - name: Cache Maven dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
-    
-    - name: Run E2E Tests
-      run: mvn test -pl fluxion-test -am -Pe2e --batch-mode
 
-  # 覆盖率报告
-  coverage:
-    runs-on: ubuntu-latest
-    needs: [unit-test, module-test, link-test]
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up JDK 21
-      uses: actions/setup-java@v3
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-    
     - name: Cache Maven dependencies
       uses: actions/cache@v3
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
-    
-    - name: Generate Coverage Report
-      run: mvn test -pl fluxion-test -am -Pall-tests jacoco:report --batch-mode
-    
-    - name: Upload Coverage Report
-      uses: actions/upload-artifact@v3
-      with:
-        name: coverage-report
-        path: fluxion-test/target/site/jacoco/
+
+    - name: Run MySQL Integration Tests
+      run: mvn test -pl fluxion-test -am -Pmysql-integration-test --batch-mode
+      env:
+        FLUXION_TEST_MYSQL_URL: jdbc:mysql://localhost:3306/fluxion_test
+        FLUXION_TEST_MYSQL_USERNAME: root
+        FLUXION_TEST_MYSQL_PASSWORD: root
+
+  all-tests-passed:
+    runs-on: ubuntu-latest
+    needs: [unit-test, regression-test, mysql-integration-test]
+    if: always()
+    steps:
+    - name: Check test gates
+      run: |
+        if [ "${{ needs.unit-test.result }}" != "success" ] || [ "${{ needs.regression-test.result }}" != "success" ] || [ "${{ needs.mysql-integration-test.result }}" != "success" ]; then
+          exit 1
+        fi

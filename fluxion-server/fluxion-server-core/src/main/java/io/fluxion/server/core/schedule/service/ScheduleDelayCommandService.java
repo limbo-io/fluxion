@@ -125,6 +125,10 @@ public class ScheduleDelayCommandService {
             return;
         }
 
+        // T3.6/T5.1: Apply backlog policy (LATEST_ONLY for CRON/FIXED_RATE)
+        // Group delays by schedule ID to detect backlog
+        delays = applyBacklogPolicy(delays);
+
         // Filter only INIT delays and attempt to claim them atomically
         for (ScheduleDelay delay : delays) {
             if (ScheduleDelay.Status.INIT != delay.getStatus()) {
@@ -158,6 +162,65 @@ public class ScheduleDelayCommandService {
 
             log.debug("Claimed and scheduled delay {}:{}", delayId.getScheduleId(), delayId.getTriggerAt());
         }
+    }
+
+    /**
+     * T3.6/T5.1: Apply backlog policy
+     * For CRON/FIXED_RATE schedules with multiple INIT delays (backlog),
+     * only keep the latest valid trigger (LATEST_ONLY policy).
+     * FIXED_DELAY schedules do not compensate backlog - they continue from last completion.
+     */
+    private List<ScheduleDelay> applyBacklogPolicy(List<ScheduleDelay> delays) {
+        // Group by schedule ID
+        java.util.Map<String, java.util.List<ScheduleDelay>> delaysBySchedule = delays.stream()
+            .filter(d -> d.getStatus() == ScheduleDelay.Status.INIT)
+            .collect(java.util.stream.Collectors.groupingBy(d -> d.getId().getScheduleId()));
+
+        java.util.List<ScheduleDelay> result = new java.util.ArrayList<>();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+        for (java.util.List<ScheduleDelay> scheduleDelays : delaysBySchedule.values()) {
+            if (scheduleDelays.size() <= 1) {
+                // No backlog for this schedule
+                result.addAll(scheduleDelays);
+                continue;
+            }
+
+            // Query schedule to get type
+            String scheduleId = scheduleDelays.get(0).getId().getScheduleId();
+            io.fluxion.server.core.schedule.query.ScheduleByIdQuery.Response scheduleResponse =
+                Query.query(new io.fluxion.server.core.schedule.query.ScheduleByIdQuery(scheduleId));
+
+            if (scheduleResponse == null || scheduleResponse.getSchedule() == null) {
+                // Cannot determine schedule type, keep all to be safe
+                result.addAll(scheduleDelays);
+                continue;
+            }
+
+            io.fluxion.server.infrastructure.schedule.ScheduleType scheduleType =
+                scheduleResponse.getSchedule().getOption().getType();
+
+            if (scheduleType == io.fluxion.server.infrastructure.schedule.ScheduleType.FIXED_DELAY) {
+                // FIXED_DELAY: Keep all (no backlog compensation)
+                // Only next trigger after last completion is scheduled
+                result.addAll(scheduleDelays);
+            } else {
+                // CRON/FIXED_RATE: LATEST_ONLY - keep only the latest valid trigger
+                ScheduleDelay latest = scheduleDelays.stream()
+                    .filter(d -> !d.getId().getTriggerAt().isAfter(now)) // trigger <= now
+                    .max(java.util.Comparator.comparing(d -> d.getId().getTriggerAt()))
+                    .orElse(null);
+
+                if (latest != null) {
+                    log.info("[BACKLOG-LATEST-ONLY] Schedule {} has {} INIT delays," +
+                        " only latest {} will be executed",
+                        scheduleId, scheduleDelays.size(), latest.getId().getTriggerAt());
+                    result.add(latest);
+                }
+            }
+        }
+
+        return result;
     }
 
     private Consumer<DelayedTask> consumer(String scheduleId, ScheduleDelay.ID delayId) {

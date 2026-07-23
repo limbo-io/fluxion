@@ -53,7 +53,9 @@ public class BasicCalculation implements Calculable {
         this.lastTriggerAt = lastTriggerAt;
         this.lastFeedbackAt = lastFeedbackAt;
         this.scheduleOption = scheduleOption;
-        this.triggerAt = ScheduleCalculatorFactory.create(scheduleOption.getType()).calculate(this);
+        this.triggerAt = scheduleOption == null
+            ? null
+            : ScheduleCalculatorFactory.create(scheduleOption.getType()).calculate(this);
     }
 
     public LocalDateTime triggerAt() {
