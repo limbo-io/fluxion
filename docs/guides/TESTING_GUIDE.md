@@ -128,7 +128,7 @@ class MyMySqlTest extends AbstractMySqlIntegrationTest {
 ### `.github/workflows/ci.yml`
 
 ```
-Push/PR → compile → test → regression-test
+Push/PR → compile → regression-test → mysql-integration-test → all-tests-passed
 ```
 
 ### `.github/workflows/test.yml`

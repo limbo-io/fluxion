@@ -44,7 +44,7 @@ public interface ExecutionEntityRepo extends JpaRepository<ExecutionEntity, Stri
     @Query(value = "SELECT * FROM fluxion_execution " +
             "WHERE status IN (:statuses) " +
             "AND (bucket IN (:buckets) OR bucket IS NULL) " +
-            "AND (lease_until IS NULL OR lease_until < NOW(3))", nativeQuery = true)
+            "AND (lease_until IS NULL OR lease_until < CURRENT_TIMESTAMP)", nativeQuery = true)
     List<ExecutionEntity> findActiveExecutionsForRecovery(
             @Param("statuses") List<String> statuses,
             @Param("buckets") List<Integer> buckets
@@ -53,10 +53,10 @@ public interface ExecutionEntityRepo extends JpaRepository<ExecutionEntity, Stri
     @Modifying
     @Query(value = "UPDATE fluxion_execution " +
             "SET recovery_owner = :brokerId, lease_owner = :brokerId, " +
-            "lease_until = DATE_ADD(NOW(3), INTERVAL :leaseSeconds SECOND), state_updated_at = NOW(3) " +
+            "lease_until = TIMESTAMPADD(SECOND, :leaseSeconds, CURRENT_TIMESTAMP), state_updated_at = CURRENT_TIMESTAMP " +
             "WHERE execution_id = :executionId " +
             "AND status IN ('running', 'restarted') " +
-            "AND (lease_until IS NULL OR lease_until < NOW(3))", nativeQuery = true)
+            "AND (lease_until IS NULL OR lease_until < CURRENT_TIMESTAMP)", nativeQuery = true)
     int claimRecoveryLease(
             @Param("executionId") String executionId,
             @Param("brokerId") String brokerId,

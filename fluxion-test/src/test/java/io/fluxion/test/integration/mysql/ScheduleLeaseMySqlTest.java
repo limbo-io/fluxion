@@ -32,6 +32,7 @@ import org.springframework.test.context.ActiveProfiles;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,7 +41,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * MySQL-specific integration tests for Schedule Lease mechanism.
- * 
+ *
  * T4.4 Implementation Note:
  * This test uses JPQL direct updates via EntityManager to set lease expiration
  * times (simulating crashed broker scenarios). This is an ACCEPTED PRACTICE
@@ -59,6 +60,7 @@ import static org.mockito.Mockito.when;
  */
 @SpringBootTest(classes = MySqlTestApplication.class)
 @ActiveProfiles("test-mysql")
+@Transactional
 @DisplayName("Schedule Lease MySQL Integration Tests")
 class ScheduleLeaseMySqlTest extends AbstractMySqlIntegrationTest {
 
@@ -122,8 +124,9 @@ class ScheduleLeaseMySqlTest extends AbstractMySqlIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
-        // When: Broker B tries to claim the expired lease
+        // When: Broker B reclaims the expired lease, then claims it
         simulateBroker(BROKER_B);
+        assertThat(leaseMaintainer.reclaimExpiredClaims(Collections.singletonList(1))).isEqualTo(1);
         boolean claimedByB = leaseMaintainer.tryClaim(SCHEDULE_ID, triggerAt);
 
         // Then: Broker B should successfully claim

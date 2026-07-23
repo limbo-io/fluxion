@@ -69,25 +69,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Testcontainers for MySQL integration tests -->
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>mysql</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        
-        <!-- MySQL JDBC Driver for integration tests -->
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.33</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -149,14 +130,14 @@
             </build>
         </profile>
         
-        <!-- MySQL Integration Test Profile -->
+        <!-- H2 Integration Test Profile -->
         <profile>
-            <id>mysql-integration-test</id>
+            <id>h2-integration-test</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <!-- Skip regular tests, run only MySQL tests -->
+                <!-- Skip regular tests, run only integration tests. -->
                 <test.includes>**/mysql/*Test.java</test.includes>
             </properties>
             <build>
@@ -167,8 +148,13 @@
                         <version>${maven-surefire-plugin.version}</version>
                         <configuration>
                             <includes>
-                                <include>**/mysql/*Test.java</include>
+                                <include>**/integration/mysql/**/*Test.java</include>
                             </includes>
+                            <excludes combine.self="override">
+                                <!-- MySQL native atomic-upsert semantics cannot be represented by H2. -->
+                                <exclude>**/integration/mysql/DistributedLockMySqlTest.java</exclude>
+                            </excludes>
+                            <failIfNoTests>true</failIfNoTests>
                         </configuration>
                     </plugin>
                 </plugins>

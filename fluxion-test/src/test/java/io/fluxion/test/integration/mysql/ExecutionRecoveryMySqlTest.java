@@ -31,6 +31,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -41,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * MySQL-specific integration tests for Execution Recovery.
- * 
+ *
  * T4.4 Implementation Note:
  * This test uses JPQL direct updates via EntityManager for test fixture setup
  * (setting lease expiration to simulate crashed broker scenarios). This is an
@@ -62,6 +63,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(classes = MySqlTestApplication.class)
 @ActiveProfiles("test-mysql")
+@Transactional
 @DisplayName("Execution Recovery MySQL Integration Tests")
 class ExecutionRecoveryMySqlTest extends AbstractMySqlIntegrationTest {
 
@@ -98,20 +100,10 @@ class ExecutionRecoveryMySqlTest extends AbstractMySqlIntegrationTest {
         String executionId = "exec-" + UUID.randomUUID();
         createExecution(executionId, "running", BROKER_A, 1);
         
-        // Simulate expired lease (broker crashed 10 minutes ago)
-        entityManager.createQuery(
-            "UPDATE ExecutionEntity e SET e.leaseUntil = :expired " +
-            "WHERE e.executionId = :executionId"
-        )
-        .setParameter("expired", LocalDateTime.now().minusMinutes(10))
-        .setParameter("executionId", executionId)
-        .executeUpdate();
-        entityManager.flush();
-        entityManager.clear();
-
         // When: Broker B tries to recover executions with expired leases
         List<Integer> buckets = Arrays.asList(1);
         recoveryService.recoverExecutions(BROKER_B, buckets);
+        entityManager.clear();
 
         // Then: Execution should be recovered by Broker B
         Optional<ExecutionEntity> execOpt = executionRepo.findById(executionId);
@@ -142,6 +134,7 @@ class ExecutionRecoveryMySqlTest extends AbstractMySqlIntegrationTest {
         // When: Broker B tries to recover
         List<Integer> buckets = Arrays.asList(1);
         recoveryService.recoverExecutions(BROKER_B, buckets);
+        entityManager.clear();
 
         // Then: Original lease owner should remain
         Optional<ExecutionEntity> execOpt = executionRepo.findById(executionId);
@@ -159,28 +152,13 @@ class ExecutionRecoveryMySqlTest extends AbstractMySqlIntegrationTest {
         
         // Create execution in bucket 1 (expired lease)
         createExecution(exec1, "running", BROKER_A, 1);
-        entityManager.createQuery(
-            "UPDATE ExecutionEntity e SET e.leaseUntil = :expired WHERE e.executionId = :id"
-        )
-        .setParameter("expired", LocalDateTime.now().minusMinutes(10))
-        .setParameter("id", exec1)
-        .executeUpdate();
-
         // Create execution in bucket 2 (expired lease)
         createExecution(exec2, "running", BROKER_A, 2);
-        entityManager.createQuery(
-            "UPDATE ExecutionEntity e SET e.leaseUntil = :expired WHERE e.executionId = :id"
-        )
-        .setParameter("expired", LocalDateTime.now().minusMinutes(10))
-        .setParameter("id", exec2)
-        .executeUpdate();
-        
-        entityManager.flush();
-        entityManager.clear();
 
         // When: Broker B recovers only bucket 1
         List<Integer> buckets = Arrays.asList(1);
         recoveryService.recoverExecutions(BROKER_B, buckets);
+        entityManager.clear();
 
         // Then: Only bucket 1 execution should be recovered
         ExecutionEntity execution1 = executionRepo.findById(exec1).orElseThrow();
@@ -277,19 +255,10 @@ class ExecutionRecoveryMySqlTest extends AbstractMySqlIntegrationTest {
         String executionId = "exec-" + UUID.randomUUID();
         createExecution(executionId, "running", BROKER_A, 1);
         
-        // Set expired lease
-        entityManager.createQuery(
-            "UPDATE ExecutionEntity e SET e.leaseUntil = :expired WHERE e.executionId = :id"
-        )
-        .setParameter("expired", LocalDateTime.now().minusMinutes(10))
-        .setParameter("id", executionId)
-        .executeUpdate();
-        entityManager.flush();
-        entityManager.clear();
-
         // When: Broker B recovers
         List<Integer> buckets = Arrays.asList(1);
         recoveryService.recoverExecutions(BROKER_B, buckets);
+        entityManager.clear();
 
         // Then: Execution should be owned by Broker B
         ExecutionEntity execution = executionRepo.findById(executionId).orElseThrow();
@@ -343,12 +312,12 @@ class ExecutionRecoveryMySqlTest extends AbstractMySqlIntegrationTest {
         entity.setBucket(bucket);
         entity.setWorkerId(WORKER_1);
         entity.setLeaseOwner(brokerId);
-        entity.setLeaseUntil(LocalDateTime.now().plusMinutes(5));
+        entity.setLeaseUntil(LocalDateTime.now().minusMinutes(1));
         entity.setDispatchAttempt(0);
         entity.setTriggerAt(LocalDateTime.now());
         entity.setCreatedAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
         entity.setDeleted(false);
-        executionRepo.save(entity);
+        executionRepo.saveAndFlush(entity);
     }
 }

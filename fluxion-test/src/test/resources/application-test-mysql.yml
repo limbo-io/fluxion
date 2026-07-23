@@ -1,18 +1,18 @@
-# MySQL Integration Test Configuration
+# H2 Integration Test Configuration (legacy profile name retained temporarily)
 spring:
   application:
-    name: fluxion-test-mysql
+    name: fluxion-test-h2-integration
 
-  # Datasource will be configured dynamically via AbstractMySqlIntegrationTest
-  # These are placeholders that will be overridden
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:h2:mem:integrationdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
 
-  # JPA Configuration for MySQL 8
   jpa:
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: none
+      ddl-auto: create-drop
     show-sql: true
     properties:
       hibernate:
@@ -22,14 +22,8 @@ spring:
         order_updates: true
         order_inserts: true
 
-  # Flyway for schema migration
   flyway:
-    enabled: true
-    baseline-on-migrate: true
-    baseline-version: 0
-    locations: classpath:db/migration
-    validate-on-migrate: true
-    out-of-order: false
+    enabled: false
 
 # Disable automatic broker/worker startup for tests
 fluxion:

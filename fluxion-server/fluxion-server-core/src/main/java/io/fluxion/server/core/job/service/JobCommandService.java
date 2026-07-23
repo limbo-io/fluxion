@@ -24,6 +24,7 @@ import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobMonitor;
+import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.cmd.JobReportCmd;
 import io.fluxion.server.core.job.cmd.JobResetCmd;
@@ -304,7 +305,7 @@ public class JobCommandService {
         // 重试逻辑
         Job.Config config = Query.query(new JobConfigQuery(entity.getExecutionId(), entity.getRefId())).getConfig();
         if (config.getRetryOption().canRetry(entity.getRetryTimes())) {
-            return Cmd.send(new JobRetryCmd());
+            return Cmd.send(new JobRetryCmd(entity.getJobId(), entity.getRetryTimes() + 1));
         }
         String lockName = entity.getExecutionId() + LOCK_SUFFIX;
         return distributedLock.lock(lockName, 2000, 3000, () -> {
@@ -327,6 +328,38 @@ public class JobCommandService {
             .setParameter("status", JobStatus.INITED.value)
             .setParameter("jobId", cmd.getJobId())
             .executeUpdate();
+    }
+
+    @Transactional
+    @CommandHandler
+    public boolean handle(JobRetryCmd cmd) {
+        JobEntity entity = jobEntityRepo.findById(cmd.getJobId()).orElse(null);
+        if (entity == null) {
+            log.warn("JobRetryCmd job not found jobId:{}", cmd.getJobId());
+            return false;
+        }
+
+        entityManager.createQuery("update JobEntity set status = :status, retryTimes = :retryTimes " +
+                "where jobId = :jobId")
+            .setParameter("status", JobStatus.INITED.value)
+            .setParameter("retryTimes", cmd.getRetryTimes())
+            .setParameter("jobId", cmd.getJobId())
+            .executeUpdate();
+
+        Job job = new Job();
+        job.setJobId(entity.getJobId());
+        job.setExecutionId(entity.getExecutionId());
+        job.setRefId(entity.getRefId());
+        job.setType(JobType.parse(entity.getJobType()));
+        job.setStatus(JobStatus.INITED);
+        job.setTriggerAt(entity.getTriggerAt());
+        job.setRetryTimes(cmd.getRetryTimes());
+        run(job);
+        return true;
+    }
+
+    protected void run(Job job) {
+        Cmd.send(new JobRunCmd(job));
     }
 
 }

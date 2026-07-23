@@ -61,8 +61,11 @@ public class ExecutionRetryService {
                     return;
                 }
 
-                // 触发 Job 重试
-                Cmd.send(new JobRetryCmd(executionId, info.getRetryCount()));
+                if (info.getJobId() == null) {
+                    log.warn("[FAULT-RETRY] Skipping retry without jobId: executionId={}", executionId);
+                    return;
+                }
+                sendJobRetry(info.getJobId(), info.getRetryCount());
             }
         );
 
@@ -72,5 +75,9 @@ public class ExecutionRetryService {
     @CommandHandler
     public void handle(ExecutionRetryScheduleCmd cmd) {
         scheduleRetry(cmd.getExecutionId(), cmd.getDelay());
+    }
+
+    protected void sendJobRetry(String jobId, int retryTimes) {
+        Cmd.send(new JobRetryCmd(jobId, retryTimes));
     }
 }

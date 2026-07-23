@@ -17,14 +17,27 @@
 package io.fluxion.test.integration.mysql;
 
 import io.fluxion.server.infrastructure.lock.DatabaseDistributedLock;
+import io.fluxion.server.infrastructure.lock.DistributedLock;
+import io.fluxion.server.infrastructure.schedule.scheduler.DelayedTaskScheduler;
+import io.fluxion.server.infrastructure.schedule.scheduler.Timer;
+import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
+import io.fluxion.test.support.base.TestApplication;
+import io.fluxion.test.support.environment.LocalDistributedLock;
 import io.limbo.cqrs.spring.config.EnableCqrs;
 import io.limbo.utils.ReflectionUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.context.annotation.Primary;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * MySQL Integration Test Application.
@@ -39,11 +52,17 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  * This allows testing actual distributed behaviors that H2 cannot properly simulate.
  */
 @SpringBootApplication
-@ComponentScan(basePackages = "io.fluxion")
+@ComponentScan(
+    basePackages = "io.fluxion",
+    excludeFilters = {
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = TestApplication.class),
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = DatabaseDistributedLock.class)
+    }
+)
 @EnableTransactionManagement
 @EntityScan(basePackages = "io.fluxion.**.dao.entity")
 @EnableJpaRepositories(value = {"io.fluxion.**.dao.repository"})
-@EnableCqrs(basePackages = "io.fluxion")
+@EnableCqrs(basePackages = {"io.fluxion.server", "io.fluxion.worker"})
 public class MySqlTestApplication {
 
     static {
@@ -53,5 +72,44 @@ public class MySqlTestApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(MySqlTestApplication.class, args);
+    }
+
+    /**
+     * H2 回归不模拟 MySQL 的原子 upsert 锁语义；该语义由生产 MySQL 实现负责。
+     */
+    @Bean
+    @Primary
+    public DistributedLock distributedLock() {
+        return new LocalDistributedLock();
+    }
+
+    /**
+     * cqrs-spring 0.0.3 按 handler 的全限定类名查找 Bean；为 Spring 默认命名
+     * 的组件补充同名别名，避免扫描器反射创建未注入依赖的 handler 实例。
+     */
+    @Bean
+    public static BeanFactoryPostProcessor cqrsHandlerBeanAliases() {
+        return beanFactory -> {
+            BeanDefinitionRegistry registry = (BeanDefinitionRegistry) beanFactory;
+            for (String beanName : beanFactory.getBeanDefinitionNames()) {
+                String beanClassName = beanFactory.getBeanDefinition(beanName).getBeanClassName();
+                if (beanClassName != null
+                    && beanClassName.startsWith("io.fluxion.")
+                    && !beanName.equals(beanClassName)
+                    && !registry.isAlias(beanClassName)) {
+                    registry.registerAlias(beanName, beanClassName);
+                }
+            }
+        };
+    }
+
+    @Bean
+    public Timer timer() {
+        return new TimingWheelTimer(100, TimeUnit.MILLISECONDS);
+    }
+
+    @Bean(name = {"delayedTaskScheduler", "scheduler"})
+    public DelayedTaskScheduler delayedTaskScheduler(Timer timer) {
+        return new DelayedTaskScheduler(timer);
     }
 }

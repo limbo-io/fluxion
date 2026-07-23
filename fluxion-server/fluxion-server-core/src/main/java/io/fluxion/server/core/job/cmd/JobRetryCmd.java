@@ -32,7 +32,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class JobRetryCmd implements ICommand<Boolean> {
 
-    private String taskId;
+    private String jobId;
     /**
      * 当前是第几次重试
      */

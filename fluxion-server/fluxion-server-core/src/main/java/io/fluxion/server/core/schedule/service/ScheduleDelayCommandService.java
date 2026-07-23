@@ -125,10 +125,6 @@ public class ScheduleDelayCommandService {
             return;
         }
 
-        // T3.6/T5.1: Apply backlog policy (LATEST_ONLY for CRON/FIXED_RATE)
-        // Group delays by schedule ID to detect backlog
-        delays = applyBacklogPolicy(delays);
-
         // Filter only INIT delays and attempt to claim them atomically
         for (ScheduleDelay delay : delays) {
             if (ScheduleDelay.Status.INIT != delay.getStatus()) {
@@ -155,72 +151,13 @@ public class ScheduleDelayCommandService {
             String scheduleId = delayId.getScheduleId();
             DelayedTaskScheduler delayedTaskScheduler = BrokerContext.broker().delayedTaskScheduler();
             delayedTaskScheduler.schedule(DelayedTaskFactory.create(
-                delayId.toString(),
+                taskId(delayId),
                 delayId.getTriggerAt(),
                 consumer(scheduleId, delayId)
             ));
 
             log.debug("Claimed and scheduled delay {}:{}", delayId.getScheduleId(), delayId.getTriggerAt());
         }
-    }
-
-    /**
-     * T3.6/T5.1: Apply backlog policy
-     * For CRON/FIXED_RATE schedules with multiple INIT delays (backlog),
-     * only keep the latest valid trigger (LATEST_ONLY policy).
-     * FIXED_DELAY schedules do not compensate backlog - they continue from last completion.
-     */
-    private List<ScheduleDelay> applyBacklogPolicy(List<ScheduleDelay> delays) {
-        // Group by schedule ID
-        java.util.Map<String, java.util.List<ScheduleDelay>> delaysBySchedule = delays.stream()
-            .filter(d -> d.getStatus() == ScheduleDelay.Status.INIT)
-            .collect(java.util.stream.Collectors.groupingBy(d -> d.getId().getScheduleId()));
-
-        java.util.List<ScheduleDelay> result = new java.util.ArrayList<>();
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
-
-        for (java.util.List<ScheduleDelay> scheduleDelays : delaysBySchedule.values()) {
-            if (scheduleDelays.size() <= 1) {
-                // No backlog for this schedule
-                result.addAll(scheduleDelays);
-                continue;
-            }
-
-            // Query schedule to get type
-            String scheduleId = scheduleDelays.get(0).getId().getScheduleId();
-            io.fluxion.server.core.schedule.query.ScheduleByIdQuery.Response scheduleResponse =
-                Query.query(new io.fluxion.server.core.schedule.query.ScheduleByIdQuery(scheduleId));
-
-            if (scheduleResponse == null || scheduleResponse.getSchedule() == null) {
-                // Cannot determine schedule type, keep all to be safe
-                result.addAll(scheduleDelays);
-                continue;
-            }
-
-            io.fluxion.server.infrastructure.schedule.ScheduleType scheduleType =
-                scheduleResponse.getSchedule().getOption().getType();
-
-            if (scheduleType == io.fluxion.server.infrastructure.schedule.ScheduleType.FIXED_DELAY) {
-                // FIXED_DELAY: Keep all (no backlog compensation)
-                // Only next trigger after last completion is scheduled
-                result.addAll(scheduleDelays);
-            } else {
-                // CRON/FIXED_RATE: LATEST_ONLY - keep only the latest valid trigger
-                ScheduleDelay latest = scheduleDelays.stream()
-                    .filter(d -> !d.getId().getTriggerAt().isAfter(now)) // trigger <= now
-                    .max(java.util.Comparator.comparing(d -> d.getId().getTriggerAt()))
-                    .orElse(null);
-
-                if (latest != null) {
-                    log.info("[BACKLOG-LATEST-ONLY] Schedule {} has {} INIT delays," +
-                        " only latest {} will be executed",
-                        scheduleId, scheduleDelays.size(), latest.getId().getTriggerAt());
-                    result.add(latest);
-                }
-            }
-        }
-
-        return result;
     }
 
     private Consumer<DelayedTask> consumer(String scheduleId, ScheduleDelay.ID delayId) {
@@ -330,7 +267,7 @@ public class ScheduleDelayCommandService {
             
             // Build native SQL with conditional fencing
             StringBuilder sql = new StringBuilder(
-                "UPDATE schedule_delay " +
+                "UPDATE fluxion_schedule_delay " +
                 "SET status = :newStatus, updated_at = CURRENT_TIMESTAMP(3)"
             );
             
@@ -343,14 +280,14 @@ public class ScheduleDelayCommandService {
                 "AND trigger_at = :triggerAt " +
                 "AND status = :oldStatus " +
                 "AND lease_owner = :owner " +
-                "AND deleted = false");
+                "AND is_deleted = false");
             
             // Add execution token check for RUNNING → terminal transitions
             if (oldStatus == ScheduleDelay.Status.RUNNING && executionToken != null) {
                 sql.append(" AND execution_token = :executionToken");
             }
             
-            sql.append(" AND lease_until > NOW(3)");
+            sql.append(" AND lease_until > CURRENT_TIMESTAMP");
             
             var query = entityManager.createNativeQuery(sql.toString())
                 .setParameter("newStatus", newStatus.value)
@@ -382,14 +319,14 @@ public class ScheduleDelayCommandService {
             String scheduleId = delayId.getScheduleId();
             LocalDateTime triggerAt = delayId.getTriggerAt();
             
-            String sql = "UPDATE schedule_delay " +
+            String sql = "UPDATE fluxion_schedule_delay " +
                 "SET status = :newStatus, execution_token = :executionToken, updated_at = CURRENT_TIMESTAMP(3) " +
                 "WHERE schedule_id = :scheduleId " +
                 "AND trigger_at = :triggerAt " +
                 "AND status = :oldStatus " +
                 "AND lease_owner = :owner " +
-                "AND lease_until > NOW(3) " +
-                "AND deleted = false";
+                "AND lease_until > CURRENT_TIMESTAMP " +
+                "AND is_deleted = false";
             
             int affected = entityManager.createNativeQuery(sql)
                 .setParameter("newStatus", ScheduleDelay.Status.RUNNING.value)
@@ -419,12 +356,12 @@ public class ScheduleDelayCommandService {
     public int releaseClaimsForBroker(String brokerId) {
         // Only reset CLAIMED → INIT, not RUNNING
         // RUNNING records are handled by fault-tolerance (execution already created)
-        String sql = "UPDATE schedule_delay " +
+        String sql = "UPDATE fluxion_schedule_delay " +
             "SET status = :initStatus, lease_owner = NULL, lease_until = NULL, " +
             "    execution_token = NULL, updated_at = CURRENT_TIMESTAMP(3) " +
             "WHERE lease_owner = :brokerId " +
             "AND status = :claimedStatus " +
-            "AND deleted = false";
+            "AND is_deleted = false";
         
         int affected = entityManager.createNativeQuery(sql)
             .setParameter("initStatus", ScheduleDelay.Status.INIT.value)
@@ -456,10 +393,10 @@ public class ScheduleDelayCommandService {
         // The execution service handles duplicate prevention at execution creation time
         
         String findSql = "SELECT schedule_id, trigger_at, lease_owner, execution_token " +
-            "FROM schedule_delay " +
+            "FROM fluxion_schedule_delay " +
             "WHERE status = :runningStatus " +
-            "AND lease_until < DATE_SUB(NOW(3), INTERVAL 30 SECOND) " +
-            "AND deleted = false";
+            "AND lease_until < TIMESTAMPADD(SECOND, -30, CURRENT_TIMESTAMP) " +
+            "AND is_deleted = false";
         
         @SuppressWarnings("unchecked")
         List<Object[]> expiredDelays = entityManager.createNativeQuery(findSql)
@@ -478,14 +415,14 @@ public class ScheduleDelayCommandService {
             String oldToken = (String) row[3];
             
             // Reset to INIT - execution service will handle duplicates at creation time
-            String updateSql = "UPDATE schedule_delay " +
+            String updateSql = "UPDATE fluxion_schedule_delay " +
                 "SET status = :initStatus, lease_owner = NULL, lease_until = NULL, " +
                 "    execution_token = NULL, updated_at = CURRENT_TIMESTAMP(3) " +
                 "WHERE schedule_id = :scheduleId " +
                 "AND trigger_at = :triggerAt " +
                 "AND status = :runningStatus " +
                 "AND lease_owner = :oldOwner " +
-                "AND deleted = false";
+                "AND is_deleted = false";
             
             int affected = entityManager.createNativeQuery(updateSql)
                 .setParameter("initStatus", ScheduleDelay.Status.INIT.value)
@@ -576,8 +513,7 @@ public class ScheduleDelayCommandService {
         
         int cancelled = 0;
         for (ScheduleDelayEntity delay : delays) {
-            String taskId = delay.getId().getScheduleId() + ":" + delay.getId().getTriggerAt();
-            scheduler.stop(taskId);
+            scheduler.stop(taskId(delay.getId()));
             cancelled++;
         }
         
@@ -591,5 +527,13 @@ public class ScheduleDelayCommandService {
             return null;
         }
         return BrokerContext.broker().id();
+    }
+
+    private String taskId(ScheduleDelay.ID delayId) {
+        return delayId.getScheduleId() + ":" + delayId.getTriggerAt();
+    }
+
+    private String taskId(ScheduleDelayEntity.ID delayId) {
+        return delayId.getScheduleId() + ":" + delayId.getTriggerAt();
     }
 }

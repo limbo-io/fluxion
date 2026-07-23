@@ -68,14 +68,14 @@ public class ScheduleLeaseMaintainer {
 
         return transactionService.transactional(() -> {
             int updated = entityManager.createNativeQuery(
-                    "UPDATE schedule_delay " +
+                    "UPDATE fluxion_schedule_delay " +
                     "SET lease_owner = :brokerId, " +
-                    "    lease_until = DATE_ADD(NOW(3), INTERVAL :duration SECOND), " +
-                    "    status = :newStatus, attempt = attempt + 1, updated_at = NOW(3) " +
+                    "    lease_until = TIMESTAMPADD(SECOND, :duration, CURRENT_TIMESTAMP), " +
+                    "    status = :newStatus, attempt = attempt + 1, updated_at = CURRENT_TIMESTAMP " +
                     "WHERE schedule_id = :scheduleId " +
                     "AND trigger_at = :triggerAt " +
                     "AND status = :initStatus " +
-                    "AND deleted = false"
+                    "AND is_deleted = false"
                 )
                 .setParameter("brokerId", brokerId)
                 .setParameter("duration", properties.getDuration())
@@ -93,7 +93,7 @@ public class ScheduleLeaseMaintainer {
      * Verify that the current broker still owns the lease.
      * <p>
      * This is the fencing check: before executing, confirm we still have the lease.
-     * Uses MySQL NOW(3) for consistent time comparison across all database operations.
+     * Uses the database current timestamp for consistent time comparison across all operations.
      *
      * @param scheduleId the schedule ID
      * @param triggerAt the trigger time
@@ -105,15 +105,14 @@ public class ScheduleLeaseMaintainer {
             return false;
         }
 
-        // Use MySQL NOW(3) for consistent time - requires native query
         Long count = ((Number) entityManager.createNativeQuery(
-                "SELECT COUNT(*) FROM schedule_delay " +
+                "SELECT COUNT(*) FROM fluxion_schedule_delay " +
                 "WHERE schedule_id = :scheduleId " +
                 "AND trigger_at = :triggerAt " +
                 "AND lease_owner = :brokerId " +
-                "AND lease_until > NOW(3) " +
+                "AND lease_until > CURRENT_TIMESTAMP " +
                 "AND status = :status " +
-                "AND deleted = false"
+                "AND is_deleted = false"
             )
             .setParameter("scheduleId", scheduleId)
             .setParameter("triggerAt", triggerAt)
@@ -140,14 +139,14 @@ public class ScheduleLeaseMaintainer {
 
         return transactionService.transactional(() -> {
             int updated = entityManager.createNativeQuery(
-                    "UPDATE schedule_delay " +
-                    "SET status = :newStatus, updated_at = NOW(3) " +
+                    "UPDATE fluxion_schedule_delay " +
+                    "SET status = :newStatus, updated_at = CURRENT_TIMESTAMP " +
                     "WHERE schedule_id = :scheduleId " +
                     "AND trigger_at = :triggerAt " +
                     "AND lease_owner = :brokerId " +
-                    "AND lease_until > NOW(3) " +
+                    "AND lease_until > CURRENT_TIMESTAMP " +
                     "AND status = :currentStatus " +
-                    "AND deleted = false"
+                    "AND is_deleted = false"
                 )
                 .setParameter("newStatus", ScheduleDelay.Status.RUNNING.value)
                 .setParameter("scheduleId", scheduleId)
@@ -162,10 +161,10 @@ public class ScheduleLeaseMaintainer {
 
     public int renewClaims(String brokerId, int durationSeconds) {
         return transactionService.transactional(() -> entityManager.createNativeQuery(
-                "UPDATE schedule_delay " +
-                "SET lease_until = DATE_ADD(NOW(3), INTERVAL :duration SECOND), updated_at = NOW(3) " +
+                "UPDATE fluxion_schedule_delay " +
+                "SET lease_until = TIMESTAMPADD(SECOND, :duration, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP " +
                 "WHERE lease_owner = :brokerId AND status = :status " +
-                "AND lease_until > NOW(3) AND deleted = false"
+                "AND lease_until > CURRENT_TIMESTAMP AND is_deleted = false"
             )
             .setParameter("duration", durationSeconds)
             .setParameter("brokerId", brokerId)
@@ -178,10 +177,10 @@ public class ScheduleLeaseMaintainer {
             return 0;
         }
         return transactionService.transactional(() -> entityManager.createNativeQuery(
-                "UPDATE schedule_delay " +
-                "SET status = :initStatus, lease_owner = NULL, lease_until = NULL, updated_at = NOW(3) " +
+                "UPDATE fluxion_schedule_delay " +
+                "SET status = :initStatus, lease_owner = NULL, lease_until = NULL, updated_at = CURRENT_TIMESTAMP " +
                 "WHERE bucket IN (:buckets) AND status = :claimedStatus " +
-                "AND lease_until <= NOW(3) AND deleted = false"
+                "AND lease_until <= CURRENT_TIMESTAMP AND is_deleted = false"
             )
             .setParameter("initStatus", ScheduleDelay.Status.INIT.value)
             .setParameter("claimedStatus", ScheduleDelay.Status.CLAIMED.value)

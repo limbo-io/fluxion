@@ -22,6 +22,7 @@ import io.fluxion.server.core.schedule.cmd.CancelTasksByBucketCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleLeaseReclaimCmd;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleDelayEntity;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleDelayEntityRepo;
+import io.fluxion.server.infrastructure.schedule.scheduler.DelayedTaskScheduler;
 import io.limbo.cqrs.spring.command.Cmd;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,10 +38,11 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -99,21 +101,23 @@ class BucketOwnershipChangeTest extends AbstractMySqlIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
-        // When: Send CancelTasksByBucketCmd for bucket 1 (simulating BucketChecker detection)
-        // This would be triggered when BucketChecker detects bucket 1 is no longer owned
+        DelayedTaskScheduler scheduler = mock(DelayedTaskScheduler.class);
+        simulateBroker(BROKER_A, scheduler);
+
+        // When: BucketChecker's command reaches the production handler
         Cmd.send(new CancelTasksByBucketCmd(Collections.singletonList(1)));
         entityManager.flush();
         entityManager.clear();
 
-        // Then: The command should execute without error
-        // Note: The actual in-memory task cancellation depends on DelayedTaskScheduler state
-        // which is verified in integration with the full broker lifecycle
+        // Then: only the lost bucket's local delayed task is cancelled
         ScheduleDelayEntity delay1 = findDelay(SCHEDULE_ID + "-1", triggerAt1);
         ScheduleDelayEntity delay2 = findDelay(SCHEDULE_ID + "-2", triggerAt2);
 
         // Database state unchanged - cancellation only affects in-memory scheduler
         assertThat(delay1.getLeaseOwner()).isEqualTo(BROKER_A);
         assertThat(delay2.getLeaseOwner()).isEqualTo(BROKER_A);
+        verify(scheduler).stop(SCHEDULE_ID + "-1:" + triggerAt1);
+        verify(scheduler, never()).stop(SCHEDULE_ID + "-2:" + triggerAt2);
     }
 
     @Test
@@ -198,12 +202,10 @@ class BucketOwnershipChangeTest extends AbstractMySqlIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
-        // Verify initial state
-        AtomicInteger callsBefore = new AtomicInteger(0);
-
         // When: Send CancelTasksByBucketCmd for bucket 1 (simulating lost bucket)
         // This tests: BucketChecker detection → CancelTasksByBucketCmd → CommandHandler → task cancellation
-        simulateBroker(BROKER_A);
+        DelayedTaskScheduler scheduler = mock(DelayedTaskScheduler.class);
+        simulateBroker(BROKER_A, scheduler);
         Cmd.send(new CancelTasksByBucketCmd(Collections.singletonList(1)));
         entityManager.flush();
         entityManager.clear();
@@ -287,8 +289,15 @@ class BucketOwnershipChangeTest extends AbstractMySqlIntegrationTest {
     }
 
     private void simulateBroker(String brokerId) {
+        simulateBroker(brokerId, null);
+    }
+
+    private void simulateBroker(String brokerId, DelayedTaskScheduler delayedTaskScheduler) {
         Broker mockBroker = mock(Broker.class);
         when(mockBroker.id()).thenReturn(brokerId);
+        if (delayedTaskScheduler != null) {
+            when(mockBroker.delayedTaskScheduler()).thenReturn(delayedTaskScheduler);
+        }
         BrokerContext.initialize(mockBroker);
     }
 }

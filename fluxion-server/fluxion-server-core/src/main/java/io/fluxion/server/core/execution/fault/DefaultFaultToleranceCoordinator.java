@@ -1,6 +1,5 @@
 package io.fluxion.server.core.execution.fault;
 
-import io.fluxion.server.core.execution.cmd.ExecutionMigrateCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionRetryScheduleCmd;
 import io.fluxion.server.core.execution.fault.config.FaultToleranceProperties;
 import io.fluxion.server.core.execution.fault.failover.FailoverManager;
@@ -56,7 +55,7 @@ public class DefaultFaultToleranceCoordinator implements FaultToleranceCoordinat
     /**
      * 调度重试任务
      */
-    private void scheduleRetry(String executionId, Duration delay) {
+    protected void scheduleRetry(String executionId, Duration delay) {
         log.info("[FAULT-RETRY] Sending retry schedule command: executionId={}, delay={}ms",
             executionId, delay.toMillis());
         // 使用 CQRS 命令发送调度请求
@@ -187,8 +186,10 @@ public class DefaultFaultToleranceCoordinator implements FaultToleranceCoordinat
         List<ExecutionInfo> toMigrate = failoverManager.markWorkerFailed(workerId);
 
         for (ExecutionInfo info : toMigrate) {
-            // 通过 CQRS 命令触发迁移
-            Cmd.send(new ExecutionMigrateCmd(info.getExecutionId(), workerId));
+            handleFailure(info, ExecutionResult.failed(
+                new RuntimeException("Worker offline: " + workerId),
+                ErrorCategory.TRANSIENT
+            ));
         }
     }
 

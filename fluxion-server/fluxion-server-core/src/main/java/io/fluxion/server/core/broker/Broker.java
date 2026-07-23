@@ -77,6 +77,12 @@ public class Broker {
 
     public Broker(Protocol protocol, String host, int port, BrokerManger brokerManger,
                   ClientServer clientServer, ScheduleLeaseProperties leaseProperties) {
+        this(protocol, host, port, brokerManger, clientServer, leaseProperties, null);
+    }
+
+    public Broker(Protocol protocol, String host, int port, BrokerManger brokerManger,
+                  ClientServer clientServer, ScheduleLeaseProperties leaseProperties,
+                  ScheduledExecutorService coreThreadPool) {
         Assert.isTrue(Protocol.UNKNOWN != protocol, "protocol is unknown");
         Assert.isTrue(StringUtils.isNotBlank(host), "host is null");
 
@@ -94,10 +100,12 @@ public class Broker {
             new ScheduleLeaseReclaimTask(leaseProperties)
         );
         this.clientServer = clientServer;
-        this.coreThreadPool = new ScheduledThreadPoolExecutor(
-            coreTasks.size(),
-            NamedThreadFactory.newInstance("FluxionBrokerCoreExecutor")
-        );
+        this.coreThreadPool = coreThreadPool == null
+            ? new ScheduledThreadPoolExecutor(
+                coreTasks.size(),
+                NamedThreadFactory.newInstance("FluxionBrokerCoreExecutor")
+            )
+            : coreThreadPool;
         this.delayedTaskScheduler = new DelayedTaskScheduler(new TimingWheelTimer(100L, TimeUnit.MILLISECONDS));
     }
 

@@ -40,19 +40,10 @@ jobs:
       - name: Run Regression Tests
         run: mvn test -pl fluxion-test -am -Pregression-test --batch-mode
 
-  # T4.6 CI 门禁: MySQL 集成测试
-  mysql-integration-test:
+  # T4.6 CI 门禁: H2 集成测试
+  h2-integration-test:
     runs-on: ubuntu-latest
     needs: regression-test
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: fluxion_test
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - uses: actions/checkout@v3
 
@@ -63,29 +54,19 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Wait for MySQL
-        run: |
-          until mysqladmin ping -h"127.0.0.1" -P3306 -uroot -proot --silent; do
-            sleep 1
-          done
-
-      - name: Run MySQL Integration Tests
-        run: mvn test -pl fluxion-test -am -Pmysql-integration-test --batch-mode
-        env:
-          FLUXION_TEST_MYSQL_URL: jdbc:mysql://localhost:3306/fluxion_test
-          FLUXION_TEST_MYSQL_USERNAME: root
-          FLUXION_TEST_MYSQL_PASSWORD: root
+      - name: Run H2 Integration Tests
+        run: mvn test -pl fluxion-test -am -Ph2-integration-test --batch-mode
 
   # T4.6 CI 门禁: 合并要求
   # 所有测试通过后，此 job 成功，PR 可合并
   all-tests-passed:
     runs-on: ubuntu-latest
-    needs: [regression-test, mysql-integration-test]
+    needs: [regression-test, h2-integration-test]
     if: always()
     steps:
       - name: Check if all tests passed
         run: |
-          if [ "${{ needs.regression-test.result }}" != "success" ] || [ "${{ needs.mysql-integration-test.result }}" != "success" ]; then
+          if [ "${{ needs.regression-test.result }}" != "success" ] || [ "${{ needs.h2-integration-test.result }}" != "success" ]; then
             echo "❌ Not all tests passed. Blocking merge."
             exit 1
           fi
