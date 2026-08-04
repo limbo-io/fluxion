@@ -22,6 +22,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
+ * 保存 Worker 及其运行指标、执行器和标签信息。
+ *
  * @author Devil
  */
 @Getter

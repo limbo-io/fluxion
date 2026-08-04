@@ -24,6 +24,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 触发调度并创建待执行的延迟任务。
+ *
  * @author Devil
  */
 @Getter

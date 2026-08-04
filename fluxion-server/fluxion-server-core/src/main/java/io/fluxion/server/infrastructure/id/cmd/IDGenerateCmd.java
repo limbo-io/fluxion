@@ -22,6 +22,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
+ * 生成指定类型的唯一 ID。
+ *
  * @author Devil
  */
 @Getter

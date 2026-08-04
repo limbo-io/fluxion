@@ -23,6 +23,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 更新工作流基本信息。
+ *
  * @author Devil
  */
 @Getter

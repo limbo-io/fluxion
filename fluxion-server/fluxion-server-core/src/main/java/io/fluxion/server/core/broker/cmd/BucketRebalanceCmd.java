@@ -19,6 +19,8 @@ package io.fluxion.server.core.broker.cmd;
 import io.limbo.cqrs.core.command.VoidCommand;
 
 /**
+ * 重新分配 Bucket 的 Broker 归属。
+ *
  * @author Devil
  */
 public class BucketRebalanceCmd implements VoidCommand {

@@ -23,6 +23,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 为资源分配 Bucket。
+ *
  * @author Devil
  */
 @Getter

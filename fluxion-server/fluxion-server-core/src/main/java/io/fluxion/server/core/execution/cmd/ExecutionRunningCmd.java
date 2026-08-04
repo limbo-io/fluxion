@@ -23,6 +23,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 将执行实例标记为运行中。
+ *
  * @author Devil
  */
 @Getter

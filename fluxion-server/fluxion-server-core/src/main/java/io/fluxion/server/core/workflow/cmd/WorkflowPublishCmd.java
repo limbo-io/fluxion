@@ -27,6 +27,8 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
+ * 发布工作流配置。
+ *
  * @author Devil
  */
 @Getter

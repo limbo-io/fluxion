@@ -22,6 +22,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
+ * 保存配置版本。
+ *
  * @author Devil
  */
 @Getter

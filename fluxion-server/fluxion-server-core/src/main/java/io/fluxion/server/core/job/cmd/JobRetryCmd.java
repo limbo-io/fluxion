@@ -25,6 +25,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
+ * 重试指定 Job。
+ *
  * todo @d later
  * @author Devil
  */

@@ -24,6 +24,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 发布触发器配置。
+ *
  * @author Devil
  */
 @Getter

@@ -23,6 +23,8 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 
 /**
+ * 将 Job 标记为失败。
+ *
  * @author Devil
  */
 @Getter
