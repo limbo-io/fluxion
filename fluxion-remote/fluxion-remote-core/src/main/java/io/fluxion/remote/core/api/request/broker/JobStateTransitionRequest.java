@@ -32,6 +32,8 @@ public class JobStateTransitionRequest implements Request<JobStateTransitionResp
 
     private String jobId;
 
+    private int dispatchAttempt;
+
     private NodeDTO workerNode;
 
     private LocalDateTime reportAt;
@@ -64,6 +66,14 @@ public class JobStateTransitionRequest implements Request<JobStateTransitionResp
 
     public void setJobId(String jobId) {
         this.jobId = jobId;
+    }
+
+    public int getDispatchAttempt() {
+        return dispatchAttempt;
+    }
+
+    public void setDispatchAttempt(int dispatchAttempt) {
+        this.dispatchAttempt = dispatchAttempt;
     }
 
     public LocalDateTime getReportAt() {

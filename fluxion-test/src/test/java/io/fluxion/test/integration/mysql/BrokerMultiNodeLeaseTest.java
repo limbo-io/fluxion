@@ -239,12 +239,12 @@ class BrokerMultiNodeLeaseTest extends AbstractMySqlIntegrationTest {
         ScheduleDelayEntity delay = findDelay(SCHEDULE_ID, triggerAt);
         assertThat(delay.getLeaseOwner()).isEqualTo(BROKER_B);
 
-        // When: Broker A tries to begin execution with its stale lease.
+        // When: Broker A verifies its stale lease.
         simulateBroker(BROKER_A);
-        boolean transitioned = leaseMaintainer.transitionToRunning(SCHEDULE_ID, triggerAt);
+        boolean verified = leaseMaintainer.verifyLease(SCHEDULE_ID, triggerAt);
 
-        // Then: the conditional state update is fenced and cannot create another execution.
-        assertThat(transitioned).isFalse();
+        // Then: the stale broker is fenced from entering the production execution path.
+        assertThat(verified).isFalse();
         ScheduleDelayEntity afterAttempt = findDelay(SCHEDULE_ID, triggerAt);
         assertThat(afterAttempt.getLeaseOwner()).isEqualTo(BROKER_B);
         assertThat(afterAttempt.getStatus()).isEqualTo("claimed");

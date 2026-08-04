@@ -5,6 +5,7 @@ import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobRetryCmd;
 import io.fluxion.server.core.job.service.JobCommandService;
+import io.fluxion.server.core.job.service.JobRetryService;
 import io.fluxion.server.infrastructure.dao.entity.JobEntity;
 import io.fluxion.server.infrastructure.dao.repository.JobEntityRepo;
 import org.junit.jupiter.api.Test;
@@ -39,8 +40,11 @@ class JobRetryCommandServiceTest {
         when(query.setParameter(anyString(), org.mockito.ArgumentMatchers.any())).thenReturn(query);
         when(query.executeUpdate()).thenReturn(1);
         CapturingJobCommandService service = new CapturingJobCommandService();
+        JobRetryService retryService = mock(JobRetryService.class);
+        when(retryService.activate(org.mockito.ArgumentMatchers.eq("job-1"), org.mockito.ArgumentMatchers.eq(2), org.mockito.ArgumentMatchers.any())).thenReturn(true);
         setField(service, "jobEntityRepo", jobRepo);
         setField(service, "entityManager", entityManager);
+        setField(service, "jobRetryService", retryService);
 
         assertTrue(service.handle(new JobRetryCmd("job-1", 2)));
         assertEquals("job-1", service.rerunJob.getJobId());

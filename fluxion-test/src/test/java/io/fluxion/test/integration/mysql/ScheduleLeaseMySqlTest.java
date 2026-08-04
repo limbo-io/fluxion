@@ -181,33 +181,6 @@ class ScheduleLeaseMySqlTest extends AbstractMySqlIntegrationTest {
     }
 
     @Test
-    @DisplayName("Transition to RUNNING only succeeds with valid lease")
-    void testTransitionToRunningWithLease() {
-        // Given: Broker A owns the lease
-        LocalDateTime triggerAt = LocalDateTime.now().plusMinutes(5);
-        createScheduleDelay(SCHEDULE_ID, triggerAt);
-        
-        simulateBroker(BROKER_A);
-        leaseMaintainer.tryClaim(SCHEDULE_ID, triggerAt);
-
-        // When: Broker A transitions to RUNNING
-        boolean transitioned = leaseMaintainer.transitionToRunning(SCHEDULE_ID, triggerAt);
-
-        // Then: Transition should succeed
-        assertThat(transitioned).isTrue();
-
-        ScheduleDelayEntity delay = findDelay(SCHEDULE_ID, triggerAt);
-        assertThat(delay.getStatus()).isEqualTo("running");
-
-        // When: Broker B tries to claim after transition to RUNNING
-        simulateBroker(BROKER_B);
-        boolean claimedByB = leaseMaintainer.tryClaim(SCHEDULE_ID, triggerAt);
-
-        // Then: Should fail (status is RUNNING, not INIT)
-        assertThat(claimedByB).isFalse();
-    }
-
-    @Test
     @DisplayName("Attempt counter increments on each claim")
     void testAttemptCounterIncrement() {
         // Given: A schedule delay

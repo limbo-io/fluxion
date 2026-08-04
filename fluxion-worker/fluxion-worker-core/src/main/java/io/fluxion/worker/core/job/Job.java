@@ -27,6 +27,8 @@ public class Job {
 
     private String id;
 
+    private int dispatchAttempt;
+
     private ExecuteMode executeMode;
 
     /**
@@ -58,6 +60,14 @@ public class Job {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public int getDispatchAttempt() {
+        return dispatchAttempt;
+    }
+
+    public void setDispatchAttempt(int dispatchAttempt) {
+        this.dispatchAttempt = dispatchAttempt;
     }
 
     public String getExecutorName() {

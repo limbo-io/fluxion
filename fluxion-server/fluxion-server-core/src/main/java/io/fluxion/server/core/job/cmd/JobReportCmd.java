@@ -36,6 +36,8 @@ public class JobReportCmd implements ICommand<JobReportCmd.Response> {
 
     private String jobId;
 
+    private int dispatchAttempt;
+
     private Node workerNode;
 
     private LocalDateTime reportAt;

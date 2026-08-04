@@ -29,7 +29,11 @@ import io.fluxion.server.core.job.query.JobByIdQuery;
 import io.fluxion.server.core.job.query.JobConfigQuery;
 import io.fluxion.server.core.job.query.JobCountByStatusQuery;
 import io.fluxion.server.core.job.query.JobInitBlockedQuery;
-import io.fluxion.server.core.job.query.JobUnReportQuery;
+import io.fluxion.server.core.job.query.JobRetryDueQuery;
+import io.fluxion.server.core.job.query.JobRunningByWorkerQuery;
+import io.fluxion.server.core.job.query.JobTimeoutDueQuery;
+import io.fluxion.server.core.job.query.JobExpiredLeaseQuery;
+import io.fluxion.server.core.job.query.JobLeaseOwnedQuery;
 import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.JobEntity;
 import io.fluxion.server.infrastructure.dao.repository.JobEntityRepo;
@@ -100,24 +104,97 @@ public class JobQueryService {
         return new JobInitBlockedQuery.Response(entities.stream().map(JobEntity::getJobId).collect(Collectors.toList()));
     }
 
-    /**
-     * 运行中且上报时间超过一段时间了
-     */
     @QueryHandler
-    public JobUnReportQuery.Response handle(JobUnReportQuery query) {
+    public JobRetryDueQuery.Response handle(JobRetryDueQuery query) {
         String brokerId = BrokerContext.broker().id();
         List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
-        List<JobEntity> entities = entityManager.createQuery("select e from JobEntity e" +
-                " where e.bucket in :buckets and e.lastReportAt <= :lastReportAt and status =:status and jobId > :lastId " +
-                " order by jobId asc ", JobEntity.class
-            )
+        if (buckets.isEmpty()) {
+            return new JobRetryDueQuery.Response(java.util.Collections.emptyList());
+        }
+        List<JobRetryDueQuery.JobRetry> jobs = entityManager.createQuery("select e.jobId, e.retryTimes from JobEntity e "
+                + "where e.bucket in :buckets and e.status = :status and e.nextRetryAt <= :now "
+                + "order by e.nextRetryAt asc", Object[].class)
+            .setParameter("buckets", buckets)
+            .setParameter("status", JobStatus.RETRY_WAIT.value)
+            .setParameter("now", query.getNow())
+            .setMaxResults(query.getLimit())
+            .getResultList().stream()
+            .map(row -> new JobRetryDueQuery.JobRetry((String) row[0], (Integer) row[1]))
+            .collect(Collectors.toList());
+        return new JobRetryDueQuery.Response(jobs);
+    }
+
+    @QueryHandler
+    public JobRunningByWorkerQuery.Response handle(JobRunningByWorkerQuery query) {
+        String brokerId = BrokerContext.broker().id();
+        List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        if (buckets.isEmpty()) {
+            return new JobRunningByWorkerQuery.Response(java.util.Collections.emptyList());
+        }
+        List<JobRunningByWorkerQuery.JobRunning> jobs = entityManager.createQuery("select e.jobId, e.dispatchAttempt from JobEntity e "
+                + "where e.bucket in :buckets and e.status = :status and e.workerAddress = :workerAddress", Object[].class)
             .setParameter("buckets", buckets)
             .setParameter("status", JobStatus.RUNNING.value)
-            .setParameter("lastId", query.getLastJobId())
-            .setParameter("lastReportAt", query.getEndAt())
+            .setParameter("workerAddress", query.getWorkerAddress())
             .setMaxResults(query.getLimit())
-            .getResultList();
-        return new JobUnReportQuery.Response(entities.stream().map(JobEntity::getJobId).collect(Collectors.toList()));
+            .getResultList().stream()
+            .map(row -> new JobRunningByWorkerQuery.JobRunning((String) row[0], (Integer) row[1]))
+            .collect(Collectors.toList());
+        return new JobRunningByWorkerQuery.Response(jobs);
+    }
+
+    @QueryHandler
+    public JobTimeoutDueQuery.Response handle(JobTimeoutDueQuery query) {
+        String brokerId = BrokerContext.broker().id();
+        List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        if (buckets.isEmpty()) {
+            return new JobTimeoutDueQuery.Response(java.util.Collections.emptyList());
+        }
+        List<JobTimeoutDueQuery.JobTimeout> jobs = entityManager.createQuery("select e.jobId, e.dispatchAttempt from JobEntity e "
+                + "where e.bucket in :buckets and e.status = :status and e.timeoutAt <= :now", Object[].class)
+            .setParameter("buckets", buckets)
+            .setParameter("status", JobStatus.RUNNING.value)
+            .setParameter("now", query.getNow())
+            .setMaxResults(query.getLimit())
+            .getResultList().stream()
+            .map(row -> new JobTimeoutDueQuery.JobTimeout((String) row[0], (Integer) row[1]))
+            .collect(Collectors.toList());
+        return new JobTimeoutDueQuery.Response(jobs);
+    }
+
+    @QueryHandler
+    public JobExpiredLeaseQuery.Response handle(JobExpiredLeaseQuery query) {
+        String brokerId = BrokerContext.broker().id();
+        List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        if (buckets.isEmpty()) {
+            return new JobExpiredLeaseQuery.Response(java.util.Collections.emptyList());
+        }
+        List<JobExpiredLeaseQuery.JobLease> jobs = entityManager.createQuery("select e.jobId, e.dispatchAttempt from JobEntity e "
+                + "where e.bucket in :buckets and e.status = :status and e.leaseUntil < :now", Object[].class)
+            .setParameter("buckets", buckets)
+            .setParameter("status", JobStatus.RUNNING.value)
+            .setParameter("now", query.getNow())
+            .setMaxResults(query.getLimit())
+            .getResultList().stream()
+            .map(row -> new JobExpiredLeaseQuery.JobLease((String) row[0], (Integer) row[1]))
+            .collect(Collectors.toList());
+        return new JobExpiredLeaseQuery.Response(jobs);
+    }
+
+    @QueryHandler
+    public JobLeaseOwnedQuery.Response handle(JobLeaseOwnedQuery query) {
+        List<JobLeaseOwnedQuery.JobLease> jobs = entityManager.createQuery("select e.jobId, e.dispatchAttempt from JobEntity e "
+                + "where e.deleted = false and e.leaseOwner = :brokerId and e.leaseUntil > :now and e.status in :statuses and e.jobId > :lastJobId "
+                + "order by e.jobId asc", Object[].class)
+            .setParameter("brokerId", query.getBrokerId())
+            .setParameter("now", java.time.LocalDateTime.now())
+            .setParameter("statuses", java.util.Arrays.asList(JobStatus.INITED.value, JobStatus.RUNNING.value))
+            .setParameter("lastJobId", query.getLastJobId())
+            .setMaxResults(query.getLimit())
+            .getResultList().stream()
+            .map(row -> new JobLeaseOwnedQuery.JobLease((String) row[0], (Integer) row[1]))
+            .collect(Collectors.toList());
+        return new JobLeaseOwnedQuery.Response(jobs);
     }
 
     @QueryHandler

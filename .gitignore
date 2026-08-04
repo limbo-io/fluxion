@@ -123,7 +123,6 @@ package-lock.json
 app/public/.sass-cache/*
 **/resources/static
 ~
-~
 *.log
 
 # Git worktrees
@@ -138,3 +137,4 @@ docs/plans
 findings.md
 progress.md
 task_plan.md
+.planning

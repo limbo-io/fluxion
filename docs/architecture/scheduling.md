@@ -144,6 +144,12 @@ public class ScheduleCalculatorFactory {
 
 ## 调度执行流程
 
+### 多 Broker 的 delay 领取
+
+`fluxion_schedule_delay` 是实际的 Broker 协调记录。Broker 只处理自己 buckets 内的 delay，并以条件更新领取 `INIT` 记录。领取成功后写入 `lease_owner`、`lease_until` 并递增 `attempt`；只有 lease 仍有效的 owner 才能继续进入 `CLAIMED → RUNNING`。
+
+租约参数固定为 15 秒有效期、10 秒续租、5 秒过期扫描。故障 Broker 停止续租后，过期的 `CLAIMED` delay 会先被释放为 `INIT`，再由拥有该 bucket 的 Broker 重新领取。这个两步过程避免旧 owner 在恢复后继续推进已失去所有权的调度记录。
+
 ### 完整流程
 
 ```

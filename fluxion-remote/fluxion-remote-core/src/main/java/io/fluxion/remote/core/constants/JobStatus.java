@@ -43,6 +43,10 @@ public enum JobStatus {
      */
     RESTARTED("restarted"),
     /**
+     * 等待下一次重试
+     */
+    RETRY_WAIT("retry_wait"),
+    /**
      * 取消
      */
     CANCELLED("cancelled"),

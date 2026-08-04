@@ -26,8 +26,8 @@ import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobMonitor;
 import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
+import io.fluxion.server.core.job.cmd.JobLeaseRenewCmd;
 import io.fluxion.server.core.job.cmd.JobReportCmd;
-import io.fluxion.server.core.job.cmd.JobResetCmd;
 import io.fluxion.server.core.job.cmd.JobRetryCmd;
 import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.cmd.JobStateTransitionCmd;
@@ -48,6 +48,7 @@ import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
 import io.fluxion.server.infrastructure.lock.DistributedLock;
 import io.limbo.utils.json.JacksonUtils;
+import io.limbo.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -60,6 +61,7 @@ import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -86,6 +88,12 @@ public class JobCommandService {
 
     @Resource
     private DistributedLock distributedLock;
+
+    @Resource
+    private JobRetryService jobRetryService;
+
+    @Resource
+    private JobLeaseService jobLeaseService;
 
     private static final String LOCK_SUFFIX = "_Execution_Lock";
 
@@ -137,7 +145,7 @@ public class JobCommandService {
     @CommandHandler
     public JobReportCmd.Response handle(JobReportCmd cmd) {
         String workerAddress = cmd.getWorkerNode().address();
-        boolean success = report(cmd.getJobId(), cmd.getStatus(), workerAddress, cmd.getMonitor(), cmd.getReportAt());
+        boolean success = report(cmd.getJobId(), cmd.getDispatchAttempt(), cmd.getStatus(), workerAddress, cmd.getMonitor(), cmd.getReportAt());
         return new JobReportCmd.Response(success);
     }
 
@@ -149,18 +157,21 @@ public class JobCommandService {
             return new JobStateTransitionCmd.Response(false);
         }
         String workerAddress = cmd.getWorkerNode().address();
+        if (cmd.getDispatchAttempt() != null && !Objects.equals(entity.getDispatchAttempt(), cmd.getDispatchAttempt())) {
+            return new JobStateTransitionCmd.Response(false);
+        }
         boolean success = false;
         switch (cmd.getEvent()) {
             case START:
-                success = start(entity, workerAddress, cmd.getReportAt());
+                success = start(entity, cmd.getDispatchAttempt(), workerAddress, cmd.getReportAt());
                 break;
             case RUN_SUCCESS:
                 if (StringUtils.isNotBlank(entity.getWorkerAddress()) && !cmd.getWorkerNode().address().equals(entity.getWorkerAddress())) {
                     return new JobStateTransitionCmd.Response(false);
                 }
                 success = Cmd.send(new JobSuccessCmd(
-                    cmd.getJobId(), cmd.getReportAt(),
-                    cmd.getMonitor(), cmd.getResult()
+                    cmd.getJobId(), cmd.getReportAt(), cmd.getDispatchAttempt(),
+                    workerAddress, cmd.getMonitor(), cmd.getResult()
                 ));
                 break;
             case RUN_FAIL:
@@ -168,8 +179,8 @@ public class JobCommandService {
                     return new JobStateTransitionCmd.Response(false);
                 }
                 success = Cmd.send(new JobFailCmd(
-                    cmd.getJobId(), cmd.getReportAt(),
-                    cmd.getErrorMsg(), cmd.getMonitor()
+                    cmd.getJobId(), cmd.getReportAt(), cmd.getDispatchAttempt(),
+                    workerAddress, cmd.getErrorMsg(), cmd.getMonitor()
                 ));
                 break;
         }
@@ -182,14 +193,15 @@ public class JobCommandService {
     /**
      * 更新上报时间等信息
      */
-    private boolean report(String jobId, JobStatus status, String workerAddress, JobMonitor monitor, LocalDateTime reportAt) {
+    private boolean report(String jobId, int dispatchAttempt, JobStatus status, String workerAddress, JobMonitor monitor, LocalDateTime reportAt) {
         return transactionService.transactional(() -> {
             int updated = entityManager.createQuery("update JobEntity " +
                     "set lastReportAt = :lastReportAt, monitor = :monitor, workerAddress = :workerAddress " +
-                    "where jobId = :jobId and status = :status"
+                    "where jobId = :jobId and status = :status and dispatchAttempt = :dispatchAttempt"
                 )
                 .setParameter("lastReportAt", reportAt)
                 .setParameter("jobId", jobId)
+                .setParameter("dispatchAttempt", dispatchAttempt)
                 .setParameter("status", status.value)
                 .setParameter("monitor", JacksonUtils.toJSONString(monitor))
                 .setParameter("workerAddress", workerAddress)
@@ -198,18 +210,22 @@ public class JobCommandService {
         });
     }
 
-    private boolean start(JobEntity entity, String workerAddress, LocalDateTime reportAt) {
+    private boolean start(JobEntity entity, Integer dispatchAttempt, String workerAddress, LocalDateTime reportAt) {
         return transactionService.transactional(() -> {
-            int updated = entityManager.createQuery("update JobEntity " +
+            String attemptCondition = dispatchAttempt == null ? "" : " and dispatchAttempt = :dispatchAttempt";
+            javax.persistence.Query startUpdate = entityManager.createQuery("update JobEntity " +
                     "set status = :newStatus, startAt = :lastReportAt, lastReportAt = :lastReportAt, workerAddress = :workerAddress " +
-                    "where jobId = :jobId and status = :oldStatuses"
+                    "where jobId = :jobId and status = :oldStatuses" + attemptCondition
                 )
                 .setParameter("lastReportAt", reportAt)
                 .setParameter("jobId", entity.getJobId())
                 .setParameter("newStatus", JobStatus.RUNNING.value)
                 .setParameter("workerAddress", workerAddress)
-                .setParameter("oldStatuses", JobStatus.INITED.value)
-                .executeUpdate();
+                .setParameter("oldStatuses", JobStatus.INITED.value);
+            if (dispatchAttempt != null) {
+                startUpdate.setParameter("dispatchAttempt", dispatchAttempt);
+            }
+            int updated = startUpdate.executeUpdate();
             if (updated <= 0) {
                 log.warn("JobStart update fail jobId:{}", entity.getJobId());
             }
@@ -226,9 +242,11 @@ public class JobCommandService {
             throw new PlatformException(ErrorCode.PARAM_ERROR, "job not found id:" + cmd.getJobId());
         }
 
-        int updated = entityManager.createQuery("update JobEntity " +
+        String attemptCondition = cmd.getDispatchAttempt() == null ? "" : " and dispatchAttempt = :dispatchAttempt ";
+        String workerCondition = cmd.getWorkerAddress() == null ? "" : " and workerAddress = :workerAddress ";
+        javax.persistence.Query successUpdate = entityManager.createQuery("update JobEntity " +
                 "set lastReportAt = :lastReportAt, status = :newStatus, startAt = :startAt, endAt = :endAt, monitor = :monitor, result = :result " +
-                "where jobId = :jobId and status = :oldStatus "
+                "where jobId = :jobId and status = :oldStatus " + attemptCondition + workerCondition
             )
             .setParameter("lastReportAt", cmd.getReportAt())
             .setParameter("startAt", entity.getStartAt() == null ? cmd.getReportAt() : entity.getStartAt())
@@ -237,8 +255,14 @@ public class JobCommandService {
             .setParameter("result", cmd.getResult())
             .setParameter("oldStatus", JobStatus.RUNNING.value)
             .setParameter("newStatus", JobStatus.SUCCEED.value)
-            .setParameter("monitor", cmd.getMonitor() == null ? "" : JacksonUtils.toJSONString(cmd.getMonitor()))
-            .executeUpdate();
+            .setParameter("monitor", cmd.getMonitor() == null ? "" : JacksonUtils.toJSONString(cmd.getMonitor()));
+        if (cmd.getDispatchAttempt() != null) {
+            successUpdate.setParameter("dispatchAttempt", cmd.getDispatchAttempt());
+        }
+        if (cmd.getWorkerAddress() != null) {
+            successUpdate.setParameter("workerAddress", cmd.getWorkerAddress());
+        }
+        int updated = successUpdate.executeUpdate();
         if (updated <= 0) {
             log.warn("JobSuccessCmd update fail jobId:{}", cmd.getJobId());
             return false;
@@ -270,10 +294,12 @@ public class JobCommandService {
             throw new PlatformException(ErrorCode.PARAM_ERROR, "job not found id:" + cmd.getJobId());
         }
 
-        int updated = entityManager.createQuery("update JobEntity " +
+        String attemptCondition = cmd.getDispatchAttempt() == null ? "" : " and dispatchAttempt = :dispatchAttempt ";
+        String workerCondition = cmd.getWorkerAddress() == null ? "" : " and workerAddress = :workerAddress ";
+        javax.persistence.Query failUpdate = entityManager.createQuery("update JobEntity " +
                 "set lastReportAt = :lastReportAt, status = :newStatus, startAt = :startAt, endAt = :endAt," +
                 " monitor =:monitor " +
-                "where jobId = :jobId and status in :oldStatus "
+                "where jobId = :jobId and status in :oldStatus " + attemptCondition + workerCondition
             )
             .setParameter("lastReportAt", cmd.getReportAt())
             .setParameter("startAt", entity.getStartAt() == null ? cmd.getReportAt() : entity.getStartAt())
@@ -284,8 +310,14 @@ public class JobCommandService {
                 JobStatus.INITED.value // broker下发失败
             ))
             .setParameter("newStatus", JobStatus.FAILED.value)
-            .setParameter("monitor", cmd.getMonitor() == null ? "" : JacksonUtils.toJSONString(cmd.getMonitor()))
-            .executeUpdate();
+            .setParameter("monitor", cmd.getMonitor() == null ? "" : JacksonUtils.toJSONString(cmd.getMonitor()));
+        if (cmd.getDispatchAttempt() != null) {
+            failUpdate.setParameter("dispatchAttempt", cmd.getDispatchAttempt());
+        }
+        if (cmd.getWorkerAddress() != null) {
+            failUpdate.setParameter("workerAddress", cmd.getWorkerAddress());
+        }
+        int updated = failUpdate.executeUpdate();
         if (updated <= 0) {
             log.warn("JobFailCmd update fail jobId:{}", cmd.getJobId());
             return false;
@@ -305,7 +337,8 @@ public class JobCommandService {
         // 重试逻辑
         Job.Config config = Query.query(new JobConfigQuery(entity.getExecutionId(), entity.getRefId())).getConfig();
         if (config.getRetryOption().canRetry(entity.getRetryTimes())) {
-            return Cmd.send(new JobRetryCmd(entity.getJobId(), entity.getRetryTimes() + 1));
+            LocalDateTime nextRetryAt = TimeUtils.currentLocalDateTime().plusSeconds(config.getRetryOption().getRetryInterval());
+            return Cmd.send(new JobRetryCmd(entity.getJobId(), entity.getRetryTimes() + 1, nextRetryAt));
         }
         String lockName = entity.getExecutionId() + LOCK_SUFFIX;
         return distributedLock.lock(lockName, 2000, 3000, () -> {
@@ -313,21 +346,6 @@ public class JobCommandService {
                 return execution.executable().fail(entity.getExecutionId(), entity.getRefId(), cmd.getReportAt());
             }
         );
-    }
-
-    /**
-     * 设置job为初始化
-     */
-    @Transactional
-    @CommandHandler
-    public void handle(JobResetCmd cmd) {
-        entityManager.createQuery("update JobEntity " +
-                " set status = :status " +
-                " where jobId = :jobId "
-            )
-            .setParameter("status", JobStatus.INITED.value)
-            .setParameter("jobId", cmd.getJobId())
-            .executeUpdate();
     }
 
     @Transactional
@@ -339,12 +357,12 @@ public class JobCommandService {
             return false;
         }
 
-        entityManager.createQuery("update JobEntity set status = :status, retryTimes = :retryTimes " +
-                "where jobId = :jobId")
-            .setParameter("status", JobStatus.INITED.value)
-            .setParameter("retryTimes", cmd.getRetryTimes())
-            .setParameter("jobId", cmd.getJobId())
-            .executeUpdate();
+        if (cmd.getNextRetryAt() != null) {
+            return jobRetryService.schedule(cmd.getJobId(), entity.getRetryTimes(), cmd.getRetryTimes(), cmd.getNextRetryAt());
+        }
+        if (!jobRetryService.activate(cmd.getJobId(), cmd.getRetryTimes(), TimeUtils.currentLocalDateTime())) {
+            return false;
+        }
 
         Job job = new Job();
         job.setJobId(entity.getJobId());
@@ -356,6 +374,11 @@ public class JobCommandService {
         job.setRetryTimes(cmd.getRetryTimes());
         run(job);
         return true;
+    }
+
+    @CommandHandler
+    public boolean handle(JobLeaseRenewCmd cmd) {
+        return jobLeaseService.renew(cmd.getJobId(), cmd.getBrokerId(), cmd.getDispatchAttempt(), cmd.getLeaseUntil());
     }
 
     protected void run(Job job) {

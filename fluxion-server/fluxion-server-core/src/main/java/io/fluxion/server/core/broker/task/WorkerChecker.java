@@ -20,13 +20,14 @@ import io.limbo.utils.time.Formatters;
 import io.limbo.utils.time.LocalDateTimeUtils;
 import io.limbo.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
-import io.fluxion.server.core.execution.fault.FaultToleranceCoordinator;
+import io.fluxion.server.core.job.cmd.JobFailCmd;
+import io.fluxion.server.core.job.query.JobRunningByWorkerQuery;
 import io.fluxion.server.core.worker.cmd.WorkerSliceOfflineCmd;
 import io.limbo.cqrs.spring.command.Cmd;
+import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,9 +44,6 @@ public class WorkerChecker extends CoreTask {
     private static final int limit = 100;
 
     private LocalDateTime lastCheckAt = LocalDateTimeUtils.parse("2000-01-01 00:00:00", Formatters.YMD_HMS);
-
-    @Resource
-    private FaultToleranceCoordinator faultToleranceCoordinator;
 
     public WorkerChecker() {
         super(0, WorkerRemoteConstant.HEARTBEAT_TIMEOUT_SECOND, TimeUnit.SECONDS);
@@ -74,9 +72,18 @@ public class WorkerChecker extends CoreTask {
             }
             lastCheckAt = endTime;
 
-            // 通知容错协调器 Worker 下线
+            // 按持久化 Job 状态接管，不能依赖本 Broker 的 execution 内存索引。
             for (String workerId : offlineWorkerIds) {
-                faultToleranceCoordinator.onWorkerOffline(workerId);
+                List<JobRunningByWorkerQuery.JobRunning> jobs;
+                do {
+                    jobs = Query.query(new JobRunningByWorkerQuery(workerId, limit)).getJobs();
+                    for (JobRunningByWorkerQuery.JobRunning job : jobs) {
+                        Cmd.send(new JobFailCmd(
+                            job.getJobId(), TimeUtils.currentLocalDateTime(), job.getDispatchAttempt(),
+                            "Worker offline: " + workerId, null
+                        ));
+                    }
+                } while (jobs.size() >= limit);
             }
         } catch (Exception e) {
             log.error("[{}] execute fail", this.getClass().getSimpleName(), e);

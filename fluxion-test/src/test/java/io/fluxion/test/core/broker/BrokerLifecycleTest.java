@@ -29,10 +29,10 @@ class BrokerLifecycleTest {
 
         broker.start();
 
-        verify(coreExecutor, times(3)).scheduleAtFixedRate(any(Runnable.class), eq(0L), anyLong(), any(TimeUnit.class));
-        verify(coreExecutor, times(5)).scheduleWithFixedDelay(any(Runnable.class), eq(0L), anyLong(), any(TimeUnit.class));
+        verify(coreExecutor, times(4)).scheduleAtFixedRate(any(Runnable.class), eq(0L), anyLong(), any(TimeUnit.class));
+        verify(coreExecutor, times(9)).scheduleWithFixedDelay(any(Runnable.class), eq(0L), anyLong(), any(TimeUnit.class));
         verify(coreExecutor).scheduleAtFixedRate(any(Runnable.class), eq(0L), eq(10L), eq(TimeUnit.SECONDS));
-        verify(coreExecutor).scheduleAtFixedRate(any(Runnable.class), eq(0L), eq(5L), eq(TimeUnit.SECONDS));
+        verify(coreExecutor, times(2)).scheduleAtFixedRate(any(Runnable.class), eq(0L), eq(5L), eq(TimeUnit.SECONDS));
         verify(brokerManger).start();
         verify(clientServer).start();
     }

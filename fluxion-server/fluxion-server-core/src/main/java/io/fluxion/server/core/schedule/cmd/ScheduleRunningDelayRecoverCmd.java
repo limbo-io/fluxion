@@ -1,5 +1,5 @@
 /*
- * Copyright 2025-2030 Fluxion Team (https://github.com/Fluxion-io).
+ * Copyright 2025-2030 fluxion-io Team (https://github.com/fluxion-io).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,35 +14,22 @@
  * limitations under the License.
  */
 
-package io.fluxion.server.core.job.cmd;
+package io.fluxion.server.core.schedule.cmd;
 
-import io.limbo.cqrs.core.command.ICommand;
+import io.limbo.cqrs.core.command.VoidCommand;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 /**
- * todo @d later
+ * Recovers expired RUNNING delays that belong to the current broker's buckets.
+ *
  * @author Devil
  */
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class JobRetryCmd implements ICommand<Boolean> {
+public class ScheduleRunningDelayRecoverCmd implements VoidCommand {
 
-    private String jobId;
-    /**
-     * 当前是第几次重试
-     */
-    private int retryTimes;
-
-    private LocalDateTime nextRetryAt;
-
-    public JobRetryCmd(String jobId, int retryTimes) {
-        this(jobId, retryTimes, null);
-    }
+    private List<Integer> buckets;
 }

@@ -146,6 +146,7 @@ public abstract class JobTracker extends AbstractTracker {
         try {
             JobMonitorDTO monitor = jobMonitor();
             request.setJobId(job.getId());
+            request.setDispatchAttempt(job.getDispatchAttempt());
             request.setReportAt(TimeUtils.currentLocalDateTime());
             request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
             request.setMonitor(monitor);
@@ -196,6 +197,7 @@ public abstract class JobTracker extends AbstractTracker {
         try {
             JobMonitorDTO monitor = jobMonitor();
             request.setJobId(job.getId());
+            request.setDispatchAttempt(job.getDispatchAttempt());
             request.setReportAt(TimeUtils.currentLocalDateTime());
             request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
             request.setMonitor(monitor);

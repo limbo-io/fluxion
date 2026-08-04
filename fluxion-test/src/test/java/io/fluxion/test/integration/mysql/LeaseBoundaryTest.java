@@ -20,6 +20,7 @@ import io.fluxion.server.core.broker.Broker;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.schedule.ScheduleLeaseMaintainer;
 import io.fluxion.server.core.schedule.ScheduleLeaseProperties;
+import io.fluxion.server.core.schedule.service.ScheduleDelayCommandService;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayReleaseClaimsCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleLeaseReclaimCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleLeaseRenewCmd;
@@ -73,6 +74,9 @@ class LeaseBoundaryTest extends AbstractMySqlIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private ScheduleDelayCommandService scheduleDelayCommandService;
 
     private static final String SCHEDULE_ID = "test-schedule-001";
     private static final String BROKER_A = "broker-a-" + UUID.randomUUID();
@@ -138,6 +142,32 @@ class LeaseBoundaryTest extends AbstractMySqlIntegrationTest {
     }
 
     @Test
+    @DisplayName("RUNNING delay keeps its lease while execution is in progress")
+    @Transactional
+    void testRenewKeepsRunningDelayLeaseAlive() {
+        LocalDateTime triggerAt = LocalDateTime.now().plusMinutes(5);
+        createScheduleDelay(SCHEDULE_ID, triggerAt);
+        assertThat(leaseMaintainer.tryClaim(SCHEDULE_ID, triggerAt)).isTrue();
+        entityManager.createQuery("UPDATE ScheduleDelayEntity e SET e.status = :status "
+                + "WHERE e.id.scheduleId = :scheduleId AND e.id.triggerAt = :triggerAt")
+            .setParameter("status", "running")
+            .setParameter("scheduleId", SCHEDULE_ID)
+            .setParameter("triggerAt", triggerAt)
+            .executeUpdate();
+
+        ScheduleDelayEntity running = findDelay(SCHEDULE_ID, triggerAt);
+        LocalDateTime initialLeaseUntil = running.getLeaseUntil();
+
+        Cmd.send(new ScheduleLeaseRenewCmd(BROKER_A, 15));
+        entityManager.flush();
+        entityManager.clear();
+
+        ScheduleDelayEntity renewed = findDelay(SCHEDULE_ID, triggerAt);
+        assertThat(renewed.getStatus()).isEqualTo("running");
+        assertThat(renewed.getLeaseUntil()).isAfter(initialLeaseUntil);
+    }
+
+    @Test
     @DisplayName("T2.3: 优雅停机 - Broker A 的 CLAIMED 变为 INIT")
     @Transactional
     void testGracefulShutdownReleasesClaim() {
@@ -166,6 +196,46 @@ class LeaseBoundaryTest extends AbstractMySqlIntegrationTest {
 
         // Then: Broker B 应该可以立即声称（不需要等待 lease 过期）
         assertThat(claimedByB).isTrue();
+    }
+
+    @Test
+    @DisplayName("recovery completes an expired RUNNING delay when its execution was already created")
+    @Transactional
+    void testRecoveryDoesNotRecreateExistingExecution() {
+        LocalDateTime triggerAt = LocalDateTime.now().plusMinutes(5);
+        createScheduleDelay(SCHEDULE_ID, triggerAt);
+        entityManager.createQuery(
+                "UPDATE ScheduleDelayEntity e " +
+                "SET e.leaseOwner = :owner, e.leaseUntil = :leaseUntil, e.executionToken = :token, e.status = :status " +
+                "WHERE e.id.scheduleId = :scheduleId AND e.id.triggerAt = :triggerAt")
+            .setParameter("owner", BROKER_A)
+            .setParameter("leaseUntil", LocalDateTime.now().minusSeconds(31))
+            .setParameter("token", "expired-token")
+            .setParameter("status", "running")
+            .setParameter("scheduleId", SCHEDULE_ID)
+            .setParameter("triggerAt", triggerAt)
+            .executeUpdate();
+        entityManager.createNativeQuery(
+                "INSERT INTO fluxion_execution " +
+                "(execution_id, trigger_id, trigger_at, executable_id, executable_type, executable_version, status, is_deleted) " +
+                "VALUES (:executionId, :triggerId, :triggerAt, :executableId, :executableType, :executableVersion, :status, false)")
+            .setParameter("executionId", UUID.randomUUID().toString())
+            .setParameter("triggerId", SCHEDULE_ID)
+            .setParameter("triggerAt", triggerAt)
+            .setParameter("executableId", "executor")
+            .setParameter("executableType", "executor")
+            .setParameter("executableVersion", "v1")
+            .setParameter("status", "inited")
+            .executeUpdate();
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(scheduleDelayCommandService.recoverExpiredRunningDelays()).isEqualTo(1);
+
+        ScheduleDelayEntity recovered = findDelay(SCHEDULE_ID, triggerAt);
+        assertThat(recovered.getStatus()).isEqualTo("succeed");
+        assertThat(recovered.getLeaseOwner()).isNull();
+        assertThat(recovered.getExecutionToken()).isNull();
     }
 
     @Test

@@ -13,13 +13,13 @@ MySQL 作为 execution/job/attempt 状态的**唯一权威存储**。所有状�
 │                     状态权威层级                             │
 ├─────────────────────────────────────────────────────────────┤
 │  第一层: MySQL                                              │
-│    └── execution / job / attempt 持久化状态                 │
+│    └── Execution 聚合、Job lease/attempt/retry 持久化状态    │
 │                                                             │
 │  第二层: Broker 内存                                          │
-│    └── ExecutionStateStore (本地索引缓存，可重建)              │
+│    └── 调度器与短暂的 Worker 下发目标缓存，不是状态源          │
 │                                                             │
 │  第三层: Worker 内存                                          │
-│    └── JobTracker (运行时状态，丢失后从 Broker 恢复)           │
+│    └── JobTracker (本地执行状态，故障后由 Job 重试重建)        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -51,21 +51,26 @@ Broker 到 Worker 的任务派发保证**至少一次投递**：
 
 ### Execution
 
-一个 Execution 代表一次任务调度的完整执行过程，包含：
+一个 Execution 代表一次任务调度的完整业务执行过程；Workflow 下可聚合多个 Job。它不保存单个 Worker 的 lease、attempt 或 retry：
 
 | 字段 | 说明 |
 |------|------|
 | `execution_id` | 全局唯一标识 |
-| `job_id` | 关联的任务定义 |
-| `status` | 状态: WAITING → PENDING → DISPATCHING → RUNNING → SUCCEED/FAILED |
-| `dispatch_attempt` | 派发尝试次数 |
-| `worker_id` | 当前执行的 Worker |
-| `lease_owner` | 租约持有者 (Broker ID) |
-| `lease_until` | 租约过期时间 |
+| `trigger_id` / `trigger_at` | 本次触发来源与时间点 |
+| `status` | 整体业务聚合状态 |
+| `executable_id` / `version` | 执行定义及版本 |
 
-### Job (Worker 侧)
+### Job（Broker 容错单位）
 
-Worker 接收到的任务单元，用于抑制重复：
+Job 是 Worker 选择、下发、超时、重试、lease 与结果 fencing 的最小单位：
+
+| 字段 | 说明 |
+|------|------|
+| `job_id` | 全局唯一 Job 标识 |
+| `execution_id` | 所属 Execution |
+| `dispatch_attempt` | 每次新下发递增的持久化版本 |
+| `lease_owner` / `lease_until` | 当前 Broker 对 Job 的可续租所有权 |
+| `timeout_at` / `next_retry_at` | 超时和重试的持久化触发时间 |
 
 | 属性 | 说明 |
 |------|------|
@@ -164,8 +169,8 @@ Broker 领取的调度记录是**带过期时间的租约**，防止 Broker 故�
 │     └── 停止续租                                             │
 │                                                             │
 │  4. Broker-B 每 5s 扫描过期租约                             │
-│     └── 发现 lease_until < now 且 owner = broker-a         │
-│     └── 条件更新: 接管为新 owner，dispatch_attempt++         │
+│     └── 将过期的 CLAIMED 记录释放回 INIT                    │
+│     └── 后续 load 再由新的 Broker 条件领取                  │
 │                                                             │
 │  5. 最大接管延迟: 20s (15s 租约 + 5s 扫描间隔)                │
 └────────────────────────────────────────────────────────────┘
@@ -203,10 +208,10 @@ retry_option: {
 ```
 
 **重试流程**：
-1. 创建新的 attempt (`dispatch_attempt` 递增)
-2. Execution 状态回归 `PENDING`
-3. 重新选择 Worker 派发
-4. 原 Worker 的过期结果忽略
+1. 失败的 Job 条件迁移为 `RETRY_WAIT`，并持久化 `next_retry_at`
+2. 到期后 Job 回到 `INITED`，重新选择 Worker 派发
+3. 新下发会使 `dispatch_attempt` 递增
+4. 原 Worker 的过期结果因 attempt 与 worker address 条件不匹配而被忽略
 
 ## 周期调度积压处理
 
@@ -221,21 +226,21 @@ retry_option: {
                               09:03 发现积压
 ```
 
-### 跳过策略
+### 积压策略现状
 
-**Cron 调度**：跳过所有过期触发点，只执行最新触发点。
+**当前语义（LATEST_ONLY）**：对 Cron / FixedRate schedule，只保留最新的已过期触发点；更早的历史点不进入后续调度。未来触发点必须保留，不能因一次积压处理而被删除。
 
 ```
 积压触发点: 09:00, 09:01, 09:02, 09:03
 Broker 恢复时间: 09:05
 
 处理结果:
-  - 09:00 ~ 09:03: 判定过期，跳过
-  - 09:05: 无触发点，等待下一周期
-  - 09:06: 正常触发 (如果调度周期为 1 分钟)
+  - 09:00 ~ 09:02: 跳过
+  - 09:03: 保留并执行（最新的历史触发点）
+  - 09:06: 正常触发（未来触发点不受影响）
 ```
 
-**FixedRate 调度**：同样跳过过期点，从最新点开始。
+**当前实现**：`ScheduleCommandService` 收集加载窗口内的触发点，再由 `ScheduleBacklogPlanner` 仅折叠 `<= now` 的历史点；未来点均创建为 delay。上述处理结果可以作为当前能力依赖。
 
 **FixedDelay 调度**：从最后一次执行完成时间计算下次触发，自然跳过积压。
 
@@ -256,7 +261,7 @@ Worker-A 心跳时序:
   T+3s    心跳 2 ✓
   T+6s    心跳 3 ✗ (丢失)
   T+6s+   Broker 判定 Worker-A 下线
-          - 将 Worker-A 上运行的 execution 标记为待重试
+          - 查询 Worker-A 上运行的 Job 并标记为待重试
           - 触发重试流程，选择其他 Worker
 ```
 
@@ -265,7 +270,7 @@ Worker-A 心跳时序:
 Worker 使用 `ConcurrentHashMap<JobKey, JobTracker>` 抑制重复：
 
 ```java
-record JobKey(String executionId, int dispatchAttempt) {}
+record JobKey(String jobId, int dispatchAttempt) {}
 
 // 处理派发请求
 JobKey key = new JobKey(jobId, dispatchAttempt);
@@ -280,28 +285,27 @@ if (existing != null) {
 
 ### Broker 重启恢复
 
-1. 启动时从 MySQL 加载本 Broker 负责 buckets 的活跃 execution
-2. 为每个活跃 execution 领取新租约
-3. 注册到 ExecutionStateStore 内存索引
-4. 重新加入 TimeoutManager 监控
-5. 已超时的 execution 不走恢复，直接触发超时处理
+1. Broker core task 从 MySQL 扫描本 Broker bucket 中到期的 `RETRY_WAIT` Job、超时 Job 和过期 Job lease。
+2. 超时或 lease 过期 Job 通过当前 `dispatch_attempt` 进入统一 retry 状态机。
+3. 到期 retry 将 Job 置回 `INITED`，由 `JobUnRunChecker` 和 Job runner 重新下发。
+4. 正在运行的 Job lease 每 10 秒续租；续租失败后由过期 lease 扫描接管。
 
 ### Worker 重启/下线
 
 1. Broker 检测到 Worker 心跳超时 (6 秒)
 2. 将该 Worker 标记为离线
-3. 查询该 Worker 上运行的 execution 列表
-4. 触发每个 execution 的重试流程 (dispatch_attempt 递增)
+3. 查询该 Worker 上运行的 Job 列表及当前 `dispatch_attempt`
+4. 触发每个 Job 的 retry 流程；下一次下发才递增 `dispatch_attempt`
 5. 新 Worker 接收后，`job_id + new_dispatch_attempt` 是新 key，无冲突
 
 ## 实现清单
 
 - [x] MySQL 作为唯一权威存储
-- [x] Execution 表支持 lease_owner、lease_until、dispatch_attempt 字段
-- [x] Broker 租约领取 + 续租机制
+- [x] Job 表支持 lease_owner、lease_until、dispatch_attempt、timeout_at、next_retry_at 字段
+- [x] Broker Job lease 领取 + 续租机制
 - [x] Worker 幂等接收 (job_id + dispatch_attempt)
-- [ ] Broker 启动恢复执行监控
-- [ ] Worker 下线故障转移
+- [x] Broker 通过持久化 Job 扫描恢复 retry、超时与过期 lease
+- [x] Worker 下线通过 bucket 范围的持久化 Job 查询唯一接管
 
 ## 参见
 

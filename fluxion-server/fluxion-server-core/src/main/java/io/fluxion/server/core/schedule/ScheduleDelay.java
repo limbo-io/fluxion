@@ -55,12 +55,6 @@ public class ScheduleDelay {
      */
     private Integer attempt;
 
-    /**
-     * Execution token for fencing RUNNING state transitions.
-     * Generated when transitioning to RUNNING, validated on finish.
-     */
-    private String executionToken;
-
     public void status(Status status) {
         this.status = status;
     }
@@ -75,10 +69,6 @@ public class ScheduleDelay {
 
     public void attempt(Integer attempt) {
         this.attempt = attempt;
-    }
-
-    public void executionToken(String executionToken) {
-        this.executionToken = executionToken;
     }
 
     public ScheduleDelay(ID id, Status status) {
@@ -101,6 +91,62 @@ public class ScheduleDelay {
 
     }
 
+    /**
+     * Schedule delay 状态流转图
+     * <pre>
+     *                        ┌─────────────────────┐
+     *     ┌──────────────────┤       UNKNOWN       │
+     *     │                  │  (未知/初始化前状态)  │
+     *     │                  └──────────┬──────────┘
+     *     │                             │
+     *     │                             │ 创建
+     *     │                             ▼
+     *     │  ┌──────────────────────────────────────────────────────┐
+     *     │  │                                                      │
+     *     │  │                    ┌─────────────┐                   │
+     *     │  │                    │    INIT     │◄───────────────────┤ 版本变更
+     *     │  │                    │  (刚创建)   │                   │ 回退/重试
+     *     │  │                    └──────┬──────┘                   │
+     *     │  │                           │ claim                   │
+     *     │  │                           │ (被Broker认领)           │
+     *     │  │                           ▼                         │
+     *     │  │                  ┌─────────────────┐                 │
+     *     │  │    claim expire │    CLAIMED      │ execute         │
+     *     │  └────────────────┤ (已被认领待执行) │─────────────────┘
+     *     │                   │  leaseOwner     │
+     *     │                   │  leaseUntil     │
+     *     │                   └────────┬────────┘
+     *     │                            │ executeToken
+     *     │                            │ (开始执行)
+     *     │                            ▼
+     *     │                     ┌─────────────┐
+     *     │                     │   RUNNING   │
+     *     │                     │  (运行中)    │
+     *     │                     │ execution   │
+     *     │                     │   Token     │
+     *     │                     └──────┬──────┘
+     *     │                            │
+     *     │         ┌──────────────────┴──────────────────┐
+     *     │         │                                   │
+     *     │         │ success                           │ fail
+     *     │         ▼                                   ▼
+     *     │  ┌─────────────┐                     ┌─────────────┐
+     *     │  │  SUCCEED    │                     │   FAILED    │
+     *     │  │   (完成)    │                     │  (执行失败)  │
+     *     │  └─────────────┘                     └──────┬──────┘
+     *     │                                               │
+     *     │                    ┌──────────────────────────┘
+     *     │                    │ retry (per policy)
+     *     └────────────────────┘
+     *
+     * 关键流转说明:
+     * 1. INIT → CLAIMED: Broker 通过 lease 机制认领任务
+     * 2. CLAIMED → INIT: 续约失败或 lease 过期退回 (重新竞争)
+     * 3. CLAIMED → RUNNING: 任务触发执行，生成 executionToken
+     * 4. RUNNING → SUCCEED/FAILED: 执行完成 (需验证 executionToken)
+     * 5. INIT → INVALID: 版本变更导致任务失效 (不执行)
+     * </pre>
+     */
     public enum Status {
         UNKNOWN(CommonConstants.UNKNOWN),
         /**
@@ -109,10 +155,14 @@ public class ScheduleDelay {
         INIT("init"),
         /**
          * 已被Broker认领，等待触发执行
+         * <p>
+         * 流转至: RUNNING (执行) 或 INIT (lease过期/续约失败)
          */
         CLAIMED("claimed"),
         /**
          * 运行中
+         * <p>
+         * 流转至: SUCCEED (执行成功) 或 FAILED (执行失败)
          */
         RUNNING("running"),
         /**
@@ -121,6 +171,8 @@ public class ScheduleDelay {
         SUCCEED("succeed"),
         /**
          * 执行失败
+         * <p>
+         * 可能触发: retry (按 retry policy 重试) 进入 INIT
          */
         FAILED("failed"),
         /**

@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.ScheduleConstants;
+import io.fluxion.server.core.schedule.ScheduleBacklogPlanner;
 import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.core.schedule.cmd.*;
 import io.fluxion.server.core.schedule.converter.ScheduleEntityConverter;
@@ -151,20 +152,24 @@ public class ScheduleCommandService {
             nextTriggerAt = null; // 反馈的时候计算下次触发时间，先置空
         } else {
             // CRON/FIXED_RATE: LATEST_ONLY misfire policy
-            // When broker recovers with multiple missed triggers, only create execution for latest valid trigger
-            LocalDateTime latestValidTrigger = null;
-            while (scheduleTriggerCheck(nextTriggerAt, now, schedule.getOption())) {
-                latestValidTrigger = nextTriggerAt;
-                lastTriggerAt = nextTriggerAt; // Track last trigger for schedule update
+            // Collapse only historical points; retain every future point in the load window.
+            List<LocalDateTime> triggerPoints = new ArrayList<>();
+            LocalDateTime loadEndAt = now.plusSeconds(ScheduleConstants.LOAD_INTERVAL_SECONDS);
+            while (nextTriggerAt != null
+                    && !nextTriggerAt.isAfter(schedule.getOption().getEndTime())
+                    && !nextTriggerAt.isAfter(loadEndAt)) {
+                if (!nextTriggerAt.isBefore(schedule.getOption().getStartTime())) {
+                    triggerPoints.add(nextTriggerAt);
+                }
+                lastTriggerAt = nextTriggerAt;
                 BasicCalculation calculation = new BasicCalculation(
                         lastTriggerAt, lastTriggerAt, schedule.getOption()
                 );
                 nextTriggerAt = calculation.triggerAt();
             }
-            // Only create delay for the latest valid trigger (skip stale triggers)
-            if (latestValidTrigger != null) {
+            for (LocalDateTime triggerPoint : ScheduleBacklogPlanner.plan(triggerPoints, now).getDelays()) {
                 ScheduleDelay delay = new ScheduleDelay(
-                        new ScheduleDelay.ID(schedule.getId(), latestValidTrigger),
+                        new ScheduleDelay.ID(schedule.getId(), triggerPoint),
                         ScheduleDelay.Status.INIT
                 );
                 delays.add(delay);

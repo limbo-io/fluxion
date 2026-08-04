@@ -133,7 +133,7 @@ public class BrokerClientHandler implements ClientHandler {
     private JobReportResponse jobReport(String data) {
         JobReportRequest request = JacksonUtils.toType(data, JobReportRequest.class);
         JobReportCmd.Response response = Cmd.send(new JobReportCmd(
-            request.getJobId(), BrokerClientConverter.toNode(request.getWorkerNode()),
+            request.getJobId(), request.getDispatchAttempt(), BrokerClientConverter.toNode(request.getWorkerNode()),
             request.getReportAt(), BrokerClientConverter.convert(request.getMonitor()),
             JobStatus.parse(request.getStatus())
         ));
@@ -145,7 +145,7 @@ public class BrokerClientHandler implements ClientHandler {
     private JobStateTransitionResponse jobStateTransition(String data) {
         JobStateTransitionRequest request = JacksonUtils.toType(data, JobStateTransitionRequest.class);
         JobStateTransitionCmd.Response response = Cmd.send(new JobStateTransitionCmd(
-            request.getJobId(), BrokerClientConverter.toNode(request.getWorkerNode()),
+            request.getJobId(), request.getDispatchAttempt(), BrokerClientConverter.toNode(request.getWorkerNode()),
             request.getReportAt(), BrokerClientConverter.convert(request.getMonitor()),
             JobStateEvent.parse(request.getEvent()), request.getResult(), request.getErrorMsg()
         ));

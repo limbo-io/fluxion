@@ -32,6 +32,8 @@ public class JobReportRequest implements Request<JobReportResponse> {
 
     private String jobId;
 
+    private int dispatchAttempt;
+
     private NodeDTO workerNode;
 
     private LocalDateTime reportAt;
@@ -58,6 +60,14 @@ public class JobReportRequest implements Request<JobReportResponse> {
 
     public void setJobId(String jobId) {
         this.jobId = jobId;
+    }
+
+    public int getDispatchAttempt() {
+        return dispatchAttempt;
+    }
+
+    public void setDispatchAttempt(int dispatchAttempt) {
+        this.dispatchAttempt = dispatchAttempt;
     }
 
     public LocalDateTime getReportAt() {

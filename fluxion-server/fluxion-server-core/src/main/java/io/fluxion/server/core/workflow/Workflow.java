@@ -149,10 +149,12 @@ public class Workflow implements Executable {
         if (node instanceof StartNode || node instanceof EndNode) {
             InputOutputConfig config = new InputOutputConfig();
             config.setRetryOption(node.getRetryOption());
+            config.setOvertimeOption(node.getOvertimeOption());
             return config;
         } else if (node instanceof ExecutorNode) {
             ExecutorJobConfig config = new ExecutorJobConfig();
             config.setRetryOption(node.getRetryOption());
+            config.setOvertimeOption(node.getOvertimeOption());
             ExecutorNode executorNode = (ExecutorNode) node;
             ExecutorConfig executorConfig = executorNode.getExecutor();
             config.setAppId(executorConfig.getAppId());

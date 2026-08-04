@@ -16,32 +16,35 @@
 
 package io.fluxion.server.core.job.runner;
 
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.worker.JobDispatchRequest;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.broker.BrokerContext;
-import io.fluxion.server.core.execution.fault.ExecutionInfo;
-import io.fluxion.server.core.execution.fault.ExecutionRegistration;
-import io.fluxion.server.core.execution.fault.ExecutionState;
-import io.fluxion.server.core.execution.fault.FaultToleranceCoordinator;
+import io.fluxion.server.core.executor.option.OvertimeOption;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.config.ExecutorJobConfig;
 import io.fluxion.server.core.job.query.JobConfigQuery;
+import io.fluxion.server.core.job.service.JobLeaseService;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.core.worker.selector.WorkerStatisticsRepository;
 import io.limbo.cqrs.spring.command.Cmd;
 import io.limbo.cqrs.spring.query.Query;
+import io.limbo.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -58,12 +61,7 @@ public class ExecutorJobRunner extends JobRunner {
     private static final int MAX_DISPATCH_ATTEMPTS = 3;
 
     @Resource
-    private FaultToleranceCoordinator faultToleranceCoordinator;
-
-    /**
-     * 记录每个任务的当前下发尝试次数
-     */
-    private final Map<String, Integer> dispatchAttempts = new ConcurrentHashMap<>();
+    private JobLeaseService jobLeaseService;
 
     /**
      * 记录当前任务尝试的worker和尝试次数（用于幂等验证）
@@ -114,10 +112,17 @@ public class ExecutorJobRunner extends JobRunner {
      */
     private DispatchResult tryDispatchToCandidates(Job job, ExecutorJobConfig config, List<Worker> candidates) {
         int attemptInThisRun = 0;
+        Integer dispatchAttempt = null;
+        String brokerId = BrokerContext.broker().id();
 
         while (!candidates.isEmpty() && attemptInThisRun < MAX_DISPATCH_ATTEMPTS) {
-            // 原子递增并获取该任务的累计尝试次数
-            int dispatchAttempt = dispatchAttempts.merge(job.getJobId(), 1, Integer::sum);
+            LocalDateTime leaseUntil = TimeUtils.currentLocalDateTime().plusSeconds(JobLeaseService.LEASE_DURATION_SECONDS);
+            dispatchAttempt = dispatchAttempt == null
+                ? jobLeaseService.claimFirstAttempt(job.getJobId(), brokerId, leaseUntil)
+                : jobLeaseService.nextAttempt(job.getJobId(), brokerId, dispatchAttempt, leaseUntil);
+            if (dispatchAttempt == null) {
+                return DispatchResult.failure(DispatchErrorType.EXCEPTION, "Job lease is held by another broker", null);
+            }
             attemptInThisRun++;
 
             Worker worker = candidates.get(0);
@@ -142,9 +147,9 @@ public class ExecutorJobRunner extends JobRunner {
         }
 
         if (candidates.isEmpty()) {
-            return DispatchResult.failure(DispatchErrorType.NO_CANDIDATES, "All candidate workers failed");
+            return DispatchResult.failure(DispatchErrorType.NO_CANDIDATES, "All candidate workers failed", dispatchAttempt);
         }
-        return DispatchResult.failure(DispatchErrorType.MAX_ATTEMPTS_EXCEEDED, "Max dispatch attempts exceeded");
+        return DispatchResult.failure(DispatchErrorType.MAX_ATTEMPTS_EXCEEDED, "Max dispatch attempts exceeded", dispatchAttempt);
     }
 
     /**
@@ -166,40 +171,30 @@ public class ExecutorJobRunner extends JobRunner {
                 // 网络/通信错误
                 log.warn("[ExecutorJobRunner] Network error dispatching to worker {}: {}",
                     worker.id(), response.getMessage());
-                return DispatchResult.failure(DispatchErrorType.NETWORK_ERROR, response.getMessage());
+                return DispatchResult.failure(DispatchErrorType.NETWORK_ERROR, response.getMessage(), dispatchAttempt);
             }
 
             if (!BooleanUtils.isTrue(response.getData())) {
                 // Worker拒绝执行
                 log.warn("[ExecutorJobRunner] Worker {} rejected job {}: returned false",
                     worker.id(), job.getJobId());
-                return DispatchResult.failure(DispatchErrorType.WORKER_REJECTION, "Worker rejected the job");
+                return DispatchResult.failure(DispatchErrorType.WORKER_REJECTION, "Worker rejected the job", dispatchAttempt);
             }
 
-            // 下发成功，注册到容错协调器
-            ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionId(job.getExecutionId())
-                .jobId(job.getJobId())
-                .taskId(job.getRefId())
-                .workerId(worker.id())
-                .jobType(JobType.EXECUTOR.name())
-                .state(ExecutionState.RUNNING)
-                .startTime(System.currentTimeMillis())
-                .context(new HashMap<>())
-                .build();
-
-            ExecutionRegistration registration = faultToleranceCoordinator.register(executionInfo);
-            if (registration.isRegistered()) {
-                log.info("[ExecutorJobRunner] Execution registered: executionId={}, jobId={}, worker={}",
-                    job.getExecutionId(), job.getJobId(), worker.id());
+            OvertimeOption overtimeOption = config.getOvertimeOption();
+            if (overtimeOption != null && overtimeOption.getSchedule() != null && overtimeOption.getSchedule() >= 0) {
+                jobLeaseService.setTimeout(job.getJobId(), BrokerContext.broker().id(), dispatchAttempt,
+                    TimeUtils.currentLocalDateTime().plusNanos(overtimeOption.getSchedule() * 1_000_000L));
             }
+            log.info("[ExecutorJobRunner] Job registered: jobId={}, worker={}, dispatchAttempt={}",
+                job.getJobId(), worker.id(), dispatchAttempt);
 
             return DispatchResult.success(worker);
 
         } catch (Exception e) {
             log.error("[ExecutorJobRunner] Exception dispatching to worker {} for job {}: {}",
                 worker.id(), job.getJobId(), e.getMessage(), e);
-            return DispatchResult.failure(DispatchErrorType.EXCEPTION, e.getMessage());
+            return DispatchResult.failure(DispatchErrorType.EXCEPTION, e.getMessage(), dispatchAttempt);
         }
     }
 
@@ -214,6 +209,7 @@ public class ExecutorJobRunner extends JobRunner {
         Cmd.send(new JobFailCmd(
             job.getJobId(),
             TimeUtils.currentLocalDateTime(),
+            result.getDispatchAttempt(),
             reason,
             null
         ));
@@ -266,7 +262,6 @@ public class ExecutorJobRunner extends JobRunner {
      * 清理任务的dispatch状态
      */
     public void cleanupDispatchState(String jobId) {
-        dispatchAttempts.remove(jobId);
         dispatchTargets.remove(jobId);
     }
 
@@ -278,26 +273,29 @@ public class ExecutorJobRunner extends JobRunner {
         private final Worker worker;
         private final DispatchErrorType errorType;
         private final String message;
+        private final Integer dispatchAttempt;
 
-        private DispatchResult(boolean success, Worker worker, DispatchErrorType errorType, String message) {
+        private DispatchResult(boolean success, Worker worker, DispatchErrorType errorType, String message, Integer dispatchAttempt) {
             this.success = success;
             this.worker = worker;
             this.errorType = errorType;
             this.message = message;
+            this.dispatchAttempt = dispatchAttempt;
         }
 
         static DispatchResult success(Worker worker) {
-            return new DispatchResult(true, worker, null, null);
+            return new DispatchResult(true, worker, null, null, null);
         }
 
-        static DispatchResult failure(DispatchErrorType errorType, String message) {
-            return new DispatchResult(false, null, errorType, message);
+        static DispatchResult failure(DispatchErrorType errorType, String message, Integer dispatchAttempt) {
+            return new DispatchResult(false, null, errorType, message, dispatchAttempt);
         }
 
         boolean isSuccess() { return success; }
         Worker getWorker() { return worker; }
         DispatchErrorType getErrorType() { return errorType; }
         String getMessage() { return message; }
+        Integer getDispatchAttempt() { return dispatchAttempt; }
     }
 
     /**

@@ -36,6 +36,8 @@ public class JobStateTransitionCmd implements ICommand<JobStateTransitionCmd.Res
 
     private String jobId;
 
+    private Integer dispatchAttempt;
+
     private Node workerNode;
 
     private LocalDateTime reportAt;

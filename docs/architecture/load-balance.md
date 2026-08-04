@@ -12,6 +12,7 @@ Fluxion 提供多种负载均衡策略，用于在多个 Worker 节点之间分�
 | LRU | 最近最少使用 | 均衡节点负载 |
 | ConsistentHash | 一致性哈希 | 相同参数路由到同一节点 |
 | Appoint | 指定节点 | 特定任务绑定节点 |
+| LeastCpuLoad | 最低 CPU 负载 | Worker 负载不均、需要优先承接新任务 |
 
 ## 架构设计
 
@@ -37,6 +38,10 @@ Fluxion 提供多种负载均衡策略，用于在多个 Worker 节点之间分�
 │     LFU      │   │     LRU      │   │   Appoint    │
 │(最不经常用)   │   │(最近最少用)   │   │   (指定)      │
 └──────────────┘   └──────────────┘   └──────────────┘
+┌──────────────┐
+│ LeastCpuLoad │
+│ (最低 CPU)    │
+└──────────────┘
 ```
 
 ## 核心接口
@@ -219,6 +224,12 @@ public class AppointLBStrategy<S extends LBServer> extends AbstractLBStrategy<S>
 - 任务绑定特定节点
 - 调试和测试
 - 特定资源依赖
+
+### LeastCpuLoadLBStrategy（最低 CPU 负载）
+
+`LEAST_CPU_LOAD` 在候选 Worker 已完成可用性、执行器、标签和资源阈值过滤后，按 CPU 负载升序选择第一个节点。缺少指标的 Worker 视为最高负载，只有在没有更合适候选时才可能被选中。
+
+该策略解决的是 Worker 当前负载过高、无法及时执行新任务的问题；它不替代资源阈值过滤，也不承诺跨 Broker 的全局瞬时最优。
 
 ## 节点过滤
 

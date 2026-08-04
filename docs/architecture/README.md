@@ -14,6 +14,7 @@
 | [job-types.md](./job-types.md) | 任务类型说明 |
 | [scheduling.md](./scheduling.md) | 任务调度流程 |
 | [execution-state.md](./execution-state.md) | 执行状态与投递语义 |
+| [scheduling-reliability-audit.md](./scheduling-reliability-audit.md) | 当前调度可靠性链路、风险与改造顺序 |
 | [data-model.md](./data-model.md) | 数据模型设计 |
 | [operations.md](../guides/operations.md) | 运维操作手册 |
 
@@ -58,3 +59,15 @@
 - **多样任务**：普通、广播、MapReduce 三种任务类型
 - **灵活调度**：FixedRate、FixedDelay、CRON 调度类型
 - **高可用**：Worker 故障自动切换，任务重试机制
+
+## 运行时与测试环境
+
+生产运行时以 MySQL 保存调度、执行和 Worker 元数据；不引入 Redis 作为协调依赖。多 Broker 对同一调度记录的竞争通过 MySQL 条件更新和租约完成。
+
+本地与 CI 的集成回归使用 H2（`MODE=MySQL`），用于验证通用的 Spring、CQRS、持久化和调度链路，不需要 Docker 或外部数据库：
+
+```bash
+mvn test -pl fluxion-test -am -Ph2-integration-test
+```
+
+H2 回归不替代生产 MySQL 的方言和并发语义验证；例如数据库分布式锁的 MySQL 原子 upsert 不在 H2 门禁内。详见[执行状态与投递语义](execution-state.md)。

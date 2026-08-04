@@ -18,7 +18,6 @@ package io.fluxion.server.core.schedule.service;
 
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
-import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
@@ -29,10 +28,11 @@ import io.fluxion.server.core.schedule.cmd.CancelTasksByBucketCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByIdsCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayDeleteByScheduleCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayReleaseClaimsCmd;
-import io.fluxion.server.core.schedule.cmd.ScheduleLeaseReclaimCmd;
-import io.fluxion.server.core.schedule.cmd.ScheduleLeaseRenewCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelaysCreateCmd;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelaysLoadCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleLeaseReclaimCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleLeaseRenewCmd;
+import io.fluxion.server.core.schedule.cmd.ScheduleRunningDelayRecoverCmd;
 import io.fluxion.server.core.schedule.converter.ScheduleDelayEntityConverter;
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.TriggerType;
@@ -55,8 +55,6 @@ import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -117,6 +115,11 @@ public class ScheduleDelayCommandService {
         log.debug("Reclaimed {} expired schedule leases for buckets {}", reclaimed, cmd.getBuckets());
     }
 
+    @CommandHandler
+    public void handle(ScheduleRunningDelayRecoverCmd cmd) {
+        recoverExpiredRunningDelays(cmd.getBuckets());
+    }
+
     @Transactional
     @CommandHandler
     public void handle(ScheduleDelaysLoadCmd cmd) {
@@ -134,8 +137,8 @@ public class ScheduleDelayCommandService {
             ScheduleDelay.ID delayId = delay.getId();
 
             // Only claim if trigger time is within the next minute
-            java.time.LocalDateTime now = java.time.LocalDateTime.now();
-            java.time.LocalDateTime oneMinuteLater = now.plusMinutes(1);
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime oneMinuteLater = now.plusMinutes(1);
 
             if (delayId.getTriggerAt().isAfter(oneMinuteLater)) {
                 continue;
@@ -382,26 +385,39 @@ public class ScheduleDelayCommandService {
      *
      * Recovery rules:
      * - If execution not yet created: lease expired → reclaim → INIT
-     * - If execution created: fault-tolerance handles, don't duplicate
+     * - If execution already exists for this trigger point: mark the delay complete
+     *   instead of re-entering the scheduling path and creating a duplicate execution.
      *
      * @return number of delays recovered
      */
     @Transactional
     public int recoverExpiredRunningDelays() {
-        // Find RUNNING delays with expired leases
-        // These can be safely reset to INIT if no execution exists
-        // The execution service handles duplicate prevention at execution creation time
-        
+        return recoverExpiredRunningDelays(null);
+    }
+
+    @Transactional
+    public int recoverExpiredRunningDelays(List<Integer> buckets) {
+        if (buckets != null && buckets.isEmpty()) {
+            return 0;
+        }
+        LocalDateTime expiredAt = LocalDateTime.now().minusSeconds(30);
         String findSql = "SELECT schedule_id, trigger_at, lease_owner, execution_token " +
             "FROM fluxion_schedule_delay " +
             "WHERE status = :runningStatus " +
-            "AND lease_until < TIMESTAMPADD(SECOND, -30, CURRENT_TIMESTAMP) " +
+            "AND lease_until < :expiredAt " +
             "AND is_deleted = false";
+        if (buckets != null) {
+            findSql += " AND bucket IN (:buckets)";
+        }
         
         @SuppressWarnings("unchecked")
-        List<Object[]> expiredDelays = entityManager.createNativeQuery(findSql)
+        var findQuery = entityManager.createNativeQuery(findSql)
             .setParameter("runningStatus", ScheduleDelay.Status.RUNNING.value)
-            .getResultList();
+            .setParameter("expiredAt", expiredAt);
+        if (buckets != null) {
+            findQuery.setParameter("buckets", buckets);
+        }
+        List<Object[]> expiredDelays = findQuery.getResultList();
         
         if (CollectionUtils.isEmpty(expiredDelays)) {
             return 0;
@@ -414,29 +430,40 @@ public class ScheduleDelayCommandService {
             String oldOwner = (String) row[2];
             String oldToken = (String) row[3];
             
-            // Reset to INIT - execution service will handle duplicates at creation time
+            boolean executionExists = ((Number) entityManager.createNativeQuery(
+                    "SELECT COUNT(*) FROM fluxion_execution " +
+                    "WHERE trigger_id = :scheduleId AND trigger_at = :triggerAt AND is_deleted = false")
+                .setParameter("scheduleId", scheduleId)
+                .setParameter("triggerAt", triggerAt)
+                .getSingleResult()).longValue() > 0;
+
+            ScheduleDelay.Status targetStatus = executionExists
+                ? ScheduleDelay.Status.SUCCEED
+                : ScheduleDelay.Status.INIT;
             String updateSql = "UPDATE fluxion_schedule_delay " +
-                "SET status = :initStatus, lease_owner = NULL, lease_until = NULL, " +
+                "SET status = :targetStatus, lease_owner = NULL, lease_until = NULL, " +
                 "    execution_token = NULL, updated_at = CURRENT_TIMESTAMP(3) " +
                 "WHERE schedule_id = :scheduleId " +
                 "AND trigger_at = :triggerAt " +
                 "AND status = :runningStatus " +
                 "AND lease_owner = :oldOwner " +
+                "AND execution_token = :oldToken " +
                 "AND is_deleted = false";
             
             int affected = entityManager.createNativeQuery(updateSql)
-                .setParameter("initStatus", ScheduleDelay.Status.INIT.value)
+                .setParameter("targetStatus", targetStatus.value)
                 .setParameter("scheduleId", scheduleId)
                 .setParameter("triggerAt", triggerAt)
                 .setParameter("runningStatus", ScheduleDelay.Status.RUNNING.value)
                 .setParameter("oldOwner", oldOwner)
+                .setParameter("oldToken", oldToken)
                 .executeUpdate();
             
             if (affected > 0) {
                 recovered++;
-                log.warn("Recovered expired RUNNING delay {}:{} (oldOwner={}, oldToken={}) → INIT", 
+                log.warn("Recovered expired RUNNING delay {}:{} (oldOwner={}, oldToken={}) → {}",
                     scheduleId, triggerAt, oldOwner, 
-                    oldToken != null ? oldToken.substring(0, 8) + "..." : "null");
+                    oldToken != null ? oldToken.substring(0, 8) + "..." : "null", targetStatus);
             }
         }
         

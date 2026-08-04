@@ -92,6 +92,7 @@ public class Executor implements Executable {
     @Override
     public void execute(Execution execution) {
         Job job = new Job();
+        job.setExecutionId(execution.getId());
         job.setType(JobType.EXECUTOR);
         job.setTriggerAt(TimeUtils.currentLocalDateTime());
         // 保存数据
@@ -118,6 +119,7 @@ public class Executor implements Executable {
         jobConfig.setDispatchOption(config.getDispatchOption());
         jobConfig.setExecuteMode(config.getExecuteMode());
         jobConfig.setRetryOption(retryOption);
+        jobConfig.setOvertimeOption(overtimeOption);
         return jobConfig;
     }
 

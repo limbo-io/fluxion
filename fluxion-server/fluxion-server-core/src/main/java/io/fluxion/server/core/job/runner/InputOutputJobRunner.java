@@ -44,6 +44,7 @@ public class InputOutputJobRunner extends JobRunner {
     public void run(Job job) {
         JobStateTransitionCmd.Response response = Cmd.send(new JobStateTransitionCmd(
             job.getJobId(),
+            null,
             BrokerContext.broker().node(),
             TimeUtils.currentLocalDateTime(),
             null,

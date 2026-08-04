@@ -24,9 +24,6 @@ import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
-import io.fluxion.server.core.execution.fault.ErrorCategory;
-import io.fluxion.server.core.execution.fault.ExecutionResult;
-import io.fluxion.server.core.execution.fault.FaultToleranceCoordinator;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.cmd.ScheduleFeedbackCmd;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
@@ -58,9 +55,6 @@ public class ExecutionCommandService {
 
     @Resource
     private EntityManager entityManager;
-
-    @Resource
-    private FaultToleranceCoordinator faultToleranceCoordinator;
 
     @Transactional
     @CommandHandler
@@ -110,8 +104,6 @@ public class ExecutionCommandService {
             log.warn("ExecutionSuccessCmd update fail executionId:{}", cmd.getExecutionId());
             return false;
         }
-        // 通知容错协调器执行成功
-        faultToleranceCoordinator.complete(cmd.getExecutionId(), ExecutionResult.success());
         afterFinsh(cmd.getExecutionId());
         return true;
     }
@@ -124,10 +116,6 @@ public class ExecutionCommandService {
             log.warn("ExecutionFailCmd update fail executionId:{}", cmd.getExecutionId());
             return false;
         }
-        // 通知容错协调器执行失败
-        ErrorCategory category = ErrorCategory.UNKNOWN;
-        ExecutionResult result = ExecutionResult.failed(new RuntimeException("Execution failed"), category);
-        faultToleranceCoordinator.complete(cmd.getExecutionId(), result);
         afterFinsh(cmd.getExecutionId());
         return true;
     }

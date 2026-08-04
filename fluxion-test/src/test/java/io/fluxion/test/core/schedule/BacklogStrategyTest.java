@@ -16,6 +16,7 @@
 
 package io.fluxion.test.core.schedule;
 
+import io.fluxion.server.core.schedule.ScheduleBacklogPlanner;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import org.junit.jupiter.api.DisplayName;
@@ -54,7 +55,7 @@ class BacklogStrategyTest {
         LocalDateTime now = LocalDateTime.of(2025, 1, 1, 10, 5, 30);
 
         // When: Apply LATEST_ONLY backlog policy (like CRON/FIXED_RATE)
-        LocalDateTime latestTrigger = applyLatestOnlyPolicy(missedTriggers, now);
+        LocalDateTime latestTrigger = ScheduleBacklogPlanner.latestMissed(missedTriggers, now);
 
         // Then: Only the latest valid trigger should be executed
         assertThat(latestTrigger).isNotNull();
@@ -74,7 +75,7 @@ class BacklogStrategyTest {
         LocalDateTime now = LocalDateTime.of(2025, 1, 1, 10, 2, 15);
 
         // When: Apply LATEST_ONLY backlog policy
-        LocalDateTime latestTrigger = applyLatestOnlyPolicy(missedTriggers, now);
+        LocalDateTime latestTrigger = ScheduleBacklogPlanner.latestMissed(missedTriggers, now);
 
         // Then: Only the latest trigger should be executed
         assertThat(latestTrigger).isEqualTo(LocalDateTime.of(2025, 1, 1, 10, 2, 0));
@@ -103,7 +104,7 @@ class BacklogStrategyTest {
         LocalDateTime now = LocalDateTime.now();
 
         // When: Apply LATEST_ONLY policy
-        LocalDateTime latestTrigger = applyLatestOnlyPolicy(missedTriggers, now);
+        LocalDateTime latestTrigger = ScheduleBacklogPlanner.latestMissed(missedTriggers, now);
 
         // Then: No trigger should be executed
         assertThat(latestTrigger).isNull();
@@ -119,7 +120,7 @@ class BacklogStrategyTest {
         LocalDateTime now = LocalDateTime.of(2025, 1, 1, 10, 1, 30);
 
         // When: Apply LATEST_ONLY backlog policy
-        LocalDateTime latestTrigger = applyLatestOnlyPolicy(missedTriggers, now);
+        LocalDateTime latestTrigger = ScheduleBacklogPlanner.latestMissed(missedTriggers, now);
 
         // Then: Should execute the single trigger
         assertThat(latestTrigger).isEqualTo(LocalDateTime.of(2025, 1, 1, 10, 1, 0));
@@ -137,7 +138,7 @@ class BacklogStrategyTest {
         LocalDateTime now = LocalDateTime.of(2025, 1, 1, 10, 0, 0);
 
         // When: Apply LATEST_ONLY policy
-        LocalDateTime latestTrigger = applyLatestOnlyPolicy(triggers, now);
+        LocalDateTime latestTrigger = ScheduleBacklogPlanner.latestMissed(triggers, now);
 
         // Then: Should only execute triggers up to now
         assertThat(latestTrigger).isEqualTo(LocalDateTime.of(2025, 1, 1, 9, 59, 0));
@@ -165,36 +166,27 @@ class BacklogStrategyTest {
         assertThat(isBatchScheduler(fixedDelayOption)).isFalse();
     }
 
-    // Helper methods
+    @Test
+    @DisplayName("LATEST_ONLY retains every future trigger after collapsing historical triggers")
+    void testLatestOnlyKeepsFutureTriggers() {
+        LocalDateTime now = LocalDateTime.of(2025, 1, 1, 10, 0, 0);
+        List<LocalDateTime> triggerPoints = List.of(
+            now.minusMinutes(2), now.minusMinutes(1), now,
+            now.plusMinutes(1), now.plusMinutes(2)
+        );
 
-    /**
-     * Applies LATEST_ONLY backlog policy:
-     * When multiple triggers are missed, only the latest one is executed.
-     */
-    private LocalDateTime applyLatestOnlyPolicy(List<LocalDateTime> missedTriggers, LocalDateTime now) {
-        LocalDateTime latestValid = null;
-        for (LocalDateTime trigger : missedTriggers) {
-            if (!trigger.isAfter(now)) {  // trigger <= now
-                latestValid = trigger;
-            }
-        }
-        return latestValid;
+        ScheduleBacklogPlanner.Plan plan = ScheduleBacklogPlanner.plan(triggerPoints, now);
+
+        assertThat(plan.getDelays()).containsExactly(
+            now, now.plusMinutes(1), now.plusMinutes(2)
+        );
     }
 
-    /**
-     * FIXED_DELAY calculates next trigger based on last completion time + delay.
-     * Does not accumulate backlog.
-     */
     private LocalDateTime calculateFixedDelayNextTrigger(LocalDateTime lastCompletion, Duration delay) {
         return lastCompletion.plus(delay);
     }
 
-    /**
-     * Determines if a schedule type can accumulate backlog (CRON, FIXED_RATE)
-     * vs sequential (FIXED_DELAY).
-     */
     private boolean isBatchScheduler(ScheduleOption option) {
-        return option.getType() == ScheduleType.CRON
-            || option.getType() == ScheduleType.FIXED_RATE;
+        return option.getType() == ScheduleType.CRON || option.getType() == ScheduleType.FIXED_RATE;
     }
 }

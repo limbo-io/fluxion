@@ -26,7 +26,6 @@ import io.fluxion.remote.core.utils.NetUtils;
 import io.fluxion.server.core.broker.Broker;
 import io.fluxion.server.core.broker.BrokerClientHandler;
 import io.fluxion.server.core.broker.BrokerManger;
-import io.fluxion.server.core.execution.fault.ExecutionRecoveryService;
 import io.fluxion.server.core.schedule.ScheduleLeaseProperties;
 import io.limbo.utils.ReflectionUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -61,9 +60,6 @@ public class FluxionServerAutoConfiguration {
     private BrokerManger brokerManger;
 
     @Resource
-    private ExecutionRecoveryService executionRecoveryService;
-
-    @Resource
     private ScheduleLeaseProperties scheduleLeaseProperties;
 
     @Bean
@@ -85,7 +81,7 @@ public class FluxionServerAutoConfiguration {
 
         return new FluxionBroker(
             properties.getProtocol(), host, port,
-            brokerManger, clientServer, executionRecoveryService, scheduleLeaseProperties
+            brokerManger, clientServer, scheduleLeaseProperties
         );
     }
 
@@ -96,10 +92,8 @@ public class FluxionServerAutoConfiguration {
 
         FluxionBroker(Protocol protocol, String host, int port,
                       BrokerManger brokerManger, ClientServer clientServer,
-                      ExecutionRecoveryService recoveryService,
                       ScheduleLeaseProperties leaseProperties) {
             super(protocol, host, port, brokerManger, clientServer, leaseProperties);
-            setRecoveryService(recoveryService);
             ReflectionUtils.configure("io.fluxion");
         }
 

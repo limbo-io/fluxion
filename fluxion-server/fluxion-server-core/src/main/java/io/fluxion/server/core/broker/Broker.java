@@ -26,20 +26,22 @@ import io.fluxion.server.core.broker.task.BucketChecker;
 import io.fluxion.server.core.broker.task.CoreTask;
 import io.fluxion.server.core.broker.task.DataCleaner;
 import io.fluxion.server.core.broker.task.JobUnRunChecker;
+import io.fluxion.server.core.broker.task.JobRetryChecker;
+import io.fluxion.server.core.broker.task.JobTimeoutChecker;
+import io.fluxion.server.core.broker.task.JobLeaseRecoveryChecker;
+import io.fluxion.server.core.broker.task.JobLeaseRenewChecker;
 import io.fluxion.server.core.broker.task.ScheduleDelayLoader;
 import io.fluxion.server.core.broker.task.ScheduleLeaseRenewTask;
 import io.fluxion.server.core.broker.task.ScheduleLeaseReclaimTask;
+import io.fluxion.server.core.broker.task.ScheduleRunningDelayRecoveryTask;
 import io.fluxion.server.core.broker.task.ScheduleLoader;
 import io.fluxion.server.core.broker.task.WorkerChecker;
-import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
 import io.fluxion.server.core.schedule.ScheduleLeaseProperties;
-import io.fluxion.server.core.execution.fault.ExecutionRecoveryService;
 import io.fluxion.server.core.schedule.cmd.ScheduleDelayReleaseClaimsCmd;
 import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.fluxion.server.infrastructure.schedule.scheduler.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
 import io.limbo.cqrs.spring.command.Cmd;
-import io.limbo.cqrs.spring.query.Query;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.Assert;
@@ -73,8 +75,6 @@ public class Broker {
 
     private final DelayedTaskScheduler delayedTaskScheduler;
 
-    private ExecutionRecoveryService recoveryService;
-
     public Broker(Protocol protocol, String host, int port, BrokerManger brokerManger,
                   ClientServer clientServer, ScheduleLeaseProperties leaseProperties) {
         this(protocol, host, port, brokerManger, clientServer, leaseProperties, null);
@@ -96,8 +96,13 @@ public class Broker {
             new DataCleaner(),
             new WorkerChecker(),
             new JobUnRunChecker(),
+            new JobRetryChecker(),
+            new JobTimeoutChecker(),
+            new JobLeaseRecoveryChecker(),
+            new JobLeaseRenewChecker(),
             new ScheduleLeaseRenewTask(leaseProperties),
-            new ScheduleLeaseReclaimTask(leaseProperties)
+            new ScheduleLeaseReclaimTask(leaseProperties),
+            new ScheduleRunningDelayRecoveryTask(leaseProperties)
         );
         this.clientServer = clientServer;
         this.coreThreadPool = coreThreadPool == null
@@ -110,13 +115,6 @@ public class Broker {
     }
 
     /**
-     * Set the execution recovery service (called by subclasses)
-     */
-    protected void setRecoveryService(ExecutionRecoveryService recoveryService) {
-        this.recoveryService = recoveryService;
-    }
-
-    /**
      * 启动节点
      */
     public void start() {
@@ -124,11 +122,6 @@ public class Broker {
         BrokerContext.initialize(this);
         // 节点管理
         brokerManger.start();
-        
-        // Recover active executions after bucket initialization
-        if (recoveryService != null) {
-            recoveryService.recoverExecutions(id(), Query.query(new BucketsByBrokerQuery(id())).getBuckets());
-        }
         
         // 启动服务处理请求
         clientServer.start();

@@ -37,6 +37,7 @@ public class WorkerClientConverter {
     public static Job toJob(JobDispatchRequest request) {
         Job job = new Job();
         job.setId(request.getJobId());
+        job.setDispatchAttempt(request.getDispatchAttempt());
         job.setExecutorName(request.getExecutorName());
         job.setExecuteMode(ExecuteMode.parse(request.getExecuteMode()));
         return job;

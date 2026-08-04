@@ -100,6 +100,31 @@ public class JobEntity extends BaseEntity {
     private Integer retryTimes;
 
     /**
+     * 当前 Worker 下发次数，用于 Worker 幂等与迟到结果 fencing
+     */
+    private Integer dispatchAttempt;
+
+    /**
+     * 当前处理此 Job 的 Broker
+     */
+    private String leaseOwner;
+
+    /**
+     * Broker 处理 lease 的过期时间
+     */
+    private LocalDateTime leaseUntil;
+
+    /**
+     * 当前下发 attempt 的超时时间
+     */
+    private LocalDateTime timeoutAt;
+
+    /**
+     * 下一次允许重试的时间
+     */
+    private LocalDateTime nextRetryAt;
+
+    /**
      * 最后一次的执行结果
      */
     private String result;

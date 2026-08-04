@@ -19,7 +19,6 @@ package io.fluxion.server.core.broker.task;
 import io.fluxion.common.thread.CommonThreadPool;
 import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.core.job.Job;
-import io.fluxion.server.core.job.cmd.JobResetCmd;
 import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.query.JobByIdQuery;
 import io.fluxion.server.core.job.query.JobInitBlockedQuery;
@@ -58,8 +57,6 @@ public class JobUnRunChecker extends CoreTask {
         while (CollectionUtils.isNotEmpty(jobIds)) {
             for (String jobId : jobIds) {
                 CommonThreadPool.IO.submit(new LoggingTask(() -> {
-                    // 初始化状态并运行
-                    Cmd.send(new JobResetCmd(jobId));
                     Job job = Query.query(new JobByIdQuery(jobId)).getJob();
                     Cmd.send(new JobRunCmd(job));
                 }));

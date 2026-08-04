@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
 import io.fluxion.server.infrastructure.utils.json.JacksonTypeIdResolver;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.executor.option.RetryOption;
+import io.fluxion.server.core.executor.option.OvertimeOption;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -73,6 +74,8 @@ public class Job {
          * 重试参数
          */
         private RetryOption retryOption = new RetryOption();
+
+        private OvertimeOption overtimeOption = new OvertimeOption();
     }
 
 }
