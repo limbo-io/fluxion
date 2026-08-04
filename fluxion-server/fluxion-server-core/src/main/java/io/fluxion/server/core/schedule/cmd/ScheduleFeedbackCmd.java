@@ -24,6 +24,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 处理调度执行反馈。
+ *
  * @author Devil
  */
 @Getter

@@ -24,6 +24,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 保存工作流草稿配置。
+ *
  * @author Devil
  */
 @Getter

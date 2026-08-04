@@ -23,6 +23,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
+ * 为指定数据创建标签关联。
+ *
  * @author Devil
  */
 @Getter

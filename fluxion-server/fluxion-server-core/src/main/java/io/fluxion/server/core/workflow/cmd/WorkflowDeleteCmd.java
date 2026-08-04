@@ -23,6 +23,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 删除工作流。
+ *
  * @author Devil
  */
 @Getter

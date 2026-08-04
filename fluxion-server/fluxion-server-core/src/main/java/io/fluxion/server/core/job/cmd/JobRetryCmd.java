@@ -23,6 +23,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 重试指定 Job。
+ *
  * todo @d later
  * @author Devil
  */

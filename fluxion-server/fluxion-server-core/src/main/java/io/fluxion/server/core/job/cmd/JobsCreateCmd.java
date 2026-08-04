@@ -24,6 +24,8 @@ import lombok.Getter;
 import java.util.List;
 
 /**
+ * 批量创建 Job。
+ *
  * @author Devil
  */
 @Getter

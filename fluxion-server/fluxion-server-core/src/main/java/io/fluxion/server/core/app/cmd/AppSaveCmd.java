@@ -23,6 +23,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 创建应用；若同名应用已存在则返回其 ID。
+ *
  * @author Devil
  */
 @Getter

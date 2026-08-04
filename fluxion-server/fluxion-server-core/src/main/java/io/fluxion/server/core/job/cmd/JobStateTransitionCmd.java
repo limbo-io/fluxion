@@ -27,6 +27,8 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 
 /**
+ * 根据事件变更 Job 状态。
+ *
  * @author Devil
  */
 @Getter

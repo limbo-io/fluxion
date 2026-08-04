@@ -23,6 +23,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 启用触发器。
+ *
  * @author Devil
  */
 @Getter

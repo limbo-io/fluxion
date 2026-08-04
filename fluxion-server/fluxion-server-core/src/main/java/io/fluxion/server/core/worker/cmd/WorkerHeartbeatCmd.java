@@ -24,6 +24,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
+ * 更新 Worker 心跳和运行指标。
+ *
  * @author Devil
  */
 @Getter

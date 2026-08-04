@@ -25,6 +25,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
+ * 将执行实例标记为成功。
+ *
  * @author Devil
  */
 @Getter

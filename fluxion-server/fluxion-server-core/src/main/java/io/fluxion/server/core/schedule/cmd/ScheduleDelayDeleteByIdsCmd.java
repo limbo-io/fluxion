@@ -26,6 +26,8 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
+ * 按 ID 批量删除调度延迟任务。
+ *
  * @author Devil
  */
 @Getter

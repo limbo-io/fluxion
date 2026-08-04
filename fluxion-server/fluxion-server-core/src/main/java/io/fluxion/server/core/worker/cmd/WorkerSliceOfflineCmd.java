@@ -24,6 +24,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
+ * 批量下线指定时间范围内未心跳的 Worker。
+ *
  * @author Devil
  */
 @Getter
