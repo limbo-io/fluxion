@@ -16,12 +16,14 @@
 
 package io.fluxion.server.core.schedule.service;
 
-import com.google.common.collect.Lists;
 import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
+import io.fluxion.server.core.execution.Executable;
+import io.fluxion.server.core.execution.ExecutionStatus;
+import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
+import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.ScheduleConstants;
 import io.fluxion.server.core.schedule.ScheduleBacklogPlanner;
-import io.fluxion.server.core.schedule.ScheduleDelay;
 import io.fluxion.server.core.schedule.cmd.*;
 import io.fluxion.server.core.schedule.converter.ScheduleEntityConverter;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
@@ -32,6 +34,9 @@ import io.fluxion.server.infrastructure.dao.repository.ScheduleEntityRepo;
 import io.fluxion.server.infrastructure.schedule.BasicCalculation;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
+import io.fluxion.server.core.trigger.Trigger;
+import io.fluxion.server.core.trigger.TriggerType;
+import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
 import io.limbo.utils.MD5Utils;
 import io.limbo.utils.json.JacksonUtils;
 import io.limbo.utils.time.TimeUtils;
@@ -82,13 +87,15 @@ public class ScheduleCommandService {
             String oldVersion = MD5Utils.md5(JacksonUtils.toJSONString(ScheduleEntityConverter.toOption(entity)));
             String newVersion = MD5Utils.md5(JacksonUtils.toJSONString(cmd.getOption()));
             ScheduleEntityConverter.assemble(entity, cmd.getOption());
-            scheduleEntityRepo.saveAndFlush(entity);
-            // 判断版本是否变化 变化就要先删delay(等待状态) 后创建新的并调度
+            // 配置发布只失效未领取的未来实例；已领取或运行的实例保留版本快照。
             if (!oldVersion.equals(newVersion)) {
-                Cmd.send(new ScheduleDelayDeleteByScheduleCmd(cmd.getId(), Lists.newArrayList(
-                        ScheduleDelay.Status.INIT
-                )));
+                entity.setLastTriggerAt(null);
+                entity.setNextTriggerAt(new BasicCalculation(null, null, cmd.getOption()).triggerAt());
+                scheduleEntityRepo.saveAndFlush(entity);
+                invalidatePendingExecutions(cmd.getId());
                 Cmd.send(new ScheduleTriggerCmd(ScheduleEntityConverter.convert(entity)));
+            } else {
+                scheduleEntityRepo.saveAndFlush(entity);
             }
         }
     }
@@ -97,10 +104,7 @@ public class ScheduleCommandService {
     @CommandHandler
     public void handle(ScheduleDeleteCmd cmd) {
         scheduleEntityRepo.deleteById(cmd.getId()); // 软删除 交由 DataCleaner 删除
-        // 删除 未运行的 delay
-        Cmd.send(new ScheduleDelayDeleteByScheduleCmd(cmd.getId(), Lists.newArrayList(
-                ScheduleDelay.Status.INIT
-        )));
+        invalidatePendingExecutions(cmd.getId());
     }
 
     @Transactional
@@ -127,8 +131,8 @@ public class ScheduleCommandService {
             return;
         }
         LocalDateTime now = TimeUtils.currentLocalDateTime();
-        // 创建一批 ScheduleDelay
-        List<ScheduleDelay> delays = new ArrayList<>();
+        // 为每个计划触发点创建唯一的 PENDING Execution。
+        List<LocalDateTime> triggerPoints = new ArrayList<>();
         LocalDateTime lastTriggerAt = schedule.getLastTriggerAt();
         LocalDateTime nextTriggerAt = schedule.getNextTriggerAt();
         if (nextTriggerAt.isBefore(now)) {
@@ -142,19 +146,12 @@ public class ScheduleCommandService {
             if (!scheduleTriggerCheck(nextTriggerAt, now, schedule.getOption())) {
                 return;
             }
-            ScheduleDelay delay = new ScheduleDelay(
-                    new ScheduleDelay.ID(schedule.getId(), nextTriggerAt),
-
-                    ScheduleDelay.Status.INIT
-            );
-            delays.add(delay);
+            triggerPoints.add(nextTriggerAt);
             lastTriggerAt = nextTriggerAt; // 更新上次触发时间
             nextTriggerAt = null; // 反馈的时候计算下次触发时间，先置空
         } else {
-            // CRON/FIXED_RATE: LATEST_ONLY misfire policy
-            // Collapse only historical points; retain every future point in the load window.
-            List<LocalDateTime> triggerPoints = new ArrayList<>();
-            LocalDateTime loadEndAt = now.plusSeconds(ScheduleConstants.LOAD_INTERVAL_SECONDS);
+            // CRON/FIXED_RATE: preserve every historical and future trigger point.
+            LocalDateTime loadEndAt = now.plusSeconds(ScheduleConstants.EXECUTION_LOOK_AHEAD_SECONDS);
             while (nextTriggerAt != null
                     && !nextTriggerAt.isAfter(schedule.getOption().getEndTime())
                     && !nextTriggerAt.isAfter(loadEndAt)) {
@@ -167,19 +164,16 @@ public class ScheduleCommandService {
                 );
                 nextTriggerAt = calculation.triggerAt();
             }
-            for (LocalDateTime triggerPoint : ScheduleBacklogPlanner.plan(triggerPoints, now).getDelays()) {
-                ScheduleDelay delay = new ScheduleDelay(
-                        new ScheduleDelay.ID(schedule.getId(), triggerPoint),
-                        ScheduleDelay.Status.INIT
-                );
-                delays.add(delay);
-            }
+            triggerPoints = ScheduleBacklogPlanner.plan(triggerPoints, now).getDelays();
         }
 
-        // 保存延迟任务
-        Cmd.send(new ScheduleDelaysCreateCmd(delays));
-        // 加载
-        Cmd.send(new ScheduleDelaysLoadCmd(delays));
+        Trigger trigger = Query.query(new TriggerByIdQuery(schedule.getId())).getTrigger();
+        Executable executable = Query.query(new ExecutableByIdQuery(
+            trigger.executableId(), trigger.getConfig().getExecuteConfig().type()
+        )).getExecutable();
+        for (LocalDateTime triggerPoint : triggerPoints) {
+            Cmd.send(new ExecutionCreateCmd(trigger.getId(), TriggerType.SCHEDULE, executable, triggerPoint));
+        }
 
         // 更新上次触发时间和下次触发时间
         entityManager.createQuery("update ScheduleEntity " +
@@ -198,10 +192,19 @@ public class ScheduleCommandService {
             return false;
         }
         if (nextTriggerAt.isAfter(option.getEndTime())
-                || nextTriggerAt.isAfter(now.plusSeconds(ScheduleConstants.LOAD_INTERVAL_SECONDS))) {
+                || nextTriggerAt.isAfter(now.plusSeconds(ScheduleConstants.EXECUTION_LOOK_AHEAD_SECONDS))) {
             return false;
         }
         return true;
+    }
+
+    private void invalidatePendingExecutions(String triggerId) {
+        entityManager.createQuery("update ExecutionEntity set status = :status " +
+                "where triggerId = :triggerId and status = :pending and deleted = false")
+            .setParameter("status", ExecutionStatus.INVALID.value)
+            .setParameter("pending", ExecutionStatus.PENDING.value)
+            .setParameter("triggerId", triggerId)
+            .executeUpdate();
     }
 
     @Transactional

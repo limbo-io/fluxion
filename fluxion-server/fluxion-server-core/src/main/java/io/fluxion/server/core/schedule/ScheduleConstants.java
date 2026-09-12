@@ -23,12 +23,17 @@ import java.util.concurrent.TimeUnit;
  */
 public interface ScheduleConstants {
 
-    int LOAD_INTERVAL = 10;
+    /**
+     * Schedule 扫描周期为 5 分钟；Execution 预生成窗口为两个周期。
+     */
+    int LOAD_INTERVAL = 5;
 
     TimeUnit LOAD_TIME_UNIT = TimeUnit.MINUTES;
 
     long LOAD_INTERVAL_MS = LOAD_TIME_UNIT.toMillis(LOAD_INTERVAL);
 
     long LOAD_INTERVAL_SECONDS = LOAD_TIME_UNIT.toSeconds(LOAD_INTERVAL);
+
+    long EXECUTION_LOOK_AHEAD_SECONDS = LOAD_INTERVAL_SECONDS * 2;
 
 }

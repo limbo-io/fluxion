@@ -27,6 +27,14 @@ import io.fluxion.common.constants.CommonConstants;
 public enum ExecutionStatus {
     UNKNOWN(CommonConstants.UNKNOWN),
     /**
+     * 已按计划创建，尚未被 Broker 领取。
+     */
+    PENDING("pending"),
+    /**
+     * Broker 持有短租约，正在校验 Trigger 并创建 Job。
+     */
+    CLAIMED("claimed"),
+    /**
      * 初始化
      */
     INITED("inited"),
@@ -34,8 +42,26 @@ public enum ExecutionStatus {
      * 运行中
      */
     RUNNING("running"),
+    /**
+     * Trigger 未启用或已发布新版本，实例不再执行。
+     */
+    INVALID("invalid"),
+    /**
+     * 错过触发策略明确要求不执行。
+     */
+    SKIPPED("skipped"),
+    /**
+     * 错过触发补偿创建 Job 的次数已耗尽。
+     */
+    MISFIRED("misfired"),
+    /**
+     * Job 已创建，且 Execution 的全部完成条件已满足。
+     */
     SUCCEED("succeed"),
-    FAILED("failed"), // worker拒绝，进入容错策略 失败次数不增加 TERMINATED 作业被手动终止 不再增加一个状态 而是写入 errMsg
+    /**
+     * Job 已创建，但执行或工作流的失败规则判定本次 Execution 失败。
+     */
+    FAILED("failed"),
     /**
      * 重试 调度中
      */
@@ -77,11 +103,12 @@ public enum ExecutionStatus {
     }
 
     public boolean isFinished() {
-        return this == FAILED || this == SUCCEED || this == CANCELLED;
+        return this == FAILED || this == SUCCEED || this == CANCELLED
+            || this == SKIPPED || this == MISFIRED || this == INVALID;
     }
 
     public boolean isCreated() {
-        return this == INITED || this == RESTARTED;
+        return this == INITED || this == RESTARTED || this == PENDING || this == CLAIMED;
     }
 
     public boolean isRunning() {

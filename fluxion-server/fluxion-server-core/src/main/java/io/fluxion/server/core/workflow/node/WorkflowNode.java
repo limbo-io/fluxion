@@ -17,6 +17,8 @@
 package io.fluxion.server.core.workflow.node;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
 import io.fluxion.server.infrastructure.utils.json.JacksonTypeIdResolver;
 import io.fluxion.server.core.executor.option.OvertimeOption;
@@ -75,11 +77,12 @@ public abstract class WorkflowNode implements DAGNode, ValidatableConfig {
     private OvertimeOption overtimeOption;
 
     /**
-     * 执行失败是否继续
-     * true  会继续执行后续作业
-     * false 终止环节
+     * 节点失败且重试耗尽后，是否仍将该节点视为已完成并推进下游。
+     * Job 的状态仍为 FAILED；该标志只影响 Workflow 的依赖判定。
      */
-    private boolean skipWhenFail = false;
+    @JsonProperty("continueOnFailure")
+    @JsonAlias("skipWhenFail")
+    private boolean continueOnFailure = false;
 
     /**
      * 扩展信息 目前只给前端使用

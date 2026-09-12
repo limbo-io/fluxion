@@ -21,6 +21,7 @@ import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
+import io.fluxion.server.core.execution.cmd.ExecutionCleanCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
@@ -61,7 +62,7 @@ public class ExecutionCommandService {
     public ExecutionCreateCmd.Response handle(ExecutionCreateCmd cmd) {
         Executable executable = cmd.getExecutable();
         // 判断是否已经创建
-        ExecutionEntity entity = executionEntityRepo.findByExecutableIdAndExecutableTypeAndTriggerAt(executable.id(), executable.type().value, cmd.getTriggerAt());
+        ExecutionEntity entity = executionEntityRepo.findByTriggerIdAndTriggerAt(cmd.getTriggerId(), cmd.getTriggerAt());
         if (entity == null) {
             entity = new ExecutionEntity();
             entity.setExecutionId(Cmd.send(new IDGenerateCmd(IDType.EXECUTION)).getId());
@@ -72,7 +73,9 @@ public class ExecutionCommandService {
             entity.setExecutableVersion(executable.version());
             entity.setExecutableType(executable.type().value);
             entity.setTriggerAt(cmd.getTriggerAt());
-            entity.setStatus(ExecutionStatus.INITED.value);
+            entity.setStatus(cmd.getTriggerType() == TriggerType.SCHEDULE
+                ? ExecutionStatus.PENDING.value : ExecutionStatus.INITED.value);
+            entity.setFireAttempt(0);
             executionEntityRepo.saveAndFlush(entity);
         }
         Execution execution = new Execution(
@@ -118,6 +121,20 @@ public class ExecutionCommandService {
         }
         afterFinsh(cmd.getExecutionId());
         return true;
+    }
+
+    @Transactional
+    @CommandHandler
+    public void handle(ExecutionCleanCmd cmd) {
+        entityManager.createQuery("update ExecutionEntity set deleted = true " +
+                "where endAt <= :endAt and status in :statuses and deleted = false")
+            .setParameter("endAt", cmd.getEndAt())
+            .setParameter("statuses", java.util.Arrays.asList(
+                ExecutionStatus.SUCCEED.value, ExecutionStatus.FAILED.value,
+                ExecutionStatus.SKIPPED.value, ExecutionStatus.MISFIRED.value,
+                ExecutionStatus.INVALID.value
+            ))
+            .executeUpdate();
     }
 
     private boolean updateToFinish(String executionId, ExecutionStatus status, LocalDateTime endTime) {

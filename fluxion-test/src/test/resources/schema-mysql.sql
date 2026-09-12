@@ -77,15 +77,18 @@ CREATE TABLE `fluxion_execution`
     `state_updated_at`   datetime(3)              DEFAULT NULL COMMENT 'Last state update timestamp',
     `lease_owner`        varchar(64)              DEFAULT NULL COMMENT 'Broker ID that owns the lease',
     `lease_until`        datetime(3)              DEFAULT NULL COMMENT 'Lease expiration time',
-    `bucket`             int                      DEFAULT NULL COMMENT 'Bucket number (1-64) for broker assignment',
+    `execution_token`    varchar(64)              DEFAULT NULL,
+    `fire_attempt`       int unsigned             NOT NULL DEFAULT 0,
+    `next_fire_at`       datetime(3)              DEFAULT NULL,
+    `bucket`             int unsigned             NOT NULL COMMENT 'Bucket number (1-64) for broker assignment',
     `recovery_owner`     varchar(64)              DEFAULT NULL COMMENT 'Broker ID that claimed this execution for recovery',
     `is_deleted`         bit(1)          NOT NULL DEFAULT 0,
     `created_at`         datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`         datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_execution` (`execution_id`),
-    KEY `idx_execution_lease` (`status`, `lease_owner`, `lease_until`),
-    KEY `idx_execution_bucket` (`bucket`, `status`)
+    UNIQUE KEY `uk_execution_trigger` (`trigger_id`, `trigger_at`),
+    KEY `idx_execution_claim` (`bucket`, `status`, `trigger_at`, `next_fire_at`, `lease_until`)
 );
 
 CREATE TABLE `fluxion_schedule`
@@ -100,6 +103,8 @@ CREATE TABLE `fluxion_schedule`
     `schedule_interval`  bigint                   DEFAULT NULL,
     `schedule_cron`      varchar(128)    NOT NULL DEFAULT '',
     `schedule_cron_type` varchar(32)     NOT NULL DEFAULT '',
+    `misfire_policy`     varchar(32)     NOT NULL DEFAULT 'FIRE_RETRY',
+    `max_fire_attempts`  int unsigned    NOT NULL DEFAULT 1,
     `last_trigger_at`    datetime(3)              DEFAULT NULL,
     `last_feedback_at`   datetime(3)              DEFAULT NULL,
     `next_trigger_at`    datetime(3)              DEFAULT NULL,
@@ -110,25 +115,6 @@ CREATE TABLE `fluxion_schedule`
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_schedule` (`schedule_id`),
     KEY `idx_next_trigger_start_end_bucket` (`next_trigger_at`, `start_time`, `end_time`, `bucket`)
-);
-
-CREATE TABLE `fluxion_schedule_delay`
-(
-    `id`          bigint unsigned NOT NULL AUTO_INCREMENT,
-    `schedule_id` varchar(64)     NOT NULL,
-    `trigger_at`  datetime(3)     NOT NULL,
-    `delay_id`    varchar(128)    NOT NULL,
-    `bucket`      int unsigned    NOT NULL,
-    `status`      varchar(32)     NOT NULL,
-    `lease_owner` varchar(64)              DEFAULT NULL COMMENT 'Broker ID that owns the lease',
-    `lease_until` datetime(3)              DEFAULT NULL COMMENT 'Lease expiration time',
-    `attempt`     int unsigned    NOT NULL DEFAULT 0 COMMENT 'Number of claim attempts',
-    `is_deleted`  bit(1)          NOT NULL DEFAULT 0,
-    `created_at`  datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at`  datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_schedule_delay` (`schedule_id`, `trigger_at`),
-    KEY `idx_delay_lease` ON `fluxion_schedule_delay` (`bucket`, `status`, `trigger_at`, `lease_until`)
 );
 
 CREATE TABLE `fluxion_job`

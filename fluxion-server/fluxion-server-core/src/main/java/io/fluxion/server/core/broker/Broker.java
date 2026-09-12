@@ -30,14 +30,10 @@ import io.fluxion.server.core.broker.task.JobRetryChecker;
 import io.fluxion.server.core.broker.task.JobTimeoutChecker;
 import io.fluxion.server.core.broker.task.JobLeaseRecoveryChecker;
 import io.fluxion.server.core.broker.task.JobLeaseRenewChecker;
-import io.fluxion.server.core.broker.task.ScheduleDelayLoader;
-import io.fluxion.server.core.broker.task.ScheduleLeaseRenewTask;
-import io.fluxion.server.core.broker.task.ScheduleLeaseReclaimTask;
-import io.fluxion.server.core.broker.task.ScheduleRunningDelayRecoveryTask;
+import io.fluxion.server.core.broker.task.ExecutionLoader;
 import io.fluxion.server.core.broker.task.ScheduleLoader;
 import io.fluxion.server.core.broker.task.WorkerChecker;
 import io.fluxion.server.core.schedule.ScheduleLeaseProperties;
-import io.fluxion.server.core.schedule.cmd.ScheduleDelayReleaseClaimsCmd;
 import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.fluxion.server.infrastructure.schedule.scheduler.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
@@ -91,7 +87,7 @@ public class Broker {
         this.client = ClientFactory.create(protocol);
         this.coreTasks = Lists.newArrayList(
             new ScheduleLoader(),
-            new ScheduleDelayLoader(),
+            new ExecutionLoader(),
             new BucketChecker(),
             new DataCleaner(),
             new WorkerChecker(),
@@ -99,10 +95,7 @@ public class Broker {
             new JobRetryChecker(),
             new JobTimeoutChecker(),
             new JobLeaseRecoveryChecker(),
-            new JobLeaseRenewChecker(),
-            new ScheduleLeaseRenewTask(leaseProperties),
-            new ScheduleLeaseReclaimTask(leaseProperties),
-            new ScheduleRunningDelayRecoveryTask(leaseProperties)
+            new JobLeaseRenewChecker()
         );
         this.clientServer = clientServer;
         this.coreThreadPool = coreThreadPool == null
@@ -147,27 +140,11 @@ public class Broker {
         // Stop accepting new tasks and cancel in-memory scheduled tasks
         delayedTaskScheduler.stopAll();
         
-        // Release claimed schedule delays in database
-        releaseClaimedDelays();
-        
         brokerManger.stop();
         coreThreadPool.shutdown();
         clientServer.stop();
     }
     
-    /**
-     * Release all claimed schedule delays for this broker.
-     * Sets lease_owner to null so other brokers can reclaim after lease expires.
-     */
-    private void releaseClaimedDelays() {
-        try {
-            Cmd.send(new ScheduleDelayReleaseClaimsCmd(id()));
-            log.info("Sent release claims command for broker {}", id());
-        } catch (Exception e) {
-            log.error("Failed to release claimed delays for broker {}", id(), e);
-        }
-    }
-
     public String id() {
         return node.id();
     }

@@ -82,6 +82,10 @@ public class WorkflowConfig implements ValidatableConfig {
             infos.add(new ValidateSuppressInfo(WorkflowConstants.FLOW_END_NODES_IS_EMPTY));
             return infos;
         }
+        if (dag.lasts().size() != 1) {
+            infos.add(new ValidateSuppressInfo(WorkflowConstants.FLOW_NODE_START_END_LIMIT));
+            return infos;
+        }
         if (dag.lasts().stream().anyMatch(n -> !Objects.equals(n.getType(), WorkflowNode.Type.END))) {
             infos.add(new ValidateSuppressInfo(WorkflowConstants.FLOW_END_NODES_HAS_ERROR_TYPE_NODE));
             return infos;

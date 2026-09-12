@@ -153,12 +153,23 @@ CREATE TABLE `fluxion_execution`
     `trigger_at`         datetime(3)              DEFAULT NULL,
     `start_at`           datetime(3)              DEFAULT NULL,
     `end_at`             datetime(3)              DEFAULT NULL,
+    `worker_id`          varchar(64)              DEFAULT NULL,
+    `dispatch_attempt`   int                      NOT NULL DEFAULT 0,
+    `state_updated_at`   datetime(3)              DEFAULT NULL,
+    `lease_owner`        varchar(64)              DEFAULT NULL,
+    `lease_until`        datetime(3)              DEFAULT NULL,
+    `execution_token`    varchar(64)              DEFAULT NULL,
+    `fire_attempt`       int unsigned             NOT NULL DEFAULT 0,
+    `next_fire_at`       datetime(3)              DEFAULT NULL,
+    `bucket`             int unsigned             NOT NULL,
+    `recovery_owner`     varchar(64)              DEFAULT NULL,
     `is_deleted`         bit(1)          NOT NULL DEFAULT 0,
     `created_at`         datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`         datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_execution` (`execution_id`),
-    UNIQUE KEY `uk_execution_trigger` (`executable_id`, `trigger_at`, `executable_type`)
+    UNIQUE KEY `uk_execution_trigger` (`trigger_id`, `trigger_at`),
+    KEY `idx_execution_claim` (`bucket`, `status`, `trigger_at`, `next_fire_at`, `lease_until`)
 );
 
 CREATE TABLE `fluxion_schedule`
@@ -173,6 +184,8 @@ CREATE TABLE `fluxion_schedule`
     `schedule_interval`  bigint                   DEFAULT NULL,
     `schedule_cron`      varchar(128)    NOT NULL DEFAULT '',
     `schedule_cron_type` varchar(32)     NOT NULL DEFAULT '',
+    `misfire_policy`     varchar(32)     NOT NULL DEFAULT 'FIRE_RETRY',
+    `max_fire_attempts`  int unsigned    NOT NULL DEFAULT 1,
     `last_trigger_at`    datetime(3)              DEFAULT NULL,
     `last_feedback_at`   datetime(3)              DEFAULT NULL,
     `next_trigger_at`    datetime(3)              DEFAULT NULL,
@@ -183,22 +196,6 @@ CREATE TABLE `fluxion_schedule`
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_schedule` (`schedule_id`),
     KEY `idx_next_trigger_start_end_bucket` (`next_trigger_at`, `start_time`, `end_time`, `bucket`)
-);
-
-CREATE TABLE `fluxion_schedule_delay`
-(
-    `id`          bigint unsigned NOT NULL AUTO_INCREMENT,
-    `schedule_id` varchar(64)     NOT NULL,
-    `trigger_at`  datetime(3)     NOT NULL,
-    `delay_id`    varchar(128)    NOT NULL,
-    `bucket`      int unsigned    NOT NULL,
-    `status`      varchar(32)     NOT NULL,
-    `is_deleted`  bit(1)          NOT NULL DEFAULT 0,
-    `created_at`  datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at`  datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_schedule_delay` (`schedule_id`, `trigger_at`),
-    KEY `idx_delay_trigger_bucket_status` (`delay_id`, `trigger_at`, `bucket`, `status`)
 );
 
 CREATE TABLE `fluxion_job`
@@ -293,4 +290,3 @@ CREATE TABLE `fluxion_worker_metric`
     UNIQUE KEY `uk_worker_metric` (`worker_id`),
     KEY `idx_worker_last_heartbeat` (`last_heartbeat_at`)
 );
-

@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.executor;
 
-import io.fluxion.common.thread.CommonThreadPool;
 import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.ExecutableType;
@@ -28,12 +27,10 @@ import io.fluxion.server.core.executor.option.OvertimeOption;
 import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
-import io.fluxion.server.core.job.cmd.JobRunCmd;
+import io.fluxion.server.core.job.JobDispatcher;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
 import io.fluxion.server.core.job.config.ExecutorJobConfig;
-import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.limbo.cqrs.spring.command.Cmd;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -98,7 +95,7 @@ public class Executor implements Executable {
         // 保存数据
         Cmd.send(new JobsCreateCmd(Collections.singletonList(job)));
         // 执行
-        CommonThreadPool.IO.submit(new LoggingTask(() -> Cmd.send(new JobRunCmd(job))));
+        JobDispatcher.dispatchAfterCommit(job);
     }
 
     @Override

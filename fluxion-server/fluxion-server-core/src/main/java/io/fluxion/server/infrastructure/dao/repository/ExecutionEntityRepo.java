@@ -33,7 +33,7 @@ import java.util.List;
 @Repository
 public interface ExecutionEntityRepo extends JpaRepository<ExecutionEntity, String>, JpaSpecificationExecutor<ExecutionEntity> {
 
-    ExecutionEntity findByExecutableIdAndExecutableTypeAndTriggerAt(String executableId, String executableType, LocalDateTime triggerAt);
+    ExecutionEntity findByTriggerIdAndTriggerAt(String triggerId, LocalDateTime triggerAt);
 
     /**
      * Find executions by status list and bucket list

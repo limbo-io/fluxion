@@ -21,6 +21,7 @@ import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
+import io.fluxion.server.infrastructure.schedule.MisfirePolicy;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -49,6 +50,8 @@ public class ScheduleEntityConverter {
         entity.setScheduleInterval(scheduleOption.getInterval() == null ? 0L : scheduleOption.getInterval().getSeconds());
         entity.setScheduleCron(scheduleOption.getCron() == null ? StringUtils.EMPTY : scheduleOption.getCron());
         entity.setScheduleCronType(scheduleOption.getCronType() == null ? StringUtils.EMPTY : scheduleOption.getCronType());
+        entity.setMisfirePolicy(scheduleOption.getMisfirePolicy().name());
+        entity.setMaxFireAttempts(scheduleOption.getMaxFireAttempts());
     }
 
     public static ScheduleEntity convert(Schedule schedule) {
@@ -65,6 +68,8 @@ public class ScheduleEntityConverter {
         entity.setScheduleInterval(scheduleOption.getInterval().getSeconds());
         entity.setScheduleCron(scheduleOption.getCron());
         entity.setScheduleCronType(scheduleOption.getCronType());
+        entity.setMisfirePolicy(scheduleOption.getMisfirePolicy().name());
+        entity.setMaxFireAttempts(scheduleOption.getMaxFireAttempts());
         entity.setNextTriggerAt(schedule.getNextTriggerAt());
         entity.setLastFeedbackAt(schedule.getLastFeedbackAt());
         entity.setLastTriggerAt(schedule.getLastTriggerAt());
@@ -91,10 +96,12 @@ public class ScheduleEntityConverter {
             ScheduleType.parse(entity.getScheduleType()),
             entity.getStartTime(),
             entity.getEndTime(),
-            Duration.ofMillis(entity.getScheduleDelay()),
-            Duration.ofMillis(entity.getScheduleInterval()),
+            Duration.ofSeconds(entity.getScheduleDelay()),
+            Duration.ofSeconds(entity.getScheduleInterval()),
             entity.getScheduleCron(),
-            entity.getScheduleCronType()
+            entity.getScheduleCronType(),
+            entity.getMisfirePolicy() == null ? null : MisfirePolicy.valueOf(entity.getMisfirePolicy()),
+            entity.getMaxFireAttempts()
         );
     }
 

@@ -20,12 +20,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
- * Applies the LATEST_ONLY misfire rule without dropping future trigger points.
+ * Produces one persisted occurrence for every calculated trigger point.
+ * Misfire policy is evaluated later by the Broker after the occurrence is loaded.
  *
  * @author Devil
  */
@@ -34,31 +33,8 @@ public final class ScheduleBacklogPlanner {
     private ScheduleBacklogPlanner() {
     }
 
-    public static LocalDateTime latestMissed(List<LocalDateTime> triggerPoints, LocalDateTime now) {
-        LocalDateTime latest = null;
-        for (LocalDateTime triggerPoint : triggerPoints) {
-            if (!triggerPoint.isAfter(now)) {
-                latest = triggerPoint;
-            }
-        }
-        return latest;
-    }
-
     public static Plan plan(List<LocalDateTime> triggerPoints, LocalDateTime now) {
-        if (triggerPoints.isEmpty()) {
-            return new Plan(Collections.emptyList());
-        }
-        List<LocalDateTime> delays = new ArrayList<>();
-        LocalDateTime latestMissed = latestMissed(triggerPoints, now);
-        if (latestMissed != null) {
-            delays.add(latestMissed);
-        }
-        for (LocalDateTime triggerPoint : triggerPoints) {
-            if (triggerPoint.isAfter(now)) {
-                delays.add(triggerPoint);
-            }
-        }
-        return new Plan(delays);
+        return new Plan(triggerPoints);
     }
 
     @Getter

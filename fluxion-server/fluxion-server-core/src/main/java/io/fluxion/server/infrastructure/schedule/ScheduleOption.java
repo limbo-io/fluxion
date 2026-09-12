@@ -85,6 +85,12 @@ public class ScheduleOption {
      */
     private final String cronType;
 
+    /** Misfire handling for scheduled Executions. */
+    private final MisfirePolicy misfirePolicy;
+
+    /** Total allowed Job-creation attempts after a misfire. */
+    private final int maxFireAttempts;
+
     @JsonCreator
     public ScheduleOption(@JsonProperty("type") ScheduleType type,
                           @JsonProperty("startTime") LocalDateTime startTime,
@@ -92,7 +98,9 @@ public class ScheduleOption {
                           @JsonProperty("scheduleDelay") Duration delay,
                           @JsonProperty("scheduleInterval") Duration interval,
                           @JsonProperty("cron") String cron,
-                          @JsonProperty("cronType") String cronType) {
+                          @JsonProperty("cronType") String cronType,
+                          @JsonProperty("misfirePolicy") MisfirePolicy misfirePolicy,
+                          @JsonProperty("maxFireAttempts") Integer maxFireAttempts) {
         this.type = type;
         this.startTime = startTime == null ? TimeUtils.currentLocalDateTime() : startTime;
         this.endTime = endTime == null ? TIME_FOREVER : endTime;
@@ -100,6 +108,13 @@ public class ScheduleOption {
         this.interval = interval == null ? Duration.ZERO : interval;
         this.cron = cron;
         this.cronType = cronType;
+        this.misfirePolicy = misfirePolicy == null ? MisfirePolicy.FIRE_RETRY : misfirePolicy;
+        this.maxFireAttempts = maxFireAttempts == null ? 1 : Math.max(1, maxFireAttempts);
+    }
+
+    public ScheduleOption(ScheduleType type, LocalDateTime startTime, LocalDateTime endTime,
+                          Duration delay, Duration interval, String cron, String cronType) {
+        this(type, startTime, endTime, delay, interval, cron, cronType, null, null);
     }
 
 }

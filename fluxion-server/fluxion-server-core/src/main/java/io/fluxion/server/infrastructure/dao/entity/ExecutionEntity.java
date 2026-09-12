@@ -28,6 +28,7 @@ import org.hibernate.annotations.DynamicUpdate;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 
 /**
@@ -38,7 +39,8 @@ import java.time.LocalDateTime;
  */
 @Setter
 @Getter
-@Table(name = TableConstants.FLUXION_EXECUTION)
+@Table(name = TableConstants.FLUXION_EXECUTION,
+    uniqueConstraints = @UniqueConstraint(name = "uk_execution_trigger_at", columnNames = {"triggerId", "triggerAt"}))
 @Entity
 @DynamicInsert
 @DynamicUpdate
@@ -115,6 +117,21 @@ public class ExecutionEntity extends BaseEntity {
      * Lease expiration time
      */
     private LocalDateTime leaseUntil;
+
+    /**
+     * Fencing token for the short-lived Broker claim. It is cleared once Jobs are committed.
+     */
+    private String executionToken;
+
+    /**
+     * Number of misfire Job-creation attempts. This is independent from Job retryTimes.
+     */
+    private Integer fireAttempt;
+
+    /**
+     * Earliest time a misfire retry may be claimed again.
+     */
+    private LocalDateTime nextFireAt;
 
     /**
      * Bucket number for broker assignment (computed from executionId)

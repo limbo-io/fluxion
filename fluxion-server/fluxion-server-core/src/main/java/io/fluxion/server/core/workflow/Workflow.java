@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.workflow;
 
-import io.fluxion.common.thread.CommonThreadPool;
 import io.limbo.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.execution.Executable;
@@ -26,8 +25,8 @@ import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.job.Job;
+import io.fluxion.server.core.job.JobDispatcher;
 import io.fluxion.server.core.job.JobType;
-import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
 import io.fluxion.server.core.job.config.ExecutorJobConfig;
 import io.fluxion.server.core.job.config.InputOutputConfig;
@@ -36,7 +35,6 @@ import io.fluxion.server.core.workflow.node.EndNode;
 import io.fluxion.server.core.workflow.node.ExecutorNode;
 import io.fluxion.server.core.workflow.node.StartNode;
 import io.fluxion.server.core.workflow.node.WorkflowNode;
-import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.limbo.cqrs.spring.command.Cmd;
 import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dag.DAG;
@@ -102,7 +100,7 @@ public class Workflow implements Executable {
         List<Job> jobs = createJobs(execution.getId(), dag.origins());
         // 执行
         for (Job job : jobs) {
-            CommonThreadPool.IO.submit(new LoggingTask(() -> Cmd.send(new JobRunCmd(job))));
+            JobDispatcher.dispatchAfterCommit(job);
         }
     }
 
@@ -136,7 +134,7 @@ public class Workflow implements Executable {
     @Override
     public boolean fail(String executionId, String refId, LocalDateTime time) {
         WorkflowNode node = dag.node(refId);
-        if (node.isSkipWhenFail()) {
+        if (node.isContinueOnFailure()) {
             return success(executionId, refId, time);
         } else {
             return Cmd.send(new ExecutionFailCmd(executionId, time));
@@ -201,11 +199,19 @@ public class Workflow implements Executable {
         if (preNodes.size() == 1) {
             return true; // 之前的节点完成了，没有其它节点了
         }
-        long count = Query.query(new JobCountByStatusQuery(
+        long successCount = Query.query(new JobCountByStatusQuery(
             executionId, preNodes.stream().map(WorkflowNode::getId).collect(Collectors.toList()),
             Collections.singletonList(JobStatus.SUCCEED)
         )).getCount();
-        return count >= preNodes.size();
+        List<String> continuedNodeIds = preNodes.stream()
+            .filter(WorkflowNode::isContinueOnFailure)
+            .map(WorkflowNode::getId)
+            .collect(Collectors.toList());
+        long continuedFailureCount = CollectionUtils.isEmpty(continuedNodeIds) ? 0
+            : Query.query(new JobCountByStatusQuery(
+                executionId, continuedNodeIds, Collections.singletonList(JobStatus.FAILED)
+            )).getCount();
+        return successCount + continuedFailureCount >= preNodes.size();
     }
 
 }
