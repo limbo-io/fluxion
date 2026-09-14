@@ -37,26 +37,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import io.limbo.cqrs.core.commandhandling.Cmd;
+import io.limbo.cqrs.core.queryhandling.Query;
 
-
-import io.limbo.cqrs.spring.gateway.CommandGateway;
-import io.limbo.cqrs.spring.gateway.QueryGateway;
 /**
  * @author Devil
  */
 @RestController
 public class TriggerController {
-    @Resource
-    private CommandGateway commandGateway;
-    @Resource
-    private QueryGateway queryGateway;
 
     @Resource
     private TriggerService triggerService;
 
     @RequestMapping("/api/v1/trigger/create")
     public String create(@RequestBody TriggerCreateRequest request) {
-        TriggerCreateCmd.Response response = commandGateway.send(new TriggerCreateCmd(
+        TriggerCreateCmd.Response response = Cmd.send(new TriggerCreateCmd(
             request.getName(), request.getDescription()
         ));
         return response.getId();
@@ -64,7 +59,7 @@ public class TriggerController {
 
     @RequestMapping("/api/v1/trigger/update")
     public void update(@RequestBody TriggerUpdateRequest request) {
-        commandGateway.send(new TriggerUpdateCmd(
+        Cmd.send(new TriggerUpdateCmd(
             request.getId(), request.getName(), request.getDescription()
         ));
     }
@@ -75,7 +70,7 @@ public class TriggerController {
             request.getId(),
             request.getConfig()
         );
-        commandGateway.send(cmd);
+        Cmd.send(cmd);
     }
 
     @RequestMapping("/api/v1/trigger/publish")
@@ -84,17 +79,17 @@ public class TriggerController {
             request.getId(),
             request.getConfig()
         );
-        commandGateway.send(cmd);
+        Cmd.send(cmd);
     }
 
     @RequestMapping("/api/v1/trigger/enable")
     public void enable(@RequestParam String id) {
-        commandGateway.send(new TriggerEnableCmd(id));
+        Cmd.send(new TriggerEnableCmd(id));
     }
 
     @RequestMapping("/api/v1/trigger/disable")
     public void disable(@RequestParam String id) {
-        commandGateway.send(new TriggerDisableCmd(id));
+        Cmd.send(new TriggerDisableCmd(id));
     }
 
     @RequestMapping("/api/v1/trigger/page")
@@ -104,12 +99,12 @@ public class TriggerController {
 
     @RequestMapping("/api/v1/trigger/get")
     public Trigger get(@RequestParam String id) {
-        return queryGateway.query(new TriggerByIdQuery(id)).getTrigger();
+        return Query.query(new TriggerByIdQuery(id)).getTrigger();
     }
 
     @RequestMapping("/api/v1/trigger/delete")
     public void delete(@RequestParam String id) {
-        commandGateway.send(new TriggerDeleteCmd(id));
+        Cmd.send(new TriggerDeleteCmd(id));
     }
 
 }

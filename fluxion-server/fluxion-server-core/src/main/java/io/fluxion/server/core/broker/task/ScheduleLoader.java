@@ -26,9 +26,8 @@ import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.List;
 
-import io.limbo.cqrs.spring.gateway.CommandGateway;
-import io.limbo.cqrs.spring.gateway.QueryGateway;
-import javax.annotation.Resource;
+import io.limbo.cqrs.core.commandhandling.Cmd;
+import io.limbo.cqrs.core.queryhandling.Query;
 
 /**
 * 加载 ScheduledTask 并执行
@@ -37,10 +36,6 @@ import javax.annotation.Resource;
  */
 @Slf4j
 public class ScheduleLoader extends CoreTask {
-    @Resource
-    private CommandGateway commandGateway;
-    @Resource
-    private QueryGateway queryGateway;
 
     public ScheduleLoader() {
         super(0, ScheduleConstants.LOAD_INTERVAL, ScheduleConstants.LOAD_TIME_UNIT);
@@ -49,13 +44,13 @@ public class ScheduleLoader extends CoreTask {
     @Override
     public void run() {
         try {
-            List<Schedule> schedules = queryGateway.query(new ScheduleNextTriggerQuery(100)).getSchedules();
+            List<Schedule> schedules = Query.query(new ScheduleNextTriggerQuery(100)).getSchedules();
             while (CollectionUtils.isNotEmpty(schedules)) {
                 for (Schedule schedule : schedules) {
-                    commandGateway.send(new ScheduleTriggerCmd(schedule));
+                    Cmd.send(new ScheduleTriggerCmd(schedule));
                 }
                 // 拉取后续的
-                schedules = queryGateway.query(new ScheduleNextTriggerQuery(100)).getSchedules();
+                schedules = Query.query(new ScheduleNextTriggerQuery(100)).getSchedules();
             }
         } catch (Exception e) {
             log.error("[{}] execute fail", this.getClass().getSimpleName(), e);

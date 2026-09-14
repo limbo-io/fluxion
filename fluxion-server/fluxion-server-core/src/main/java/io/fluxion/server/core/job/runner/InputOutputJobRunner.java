@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.job.runner;
 
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.JobStateEvent;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.job.Job;
@@ -24,18 +23,17 @@ import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.cmd.JobStateTransitionCmd;
 import io.fluxion.server.core.job.cmd.JobSuccessCmd;
+import io.limbo.cqrs.core.commandhandling.Cmd;
+import io.limbo.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import io.limbo.cqrs.spring.gateway.CommandGateway;
-import javax.annotation.Resource;/**
+/**
  * @author Devil
  */
 @Slf4j
 @Component
 public class InputOutputJobRunner extends JobRunner {
-    @Resource
-    private CommandGateway commandGateway;
 
     @Override
     public JobType type() {
@@ -44,7 +42,7 @@ public class InputOutputJobRunner extends JobRunner {
 
     @Override
     public void run(Job job) {
-        JobStateTransitionCmd.Response response = commandGateway.send(new JobStateTransitionCmd(
+        JobStateTransitionCmd.Response response = Cmd.send(new JobStateTransitionCmd(
             job.getJobId(),
             null,
             BrokerContext.broker().node(),
@@ -61,7 +59,7 @@ public class InputOutputJobRunner extends JobRunner {
             if (log.isDebugEnabled()) {
                 log.debug("InputOutputTaskRunner taskId:{}", job.getJobId());
             }
-            commandGateway.send(new JobSuccessCmd(
+            Cmd.send(new JobSuccessCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),
                 null,
@@ -69,7 +67,7 @@ public class InputOutputJobRunner extends JobRunner {
             ));
         } catch (Exception e) {
             log.error("InputOutputTaskRunner error", e);
-            commandGateway.send(new JobFailCmd(
+            Cmd.send(new JobFailCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),
                 e.getMessage(),

@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.executor;
 
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.ExecutableType;
 import io.fluxion.server.core.execution.Execution;
@@ -26,21 +25,19 @@ import io.fluxion.server.core.executor.config.ExecutorConfig;
 import io.fluxion.server.core.executor.option.OvertimeOption;
 import io.fluxion.server.core.executor.option.RetryOption;
 import io.fluxion.server.core.job.Job;
-import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.JobDispatcher;
+import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
 import io.fluxion.server.core.job.config.ExecutorJobConfig;
-
+import io.limbo.cqrs.core.commandhandling.Cmd;
+import io.limbo.utils.time.TimeUtils;
 import java.time.LocalDateTime;
 import java.util.Collections;
 
-import io.limbo.cqrs.spring.gateway.CommandGateway;
-import javax.annotation.Resource;/**
+/**
  * @author Devil
  */
 public class Executor implements Executable {
-    @Resource
-    private CommandGateway commandGateway;
 
     private String id;
 
@@ -95,19 +92,19 @@ public class Executor implements Executable {
         job.setType(JobType.EXECUTOR);
         job.setTriggerAt(TimeUtils.currentLocalDateTime());
         // 保存数据
-        commandGateway.send(new JobsCreateCmd(Collections.singletonList(job)));
+        Cmd.send(new JobsCreateCmd(Collections.singletonList(job)));
         // 执行
         JobDispatcher.dispatchAfterCommit(job);
     }
 
     @Override
     public boolean success(String executionId, String refId, LocalDateTime time) {
-        return commandGateway.send(new ExecutionSuccessCmd(executionId, time));
+        return Cmd.send(new ExecutionSuccessCmd(executionId, time));
     }
 
     @Override
     public boolean fail(String executionId, String refId, LocalDateTime time) {
-        return commandGateway.send(new ExecutionFailCmd(executionId, time));
+        return Cmd.send(new ExecutionFailCmd(executionId, time));
     }
 
     @Override

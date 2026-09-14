@@ -41,8 +41,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import io.limbo.cqrs.core.commandhandling.Cmd;
 
-import io.limbo.cqrs.spring.gateway.CommandGateway;
 /**
  * 内存中缓存的 broker节点信息
  *
@@ -52,8 +52,6 @@ import io.limbo.cqrs.spring.gateway.CommandGateway;
 @Slf4j
 @Component
 public class BrokerManger {
-    @Resource
-    private CommandGateway commandGateway;
 
     @Resource
     private BrokerEntityRepo brokerEntityRepo;
@@ -87,7 +85,7 @@ public class BrokerManger {
         NODES.put(node.id(), node);
 
         // 处理bucket
-        commandGateway.send(new BucketRebalanceCmd());
+        Cmd.send(new BucketRebalanceCmd());
         // 开启定时任务 维持心跳
         scheduledExecutorService.scheduleAtFixedRate(
             new HeartbeatTask(), 0, heartbeatInterval.toMillis(), TimeUnit.MILLISECONDS

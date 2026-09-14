@@ -8,18 +8,13 @@ import io.limbo.utils.time.TimeUtils;
 
 import java.util.concurrent.TimeUnit;
 
-import io.limbo.cqrs.spring.gateway.CommandGateway;
-import io.limbo.cqrs.spring.gateway.QueryGateway;
-import javax.annotation.Resource;
+import io.limbo.cqrs.core.commandhandling.Cmd;
+import io.limbo.cqrs.core.queryhandling.Query;
 
 /**
 * 从持久化 next_retry_at 重新触发到期 Job；Broker 重启不依赖旧 JVM 定时器。
  */
 public class JobRetryChecker extends CoreTask {
-    @Resource
-    private CommandGateway commandGateway;
-    @Resource
-    private QueryGateway queryGateway;
 
     public JobRetryChecker() {
         super(0, 1, TimeUnit.SECONDS);
@@ -30,9 +25,9 @@ public class JobRetryChecker extends CoreTask {
         if (BrokerContext.broker() == null) {
             return;
         }
-        JobRetryDueQuery.Response response = queryGateway.query(new JobRetryDueQuery(100, TimeUtils.currentLocalDateTime()));
+        JobRetryDueQuery.Response response = Query.query(new JobRetryDueQuery(100, TimeUtils.currentLocalDateTime()));
         for (JobRetryDueQuery.JobRetry job : response.getJobs()) {
-            commandGateway.send(new JobRetryCmd(job.getJobId(), job.getRetryTimes()));
+            Cmd.send(new JobRetryCmd(job.getJobId(), job.getRetryTimes()));
         }
     }
 

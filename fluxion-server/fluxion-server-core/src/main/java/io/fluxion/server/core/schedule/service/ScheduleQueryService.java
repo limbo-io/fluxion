@@ -33,16 +33,14 @@ import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
+import io.limbo.cqrs.core.queryhandling.Query;
 
-import io.limbo.cqrs.spring.gateway.QueryGateway;
 /**
  * @author Devil
  */
 @Slf4j
 @Service
 public class ScheduleQueryService {
-    @Resource
-    private QueryGateway queryGateway;
 
     @Resource
     private ScheduleEntityRepo scheduleEntityRepo;
@@ -59,7 +57,7 @@ public class ScheduleQueryService {
     @QueryHandler
     public ScheduleNextTriggerQuery.Response handle(ScheduleNextTriggerQuery query) {
         String brokerId = BrokerContext.broker().id();
-        List<Integer> buckets = queryGateway.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
         LocalDateTime nextTriggerAt = TimeUtils.currentLocalDateTime().plusSeconds(ScheduleConstants.LOAD_INTERVAL_SECONDS);
         LocalDateTime startTime = TimeUtils.currentLocalDateTime().plusSeconds(-ScheduleConstants.LOAD_INTERVAL_SECONDS);
         List<ScheduleEntity> entities = entityManager.createQuery("select e from ScheduleEntity e" +

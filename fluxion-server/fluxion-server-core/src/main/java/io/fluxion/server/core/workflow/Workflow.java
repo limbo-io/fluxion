@@ -45,9 +45,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.limbo.cqrs.spring.gateway.CommandGateway;
-import io.limbo.cqrs.spring.gateway.QueryGateway;
-import javax.annotation.Resource;
+import io.limbo.cqrs.core.commandhandling.Cmd;
+import io.limbo.cqrs.core.queryhandling.Query;
 
 /**
 * Flow 运行态
@@ -56,10 +55,6 @@ import javax.annotation.Resource;
  */
 @Slf4j
 public class Workflow implements Executable {
-    @Resource
-    private CommandGateway commandGateway;
-    @Resource
-    private QueryGateway queryGateway;
 
     private String id;
 
@@ -118,7 +113,7 @@ public class Workflow implements Executable {
         List<WorkflowNode> subNodes = dag.subNodes(refId);
         if (CollectionUtils.isEmpty(subNodes)) {
             // 最终节点 execution 完成
-            return commandGateway.send(new ExecutionSuccessCmd(executionId, time));
+            return Cmd.send(new ExecutionSuccessCmd(executionId, time));
         }
         List<WorkflowNode> continueNodes = new ArrayList<>();
         for (WorkflowNode subNode : subNodes) {
@@ -143,7 +138,7 @@ public class Workflow implements Executable {
         if (node.isContinueOnFailure()) {
             return success(executionId, refId, time);
         } else {
-            return commandGateway.send(new ExecutionFailCmd(executionId, time));
+            return Cmd.send(new ExecutionFailCmd(executionId, time));
         }
     }
 
@@ -194,7 +189,7 @@ public class Workflow implements Executable {
             })
             .collect(Collectors.toList());
         // 保存数据
-        commandGateway.send(new JobsCreateCmd(jobs));
+        Cmd.send(new JobsCreateCmd(jobs));
         return jobs;
     }
 
@@ -205,7 +200,7 @@ public class Workflow implements Executable {
         if (preNodes.size() == 1) {
             return true; // 之前的节点完成了，没有其它节点了
         }
-        long successCount = queryGateway.query(new JobCountByStatusQuery(
+        long successCount = Query.query(new JobCountByStatusQuery(
             executionId, preNodes.stream().map(WorkflowNode::getId).collect(Collectors.toList()),
             Collections.singletonList(JobStatus.SUCCEED)
         )).getCount();
@@ -214,7 +209,7 @@ public class Workflow implements Executable {
             .map(WorkflowNode::getId)
             .collect(Collectors.toList());
         long continuedFailureCount = CollectionUtils.isEmpty(continuedNodeIds) ? 0
-            : queryGateway.query(new JobCountByStatusQuery(
+            : Query.query(new JobCountByStatusQuery(
                 executionId, continuedNodeIds, Collections.singletonList(JobStatus.FAILED)
             )).getCount();
         return successCount + continuedFailureCount >= preNodes.size();

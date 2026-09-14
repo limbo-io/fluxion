@@ -38,15 +38,13 @@ import javax.annotation.Resource;
 import javax.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
+import io.limbo.cqrs.core.queryhandling.Query;
 
-import io.limbo.cqrs.spring.gateway.QueryGateway;
 /**
  * @author Devil
  */
 @Service
 public class WorkflowService {
-    @Resource
-    private QueryGateway queryGateway;
 
     @Resource
     private WorkflowEntityRepo workflowEntityRepo;
@@ -84,7 +82,7 @@ public class WorkflowService {
         if (StringUtils.isBlank(versionId)) {
             versionId = StringUtils.defaultIfBlank(workflowEntity.getDraftVersion(), workflowEntity.getPublishVersion());
         }
-        Version version = queryGateway.query(
+        Version version = Query.query(
             new VersionByIdQuery(WorkflowEntityConverter.versionId(id, versionId))
         ).getVersion();
 

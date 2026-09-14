@@ -31,9 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import io.limbo.cqrs.spring.gateway.CommandGateway;
-import io.limbo.cqrs.spring.gateway.QueryGateway;
-import javax.annotation.Resource;
+import io.limbo.cqrs.core.commandhandling.Cmd;
+import io.limbo.cqrs.core.queryhandling.Query;
 
 /**
 * 检查worker是否下线
@@ -42,10 +41,6 @@ import javax.annotation.Resource;
  */
 @Slf4j
 public class WorkerChecker extends CoreTask {
-    @Resource
-    private CommandGateway commandGateway;
-    @Resource
-    private QueryGateway queryGateway;
 
     private static final int limit = 100;
 
@@ -61,7 +56,7 @@ public class WorkerChecker extends CoreTask {
             LocalDateTime endTime = TimeUtils.currentLocalDateTime().plusSeconds(-WorkerRemoteConstant.HEARTBEAT_TIMEOUT_SECOND * 2);
             List<String> offlineWorkerIds = new ArrayList<>();
 
-            WorkerSliceOfflineCmd.Response response = commandGateway.send(new WorkerSliceOfflineCmd(lastCheckAt, endTime, limit));
+            WorkerSliceOfflineCmd.Response response = Cmd.send(new WorkerSliceOfflineCmd(lastCheckAt, endTime, limit));
             long num = response.getNum();
 
             // 获取下线的 Worker ID 列表用于故障迁移
@@ -70,7 +65,7 @@ public class WorkerChecker extends CoreTask {
             }
 
             while (num >= limit) {
-                response = commandGateway.send(new WorkerSliceOfflineCmd(lastCheckAt, endTime, limit));
+                response = Cmd.send(new WorkerSliceOfflineCmd(lastCheckAt, endTime, limit));
                 num = response.getNum();
                 if (response.getWorkerIds() != null) {
                     offlineWorkerIds.addAll(response.getWorkerIds());
@@ -82,9 +77,9 @@ public class WorkerChecker extends CoreTask {
             for (String workerId : offlineWorkerIds) {
                 List<JobRunningByWorkerQuery.JobRunning> jobs;
                 do {
-                    jobs = queryGateway.query(new JobRunningByWorkerQuery(workerId, limit)).getJobs();
+                    jobs = Query.query(new JobRunningByWorkerQuery(workerId, limit)).getJobs();
                     for (JobRunningByWorkerQuery.JobRunning job : jobs) {
-                        commandGateway.send(new JobFailCmd(
+                        Cmd.send(new JobFailCmd(
                             job.getJobId(), TimeUtils.currentLocalDateTime(), job.getDispatchAttempt(),
                             "Worker offline: " + workerId, null
                         ));

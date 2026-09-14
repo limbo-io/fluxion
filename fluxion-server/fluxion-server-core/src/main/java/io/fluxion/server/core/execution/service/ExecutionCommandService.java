@@ -41,9 +41,8 @@ import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
-
-import io.limbo.cqrs.spring.gateway.CommandGateway;
-import io.limbo.cqrs.spring.gateway.QueryGateway;
+import io.limbo.cqrs.core.commandhandling.Cmd;
+import io.limbo.cqrs.core.queryhandling.Query;
 
 /**
  * @author Devil
@@ -51,10 +50,6 @@ import io.limbo.cqrs.spring.gateway.QueryGateway;
 @Slf4j
 @Service
 public class ExecutionCommandService {
-    @Resource
-    private CommandGateway commandGateway;
-    @Resource
-    private QueryGateway queryGateway;
 
     @Resource
     private ExecutionEntityRepo executionEntityRepo;
@@ -70,7 +65,7 @@ public class ExecutionCommandService {
         ExecutionEntity entity = executionEntityRepo.findByTriggerIdAndTriggerAt(cmd.getTriggerId(), cmd.getTriggerAt());
         if (entity == null) {
             entity = new ExecutionEntity();
-            entity.setExecutionId(commandGateway.send(new IDGenerateCmd(IDType.EXECUTION)).getId());
+            entity.setExecutionId(Cmd.send(new IDGenerateCmd(IDType.EXECUTION)).getId());
             entity.setBucket(Math.floorMod(entity.getExecutionId().hashCode(), 64) + 1);
             entity.setTriggerId(cmd.getTriggerId());
             entity.setTriggerType(cmd.getTriggerType().value);
@@ -159,8 +154,8 @@ public class ExecutionCommandService {
         if (TriggerType.SCHEDULE != TriggerType.parse(entity.getTriggerType())) {
             return;
         }
-        Schedule schedule = queryGateway.query(new ScheduleByIdQuery(entity.getTriggerId())).getSchedule();
-        commandGateway.send(new ScheduleFeedbackCmd(schedule));
+        Schedule schedule = Query.query(new ScheduleByIdQuery(entity.getTriggerId())).getSchedule();
+        Cmd.send(new ScheduleFeedbackCmd(schedule));
     }
 
 }

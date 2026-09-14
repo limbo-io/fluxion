@@ -30,15 +30,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import io.limbo.cqrs.core.commandhandling.Cmd;
 
-import io.limbo.cqrs.spring.gateway.CommandGateway;
 /**
  * @author Devil
  */
 @RestController
 public class WorkflowController {
-    @Resource
-    private CommandGateway commandGateway;
 
     @Resource
     private WorkflowService workflowService;
@@ -46,7 +44,7 @@ public class WorkflowController {
     @RequestMapping("/api/v1/workflow/create")
     public String create(@RequestBody WorkflowCreateRequest request) {
         WorkflowCreateCmd cmd = new WorkflowCreateCmd(request.getName(), request.getDescription());
-        WorkflowCreateCmd.Response response = commandGateway.send(cmd);
+        WorkflowCreateCmd.Response response = Cmd.send(cmd);
         return response.getId();
     }
 
@@ -57,7 +55,7 @@ public class WorkflowController {
             request.getName(),
             request.getDescription()
         );
-        commandGateway.send(cmd);
+        Cmd.send(cmd);
     }
 
     @RequestMapping("/api/v1/workflow/draft")
@@ -66,7 +64,7 @@ public class WorkflowController {
             request.getId(),
             request.getConfig()
         );
-        return commandGateway.send(cmd).getVersion();
+        return Cmd.send(cmd).getVersion();
     }
 
     @RequestMapping("/api/v1/workflow/publish")
@@ -75,7 +73,7 @@ public class WorkflowController {
             request.getId(),
             request.getConfig()
         );
-        return commandGateway.send(cmd);
+        return Cmd.send(cmd);
     }
 
     @RequestMapping("/api/v1/workflow/page")
@@ -90,7 +88,7 @@ public class WorkflowController {
 
     @RequestMapping("/api/v1/workflow/delete")
     public void delete(@RequestParam String id) {
-        commandGateway.send(new WorkflowDeleteCmd(id));
+        Cmd.send(new WorkflowDeleteCmd(id));
     }
 
 }

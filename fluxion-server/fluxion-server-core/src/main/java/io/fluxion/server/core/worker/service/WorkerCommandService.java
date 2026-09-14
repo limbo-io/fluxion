@@ -46,15 +46,13 @@ import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import io.limbo.cqrs.core.commandhandling.Cmd;
 
-import io.limbo.cqrs.spring.gateway.CommandGateway;
 /**
  * @author Devil
  */
 @Service
 public class WorkerCommandService {
-    @Resource
-    private CommandGateway commandGateway;
 
     @Resource
     private WorkerEntityRepo workerEntityRepo;
@@ -89,7 +87,7 @@ public class WorkerCommandService {
         }
 
         // Tags 存储
-        commandGateway.send(new TagsSaveByRefCmd(workerId, TagRefType.WORKER, worker.getTags()));
+        Cmd.send(new TagsSaveByRefCmd(workerId, TagRefType.WORKER, worker.getTags()));
 
         return new WorkerSaveCmd.Response(worker.id());
     }
@@ -108,7 +106,6 @@ public class WorkerCommandService {
             .setParameter("status", Worker.Status.ONLINE.status)
             .setParameter("workerId", cmd.getWorkerId())
             .executeUpdate();
-
 
         WorkerMetricEntity metricEntity = WorkerConverter.toMetricEntity(cmd.getWorkerId(), cmd.getMetric());
         workerMetricEntityRepo.saveAndFlush(metricEntity);

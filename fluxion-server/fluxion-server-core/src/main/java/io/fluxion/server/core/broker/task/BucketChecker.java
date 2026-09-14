@@ -29,9 +29,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import io.limbo.cqrs.spring.gateway.CommandGateway;
-import io.limbo.cqrs.spring.gateway.QueryGateway;
-import javax.annotation.Resource;
+import io.limbo.cqrs.core.commandhandling.Cmd;
+import io.limbo.cqrs.core.queryhandling.Query;
 
 /**
 * bucket对应的broker无效的，重新进行数据绑定
@@ -41,10 +40,6 @@ import javax.annotation.Resource;
  */
 @Slf4j
 public class BucketChecker extends CoreTask {
-    @Resource
-    private CommandGateway commandGateway;
-    @Resource
-    private QueryGateway queryGateway;
 
     private static final int INTERVAL = 5;
     private static final TimeUnit UNIT = TimeUnit.SECONDS;
@@ -65,7 +60,7 @@ public class BucketChecker extends CoreTask {
         Set<Integer> currentBuckets = new HashSet<>(getCurrentBrokerBuckets());
         
         // Trigger rebalancing
-        commandGateway.send(new BucketRebalanceCmd());
+        Cmd.send(new BucketRebalanceCmd());
         
         // After rebalancing, get new bucket assignment
         Set<Integer> newBuckets = new HashSet<>(getCurrentBrokerBuckets());
@@ -100,7 +95,7 @@ public class BucketChecker extends CoreTask {
     private void handleLostBuckets(List<Integer> lostBuckets) {
         log.info("Cancelling in-memory tasks for lost buckets: {}", lostBuckets);
         try {
-            commandGateway.send(new CancelTasksByBucketCmd(lostBuckets));
+            Cmd.send(new CancelTasksByBucketCmd(lostBuckets));
         } catch (Exception e) {
             log.error("Failed to cancel tasks for lost buckets: {}", lostBuckets, e);
         }
@@ -111,7 +106,7 @@ public class BucketChecker extends CoreTask {
         if (brokerId == null) {
             return new ArrayList<>();
         }
-        return queryGateway.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        return Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
     }
     
     private String getCurrentBrokerId() {

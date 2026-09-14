@@ -22,8 +22,7 @@ import io.limbo.utils.time.TimeUtils;
 import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
 
-import io.limbo.cqrs.spring.gateway.CommandGateway;
-import javax.annotation.Resource;
+import io.limbo.cqrs.core.commandhandling.Cmd;
 
 /**
 * 数据清理 -- 物理删除超过7天的数据
@@ -31,8 +30,6 @@ import javax.annotation.Resource;
  * @author Devil
  */
 public class DataCleaner extends CoreTask {
-    @Resource
-    private CommandGateway commandGateway;
 
     private static final int INTERVAL = 7;
     private static final TimeUnit UNIT = TimeUnit.DAYS;
@@ -44,7 +41,7 @@ public class DataCleaner extends CoreTask {
     @Override
     public void run() {
         LocalDateTime endAt = TimeUtils.currentLocalDateTime().plusDays(-INTERVAL);
-        commandGateway.send(new ExecutionCleanCmd(endAt));
+        Cmd.send(new ExecutionCleanCmd(endAt));
         // broker
         // worker
         // lock

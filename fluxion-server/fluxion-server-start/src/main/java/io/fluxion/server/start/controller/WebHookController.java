@@ -17,24 +17,21 @@
 package io.fluxion.server.start.controller;
 
 import io.fluxion.server.core.workflow.cmd.WorkflowCreateCmd;
+import io.limbo.cqrs.core.commandhandling.Cmd;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.limbo.cqrs.spring.gateway.CommandGateway;
-import javax.annotation.Resource;/**
+/**
  * @author Devil
  */
 @RestController
 public class WebHookController {
-    @Resource
-    private CommandGateway commandGateway;
 
     @RequestMapping("/api/v1/webhook")
     public String trigger(@RequestBody WorkflowCreateCmd cmd) {
-        WorkflowCreateCmd.Response response = commandGateway.send(cmd);
+        WorkflowCreateCmd.Response response = Cmd.send(cmd);
         return response.getId();
     }
-
 
 }

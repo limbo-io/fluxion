@@ -31,15 +31,13 @@ import io.limbo.cqrs.spring.annotation.QueryHandler;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import io.limbo.cqrs.core.queryhandling.Query;
 
-import io.limbo.cqrs.spring.gateway.QueryGateway;
 /**
  * @author Devil
  */
 @Service
 public class WorkflowQueryService {
-    @Resource
-    private QueryGateway queryGateway;
 
     @Resource
     private WorkflowEntityRepo workflowEntityRepo;
@@ -62,7 +60,7 @@ public class WorkflowQueryService {
                 vs = StringUtils.isBlank(entity.getPublishVersion()) ? entity.getDraftVersion() : entity.getPublishVersion();
             }
         }
-        Version version = queryGateway.query(
+        Version version = Query.query(
             new VersionByIdQuery(WorkflowEntityConverter.versionId(entity.getWorkflowId(), vs))
         ).getVersion();
         WorkflowConfig workflowConfig = null;
@@ -72,6 +70,5 @@ public class WorkflowQueryService {
         Workflow workflow = Workflow.of(entity.getWorkflowId(), vs, workflowConfig);
         return new WorkflowByIdQuery.Response(workflow);
     }
-
 
 }

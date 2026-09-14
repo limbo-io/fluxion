@@ -24,27 +24,25 @@ import io.fluxion.server.core.executor.Executor;
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
 import io.fluxion.server.core.workflow.query.WorkflowByIdQuery;
+import io.limbo.cqrs.core.queryhandling.Query;
 import io.limbo.cqrs.spring.annotation.QueryHandler;
 import org.springframework.stereotype.Service;
 
-import io.limbo.cqrs.spring.gateway.QueryGateway;
-import javax.annotation.Resource;/**
+/**
  * @author Devil
  */
 @Service
 public class ExecutableQueryService {
-    @Resource
-    private QueryGateway queryGateway;
 
     @QueryHandler
     public ExecutableByIdQuery.Response handle(ExecutableByIdQuery query) {
         Executable executable = null;
         switch (query.getType()) {
             case WORKFLOW:
-                executable = queryGateway.query(new WorkflowByIdQuery(query.getId(), query.getVersion())).getWorkflow();
+                executable = Query.query(new WorkflowByIdQuery(query.getId(), query.getVersion())).getWorkflow();
                 break;
             case EXECUTOR:
-                Trigger trigger = queryGateway.query(new TriggerByIdQuery(query.getId(), query.getVersion())).getTrigger();
+                Trigger trigger = Query.query(new TriggerByIdQuery(query.getId(), query.getVersion())).getTrigger();
                 ExecuteConfig executeConfig = trigger.getConfig().getExecuteConfig();
                 ExecutorExecuteConfig executorExecuteConfig = (ExecutorExecuteConfig) executeConfig;
                 executable = Executor.of(

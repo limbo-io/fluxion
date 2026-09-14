@@ -27,16 +27,14 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.transaction.Transactional;
+import io.limbo.cqrs.core.commandhandling.Cmd;
 
-import io.limbo.cqrs.spring.gateway.CommandGateway;
 /**
  * @author Devil
  */
 @Slf4j
 @Service
 public class AppCommandService {
-    @Resource
-    private CommandGateway commandGateway;
 
     @Resource
     private AppEntityRepo appEntityRepo;
@@ -46,7 +44,7 @@ public class AppCommandService {
     public AppSaveCmd.Response handle(AppSaveCmd cmd) {
         AppEntity entity = appEntityRepo.findByAppName(cmd.getAppName()).orElse(null);
         if (entity == null) {
-            String appId = commandGateway.send(new IDGenerateCmd(IDType.APP)).getId();
+            String appId = Cmd.send(new IDGenerateCmd(IDType.APP)).getId();
             entity = new AppEntity();
             entity.setAppName(cmd.getAppName());
             entity.setAppId(appId);

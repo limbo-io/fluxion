@@ -44,15 +44,13 @@ import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import java.util.List;
 import java.util.stream.Collectors;
+import io.limbo.cqrs.core.queryhandling.Query;
 
-import io.limbo.cqrs.spring.gateway.QueryGateway;
 /**
  * @author Devil
  */
 @Service
 public class JobQueryService {
-    @Resource
-    private QueryGateway queryGateway;
 
     @Resource
     private JobEntityRepo jobEntityRepo;
@@ -92,7 +90,7 @@ public class JobQueryService {
     @QueryHandler
     public JobInitBlockedQuery.Response handle(JobInitBlockedQuery query) {
         String brokerId = BrokerContext.broker().id();
-        List<Integer> buckets = queryGateway.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
         List<JobEntity> entities = entityManager.createQuery("select e from JobEntity e" +
                 " where e.bucket in :buckets and e.triggerAt <= :triggerAt and status = :status and jobId > :lastId " +
                 " order by jobId asc ", JobEntity.class
@@ -109,7 +107,7 @@ public class JobQueryService {
     @QueryHandler
     public JobRetryDueQuery.Response handle(JobRetryDueQuery query) {
         String brokerId = BrokerContext.broker().id();
-        List<Integer> buckets = queryGateway.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
         if (buckets.isEmpty()) {
             return new JobRetryDueQuery.Response(java.util.Collections.emptyList());
         }
@@ -129,7 +127,7 @@ public class JobQueryService {
     @QueryHandler
     public JobRunningByWorkerQuery.Response handle(JobRunningByWorkerQuery query) {
         String brokerId = BrokerContext.broker().id();
-        List<Integer> buckets = queryGateway.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
         if (buckets.isEmpty()) {
             return new JobRunningByWorkerQuery.Response(java.util.Collections.emptyList());
         }
@@ -148,7 +146,7 @@ public class JobQueryService {
     @QueryHandler
     public JobTimeoutDueQuery.Response handle(JobTimeoutDueQuery query) {
         String brokerId = BrokerContext.broker().id();
-        List<Integer> buckets = queryGateway.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
         if (buckets.isEmpty()) {
             return new JobTimeoutDueQuery.Response(java.util.Collections.emptyList());
         }
@@ -167,7 +165,7 @@ public class JobQueryService {
     @QueryHandler
     public JobExpiredLeaseQuery.Response handle(JobExpiredLeaseQuery query) {
         String brokerId = BrokerContext.broker().id();
-        List<Integer> buckets = queryGateway.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
         if (buckets.isEmpty()) {
             return new JobExpiredLeaseQuery.Response(java.util.Collections.emptyList());
         }
@@ -201,7 +199,7 @@ public class JobQueryService {
 
     @QueryHandler
     public JobConfigQuery.Response handle(JobConfigQuery query) {
-        Execution execution = queryGateway.query(new ExecutionByIdQuery(query.getExecutionId())).getExecution();
+        Execution execution = Query.query(new ExecutionByIdQuery(query.getExecutionId())).getExecution();
         Executable executable = execution.executable();
         Job.Config config = executable.config(query.getRefId());
         return new JobConfigQuery.Response(config);
