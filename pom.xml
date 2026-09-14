@@ -146,11 +146,6 @@
 
             <!-- Utils -->
             <dependency>
-                <groupId>io.github.limbo-io</groupId>
-                <artifactId>limbo-framework-utils</artifactId>
-                <version>${limbo.framework.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>2.14.0</version>
