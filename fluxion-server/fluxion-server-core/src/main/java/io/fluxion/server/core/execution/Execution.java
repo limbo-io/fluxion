@@ -17,20 +17,22 @@
 package io.fluxion.server.core.execution;
 
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
-import io.limbo.cqrs.spring.query.Query;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-/**
+import io.limbo.cqrs.spring.gateway.QueryGateway;
+import javax.annotation.Resource;/**
  * 执行记录
  *
  * @author Devil
  */
 @Getter
 public class Execution {
+    @Resource
+    private QueryGateway queryGateway;
 
     private final String id;
 
@@ -81,7 +83,7 @@ public class Execution {
 
     public Executable executable() {
         if (executable == null) {
-            executable = Query.query(new ExecutableByIdQuery(executableId, type, executableVersion)).getExecutable();
+            executable = queryGateway.query(new ExecutableByIdQuery(executableId, type, executableVersion)).getExecutable();
         }
         return executable;
     }

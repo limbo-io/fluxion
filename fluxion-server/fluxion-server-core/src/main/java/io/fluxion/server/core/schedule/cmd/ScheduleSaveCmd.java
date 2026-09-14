@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.schedule.cmd;
 
-import io.limbo.cqrs.core.command.ICommand;
+import io.limbo.cqrs.core.commandhandling.ICommand;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -19,7 +19,7 @@ package io.fluxion.server.core.execution.cmd;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.trigger.TriggerType;
-import io.limbo.cqrs.core.command.ICommand;
+import io.limbo.cqrs.core.commandhandling.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

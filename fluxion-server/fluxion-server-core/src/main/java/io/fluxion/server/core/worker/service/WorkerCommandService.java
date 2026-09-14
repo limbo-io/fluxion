@@ -22,7 +22,6 @@ import io.fluxion.server.core.worker.cmd.WorkerSaveCmd;
 import io.fluxion.server.core.worker.cmd.WorkerSliceOfflineCmd;
 import io.fluxion.server.core.worker.converter.WorkerConverter;
 import io.fluxion.server.core.worker.metric.WorkerMetric;
-import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerExecutorEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerMetricEntity;
@@ -48,11 +47,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
 /**
  * @author Devil
  */
 @Service
 public class WorkerCommandService {
+    @Resource
+    private CommandGateway commandGateway;
 
     @Resource
     private WorkerEntityRepo workerEntityRepo;
@@ -87,7 +89,7 @@ public class WorkerCommandService {
         }
 
         // Tags 存储
-        Cmd.send(new TagsSaveByRefCmd(workerId, TagRefType.WORKER, worker.getTags()));
+        commandGateway.send(new TagsSaveByRefCmd(workerId, TagRefType.WORKER, worker.getTags()));
 
         return new WorkerSaveCmd.Response(worker.id());
     }

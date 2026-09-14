@@ -14,7 +14,7 @@
     <dependencies>
         <dependency>
             <groupId>io.github.limbo-io</groupId>
-            <artifactId>utils</artifactId>
+            <artifactId>limbo-framework-utils</artifactId>
         </dependency>
 
         <dependency>

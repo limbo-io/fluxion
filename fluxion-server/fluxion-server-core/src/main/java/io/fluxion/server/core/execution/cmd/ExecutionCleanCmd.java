@@ -6,7 +6,7 @@
 
 package io.fluxion.server.core.execution.cmd;
 
-import io.limbo.cqrs.core.command.VoidCommand;
+import io.limbo.cqrs.core.commandhandling.VoidCommand;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

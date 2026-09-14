@@ -24,7 +24,6 @@ import io.fluxion.server.infrastructure.schedule.scheduler.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.task.DelayedTaskFactory;
 import io.fluxion.server.infrastructure.schedule.MisfirePolicy;
 import io.limbo.cqrs.spring.annotation.CommandHandler;
-import io.limbo.cqrs.spring.query.Query;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
@@ -35,6 +34,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import io.limbo.cqrs.spring.gateway.QueryGateway;
 /**
  * Owns the scheduling-only portion of an Execution lifecycle.
  *
@@ -45,6 +45,8 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class ExecutionScheduleCommandService {
+    @Resource
+    private QueryGateway queryGateway;
 
     private static final int PRELOAD_SECONDS = 60;
     private static final int CLAIM_LEASE_SECONDS = 15;
@@ -63,7 +65,7 @@ public class ExecutionScheduleCommandService {
             return;
         }
         String brokerId = BrokerContext.broker().id();
-        List<Integer> buckets = Query.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
+        List<Integer> buckets = queryGateway.query(new BucketsByBrokerQuery(brokerId)).getBuckets();
         if (CollectionUtils.isEmpty(buckets)) {
             return;
         }
@@ -83,7 +85,7 @@ public class ExecutionScheduleCommandService {
         for (ExecutionEntity execution : executions) {
             boolean misfired = execution.getTriggerAt().isBefore(LocalDateTime.now().minusSeconds(MISFIRE_THRESHOLD_SECONDS));
             if (misfired) {
-                Schedule schedule = Query.query(new ScheduleByIdQuery(execution.getTriggerId())).getSchedule();
+                Schedule schedule = queryGateway.query(new ScheduleByIdQuery(execution.getTriggerId())).getSchedule();
                 if (schedule == null || schedule.getOption().getMisfirePolicy() == MisfirePolicy.SKIP) {
                     finishPending(execution.getExecutionId(), ExecutionStatus.SKIPPED);
                     continue;
@@ -147,12 +149,12 @@ public class ExecutionScheduleCommandService {
                 || entity.getLeaseUntil() == null || !entity.getLeaseUntil().isAfter(LocalDateTime.now())) {
             return;
         }
-        Trigger trigger = Query.query(new TriggerByIdQuery(entity.getTriggerId())).getTrigger();
+        Trigger trigger = queryGateway.query(new TriggerByIdQuery(entity.getTriggerId())).getTrigger();
         if (trigger == null || !trigger.isEnabled()) {
             changeClaimedStatus(entity, ExecutionStatus.INVALID);
             return;
         }
-        Executable executable = Query.query(new ExecutableByIdQuery(
+        Executable executable = queryGateway.query(new ExecutableByIdQuery(
             entity.getExecutableId(), ExecutableType.parse(entity.getExecutableType()), entity.getExecutableVersion()
         )).getExecutable();
         if (executable == null) {

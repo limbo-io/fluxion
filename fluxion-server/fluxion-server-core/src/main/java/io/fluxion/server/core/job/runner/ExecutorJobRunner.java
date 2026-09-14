@@ -30,8 +30,6 @@ import io.fluxion.server.core.job.service.JobLeaseService;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.core.worker.selector.WorkerStatisticsRepository;
-import io.limbo.cqrs.spring.command.Cmd;
-import io.limbo.cqrs.spring.query.Query;
 import io.limbo.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -48,12 +46,19 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
+import io.limbo.cqrs.spring.gateway.QueryGateway;
+
 /**
  * @author Devil
  */
 @Slf4j
 @Component
 public class ExecutorJobRunner extends JobRunner {
+    @Resource
+    private CommandGateway commandGateway;
+    @Resource
+    private QueryGateway queryGateway;
 
     /**
      * 最大下发尝试次数
@@ -75,10 +80,10 @@ public class ExecutorJobRunner extends JobRunner {
 
     @Override
     public void run(Job job) {
-        ExecutorJobConfig config = (ExecutorJobConfig) Query.query(new JobConfigQuery(job.getExecutionId(), job.getRefId())).getConfig();
+        ExecutorJobConfig config = (ExecutorJobConfig) queryGateway.query(new JobConfigQuery(job.getExecutionId(), job.getRefId())).getConfig();
 
         // 获取候选worker列表（按选择器偏好排序，最佳优先）
-        List<Worker> candidates = Query.query(new WorkersFilterQuery(
+        List<Worker> candidates = queryGateway.query(new WorkersFilterQuery(
             config.getAppId(), config.getExecutorName(),
             config.getDispatchOption(), true, false, true
         )).getWorkers();
@@ -89,7 +94,7 @@ public class ExecutorJobRunner extends JobRunner {
         if (candidates.isEmpty()) {
             log.error("[ExecutorJobRunner] No available workers for job: jobId={}, appId={}, executor={}",
                 job.getJobId(), config.getAppId(), config.getExecutorName());
-            Cmd.send(new JobFailCmd(
+            commandGateway.send(new JobFailCmd(
                 job.getJobId(),
                 TimeUtils.currentLocalDateTime(),
                 "No available workers for dispatch",
@@ -206,7 +211,7 @@ public class ExecutorJobRunner extends JobRunner {
         log.error("[ExecutorJobRunner] Job dispatch failed after all attempts: jobId={}, errorType={}, reason={}",
             job.getJobId(), result.getErrorType(), reason);
 
-        Cmd.send(new JobFailCmd(
+        commandGateway.send(new JobFailCmd(
             job.getJobId(),
             TimeUtils.currentLocalDateTime(),
             result.getDispatchAttempt(),
@@ -240,7 +245,7 @@ public class ExecutorJobRunner extends JobRunner {
      */
     private void recordDispatchSuccess(Worker worker) {
         try {
-            WorkerStatisticsRepository statsRepo = Query.query(
+            WorkerStatisticsRepository statsRepo = queryGateway.query(
                 new io.fluxion.server.core.worker.query.WorkerStatisticsQuery()
             ).getRepository();
             if (statsRepo != null) {

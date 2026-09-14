@@ -46,18 +46,24 @@ import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.cmd.WorkerHeartbeatCmd;
 import io.fluxion.server.core.worker.cmd.WorkerSaveCmd;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
-import io.limbo.cqrs.spring.command.Cmd;
-import io.limbo.cqrs.spring.query.Query;
 import io.limbo.utils.json.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
+import io.limbo.cqrs.spring.gateway.QueryGateway;
+import javax.annotation.Resource;
+
 /**
- * @author Devil
+* @author Devil
  */
 @Slf4j
 public class BrokerClientHandler implements ClientHandler {
+    @Resource
+    private CommandGateway commandGateway;
+    @Resource
+    private QueryGateway queryGateway;
 
     @Override
     public Response<?> process(String path, String data) {
@@ -94,11 +100,11 @@ public class BrokerClientHandler implements ClientHandler {
     private WorkerRegisterResponse register(String data) {
         WorkerRegisterRequest request = JacksonUtils.toType(data, WorkerRegisterRequest.class);
         // 注册app
-        String appId = Cmd.send(new AppSaveCmd(request.getAppName())).getAppId();
-        String workerId = Cmd.send(new WorkerSaveCmd(
+        String appId = commandGateway.send(new AppSaveCmd(request.getAppName())).getAppId();
+        String workerId = commandGateway.send(new WorkerSaveCmd(
             BrokerClientConverter.toWorker(appId, request)
         )).getWorkerId();
-        BrokersQuery.Response brokersRes = Query.query(new BrokersQuery());
+        BrokersQuery.Response brokersRes = queryGateway.query(new BrokersQuery());
         BrokerTopologyDTO brokerTopologyDTO = new BrokerTopologyDTO();
         brokerTopologyDTO.setVersion(brokersRes.getVersion());
         brokerTopologyDTO.setBrokers(BrokerClientConverter.toBrokerNodeDTO(brokersRes.getBrokerNodes()));
@@ -114,11 +120,11 @@ public class BrokerClientHandler implements ClientHandler {
     private WorkerHeartbeatResponse heartbeat(String data) {
         WorkerHeartbeatRequest request = JacksonUtils.toType(data, WorkerHeartbeatRequest.class);
         // 心跳
-        Cmd.send(new WorkerHeartbeatCmd(
+        commandGateway.send(new WorkerHeartbeatCmd(
             request.getWorkerId(),
             BrokerClientConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), request.getHeartbeatAt())
         ));
-        BrokersQuery.Response brokersRes = Query.query(new BrokersQuery());
+        BrokersQuery.Response brokersRes = queryGateway.query(new BrokersQuery());
         BrokerTopologyDTO brokerTopologyDTO = new BrokerTopologyDTO();
         brokerTopologyDTO.setVersion(brokersRes.getVersion());
         if (!brokersRes.getVersion().equals(request.getTopologyVersion())) {
@@ -132,7 +138,7 @@ public class BrokerClientHandler implements ClientHandler {
 
     private JobReportResponse jobReport(String data) {
         JobReportRequest request = JacksonUtils.toType(data, JobReportRequest.class);
-        JobReportCmd.Response response = Cmd.send(new JobReportCmd(
+        JobReportCmd.Response response = commandGateway.send(new JobReportCmd(
             request.getJobId(), request.getDispatchAttempt(), BrokerClientConverter.toNode(request.getWorkerNode()),
             request.getReportAt(), BrokerClientConverter.convert(request.getMonitor()),
             JobStatus.parse(request.getStatus())
@@ -144,7 +150,7 @@ public class BrokerClientHandler implements ClientHandler {
 
     private JobStateTransitionResponse jobStateTransition(String data) {
         JobStateTransitionRequest request = JacksonUtils.toType(data, JobStateTransitionRequest.class);
-        JobStateTransitionCmd.Response response = Cmd.send(new JobStateTransitionCmd(
+        JobStateTransitionCmd.Response response = commandGateway.send(new JobStateTransitionCmd(
             request.getJobId(), request.getDispatchAttempt(), BrokerClientConverter.toNode(request.getWorkerNode()),
             request.getReportAt(), BrokerClientConverter.convert(request.getMonitor()),
             JobStateEvent.parse(request.getEvent()), request.getResult(), request.getErrorMsg()
@@ -156,13 +162,13 @@ public class BrokerClientHandler implements ClientHandler {
 
     private JobWorkersResponse jobWorkers(String data) {
         JobWorkersRequest request = JacksonUtils.toType(data, JobWorkersRequest.class);
-        Job job = Query.query(new JobByIdQuery(request.getJobId())).getJob();
-        Job.Config config = Query.query(new JobConfigQuery(job.getExecutionId(), job.getRefId())).getConfig();
+        Job job = queryGateway.query(new JobByIdQuery(request.getJobId())).getJob();
+        Job.Config config = queryGateway.query(new JobConfigQuery(job.getExecutionId(), job.getRefId())).getConfig();
         if (!(config instanceof ExecutorJobConfig)) {
             return new JobWorkersResponse();
         }
         ExecutorJobConfig executorJobConfig = (ExecutorJobConfig) config;
-        List<Worker> workers = Query.query(new WorkersFilterQuery(
+        List<Worker> workers = queryGateway.query(new WorkersFilterQuery(
             executorJobConfig.getAppId(), executorJobConfig.getExecutorName(),
             executorJobConfig.getDispatchOption(), request.isFilterResource(), request.isLoadBalanceSelect()
         )).getWorkers();

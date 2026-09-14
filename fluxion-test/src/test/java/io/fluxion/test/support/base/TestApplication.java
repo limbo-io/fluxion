@@ -87,7 +87,7 @@ import java.util.concurrent.TimeUnit;
 @EntityScan(basePackages = "io.fluxion.**.dao.entity")
 @EnableJpaRepositories(value = {"io.fluxion.**.dao.repository"})
 // 启用 CQRS，自动扫描 Command/Query Handler
-@EnableCqrs(basePackages = "io.fluxion")
+@EnableCqrs
 public class TestApplication {
 
     static {

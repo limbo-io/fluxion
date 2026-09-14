@@ -17,7 +17,7 @@
 package io.fluxion.server.core.job.query;
 
 import io.fluxion.remote.core.constants.JobStatus;
-import io.limbo.cqrs.core.query.IQuery;
+import io.limbo.cqrs.core.queryhandling.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

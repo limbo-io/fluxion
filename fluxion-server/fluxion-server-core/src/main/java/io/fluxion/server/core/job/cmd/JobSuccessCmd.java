@@ -17,7 +17,7 @@
 package io.fluxion.server.core.job.cmd;
 
 import io.fluxion.server.core.job.JobMonitor;
-import io.limbo.cqrs.core.command.ICommand;
+import io.limbo.cqrs.core.commandhandling.ICommand;
 import lombok.Getter;
 
 import java.time.LocalDateTime;

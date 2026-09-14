@@ -27,8 +27,6 @@ import io.fluxion.server.core.schedule.ScheduleBacklogPlanner;
 import io.fluxion.server.core.schedule.cmd.*;
 import io.fluxion.server.core.schedule.converter.ScheduleEntityConverter;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
-import io.limbo.cqrs.spring.command.Cmd;
-import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
 import io.fluxion.server.infrastructure.dao.repository.ScheduleEntityRepo;
 import io.fluxion.server.infrastructure.schedule.BasicCalculation;
@@ -51,12 +49,19 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
+import io.limbo.cqrs.spring.gateway.QueryGateway;
+
 /**
  * @author Devil
  */
 @Slf4j
 @Service
 public class ScheduleCommandService {
+    @Resource
+    private CommandGateway commandGateway;
+    @Resource
+    private QueryGateway queryGateway;
 
     @Resource
     private ScheduleEntityRepo scheduleEntityRepo;
@@ -76,13 +81,13 @@ public class ScheduleCommandService {
                     null, null, cmd.getOption()
             );
             entity.setNextTriggerAt(calculation.triggerAt());
-            int bucket = Cmd.send(new BucketAllotCmd(entity.getScheduleId())).getBucket();
+            int bucket = commandGateway.send(new BucketAllotCmd(entity.getScheduleId())).getBucket();
             entity.setBucket(bucket);
             // 配置信息
             ScheduleEntityConverter.assemble(entity, cmd.getOption());
             scheduleEntityRepo.saveAndFlush(entity);
             // 创建调度
-            Cmd.send(new ScheduleTriggerCmd(ScheduleEntityConverter.convert(entity)));
+            commandGateway.send(new ScheduleTriggerCmd(ScheduleEntityConverter.convert(entity)));
         } else {
             String oldVersion = MD5Utils.md5(JacksonUtils.toJSONString(ScheduleEntityConverter.toOption(entity)));
             String newVersion = MD5Utils.md5(JacksonUtils.toJSONString(cmd.getOption()));
@@ -93,7 +98,7 @@ public class ScheduleCommandService {
                 entity.setNextTriggerAt(new BasicCalculation(null, null, cmd.getOption()).triggerAt());
                 scheduleEntityRepo.saveAndFlush(entity);
                 invalidatePendingExecutions(cmd.getId());
-                Cmd.send(new ScheduleTriggerCmd(ScheduleEntityConverter.convert(entity)));
+                commandGateway.send(new ScheduleTriggerCmd(ScheduleEntityConverter.convert(entity)));
             } else {
                 scheduleEntityRepo.saveAndFlush(entity);
             }
@@ -112,8 +117,8 @@ public class ScheduleCommandService {
     public void handle(ScheduleEnableCmd cmd) {
         scheduleEntityRepo.updateEnable(cmd.getId(), true);
         // 直接新增 delay  由于 delay 的唯一性，已经存在的监控报错 就不调度，其它的要调度
-        Schedule schedule = Query.query(new ScheduleByIdQuery(cmd.getId())).getSchedule();
-        Cmd.send(new ScheduleTriggerCmd(schedule));
+        Schedule schedule = queryGateway.query(new ScheduleByIdQuery(cmd.getId())).getSchedule();
+        commandGateway.send(new ScheduleTriggerCmd(schedule));
     }
 
     @Transactional
@@ -167,12 +172,12 @@ public class ScheduleCommandService {
             triggerPoints = ScheduleBacklogPlanner.plan(triggerPoints, now).getDelays();
         }
 
-        Trigger trigger = Query.query(new TriggerByIdQuery(schedule.getId())).getTrigger();
-        Executable executable = Query.query(new ExecutableByIdQuery(
+        Trigger trigger = queryGateway.query(new TriggerByIdQuery(schedule.getId())).getTrigger();
+        Executable executable = queryGateway.query(new ExecutableByIdQuery(
             trigger.executableId(), trigger.getConfig().getExecuteConfig().type()
         )).getExecutable();
         for (LocalDateTime triggerPoint : triggerPoints) {
-            Cmd.send(new ExecutionCreateCmd(trigger.getId(), TriggerType.SCHEDULE, executable, triggerPoint));
+            commandGateway.send(new ExecutionCreateCmd(trigger.getId(), TriggerType.SCHEDULE, executable, triggerPoint));
         }
 
         // 更新上次触发时间和下次触发时间
@@ -227,7 +232,7 @@ public class ScheduleCommandService {
                 schedule.getLastTriggerAt(), schedule.getLastFeedbackAt(), schedule.getOption()
         );
         schedule.setNextTriggerAt(calculation.triggerAt());
-        Cmd.send(new ScheduleTriggerCmd(schedule));
+        commandGateway.send(new ScheduleTriggerCmd(schedule));
     }
 
 }

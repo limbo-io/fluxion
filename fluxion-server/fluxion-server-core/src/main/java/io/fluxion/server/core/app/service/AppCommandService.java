@@ -17,7 +17,6 @@
 package io.fluxion.server.core.app.service;
 
 import io.fluxion.server.core.app.cmd.AppSaveCmd;
-import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.AppEntity;
 import io.fluxion.server.infrastructure.dao.repository.AppEntityRepo;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
@@ -29,12 +28,15 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.transaction.Transactional;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
 /**
  * @author Devil
  */
 @Slf4j
 @Service
 public class AppCommandService {
+    @Resource
+    private CommandGateway commandGateway;
 
     @Resource
     private AppEntityRepo appEntityRepo;
@@ -44,7 +46,7 @@ public class AppCommandService {
     public AppSaveCmd.Response handle(AppSaveCmd cmd) {
         AppEntity entity = appEntityRepo.findByAppName(cmd.getAppName()).orElse(null);
         if (entity == null) {
-            String appId = Cmd.send(new IDGenerateCmd(IDType.APP)).getId();
+            String appId = commandGateway.send(new IDGenerateCmd(IDType.APP)).getId();
             entity = new AppEntity();
             entity.setAppName(cmd.getAppName());
             entity.setAppId(appId);

@@ -20,7 +20,6 @@ import io.fluxion.server.core.workflow.Workflow;
 import io.fluxion.server.core.workflow.WorkflowConfig;
 import io.fluxion.server.core.workflow.converter.WorkflowEntityConverter;
 import io.fluxion.server.core.workflow.query.WorkflowByIdQuery;
-import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.WorkflowEntity;
 import io.fluxion.server.infrastructure.dao.repository.WorkflowEntityRepo;
 import io.fluxion.server.infrastructure.version.model.Version;
@@ -33,11 +32,14 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 
+import io.limbo.cqrs.spring.gateway.QueryGateway;
 /**
  * @author Devil
  */
 @Service
 public class WorkflowQueryService {
+    @Resource
+    private QueryGateway queryGateway;
 
     @Resource
     private WorkflowEntityRepo workflowEntityRepo;
@@ -60,7 +62,7 @@ public class WorkflowQueryService {
                 vs = StringUtils.isBlank(entity.getPublishVersion()) ? entity.getDraftVersion() : entity.getPublishVersion();
             }
         }
-        Version version = Query.query(
+        Version version = queryGateway.query(
             new VersionByIdQuery(WorkflowEntityConverter.versionId(entity.getWorkflowId(), vs))
         ).getVersion();
         WorkflowConfig workflowConfig = null;

@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.id.cmd;
 
-import io.limbo.cqrs.core.command.ICommand;
+import io.limbo.cqrs.core.commandhandling.ICommand;
 import io.fluxion.server.infrastructure.id.data.IDType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

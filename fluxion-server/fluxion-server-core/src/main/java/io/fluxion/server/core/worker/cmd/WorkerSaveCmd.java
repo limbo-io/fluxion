@@ -17,7 +17,7 @@
 package io.fluxion.server.core.worker.cmd;
 
 import io.fluxion.server.core.worker.Worker;
-import io.limbo.cqrs.core.command.ICommand;
+import io.limbo.cqrs.core.commandhandling.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

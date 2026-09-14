@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.broker.cmd;
 
-import io.limbo.cqrs.core.command.VoidCommand;
+import io.limbo.cqrs.core.commandhandling.VoidCommand;
 
 /**
  * 重新分配 Bucket 的 Broker 归属。

@@ -33,8 +33,6 @@ import io.fluxion.server.core.trigger.cmd.TriggerUpdateCmd;
 import io.fluxion.server.core.trigger.config.ScheduleTriggerConfig;
 import io.fluxion.server.core.trigger.converter.TriggerEntityConverter;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
-import io.limbo.cqrs.spring.command.Cmd;
-import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
 import io.fluxion.server.infrastructure.dao.repository.TriggerEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
@@ -58,11 +56,18 @@ import javax.persistence.criteria.Root;
 import javax.transaction.Transactional;
 import java.util.List;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
+import io.limbo.cqrs.spring.gateway.QueryGateway;
+
 /**
  * @author Devil
  */
 @Service
 public class TriggerCommandService {
+    @Resource
+    private CommandGateway commandGateway;
+    @Resource
+    private QueryGateway queryGateway;
 
     @Resource
     private TriggerEntityRepo triggerEntityRepo;
@@ -73,7 +78,7 @@ public class TriggerCommandService {
     @Transactional
     @CommandHandler
     public TriggerCreateCmd.Response handle(TriggerCreateCmd cmd) {
-        String id = Cmd.send(new IDGenerateCmd(IDType.TRIGGER)).getId();
+        String id = commandGateway.send(new IDGenerateCmd(IDType.TRIGGER)).getId();
         TriggerEntity entity = new TriggerEntity();
         entity.setTriggerId(id);
         entity.setName(cmd.getName());
@@ -105,11 +110,11 @@ public class TriggerCommandService {
         );
         String config = TriggerEntityConverter.config(cmd.getTriggerConfig());
         if (StringUtils.isBlank(entity.getDraftVersion())) {
-            String version = Cmd.send(new VersionSaveCmd(TriggerEntityConverter.versionId(entity.getTriggerId()), config)).getVersion();
+            String version = commandGateway.send(new VersionSaveCmd(TriggerEntityConverter.versionId(entity.getTriggerId()), config)).getVersion();
             entity.setDraftVersion(version);
             triggerEntityRepo.saveAndFlush(entity);
         } else {
-            Cmd.send(new VersionSaveCmd(TriggerEntityConverter.versionId(entity.getTriggerId(), entity.getDraftVersion()), config));
+            commandGateway.send(new VersionSaveCmd(TriggerEntityConverter.versionId(entity.getTriggerId(), entity.getDraftVersion()), config));
         }
     }
 
@@ -128,7 +133,7 @@ public class TriggerCommandService {
             PlatformException.supplier(ErrorCode.PARAM_ERROR, "can't find trigger by id:" + cmd.getId())
         );
         String configJson = TriggerEntityConverter.config(cmd.getTriggerConfig());
-        String publishVersion = Cmd.send(new VersionSaveCmd(TriggerEntityConverter.versionId(entity.getTriggerId(), entity.getDraftVersion()), configJson)).getVersion();
+        String publishVersion = commandGateway.send(new VersionSaveCmd(TriggerEntityConverter.versionId(entity.getTriggerId(), entity.getDraftVersion()), configJson)).getVersion();
         entity.setPublishVersion(publishVersion);
         entity.setDraftVersion(StringUtils.EMPTY);
         triggerEntityRepo.saveAndFlush(entity);
@@ -139,7 +144,7 @@ public class TriggerCommandService {
             case SCHEDULE:
                 ScheduleTriggerConfig scheduleTrigger = (ScheduleTriggerConfig) config;
                 ScheduleOption scheduleOption = scheduleTrigger.getScheduleOption();
-                Cmd.send(new ScheduleSaveCmd(cmd.getId(), scheduleOption));
+                commandGateway.send(new ScheduleSaveCmd(cmd.getId(), scheduleOption));
                 break;
         }
     }
@@ -153,7 +158,7 @@ public class TriggerCommandService {
         TriggerType type = trigger.getConfig().type();
         switch (type) {
             case SCHEDULE:
-                Cmd.send(new ScheduleEnableCmd(trigger.getId()));
+                commandGateway.send(new ScheduleEnableCmd(trigger.getId()));
                 break;
         }
     }
@@ -167,7 +172,7 @@ public class TriggerCommandService {
         TriggerType type = trigger.getConfig().type();
         switch (type) {
             case SCHEDULE:
-                Cmd.send(new ScheduleDisableCmd(trigger.getId()));
+                commandGateway.send(new ScheduleDisableCmd(trigger.getId()));
                 break;
         }
     }
@@ -190,13 +195,13 @@ public class TriggerCommandService {
         TriggerType type = trigger.getConfig().type();
         switch (type) {
             case SCHEDULE:
-                Cmd.send(new ScheduleDeleteCmd(trigger.getId()));
+                commandGateway.send(new ScheduleDeleteCmd(trigger.getId()));
                 break;
         }
     }
 
     private Trigger findByIdWithNullError(String triggerId, boolean checkPublished) {
-        Trigger trigger = Query.query(new TriggerByIdQuery(triggerId)).getTrigger();
+        Trigger trigger = queryGateway.query(new TriggerByIdQuery(triggerId)).getTrigger();
         if (trigger == null) {
             throw new PlatformException(ErrorCode.PARAM_ERROR, "can't find trigger by id:" + triggerId);
         }

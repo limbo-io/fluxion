@@ -35,8 +35,6 @@ import io.fluxion.server.core.job.cmd.JobSuccessCmd;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
 import io.fluxion.server.core.job.query.JobConfigQuery;
 import io.fluxion.server.core.job.runner.JobRunner;
-import io.limbo.cqrs.spring.command.Cmd;
-import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.JobEntity;
 import io.fluxion.server.infrastructure.dao.entity.JobRecordEntity;
 import io.fluxion.server.infrastructure.dao.repository.JobEntityRepo;
@@ -64,12 +62,19 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
+import io.limbo.cqrs.spring.gateway.QueryGateway;
+
 /**
  * @author Devil
  */
 @Slf4j
 @Component
 public class JobCommandService {
+    @Resource
+    private CommandGateway commandGateway;
+    @Resource
+    private QueryGateway queryGateway;
 
     @Resource
     private JobEntityRepo jobEntityRepo;
@@ -112,11 +117,11 @@ public class JobCommandService {
             return;
         }
         List<JobEntity> entities = jobs.stream().peek(job -> {
-            String id = Cmd.send(new IDGenerateCmd(IDType.JOB)).getId();
+            String id = commandGateway.send(new IDGenerateCmd(IDType.JOB)).getId();
             job.setJobId(id);
         }).map(job -> {
             String executionId = job.getExecutionId();
-            int bucket = Cmd.send(new BucketAllotCmd(executionId + "_" + job.getRefId())).getBucket();
+            int bucket = commandGateway.send(new BucketAllotCmd(executionId + "_" + job.getRefId())).getBucket();
             JobEntity entity = new JobEntity();
             entity.setJobId(job.getJobId());
             entity.setExecutionId(executionId);
@@ -169,7 +174,7 @@ public class JobCommandService {
                 if (StringUtils.isNotBlank(entity.getWorkerAddress()) && !cmd.getWorkerNode().address().equals(entity.getWorkerAddress())) {
                     return new JobStateTransitionCmd.Response(false);
                 }
-                success = Cmd.send(new JobSuccessCmd(
+                success = commandGateway.send(new JobSuccessCmd(
                     cmd.getJobId(), cmd.getReportAt(), cmd.getDispatchAttempt(),
                     workerAddress, cmd.getMonitor(), cmd.getResult()
                 ));
@@ -178,7 +183,7 @@ public class JobCommandService {
                 if (StringUtils.isNotBlank(entity.getWorkerAddress()) && !cmd.getWorkerNode().address().equals(entity.getWorkerAddress())) {
                     return new JobStateTransitionCmd.Response(false);
                 }
-                success = Cmd.send(new JobFailCmd(
+                success = commandGateway.send(new JobFailCmd(
                     cmd.getJobId(), cmd.getReportAt(), cmd.getDispatchAttempt(),
                     workerAddress, cmd.getErrorMsg(), cmd.getMonitor()
                 ));
@@ -229,7 +234,7 @@ public class JobCommandService {
             if (updated <= 0) {
                 log.warn("JobStart update fail jobId:{}", entity.getJobId());
             }
-            Cmd.send(ExecutionRunningCmd.builder().executionId(entity.getExecutionId()).build());
+            commandGateway.send(ExecutionRunningCmd.builder().executionId(entity.getExecutionId()).build());
             return updated > 0;
         });
     }
@@ -281,7 +286,7 @@ public class JobCommandService {
 
         String lockName = entity.getExecutionId() + LOCK_SUFFIX;
         return distributedLock.lock(lockName, 2000, 3000, () -> {
-            Execution execution = Query.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
+            Execution execution = queryGateway.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
             return execution.executable().success(entity.getExecutionId(), entity.getRefId(), cmd.getReportAt());
         });
     }
@@ -335,14 +340,14 @@ public class JobCommandService {
         jobRecordEntityRepo.saveAndFlush(recordEntity);
 
         // 重试逻辑
-        Job.Config config = Query.query(new JobConfigQuery(entity.getExecutionId(), entity.getRefId())).getConfig();
+        Job.Config config = queryGateway.query(new JobConfigQuery(entity.getExecutionId(), entity.getRefId())).getConfig();
         if (config.getRetryOption().canRetry(entity.getRetryTimes())) {
             LocalDateTime nextRetryAt = TimeUtils.currentLocalDateTime().plusSeconds(config.getRetryOption().getRetryInterval());
-            return Cmd.send(new JobRetryCmd(entity.getJobId(), entity.getRetryTimes() + 1, nextRetryAt));
+            return commandGateway.send(new JobRetryCmd(entity.getJobId(), entity.getRetryTimes() + 1, nextRetryAt));
         }
         String lockName = entity.getExecutionId() + LOCK_SUFFIX;
         return distributedLock.lock(lockName, 2000, 3000, () -> {
-                Execution execution = Query.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
+                Execution execution = queryGateway.query(new ExecutionByIdQuery(entity.getExecutionId())).getExecution();
                 return execution.executable().fail(entity.getExecutionId(), entity.getRefId(), cmd.getReportAt());
             }
         );
@@ -382,7 +387,7 @@ public class JobCommandService {
     }
 
     protected void run(Job job) {
-        Cmd.send(new JobRunCmd(job));
+        commandGateway.send(new JobRunCmd(job));
     }
 
 }

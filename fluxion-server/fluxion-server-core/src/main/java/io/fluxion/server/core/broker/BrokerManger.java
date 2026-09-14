@@ -23,7 +23,6 @@ import io.limbo.utils.time.LocalTimeUtils;
 import io.limbo.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.cmd.BucketRebalanceCmd;
-import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.BrokerEntity;
 import io.fluxion.server.infrastructure.dao.repository.BrokerEntityRepo;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +42,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
 /**
  * 内存中缓存的 broker节点信息
  *
@@ -52,6 +52,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class BrokerManger {
+    @Resource
+    private CommandGateway commandGateway;
 
     @Resource
     private BrokerEntityRepo brokerEntityRepo;
@@ -85,7 +87,7 @@ public class BrokerManger {
         NODES.put(node.id(), node);
 
         // 处理bucket
-        Cmd.send(new BucketRebalanceCmd());
+        commandGateway.send(new BucketRebalanceCmd());
         // 开启定时任务 维持心跳
         scheduledExecutorService.scheduleAtFixedRate(
             new HeartbeatTask(), 0, heartbeatInterval.toMillis(), TimeUnit.MILLISECONDS

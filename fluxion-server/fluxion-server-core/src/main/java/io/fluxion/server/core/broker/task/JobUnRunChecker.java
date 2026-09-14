@@ -23,8 +23,6 @@ import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.query.JobByIdQuery;
 import io.fluxion.server.core.job.query.JobInitBlockedQuery;
 import io.fluxion.server.infrastructure.concurrent.LoggingTask;
-import io.limbo.cqrs.spring.command.Cmd;
-import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -33,13 +31,21 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
+import io.limbo.cqrs.spring.gateway.QueryGateway;
+import javax.annotation.Resource;
+
 /**
- * job 创建了(inited) 还没执行 JobRunCmd broker宕机导致还是create状态 重新run
+* job 创建了(inited) 还没执行 JobRunCmd broker宕机导致还是create状态 重新run
  *
  * @author Devil
  */
 @Slf4j
 public class JobUnRunChecker extends CoreTask {
+    @Resource
+    private CommandGateway commandGateway;
+    @Resource
+    private QueryGateway queryGateway;
 
     private static final int INTERVAL = 1;
     private static final TimeUnit UNIT = TimeUnit.SECONDS;
@@ -53,17 +59,17 @@ public class JobUnRunChecker extends CoreTask {
         LocalDateTime endAt = TimeUtils.currentLocalDateTime().plusSeconds(- INTERVAL);
         String lastId = "";
         // 返回的job必定是inited
-        List<String> jobIds = Query.query(new JobInitBlockedQuery(100, lastId, endAt)).getJobIds();
+        List<String> jobIds = queryGateway.query(new JobInitBlockedQuery(100, lastId, endAt)).getJobIds();
         while (CollectionUtils.isNotEmpty(jobIds)) {
             for (String jobId : jobIds) {
                 CommonThreadPool.IO.submit(new LoggingTask(() -> {
-                    Job job = Query.query(new JobByIdQuery(jobId)).getJob();
-                    Cmd.send(new JobRunCmd(job));
+                    Job job = queryGateway.query(new JobByIdQuery(jobId)).getJob();
+                    commandGateway.send(new JobRunCmd(job));
                 }));
             }
             // 拉取后续的
             lastId = jobIds.get(jobIds.size() - 1);
-            jobIds = Query.query(new JobInitBlockedQuery(100, lastId, endAt)).getJobIds();
+            jobIds = queryGateway.query(new JobInitBlockedQuery(100, lastId, endAt)).getJobIds();
         }
     }
 

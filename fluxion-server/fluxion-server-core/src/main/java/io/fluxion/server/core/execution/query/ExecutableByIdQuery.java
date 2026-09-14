@@ -18,7 +18,7 @@ package io.fluxion.server.core.execution.query;
 
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.ExecutableType;
-import io.limbo.cqrs.core.query.IQuery;
+import io.limbo.cqrs.core.queryhandling.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

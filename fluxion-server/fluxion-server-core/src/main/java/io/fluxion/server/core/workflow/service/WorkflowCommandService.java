@@ -23,7 +23,6 @@ import io.fluxion.server.core.workflow.cmd.WorkflowDraftCmd;
 import io.fluxion.server.core.workflow.cmd.WorkflowPublishCmd;
 import io.fluxion.server.core.workflow.cmd.WorkflowUpdateCmd;
 import io.fluxion.server.core.workflow.converter.WorkflowEntityConverter;
-import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.infrastructure.dao.entity.WorkflowEntity;
 import io.fluxion.server.infrastructure.dao.repository.WorkflowEntityRepo;
 import io.fluxion.server.infrastructure.exception.ErrorCode;
@@ -46,11 +45,14 @@ import javax.persistence.criteria.Root;
 import javax.transaction.Transactional;
 import java.util.List;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
 /**
  * @author Devil
  */
 @Service
 public class WorkflowCommandService {
+    @Resource
+    private CommandGateway commandGateway;
 
     @Resource
     private WorkflowEntityRepo workflowEntityRepo;
@@ -61,7 +63,7 @@ public class WorkflowCommandService {
     @Transactional
     @CommandHandler
     public WorkflowCreateCmd.Response handle(WorkflowCreateCmd cmd) {
-        String id = Cmd.send(new IDGenerateCmd(IDType.WORKFLOW)).getId();
+        String id = commandGateway.send(new IDGenerateCmd(IDType.WORKFLOW)).getId();
         WorkflowEntity workflowEntity = new WorkflowEntity();
         workflowEntity.setWorkflowId(id);
         workflowEntity.setName(cmd.getName());
@@ -78,11 +80,11 @@ public class WorkflowCommandService {
         );
         String config = WorkflowEntityConverter.config(cmd.getConfig());
         if (StringUtils.isBlank(entity.getDraftVersion())) {
-            String version = Cmd.send(new VersionSaveCmd(WorkflowEntityConverter.versionId(entity.getWorkflowId()), config)).getVersion();
+            String version = commandGateway.send(new VersionSaveCmd(WorkflowEntityConverter.versionId(entity.getWorkflowId()), config)).getVersion();
             entity.setDraftVersion(version);
             workflowEntityRepo.saveAndFlush(entity);
         } else {
-            Cmd.send(new VersionSaveCmd(WorkflowEntityConverter.versionId(entity.getWorkflowId(), entity.getDraftVersion()), config));
+            commandGateway.send(new VersionSaveCmd(WorkflowEntityConverter.versionId(entity.getWorkflowId(), entity.getDraftVersion()), config));
         }
         return new WorkflowDraftCmd.Response(entity.getDraftVersion());
     }
@@ -99,7 +101,7 @@ public class WorkflowCommandService {
             return new WorkflowPublishCmd.Response(null, validateSuppressInfos);
         }
         String configJson = WorkflowEntityConverter.config(cmd.getConfig());
-        String publishVersion = Cmd.send(new VersionSaveCmd(WorkflowEntityConverter.versionId(entity.getWorkflowId(), entity.getDraftVersion()), configJson)).getVersion();
+        String publishVersion = commandGateway.send(new VersionSaveCmd(WorkflowEntityConverter.versionId(entity.getWorkflowId(), entity.getDraftVersion()), configJson)).getVersion();
         entity.setPublishVersion(publishVersion);
         entity.setDraftVersion(StringUtils.EMPTY);
         workflowEntityRepo.saveAndFlush(entity);

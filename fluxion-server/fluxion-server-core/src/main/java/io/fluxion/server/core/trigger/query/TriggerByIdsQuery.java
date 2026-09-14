@@ -17,7 +17,7 @@
 package io.fluxion.server.core.trigger.query;
 
 import io.fluxion.server.core.trigger.Trigger;
-import io.limbo.cqrs.core.query.IQuery;
+import io.limbo.cqrs.core.queryhandling.IQuery;
 import io.fluxion.server.infrastructure.version.model.VersionMode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

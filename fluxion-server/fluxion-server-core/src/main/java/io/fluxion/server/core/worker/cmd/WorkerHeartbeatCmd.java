@@ -17,7 +17,7 @@
 package io.fluxion.server.core.worker.cmd;
 
 import io.fluxion.server.core.worker.metric.WorkerMetric;
-import io.limbo.cqrs.core.command.VoidCommand;
+import io.limbo.cqrs.core.commandhandling.VoidCommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

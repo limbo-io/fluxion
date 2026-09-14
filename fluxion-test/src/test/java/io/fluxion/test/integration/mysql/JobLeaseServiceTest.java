@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import io.limbo.cqrs.spring.query.Query;
 
 import javax.transaction.Transactional;
 import javax.persistence.EntityManager;
@@ -33,10 +32,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.limbo.cqrs.spring.gateway.QueryGateway;
 @SpringBootTest(classes = MySqlTestApplication.class)
 @ActiveProfiles("test-mysql")
 @Transactional
 class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
+    @Autowired
+    private QueryGateway queryGateway;
 
     @Autowired
     private JobEntityRepo jobEntityRepo;
@@ -203,15 +205,15 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
         unrelated.setLeaseUntil(LocalDateTime.now().plusMinutes(1));
         jobEntityRepo.saveAndFlush(unrelated);
 
-        assertThat(Query.query(new JobRunningByWorkerQuery("http://worker-a:8080", 10)).getJobs())
+        assertThat(queryGateway.query(new JobRunningByWorkerQuery("http://worker-a:8080", 10)).getJobs())
             .extracting(JobRunningByWorkerQuery.JobRunning::getJobId,
                 JobRunningByWorkerQuery.JobRunning::getDispatchAttempt)
             .containsExactly(org.assertj.core.groups.Tuple.tuple("job-due", 3));
-        assertThat(Query.query(new JobTimeoutDueQuery(10, LocalDateTime.now())).getJobs())
+        assertThat(queryGateway.query(new JobTimeoutDueQuery(10, LocalDateTime.now())).getJobs())
             .extracting(JobTimeoutDueQuery.JobTimeout::getJobId,
                 JobTimeoutDueQuery.JobTimeout::getDispatchAttempt)
             .containsExactly(org.assertj.core.groups.Tuple.tuple("job-due", 3));
-        assertThat(Query.query(new JobExpiredLeaseQuery(10, LocalDateTime.now())).getJobs())
+        assertThat(queryGateway.query(new JobExpiredLeaseQuery(10, LocalDateTime.now())).getJobs())
             .extracting(JobExpiredLeaseQuery.JobLease::getJobId,
                 JobExpiredLeaseQuery.JobLease::getDispatchAttempt)
             .containsExactly(org.assertj.core.groups.Tuple.tuple("job-due", 3));

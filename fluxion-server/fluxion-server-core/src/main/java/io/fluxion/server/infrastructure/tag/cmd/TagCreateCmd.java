@@ -18,7 +18,7 @@ package io.fluxion.server.infrastructure.tag.cmd;
 
 import io.fluxion.server.infrastructure.tag.Tag;
 import io.fluxion.server.infrastructure.tag.TagRefType;
-import io.limbo.cqrs.core.command.VoidCommand;
+import io.limbo.cqrs.core.commandhandling.VoidCommand;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

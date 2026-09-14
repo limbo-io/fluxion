@@ -19,7 +19,7 @@ package io.fluxion.server.core.job.cmd;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.job.JobMonitor;
-import io.limbo.cqrs.core.command.ICommand;
+import io.limbo.cqrs.core.commandhandling.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

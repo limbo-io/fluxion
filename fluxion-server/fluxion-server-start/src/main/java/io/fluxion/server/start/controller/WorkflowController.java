@@ -18,7 +18,6 @@ package io.fluxion.server.start.controller;
 
 import io.fluxion.remote.core.api.PageResponse;
 import io.fluxion.server.core.workflow.cmd.*;
-import io.limbo.cqrs.spring.command.Cmd;
 import io.fluxion.server.start.api.workflow.request.WorkflowConfigRequest;
 import io.fluxion.server.start.api.workflow.request.WorkflowCreateRequest;
 import io.fluxion.server.start.api.workflow.request.WorkflowPageRequest;
@@ -32,11 +31,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
 /**
  * @author Devil
  */
 @RestController
 public class WorkflowController {
+    @Resource
+    private CommandGateway commandGateway;
 
     @Resource
     private WorkflowService workflowService;
@@ -44,7 +46,7 @@ public class WorkflowController {
     @RequestMapping("/api/v1/workflow/create")
     public String create(@RequestBody WorkflowCreateRequest request) {
         WorkflowCreateCmd cmd = new WorkflowCreateCmd(request.getName(), request.getDescription());
-        WorkflowCreateCmd.Response response = Cmd.send(cmd);
+        WorkflowCreateCmd.Response response = commandGateway.send(cmd);
         return response.getId();
     }
 
@@ -55,7 +57,7 @@ public class WorkflowController {
             request.getName(),
             request.getDescription()
         );
-        Cmd.send(cmd);
+        commandGateway.send(cmd);
     }
 
     @RequestMapping("/api/v1/workflow/draft")
@@ -64,7 +66,7 @@ public class WorkflowController {
             request.getId(),
             request.getConfig()
         );
-        return Cmd.send(cmd).getVersion();
+        return commandGateway.send(cmd).getVersion();
     }
 
     @RequestMapping("/api/v1/workflow/publish")
@@ -73,7 +75,7 @@ public class WorkflowController {
             request.getId(),
             request.getConfig()
         );
-        return Cmd.send(cmd);
+        return commandGateway.send(cmd);
     }
 
     @RequestMapping("/api/v1/workflow/page")
@@ -88,7 +90,7 @@ public class WorkflowController {
 
     @RequestMapping("/api/v1/workflow/delete")
     public void delete(@RequestParam String id) {
-        Cmd.send(new WorkflowDeleteCmd(id));
+        commandGateway.send(new WorkflowDeleteCmd(id));
     }
 
 }

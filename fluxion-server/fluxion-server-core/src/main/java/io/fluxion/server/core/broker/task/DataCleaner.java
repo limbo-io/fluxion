@@ -18,18 +18,21 @@ package io.fluxion.server.core.broker.task;
 
 import io.fluxion.server.core.execution.cmd.ExecutionCleanCmd;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.limbo.cqrs.spring.command.Cmd;
-import io.limbo.cqrs.spring.query.Query;
 import io.limbo.utils.time.TimeUtils;
 import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
+import javax.annotation.Resource;
+
 /**
- * 数据清理 -- 物理删除超过7天的数据
+* 数据清理 -- 物理删除超过7天的数据
  *
  * @author Devil
  */
 public class DataCleaner extends CoreTask {
+    @Resource
+    private CommandGateway commandGateway;
 
     private static final int INTERVAL = 7;
     private static final TimeUnit UNIT = TimeUnit.DAYS;
@@ -41,7 +44,7 @@ public class DataCleaner extends CoreTask {
     @Override
     public void run() {
         LocalDateTime endAt = TimeUtils.currentLocalDateTime().plusDays(-INTERVAL);
-        Cmd.send(new ExecutionCleanCmd(endAt));
+        commandGateway.send(new ExecutionCleanCmd(endAt));
         // broker
         // worker
         // lock

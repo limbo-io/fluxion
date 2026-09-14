@@ -20,7 +20,6 @@ import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.converter.TriggerEntityConverter;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
 import io.fluxion.server.core.trigger.query.TriggerByIdsQuery;
-import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
 import io.fluxion.server.infrastructure.dao.repository.TriggerEntityRepo;
 import io.fluxion.server.infrastructure.version.model.Version;
@@ -36,11 +35,14 @@ import javax.annotation.Resource;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.limbo.cqrs.spring.gateway.QueryGateway;
 /**
  * @author Devil
  */
 @Service
 public class TriggerQueryService {
+    @Resource
+    private QueryGateway queryGateway;
 
     @Resource
     private TriggerEntityRepo triggerEntityRepo;
@@ -57,7 +59,7 @@ public class TriggerQueryService {
         } else {
             vs = getVersion(entity, query.getVersionMode());
         }
-        Version version = Query.query(new VersionByIdQuery(
+        Version version = queryGateway.query(new VersionByIdQuery(
             TriggerEntityConverter.versionId(entity.getTriggerId(), vs)
         )).getVersion();
         Trigger trigger = TriggerEntityConverter.convert(entity, version);
@@ -74,7 +76,7 @@ public class TriggerQueryService {
             String version = getVersion(e, query.getVersionMode());
             return TriggerEntityConverter.versionId(e.getTriggerId(), version);
         }).collect(Collectors.toList());
-        List<Version> versions = Query.query(new VersionByIdsQuery(versionIds)).getVersions();
+        List<Version> versions = queryGateway.query(new VersionByIdsQuery(versionIds)).getVersions();
         List<Trigger> triggers = TriggerEntityConverter.convert(entities, versions);
         return new TriggerByIdsQuery.Response(triggers);
 

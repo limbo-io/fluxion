@@ -30,15 +30,17 @@ import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.JobDispatcher;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
 import io.fluxion.server.core.job.config.ExecutorJobConfig;
-import io.limbo.cqrs.spring.command.Cmd;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
 
-/**
+import io.limbo.cqrs.spring.gateway.CommandGateway;
+import javax.annotation.Resource;/**
  * @author Devil
  */
 public class Executor implements Executable {
+    @Resource
+    private CommandGateway commandGateway;
 
     private String id;
 
@@ -93,19 +95,19 @@ public class Executor implements Executable {
         job.setType(JobType.EXECUTOR);
         job.setTriggerAt(TimeUtils.currentLocalDateTime());
         // 保存数据
-        Cmd.send(new JobsCreateCmd(Collections.singletonList(job)));
+        commandGateway.send(new JobsCreateCmd(Collections.singletonList(job)));
         // 执行
         JobDispatcher.dispatchAfterCommit(job);
     }
 
     @Override
     public boolean success(String executionId, String refId, LocalDateTime time) {
-        return Cmd.send(new ExecutionSuccessCmd(executionId, time));
+        return commandGateway.send(new ExecutionSuccessCmd(executionId, time));
     }
 
     @Override
     public boolean fail(String executionId, String refId, LocalDateTime time) {
-        return Cmd.send(new ExecutionFailCmd(executionId, time));
+        return commandGateway.send(new ExecutionFailCmd(executionId, time));
     }
 
     @Override

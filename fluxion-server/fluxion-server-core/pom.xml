@@ -38,7 +38,6 @@
         <dependency>
             <groupId>io.github.limbo-io</groupId>
             <artifactId>cqrs-spring-boot-starter</artifactId>
-            <version>${limbo.framework.version}</version>
         </dependency>
 
         <!-- validation -->

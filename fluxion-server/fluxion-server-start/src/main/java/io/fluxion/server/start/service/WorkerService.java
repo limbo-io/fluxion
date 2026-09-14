@@ -19,7 +19,6 @@ package io.fluxion.server.start.service;
 import io.fluxion.remote.core.api.PageResponse;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.query.WorkerByIdsQuery;
-import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import io.fluxion.server.infrastructure.dao.repository.WorkerEntityRepo;
 import io.fluxion.server.infrastructure.utils.JpaHelper;
@@ -38,11 +37,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.limbo.cqrs.spring.gateway.QueryGateway;
 /**
  * @author Devil
  */
 @Service
 public class WorkerService {
+    @Resource
+    private QueryGateway queryGateway;
 
     @Resource
     private WorkerEntityRepo workerEntityRepo;
@@ -71,7 +73,7 @@ public class WorkerService {
         Page<WorkerEntity> queryResult = workerEntityRepo.findAll(condition, pageable);
         List<WorkerEntity> entities = queryResult.getContent();
         List<String> ids = entities.stream().map(WorkerEntity::getWorkerId).collect(Collectors.toList());
-        List<Worker> workers = Query.query(new WorkerByIdsQuery(ids)).getWorkers();
+        List<Worker> workers = queryGateway.query(new WorkerByIdsQuery(ids)).getWorkers();
         // 封装分页返回结果
         return request.response(queryResult.getTotalElements(), WorkerConverter.toView(workers));
     }

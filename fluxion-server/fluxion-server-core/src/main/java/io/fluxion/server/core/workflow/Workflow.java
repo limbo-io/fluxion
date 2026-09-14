@@ -35,8 +35,6 @@ import io.fluxion.server.core.workflow.node.EndNode;
 import io.fluxion.server.core.workflow.node.ExecutorNode;
 import io.fluxion.server.core.workflow.node.StartNode;
 import io.fluxion.server.core.workflow.node.WorkflowNode;
-import io.limbo.cqrs.spring.command.Cmd;
-import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dag.DAG;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -47,13 +45,21 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
+import io.limbo.cqrs.spring.gateway.QueryGateway;
+import javax.annotation.Resource;
+
 /**
- * Flow 运行态
+* Flow 运行态
  *
  * @author Devil
  */
 @Slf4j
 public class Workflow implements Executable {
+    @Resource
+    private CommandGateway commandGateway;
+    @Resource
+    private QueryGateway queryGateway;
 
     private String id;
 
@@ -112,7 +118,7 @@ public class Workflow implements Executable {
         List<WorkflowNode> subNodes = dag.subNodes(refId);
         if (CollectionUtils.isEmpty(subNodes)) {
             // 最终节点 execution 完成
-            return Cmd.send(new ExecutionSuccessCmd(executionId, time));
+            return commandGateway.send(new ExecutionSuccessCmd(executionId, time));
         }
         List<WorkflowNode> continueNodes = new ArrayList<>();
         for (WorkflowNode subNode : subNodes) {
@@ -137,7 +143,7 @@ public class Workflow implements Executable {
         if (node.isContinueOnFailure()) {
             return success(executionId, refId, time);
         } else {
-            return Cmd.send(new ExecutionFailCmd(executionId, time));
+            return commandGateway.send(new ExecutionFailCmd(executionId, time));
         }
     }
 
@@ -188,7 +194,7 @@ public class Workflow implements Executable {
             })
             .collect(Collectors.toList());
         // 保存数据
-        Cmd.send(new JobsCreateCmd(jobs));
+        commandGateway.send(new JobsCreateCmd(jobs));
         return jobs;
     }
 
@@ -199,7 +205,7 @@ public class Workflow implements Executable {
         if (preNodes.size() == 1) {
             return true; // 之前的节点完成了，没有其它节点了
         }
-        long successCount = Query.query(new JobCountByStatusQuery(
+        long successCount = queryGateway.query(new JobCountByStatusQuery(
             executionId, preNodes.stream().map(WorkflowNode::getId).collect(Collectors.toList()),
             Collections.singletonList(JobStatus.SUCCEED)
         )).getCount();
@@ -208,7 +214,7 @@ public class Workflow implements Executable {
             .map(WorkflowNode::getId)
             .collect(Collectors.toList());
         long continuedFailureCount = CollectionUtils.isEmpty(continuedNodeIds) ? 0
-            : Query.query(new JobCountByStatusQuery(
+            : queryGateway.query(new JobCountByStatusQuery(
                 executionId, continuedNodeIds, Collections.singletonList(JobStatus.FAILED)
             )).getCount();
         return successCount + continuedFailureCount >= preNodes.size();

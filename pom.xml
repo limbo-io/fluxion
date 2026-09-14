@@ -84,6 +84,15 @@
                 <scope>import</scope>
             </dependency>
 
+            <!-- Limbo Framework BOM (统一管理 limbo-framework-utils / cqrs-* 版本) -->
+            <dependency>
+                <groupId>io.github.limbo-io</groupId>
+                <artifactId>limbo-framework-dependencies</artifactId>
+                <version>${limbo.framework.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <!-- Jackson BOM 先于 spring-boot-dependencies 因为其中也引入了 -->
             <dependency>
                 <groupId>com.fasterxml.jackson</groupId>
@@ -138,7 +147,7 @@
             <!-- Utils -->
             <dependency>
                 <groupId>io.github.limbo-io</groupId>
-                <artifactId>utils</artifactId>
+                <artifactId>limbo-framework-utils</artifactId>
                 <version>${limbo.framework.version}</version>
             </dependency>
             <dependency>

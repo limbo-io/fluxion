@@ -17,7 +17,7 @@
 package io.fluxion.server.core.workflow.cmd;
 
 import io.fluxion.server.infrastructure.validata.ValidateSuppressInfo;
-import io.limbo.cqrs.core.command.ICommand;
+import io.limbo.cqrs.core.commandhandling.ICommand;
 import io.fluxion.server.core.workflow.WorkflowConfig;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

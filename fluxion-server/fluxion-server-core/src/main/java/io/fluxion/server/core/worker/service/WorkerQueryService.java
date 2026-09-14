@@ -28,7 +28,6 @@ import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.core.worker.selector.WorkerSelectInvocation;
 import io.fluxion.server.core.worker.selector.WorkerSelector;
 import io.fluxion.server.core.worker.selector.WorkerSelectorFactory;
-import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerExecutorEntity;
 import io.fluxion.server.infrastructure.dao.entity.WorkerMetricEntity;
@@ -48,11 +47,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.limbo.cqrs.spring.gateway.QueryGateway;
 /**
  * @author Devil
  */
 @Service
 public class WorkerQueryService {
+    @Resource
+    private QueryGateway queryGateway;
 
     @Resource
     private WorkerEntityRepo workerEntityRepo;
@@ -83,7 +85,7 @@ public class WorkerQueryService {
         }
         List<String> workerIds = workerEntities.stream().map(WorkerEntity::getWorkerId).collect(Collectors.toList());
         List<WorkerExecutorEntity> executorEntities = workerExecutorEntityRepo.findById_WorkerIdIn(workerIds);
-        Map<String, List<Tag>> refTags = Query.query(new TagsByRefsQuery(workerIds, TagRefType.WORKER)).getRefTags();
+        Map<String, List<Tag>> refTags = queryGateway.query(new TagsByRefsQuery(workerIds, TagRefType.WORKER)).getRefTags();
         List<WorkerMetricEntity> metricEntities = workerMetricEntityRepo.findByWorkerIdIn(workerIds);
         return WorkerConverter.toWorkers(workerEntities, executorEntities, refTags, metricEntities);
     }
@@ -92,7 +94,7 @@ public class WorkerQueryService {
     public WorkersFilterQuery.Response handle(WorkersFilterQuery query) {
         String executorName = query.getExecutorName();
         DispatchOption dispatchOption = query.getDispatchOption();
-        List<Worker> workers = Query.query(new WorkerByAppQuery(
+        List<Worker> workers = queryGateway.query(new WorkerByAppQuery(
                 query.getAppId(), Lists.newArrayList(Worker.Status.ONLINE)
             )).getWorkers().stream()
             .filter(Worker::isEnabled)

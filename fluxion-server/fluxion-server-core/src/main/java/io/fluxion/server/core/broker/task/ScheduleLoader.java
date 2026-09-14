@@ -20,21 +20,27 @@ import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.ScheduleConstants;
 import io.fluxion.server.core.schedule.cmd.ScheduleTriggerCmd;
 import io.fluxion.server.core.schedule.query.ScheduleNextTriggerQuery;
-import io.limbo.cqrs.spring.command.Cmd;
-import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.List;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
+import io.limbo.cqrs.spring.gateway.QueryGateway;
+import javax.annotation.Resource;
+
 /**
- * 加载 ScheduledTask 并执行
+* 加载 ScheduledTask 并执行
  *
  * @author Devil
  */
 @Slf4j
 public class ScheduleLoader extends CoreTask {
+    @Resource
+    private CommandGateway commandGateway;
+    @Resource
+    private QueryGateway queryGateway;
 
     public ScheduleLoader() {
         super(0, ScheduleConstants.LOAD_INTERVAL, ScheduleConstants.LOAD_TIME_UNIT);
@@ -43,13 +49,13 @@ public class ScheduleLoader extends CoreTask {
     @Override
     public void run() {
         try {
-            List<Schedule> schedules = Query.query(new ScheduleNextTriggerQuery(100)).getSchedules();
+            List<Schedule> schedules = queryGateway.query(new ScheduleNextTriggerQuery(100)).getSchedules();
             while (CollectionUtils.isNotEmpty(schedules)) {
                 for (Schedule schedule : schedules) {
-                    Cmd.send(new ScheduleTriggerCmd(schedule));
+                    commandGateway.send(new ScheduleTriggerCmd(schedule));
                 }
                 // 拉取后续的
-                schedules = Query.query(new ScheduleNextTriggerQuery(100)).getSchedules();
+                schedules = queryGateway.query(new ScheduleNextTriggerQuery(100)).getSchedules();
             }
         } catch (Exception e) {
             log.error("[{}] execute fail", this.getClass().getSimpleName(), e);

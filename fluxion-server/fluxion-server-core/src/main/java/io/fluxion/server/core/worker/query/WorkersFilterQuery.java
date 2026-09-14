@@ -18,7 +18,7 @@ package io.fluxion.server.core.worker.query;
 
 import io.fluxion.server.core.executor.option.DispatchOption;
 import io.fluxion.server.core.worker.Worker;
-import io.limbo.cqrs.core.query.IQuery;
+import io.limbo.cqrs.core.queryhandling.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

@@ -29,8 +29,6 @@ import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.cmd.ScheduleFeedbackCmd;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
 import io.fluxion.server.core.trigger.TriggerType;
-import io.limbo.cqrs.spring.command.Cmd;
-import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
 import io.fluxion.server.infrastructure.dao.repository.ExecutionEntityRepo;
 import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
@@ -44,12 +42,19 @@ import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 
+import io.limbo.cqrs.spring.gateway.CommandGateway;
+import io.limbo.cqrs.spring.gateway.QueryGateway;
+
 /**
  * @author Devil
  */
 @Slf4j
 @Service
 public class ExecutionCommandService {
+    @Resource
+    private CommandGateway commandGateway;
+    @Resource
+    private QueryGateway queryGateway;
 
     @Resource
     private ExecutionEntityRepo executionEntityRepo;
@@ -65,7 +70,7 @@ public class ExecutionCommandService {
         ExecutionEntity entity = executionEntityRepo.findByTriggerIdAndTriggerAt(cmd.getTriggerId(), cmd.getTriggerAt());
         if (entity == null) {
             entity = new ExecutionEntity();
-            entity.setExecutionId(Cmd.send(new IDGenerateCmd(IDType.EXECUTION)).getId());
+            entity.setExecutionId(commandGateway.send(new IDGenerateCmd(IDType.EXECUTION)).getId());
             entity.setBucket(Math.floorMod(entity.getExecutionId().hashCode(), 64) + 1);
             entity.setTriggerId(cmd.getTriggerId());
             entity.setTriggerType(cmd.getTriggerType().value);
@@ -154,8 +159,8 @@ public class ExecutionCommandService {
         if (TriggerType.SCHEDULE != TriggerType.parse(entity.getTriggerType())) {
             return;
         }
-        Schedule schedule = Query.query(new ScheduleByIdQuery(entity.getTriggerId())).getSchedule();
-        Cmd.send(new ScheduleFeedbackCmd(schedule));
+        Schedule schedule = queryGateway.query(new ScheduleByIdQuery(entity.getTriggerId())).getSchedule();
+        commandGateway.send(new ScheduleFeedbackCmd(schedule));
     }
 
 }

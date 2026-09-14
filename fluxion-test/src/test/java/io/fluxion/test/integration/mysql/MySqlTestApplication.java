@@ -62,7 +62,7 @@ import java.util.concurrent.TimeUnit;
 @EnableTransactionManagement
 @EntityScan(basePackages = "io.fluxion.**.dao.entity")
 @EnableJpaRepositories(value = {"io.fluxion.**.dao.repository"})
-@EnableCqrs(basePackages = {"io.fluxion.server", "io.fluxion.worker"})
+@EnableCqrs
 public class MySqlTestApplication {
 
     static {

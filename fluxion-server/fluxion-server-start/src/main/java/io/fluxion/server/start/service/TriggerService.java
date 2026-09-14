@@ -19,7 +19,6 @@ package io.fluxion.server.start.service;
 import io.fluxion.remote.core.api.PageResponse;
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.query.TriggerByIdsQuery;
-import io.limbo.cqrs.spring.query.Query;
 import io.fluxion.server.infrastructure.dao.entity.TriggerEntity;
 import io.fluxion.server.infrastructure.dao.repository.TriggerEntityRepo;
 import io.fluxion.server.infrastructure.utils.JpaHelper;
@@ -35,11 +34,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.limbo.cqrs.spring.gateway.QueryGateway;
 /**
  * @author Devil
  */
 @Service
 public class TriggerService {
+    @Resource
+    private QueryGateway queryGateway;
 
     @Resource
     private TriggerEntityRepo triggerEntityRepo;
@@ -63,7 +65,7 @@ public class TriggerService {
         Page<TriggerEntity> queryResult = triggerEntityRepo.findAll(condition, pageable);
         List<TriggerEntity> entities = queryResult.getContent();
         List<String> ids = entities.stream().map(TriggerEntity::getTriggerId).collect(Collectors.toList());
-        List<Trigger> triggers = Query.query(new TriggerByIdsQuery(ids)).getTriggers();
+        List<Trigger> triggers = queryGateway.query(new TriggerByIdsQuery(ids)).getTriggers();
         // 封装分页返回结果
         return request.response(queryResult.getTotalElements(), triggers);
     }
