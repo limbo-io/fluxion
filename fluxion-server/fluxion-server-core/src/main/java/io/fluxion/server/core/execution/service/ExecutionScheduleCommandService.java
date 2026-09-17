@@ -48,7 +48,8 @@ public class ExecutionScheduleCommandService {
 
     private static final int PRELOAD_SECONDS = 60;
     private static final int CLAIM_LEASE_SECONDS = 15;
-    private static final int MISFIRE_THRESHOLD_SECONDS = 5;
+    /** 错过触发判定阈值（秒），存量观测接口沿用同一事实源 */
+    public static final int MISFIRE_THRESHOLD_SECONDS = 5;
     private static final int FIRE_RETRY_INTERVAL_SECONDS = 1;
 
     @Resource
