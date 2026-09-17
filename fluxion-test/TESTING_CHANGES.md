@@ -1,4 +1,10 @@
 # Fluxion Test Changes Log
+> **Status: historical log (superseded).** Entries below (e.g. `T5.1 Backlog LATEST_ONLY Policy`,
+> `ScheduleDelayCommandService.applyBacklogPolicy`) describe the removed ScheduleDelay-era code.
+> The current backlog strategy *preserves every trigger point* (see `BacklogStrategyTest`),
+> and live documentation is [docs/guides/TESTING_GUIDE.md](../docs/guides/TESTING_GUIDE.md).
+> This file is kept as a process archive only.
+
 
 ## Overview
 

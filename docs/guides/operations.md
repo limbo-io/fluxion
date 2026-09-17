@@ -1,16 +1,17 @@
 # Fluxion 调度器运维操作手册
 
-本文档提供 Fluxion 分布式任务调度平台的运维操作指南，包括部署、监控、故障排查等内容。
+本文档提供 Fluxion 分布式任务调度平台的运维操作指南。所有命令、端口、心跳参数均以代码为准，可对照仓库验证。
+
+> 本文遵循当前 Execution 调度模型（`fluxion_schedule` 产生 `fluxion_execution`，Broker 短租约领取 `PENDING` 实例后创建 Job 并原子迁移至 `RUNNING`）。术语以 [CONTEXT.md](../../CONTEXT.md) 为权威。
 
 ## 目录
 
 1. [启动顺序](#启动顺序)
 2. [数据库迁移](#数据库迁移)
-3. [滚动重启流程](#滚动重启流程)
+3. [可观测性现状](#可观测性现状)
 4. [Broker 故障恢复](#broker-故障恢复)
-5. [监控指标](#监控指标)
-6. [告警阈值](#告警阈值)
-7. [故障排查命令](#故障排查命令)
+5. [故障排查命令](#故障排查命令)
+6. [业务幂等性指南](#业务幂等性指南)
 
 ---
 
@@ -50,44 +51,41 @@ mysql -u root -p -e "SELECT 1"
 ```bash
 # 启动命令
 java -jar fluxion-server-start.jar --spring.profiles.active=prod
-
-# 或使用脚本
-./startup.sh broker
 ```
 
-**健康检查**：
-```bash
-# HTTP 健康检查
-curl http://localhost:9786/actuator/health
+**真实端口**（见 `fluxion-server-start/src/main/resources/application.yaml`）：
+- HTTP 管理端口 `9786`：REST API（`/api/v1/*`）
+- RPC 服务端口 `9785`：Worker↔Broker 通信
 
-# 检查 Broker 服务端口
-curl http://localhost:9785/v1/worker/health
+**健康检查**：
+
+当前启动模块**未引入 Actuator**，无 `/actuator/health` 端点。验证 Broker 可用性只能通过真实业务端点：
+
+```bash
+# RPC 端口连通性（Worker 用）
+telnet <broker-host> 9785
+
+# HTTP 端口连通性 + 业务端点可用
+curl -X POST http://localhost:9786/api/v1/worker/page
 ```
 
 **检查点**：
-- HTTP 管理端口 9786 响应正常
-- RPC 服务端口 9785 可连接
+- 端口 9786 / 9785 可连接
 - 数据库连接池初始化完成
+- Flyway 迁移执行无报错
 
 #### 3. 启动 Worker（执行节点）
 
 ```bash
 # 启动命令
 java -jar fluxion-worker-demo.jar --spring.profiles.active=prod
-
-# 或使用脚本
-./startup.sh worker
 ```
 
-**健康检查**：
-```bash
-# 检查 Worker 注册状态
-curl http://localhost:8084/actuator/health
-```
+Worker 启动后会向 Broker 注册并发心跳。真实心跳参数见 [Worker 下线判定](#worker-下线判定)。
 
 **检查点**：
-- Worker 成功注册到 Broker
-- 心跳正常（2秒间隔）
+- Worker 成功注册到 Broker（日志可见注册成功）
+- 心跳正常（每 3 秒一次）
 - 执行器加载完成
 
 ---
@@ -98,7 +96,7 @@ Fluxion 使用 Flyway 进行数据库版本管理。
 
 ### 自动迁移
 
-应用启动时自动执行：
+应用启动时自动执行（`application.yaml`）：
 
 ```yaml
 spring:
@@ -121,85 +119,120 @@ mvn flyway:migrate -pl fluxion-server/fluxion-server-start
 mvn flyway:repair -pl fluxion-server/fluxion-server-start
 ```
 
-### 迁移脚本位置
+### 迁移脚本位置与现状
 
 ```
 fluxion-server/fluxion-server-start/src/main/resources/db/migration/
-├── V20250101__init.sql                    # 初始版本
-├── V20260714__add_schedule_delay_lease.sql      # 调度延迟租约
-├── V20260714__add_execution_lease_and_attempt.sql # 执行租约和重试
-└── V20260721__add_execution_bucket_and_recovery_owner.sql # 恢复归属与 bucket
+├── V20250101__init.sql                 # 初始建表（fluxion_schedule / fluxion_execution / fluxion_job / fluxion_worker …）
+└── V20260728__add_job_fault_state.sql  # Job 容错字段：dispatch_attempt / lease_owner / lease_until / timeout_at / next_retry_at
 ```
+
+**重要**：当前 `fluxion_schedule_delay` 表**已不存在**。调度实例与执行实例已合并为 `fluxion_execution`，它持有 `lease_owner / lease_until / execution_token / fire_attempt / next_fire_at / bucket / recovery_owner` 字段，并以 `uk_execution_trigger(trigger_id, trigger_at)` 作为唯一键。任何引用 `fluxion_schedule_delay` 的旧脚本或命令均失效。
 
 ---
 
-## 调度 lease 与故障接管
+## 可观测性现状
 
-每个 Broker 通过 `coreTasks` 维护自己已 claim 的调度记录：lease 有效期为 15 秒，每 10 秒续租一次，并每 5 秒扫描本 Broker bucket 内的过期 claim。lease 的比较和更新由 MySQL `NOW(3)` 完成，避免 Broker 时钟偏差。
+> ⚠️ 当前版本**未引入 Micrometer / Actuator / Prometheus**，仓库无任何 `fluxion.*` 监控指标注册，也无 `/actuator/metrics`、`/actuator/prometheus` 端点。所有可靠性动作（claim、reclaim、retry、timeout、worker offline）目前**只写日志**。
 
-- Broker 正常停止时，仍处于 `CLAIMED` 的记录会被释放回 `INIT`，由新 owner 重新 claim。
-- `RUNNING` 记录不在停机时直接重置；已创建的 execution 由 fault-tolerance 根据任务超时或 Worker 下线执行重试。
-- execution recovery 只处理当前 Broker 所属 bucket，并使用条件更新取得 recovery lease，因此不会覆盖原始 `workerId`。
+### 存量诊断接口（已实现）
 
-业务执行器仍必须保证幂等。lease 和 fencing 只能降低重复下发概率，不能提供 exactly-once 语义。
+`ObservationController` 提供只读快照，对齐现有 `@RestController` 风格（端口 9786）：
 
----
-
-## 滚动重启流程
-
-在不影响任务执行的前提下，逐个重启服务节点。
-
-### Broker 滚动重启
-
-```bash
-# 1. 摘流（ graceful shutdown 前的准备）
-# 目前版本需要人工控制流量入口
-
-# 2. 重启 Broker
-kill -TERM <broker_pid>
-# 等待进程优雅退出（最多 30 秒）
-
-# 3. 启动新实例
-java -jar fluxion-server-start.jar
-
-# 4. 健康检查
-curl http://localhost:9786/actuator/health
-
-# 5. 恢复流量
+```
+GET/POST /api/v1/observation/overview
 ```
 
-**注意事项**：
-- 多 Broker 部署时，确保至少一个 Broker 保持运行
-- Worker 会自动重连到其他可用 Broker
-- 调度中的任务可能短暂延迟
+代码链路：`ObservationController` → `ObservationService` → CQRS `ObservationOverviewQuery`（core 的 `ObservationQueryService` 聚合 MySQL 单点权威，无 Micrometer 依赖）。
 
-### Worker 滚动重启
+响应字段（`ObservationOverviewView`，状态 key 见 [CONTEXT.md](../../CONTEXT.md)）：
 
-```bash
-# 1. 摘流（禁用任务分发）
-# 修改 Worker 标签，使其不再匹配新任务
-
-# 2. 等待当前任务完成
-# 查看活跃执行计数
-jmx_read fluxion.worker.activeExecutions
-
-# 3. 重启 Worker
-kill -TERM <worker_pid>
-# 等待优雅退出（最多 60 秒）
-
-# 4. 启动新实例
-java -jar fluxion-worker-demo.jar
-
-# 5. 验证注册
-# 查看 Broker Worker 列表
-curl http://localhost:9786/api/v1/workers
+```json
+{
+  "executions": {"pending": 12, "claimed": 2, "running": 4, "inited": 0,
+                  "succeed": 300, "failed": 1, "skipped": 0, "misfired": 0, "invalid": 2,
+                  "restarted": 0, "cancelled": 0, "paused": 0, "killing": 0},
+  "executionBacklog": 3,
+  "executionMisfireCandidates": 1,
+  "executionReclaimableClaims": 0,
+  "jobs": {"inited": 0, "restarted": 0, "running": 4, "retry_wait": 1,
+            "succeed": 300, "failed": 1, "cancelled": 0, "terminated": 0, "paused": 0},
+  "workers": {"online": 3, "offline": 1}
+}
 ```
+
+字段口径：
+- `executions` / `jobs` / `workers`：状态分布，zero-fill 全部已知枚举值（`unknown` 除外），已删除行不计入
+- `executionBacklog`：`status=pending 且 trigger_at <= now` 的积压数
+- `executionMisfireCandidates`：`status=pending 且 now - trigger_at > 5s`（`MISFIRE_THRESHOLD_SECONDS`）的错过触发候选数
+- `executionReclaimableClaims`：`status=claimed 且 lease_until <= now`，下一轮 `ExecutionsLoadCmd` 可重新领取的 Execution 数
+
+回归测试：`ObservationOverviewMySqlTest`（h2-integration-test profile）。
+
+### 速率型 SLI 暂缺
+
+下列运维场景当前**只能靠捞日志**，待后续按"结构化日志聚合"补齐：
+
+- 过去 N 分钟 claim 冲突 / 失败次数
+- 过去 N 分钟 lease 过期回收次数
+- dispatch 失败率
+- misfire 触发频次
+
+框架内部可靠性动作均已打日志（见 `WorkerChecker`、`JobLeaseRecoveryChecker`、`BrokerManger` 等），但无聚合链路。在新增累计计数列或接入日志聚合前，速率型告警**不可用**。
+
+### 失效配置警告
+
+`application.yaml` 中的 `fluxion.fault-tolerance` 整段（`retry / timeout / failover`）**未被任何 Java 代码读取**，是死配置。真实心跳超时、Worker 下线判定、重试间隔均由代码常量与 `fluxion.schedule.lease` / `fluxion.worker` 配置决定，见下文。**不要依据 `fluxion.fault-tolerance` 调参。**
 
 ---
 
 ## Broker 故障恢复
 
-当 Broker 发生故障时，系统具备以下恢复能力：
+当 Broker 发生故障时，系统具备以下恢复能力。
+
+### 调度租约与租约接管（Execution 模型）
+
+每个 Broker 只处理自己 bucket 内的 Execution。真实参数来自代码常量与 Loader 周期（`ScheduleLeaseProperties` 是死配置，见下警告）：
+
+| 参数 | 值 | 来源 |
+|------|-----|------|
+| claim 租约有效期 | 15 秒 | `ExecutionScheduleCommandService.CLAIM_LEASE_SECONDS` |
+| 领取方式 | 条件 UPDATE `PENDING → CLAIMED`，一次性设 `lease_until = NOW(3) + 15s`，**不续租** | `ExecutionScheduleCommandService.claim` |
+| 过期回收 | `reclaimExpiredClaims`：bucket 内 `CLAIMED` 且 `lease_until <= now` 可被重新 claim | 由 `ExecutionLoader` 每 1 分钟触发 `ExecutionsLoadCmd` |
+| 触发点生成 | `ScheduleLoader` 每 5 分钟扫描 `fluxion_schedule`，预生成未来 10 分钟 | `ScheduleConstants.LOAD_INTERVAL` | 
+
+租约比较与更新由 MySQL `NOW(3)` 完成，避免 Broker 时钟偏差。**接管延迟 = 15s 租约到期 + 最多 1 分钟等下一轮 `ExecutionsLoadCmd`**（不是旧模型的 20s）。
+
+- `CLAIMED` 的 Execution 不做停机强制重置；Broker 停止后其租约自然到期（15s），随后任何 Broker 在下一轮 load 时重新 claim。
+- `RUNNING` Execution 已清除调度租约，由每个 Job 自己的租约、超时检查与重试机制恢复（见 [execution-state.md](../architecture/execution-state.md)）。
+- recovery 只处理当前 Broker 所属 bucket，使用条件更新取得 recovery lease，不覆盖原始 `worker_id`。
+
+> ⚠️ `fluxion.schedule.lease` 前缀的 `ScheduleLeaseProperties`（duration/renewInterval/reclaimInterval）**没有任何 Java 代码读取其 getter**，是死配置类；调整它不生效。真实参数以上表为准。
+
+业务执行器仍必须保证幂等。租约与 fencing 只能降低重复下发概率，**不提供 exactly-once 语义**。
+
+### Worker 下线判定
+
+真实参数（`WorkerRemoteConstant.HEARTBEAT_TIMEOUT_SECOND = 3`）：
+
+| 参数 | 值 | 含义 |
+|------|-----|------|
+| Worker 心跳间隔 | 3 秒 | Worker 每 3 秒发一次心跳 |
+| `WorkerChecker` 检查周期 | 3 秒 | Broker 每 3 秒扫描一次 |
+| 下线判定窗口 | 6 秒 | 连续 6 秒（`HEARTBEAT_TIMEOUT_SECOND * 2`）未收到心跳即判定下线 |
+
+```
+Worker-A 心跳时序:
+  T+0s    心跳 ✓
+  T+3s    心跳 ✓
+  T+6s    心跳丢失
+  T+6s+   Broker 判定 Worker-A 下线
+          → 查询该 Worker 上 RUNNING 的 Job（持久化 `fluxion_job`）
+          → 对每个 Job 发 JobFailCmd，进入 Job 重试状态机
+          → 下一次派发时 dispatch_attempt 递增
+```
+
+> ⚠️ operations.md 旧版写的"心跳超时 10 秒"、`fluxion.worker.heartbeat=5s` 均错误，请勿参照。
 
 ### 单 Broker 故障（多 Broker 部署）
 
@@ -214,159 +247,18 @@ Before:                    After:
 ```
 
 **自动恢复流程**：
-1. Worker 检测到 Broker-1 心跳超时（默认 10 秒）
-2. Worker 切换到 Broker-2
-3. 未完成的任务被 Broker-2 接管
-4. Broker-1 恢复后，Worker 负载均衡到两个 Broker
+1. Worker 检测到 Broker-1 不可用，切换到 Broker-2
+2. Broker-1 所属 bucket 内的 Execution 在租约到期后被 Broker-2 扫描接管
+3. Broker-1 恢复后重新注册 bucket
 
 ### 单 Broker 故障（单 Broker 部署）
 
-1. **任务调度暂停**
-   - 新任务无法创建调度
-   - 已调度任务保留在数据库中
-
-2. **恢复步骤**
+1. **任务调度暂停**：新 Execution 仍由 `ScheduleLoader` 预生成，但无人 claim，堆积为 `PENDING`
+2. **恢复步骤**：
    ```bash
-   # 1. 检查 Broker 状态
-   systemctl status fluxion-broker
-   
-   # 2. 查看日志定位问题
-   tail -f /var/log/fluxion/broker.log
-   
-   # 3. 重启 Broker
    systemctl restart fluxion-broker
-   
-   # 4. 验证调度恢复
-   # 查看调度延迟队列
-curl http://localhost:9786/actuator/metrics/fluxion.schedule.delay.queue.size
    ```
-
----
-
-## 监控指标
-
-### 核心性能指标
-
-| 指标名 | 类型 | 说明 | 正常范围 |
-|--------|------|------|----------|
-| `fluxion.schedule.delay.claim.count` | Counter | 延迟任务抢占次数 | 随调度频率增长 |
-| `fluxion.schedule.delay.expired.lease.count` | Counter | 租约过期回收次数 | 低（< 10/分钟） |
-| `fluxion.execution.active.count` | Gauge | 当前活跃执行数 | < 队列容量的 80% |
-| `fluxion.dispatch.success.rate` | Gauge | 分发成功率 | > 99% |
-| `fluxion.dispatch.failure.rate` | Gauge | 分发失败率 | < 1% |
-| `fluxion.dispatch.duplicate.suppression.count` | Counter | 重复分发抑制次数 | 低（正常场景） |
-| `fluxion.worker.heartbeat.latency` | Timer | Worker 心跳延迟 | < 500ms |
-| `fluxion.worker.offline.count` | Counter | Worker 离线次数 | 低（稳定环境） |
-
-### 查看指标
-
-```bash
-# Prometheus 指标端点
-curl http://localhost:9786/actuator/prometheus
-
-# Micrometer 指标列表
-curl http://localhost:9786/actuator/metrics
-
-# 特定指标
-curl http://localhost:9786/actuator/metrics/fluxion.execution.active.count
-```
-
-### 关键业务指标解释
-
-#### 1. 延迟任务抢占（delay claim count）
-
-```
-含义：Broker 从延迟队列中抢占任务进行调度的次数
-正常：与调度频率成正比
-异常：持续增长但任务未执行 → 可能 Worker 不足
-```
-
-#### 2. 租约过期回收（expired lease count）
-
-```
-含义：任务租约到期后被回收重新调度的次数
-正常：少量（偶尔的网络抖动）
-异常：大量增长 → 可能 Worker 批量离线或执行超时
-```
-
-#### 3. 活跃执行数（active execution count）
-
-```
-含义：当前正在执行的任务数量
-正常：在 Worker 容量范围内波动
-异常：持续满载 → 需要扩容 Worker
-```
-
-#### 4. 重复分发抑制（duplicate suppression count）
-
-```
-含义：因任务已执行而拒绝重复分发的次数
-正常：极低（网络重试场景）
-异常：大量增长 → 可能存在重复调度 bug
-```
-
----
-
-## 告警阈值
-
-### 关键告警规则
-
-| 告警名称 | 条件 | 级别 | 处理建议 |
-|----------|------|------|----------|
-| Broker 离线 | 心跳检测失败 | P0 | 立即检查 Broker 进程和服务器状态 |
-| Worker 批量离线 | 在线 Worker 数 < 80% | P0 | 检查网络、Worker 资源使用情况 |
-| 任务积压 | 延迟队列深度 > 1000 | P1 | 扩容 Worker 或检查执行器性能 |
-| 分发失败率高 | 失败率 > 5% | P1 | 检查 Worker 健康状态和容量 |
-| 执行超时率高 | 租约过期 > 100/分钟 | P1 | 检查 Worker 负载和执行器性能 |
-| 心跳延迟高 | P99 延迟 > 2s | P2 | 检查网络和 Broker 负载 |
-| 数据库连接池耗尽 | 活跃连接 > 80% | P1 | 检查连接池配置和慢查询 |
-
-### 告警模板（Prometheus AlertManager）
-
-```yaml
-groups:
-  - name: fluxion-alerts
-    rules:
-      # Broker 离线告警
-      - alert: FluxionBrokerDown
-        expr: up{job="fluxion-broker"} == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Fluxion Broker 离线"
-          description: "Broker {{ $labels.instance }} 已离线超过 1 分钟"
-
-      # Worker 离线告警
-      - alert: FluxionWorkerOffline
-        expr: fluxion_worker_online_count < 1
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Fluxion Worker 全部离线"
-          description: "可用 Worker 数量为 0"
-
-      # 任务积压告警
-      - alert: FluxionTaskBacklog
-        expr: fluxion_schedule_delay_queue_size > 1000
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Fluxion 任务积压"
-          description: "延迟队列深度 {{ $value }} 超过阈值 1000"
-
-      # 分发失败告警
-      - alert: FluxionDispatchFailure
-        expr: rate(fluxion_dispatch_failure_count[5m]) > 0.05
-        for: 2m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Fluxion 分发失败率高"
-          description: "5分钟内分发失败率 {{ $value }}"
-```
+3. **验证调度恢复**：见 [故障排查命令](#故障排查命令) 中"调度积压"查询。
 
 ---
 
@@ -379,7 +271,7 @@ groups:
 jps -lvm | grep fluxion
 
 # 2. 查看端口监听
-netstat -tlnp | grep -E "9785|9786|9787"
+netstat -tlnp | grep -E "9785|9786"
 
 # 3. 检查资源使用
 top -p $(pgrep -d',' -f fluxion)
@@ -396,61 +288,120 @@ jstat -gcutil <pid> 1000 10
 
 ### 日志排查
 
+可靠性动作的关键日志来源（grep 这些类名定位故障）：
+
+| 类 | 关注点 |
+|----|--------|
+| `WorkerChecker` | Worker 下线判定与 Job 失败标记 |
+| `JobLeaseRecoveryChecker` | Job lease 过期接管 |
+| `JobLeaseRenewChecker` | Job lease 续租 |
+| `JobRetryChecker` | 到期重试触发 |
+| `JobUnRunChecker` | 未派发 Job 恢复 |
+| `BrokerManger` | Broker 上下线 |
+| `ScheduleLoader` | 预生成与历史补建 |
+
 ```bash
 # 实时查看日志
 tail -f /var/log/fluxion/broker.log
 
-# 搜索错误日志
-grep -E "ERROR|WARN|Exception" /var/log/fluxion/broker.log | tail -50
+# 搜索错误
+grep -E "ERROR|Exception" /var/log/fluxion/broker.log | tail -50
 
-# 查看特定时间段
-awk '$0 >= "2026-07-21 10:00:00" && $0 <= "2026-07-21 11:00:00"' broker.log
-
-# 搜索特定调度 ID
-grep "schedule-id=<id>" /var/log/fluxion/broker.log
+# 搜索特定调度
+grep "triggerId=<id>" /var/log/fluxion/broker.log
 ```
 
 ### 数据库排查
 
+> 全部以 `fluxion_execution` / `fluxion_job` / `fluxion_worker` 为准。`fluxion_schedule_delay` 已删除。
+
 ```bash
-# 连接 MySQL
 mysql -u root -p fluxion
+```
 
-# 查看调度延迟队列积压
-SELECT COUNT(*) FROM fluxion_schedule_delay WHERE dispatch_time <= NOW();
+#### 调度积压
 
-# 查看执行状态分布
+```sql
+-- PENDING 积压（已到期但未被领取）
+SELECT COUNT(*) FROM fluxion_execution
+WHERE status = 'pending' AND trigger_at <= NOW(3);
+
+-- 近期按状态分布
+SELECT status, COUNT(*) FROM fluxion_execution
+WHERE updated_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+GROUP BY status;
+```
+
+#### misfire 候选
+
+```sql
+-- 超过 misfireThreshold（默认 5s）仍未领取的 PENDING
+SELECT trigger_id, trigger_at, status, lease_until
+FROM fluxion_execution
+WHERE status = 'pending' AND trigger_at < DATE_SUB(NOW(3), INTERVAL 5 SECOND)
+ORDER BY trigger_at
+LIMIT 100;
+```
+
+#### 可回收租约
+
+```sql
+-- CLAIMED 但租约已过期，可被其他 Broker 重新 claim
+SELECT execution_id, lease_owner, lease_until
+FROM fluxion_execution
+WHERE status = 'claimed' AND lease_until < NOW(3)
+LIMIT 100;
+```
+
+#### Execution 状态分布
+
+```sql
 SELECT status, COUNT(*) FROM fluxion_execution GROUP BY status;
+```
 
-# 查看 Worker 注册状态
-SELECT app_name, status, last_heartbeat_at FROM fluxion_worker;
+#### 长时间未结束的 RUNNING Execution
 
-# 查看长时间运行的执行
-SELECT * FROM fluxion_execution 
-WHERE status = 'RUNNING' 
-  AND start_time < DATE_SUB(NOW(), INTERVAL 1 HOUR);
+```sql
+SELECT execution_id, trigger_id, state_updated_at, worker_id
+FROM fluxion_execution
+WHERE status = 'running'
+  AND state_updated_at < DATE_SUB(NOW(3), INTERVAL 1 HOUR);
+```
 
-# 查看租约过期任务
-SELECT * FROM fluxion_schedule_delay 
-WHERE lease_expires_at < NOW() AND claimed_by IS NOT NULL;
+#### Job 状态分布
+
+```sql
+SELECT status, COUNT(*) FROM fluxion_job GROUP BY status;
+```
+
+#### 积压的 RETRY_WAIT Job
+
+```sql
+SELECT job_id, execution_id, status, next_retry_at
+FROM fluxion_job
+WHERE status = 'retry_wait' AND next_retry_at <= NOW(3)
+ORDER BY next_retry_at
+LIMIT 100;
+```
+
+#### Worker 注册状态
+
+```sql
+SELECT app_id, status, last_heartbeat_at FROM fluxion_worker;
 ```
 
 ### 网络排查
 
 ```bash
 # 检查 Broker 端口连通性
-telnet localhost 9785
-telnet localhost 9786
+telnet <broker-host> 9785   # RPC
+telnet <broker-host> 9786   # HTTP
 
-# 检查 Worker 到 Broker 连通性
-curl -v http://broker-host:9785/v1/worker/health
+# 检查 Worker 到 Broker 连通性（真实 RPC 健康端点）
+curl -v http://<broker-host>:9785/v1/worker/health
 
 # 检查网络延迟
 ping <worker-host>
-traceroute <broker-host>
-
-# 抓包分析（Worker 注册）
-tcpdump -i any port 9785 -w broker-worker.pcap
 ```
 
 ### 线程排查
@@ -464,9 +415,6 @@ jstack <pid> | grep -i "deadlock\|blocked"
 
 # 统计线程状态
 jstack <pid> | grep "java.lang.Thread.State" | sort | uniq -c | sort -rn
-
-# 查看调度线程
-jstack <pid> | grep -A 20 "schedule-delay"
 ```
 
 ### 常见故障场景
@@ -475,363 +423,174 @@ jstack <pid> | grep -A 20 "schedule-delay"
 
 **症状**：Worker 启动后日志显示注册失败
 
-**排查步骤**：
 ```bash
 # 1. 检查 Broker 地址配置
-grep "brokers" /path/to/application.yaml
+grep -A3 "brokers" <worker>/application.yaml
 
-# 2. 检查 Broker 是否可访问
-curl http://broker-host:9785/actuator/health
+# 2. 检查 Broker RPC 端口可达
+telnet <broker-host> 9785
 
-# 3. 检查防火墙
-iptables -L | grep 9785
-
-# 4. 查看 Worker 日志
+# 3. 查看 Worker 日志
 tail -f /var/log/fluxion/worker.log | grep -i "register\|connect"
+
+# 4. 确认 Broker 已连上 MySQL
+grep -i "flyway\|datasource" /var/log/fluxion/broker.log | tail
 ```
 
-#### 场景2: 任务调度正常但无执行记录
+#### 场景2: 任务有调度记录但未执行
 
-**症状**：调度创建成功，但任务未执行
+**症状**：`fluxion_execution` 有 `pending` 记录，但无 `running`/终态
 
-**排查步骤**：
 ```bash
-# 1. 检查是否有可用 Worker
-curl http://localhost:9786/api/v1/workers | jq '.[] | select(.status == "ONLINE")'
+# 1. 是否有可用 Worker
+mysql -e "SELECT status, COUNT(*) FROM fluxion_worker GROUP BY status;"
 
-# 2. 检查过滤器是否匹配
-# 查看调度配置的 tags 和 executor，对比 Worker 配置
+# 2. 是否积压（PENDING 且已到期）
+mysql -e "SELECT COUNT(*) FROM fluxion_execution WHERE status='pending' AND trigger_at <= NOW(3);"
 
-# 3. 检查 Worker 容量
-curl http://worker-host:8084/actuator/metrics/fluxion.worker.activeExecutions
-
-# 4. 查看 Broker 分发日志
-grep "dispatch" /var/log/fluxion/broker.log | tail -20
+# 3. Broker 是否在 claim（日志）
+grep -i "claim\|ExecutionScheduleCommand" /var/log/fluxion/broker.log | tail -30
 ```
 
-#### 场景3: 重复执行任务
+#### 场景3: 重复执行诊断
 
-**症状**：同一任务被多次执行
+**症状**：疑似同一执行被多次执行
 
-**排查步骤**：
-```bash
-# 1. 检查执行记录表
-SELECT job_id, COUNT(*) as cnt 
-FROM fluxion_execution 
+```sql
+-- Execution 按 (trigger_id, trigger_at) 唯一，不应有多条
+SELECT trigger_id, trigger_at, COUNT(*) c
+FROM fluxion_execution
 WHERE created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
-GROUP BY job_id HAVING cnt > 1;
+GROUP BY trigger_id, trigger_at
+HAVING c > 1;
 
-# 2. 查看重复分发抑制日志
-grep "duplicate" /var/log/fluxion/worker.log
-
-# 3. 检查 Broker 时钟同步
-date; ssh broker-host date
+-- Job 重复派发看 dispatch_attempt（>=2 表示发生过重试/重新派发）
+SELECT job_id, execution_id, dispatch_attempt, status
+FROM fluxion_job
+WHERE dispatch_attempt >= 2
+ORDER BY updated_at DESC
+LIMIT 50;
 ```
 
----
-
-## 附录
-
-### 配置参考
-
-**最小生产配置（Broker）**：
-```yaml
-server:
-  port: 9786
-
-spring:
-  application:
-    name: fluxion-broker
-  datasource:
-    url: jdbc:mysql://mysql-host:3306/fluxion?useUnicode=true&characterEncoding=UTF-8
-    username: fluxion
-    password: <secure_password>
-
-fluxion:
-  broker:
-    port: 9785
-    protocol: HTTP
-```
-
-**最小生产配置（Worker）**：
-```yaml
-server:
-  port: 8084
-
-fluxion:
-  worker:
-    brokers:
-      - http://broker-host:9785
-    port: 9787
-    tags:
-      - env=prod
-```
-
-### 常见问题 FAQ
-
-**Q: 任务调度延迟过大怎么办？**
-A: 检查以下几点：
-1. Broker 服务器时间和 Worker 是否同步
-2. 调度线程池是否足够（默认单线程）
-3. 数据库查询性能（schedule_delay 表索引）
-
-**Q: Worker 频繁离线？**
-A: 排查方法：
-1. 检查网络稳定性（心跳超时 10 秒）
-2. 检查 Worker 负载（CPU、内存）
-3. 增加心跳间隔：fluxion.worker.heartbeat=5s
-
-**Q: 数据库连接池耗尽？**
-A: 解决方案：
-1. 增加连接池大小：spring.datasource.hikari.maximum-pool-size=50
-2. 检查慢查询并优化索引
-3. 减少长时间执行的任务
+> 框架保证 Execution 创建一次、Job 至少一次派发。`dispatch_attempt >= 2` 不一定代表 bug，也可能是 Worker 失联/超时触发的正常重试；需结合 `WorkerChecker` 日志判断。业务侧必须以 `jobId` 为幂等键防止外部副作用重复。
 
 ---
 
 ## 业务幂等性指南
 
-### 框架提供的幂等保护
+### 框架 vs 业务责任边界
 
-Fluxion 框架提供**尽力而为**的重复执行防护机制：
+| 层 | 职责 | 当前能力 |
+|----|------|----------|
+| 调度（Execution） | 创建一次、领取 fencing | `(trigger_id, trigger_at)` 唯一键 + 两层租约 |
+| 派发（Job） | 至少一次派发 | `jobId` 跨 Broker/Worker 稳定幂等键；`dispatch_attempt` 抑制同次派发重复 |
+| 业务（Executor） | 最终幂等 | **必须自行保证**，框架不提供 exactly-once |
 
-| 机制 | 保护级别 | 说明 |
-|------|----------|------|
-| **调度租约 (Schedule Lease)** | 单 Broker | 15秒租约期内独占调度权，过期后可被其他 Broker 接管 |
-| **执行租约 (Execution Lease)** | 单 Broker | 5分钟租约，Broker 故障后其他节点通过条件更新接管 |
-| **围栏检查 (Fencing)** | 执行前 | 使用 MySQL NOW(3) 验证租约有效性，防止"僵尸"执行 |
-| **分发去重 (Dispatch Deduplication)** | Worker 侧 | 同一 execution_id 的重复分发被拒绝 |
-| **尝试计数 (Attempt Tracking)** | 持久化 | 记录执行尝试次数，用于熔断和告警 |
+### 框架提供的（有限）防重
 
-### ⚠️ 业务必须处理的幂等性
+- 租约 + fencing：降低重复 claim / 重复 dispatch 概率，**不消除**
+- `jobId + dispatch_attempt`：Worker 侧抑制同一次派发的重复接收
+- 持久化 attempt：Broker 重启后不重发已确认完成的 Job
 
-**框架不能保证 100% 幂等**，以下场景可能导致重复执行：
+### 业务必须处理的重复场景
 
-1. **分布式时钟偏差**：Broker 间 NOW(3) 差异可能导致短暂窗口期的重复调度
-2. **租约边界竞争**：租约过期瞬间的并发 claim 可能产生竞态
-3. **网络分区**：Worker 完成执行但确认丢失，触发超时重试
-4. **脑裂恢复**：Broker 网络分区解除后，短暂双主可能重复分发
+1. **租约边界竞争**：租约过期瞬间的并发 claim 可能产生两个 Broker 短暂并存
+2. **网络分区**：Worker 完成但确认丢失，触发超时重试 → 同一 Job 再次执行
+3. **Worker 下线重试**：`WorkerChecker` 判离线后对 RUNNING Job 发 `JobFailCmd`，新 Worker 接收视为新 Job
 
 ### 业务幂等实现建议
 
-#### 方案1: 数据库唯一约束 (推荐)
+推荐以 `jobId`（跨 Broker/Worker 稳定）或 `executionId` 作为幂等键：
+
+#### 方案1: 数据库唯一约束（推荐）
 
 ```java
-@Service
-public class PaymentExecutor implements JobExecutor {
-    
-    @Autowired
-    private PaymentRecordRepository paymentRepo;
-    
-    @Override
-    public ExecuteResult execute(JobContext context) {
-        String executionId = context.getExecutionId();
-        Map<String, Object> params = context.getParams();
-        String orderNo = params.get("orderNo").toString();
-        
-        try {
-            // 使用数据库唯一约束防止重复支付
-            PaymentRecord record = new PaymentRecord();
-            record.setExecutionId(executionId);  // 唯一索引
-            record.setOrderNo(orderNo);
-            record.setAmount(new BigDecimal(params.get("amount").toString()));
-            record.setStatus("PROCESSING");
-            record.setCreatedAt(LocalDateTime.now());
-            
-            paymentRepo.save(record);
-            
-            // 执行实际支付逻辑
-            doPayment(orderNo, record.getAmount());
-            
-            record.setStatus("SUCCESS");
-            paymentRepo.save(record);
-            
-            return ExecuteResult.success();
-            
-        } catch (DuplicateKeyException e) {
-            // 重复执行，直接返回成功
-            log.info("[IDEMPOTENCY] Duplicate execution detected: executionId={}", executionId);
-            return ExecuteResult.success();
-        }
-    }
-}
-```
-
-#### 方案2: Redis SETNX 分布式锁
-
-```java
-@Service
-public class InventoryExecutor implements JobExecutor {
-    
-    @Autowired
-    private StringRedisTemplate redis;
-    
-    @Override
-    public ExecuteResult execute(JobContext context) {
-        String executionId = context.getExecutionId();
-        String lockKey = "inventory:deduct:" + context.getParams().get("skuId");
-        
-        // 使用 Redis SETNX 保证幂等
-        Boolean locked = redis.opsForValue()
-            .setIfAbsent(lockKey + ":" + executionId, "1", Duration.ofMinutes(10));
-        
-        if (!Boolean.TRUE.equals(locked)) {
-            log.warn("[IDEMPOTENCY] Duplicate inventory deduction: executionId={}", executionId);
-            return ExecuteResult.success(); // 已处理过
-        }
-        
-        try {
-            // 执行库存扣减
-            deductInventory(context.getParams());
-            return ExecuteResult.success();
-        } catch (Exception e) {
-            // 失败时删除锁，允许重试
-            redis.delete(lockKey + ":" + executionId);
-            throw e;
-        }
-    }
-}
-```
-
-#### 方案3: 状态机幂等
-
-```java
-@Service
-public class OrderStateMachineExecutor implements JobExecutor {
-    
-    @Autowired
-    private OrderRepository orderRepo;
-    
-    @Override
-    public ExecuteResult execute(JobContext context) {
-        String orderNo = context.getParams().get("orderNo").toString();
-        String targetState = context.getParams().get("targetState").toString();
-        
-        Order order = orderRepo.findByOrderNo(orderNo);
-        
-        // 状态机检查：目标状态是否已经达成
-        if (order.getState().equals(targetState)) {
-            log.info("[IDEMPOTENCY] Order already in target state: orderNo={}, state={}", 
-                orderNo, targetState);
-            return ExecuteResult.success();
-        }
-        
-        // 状态流转合法性检查
-        if (!isValidTransition(order.getState(), targetState)) {
-            log.error("[IDEMPOTENCY] Invalid state transition: {} -> {}", 
-                order.getState(), targetState);
-            return ExecuteResult.failure("Invalid state transition");
-        }
-        
-        // 执行状态更新（乐观锁防止并发）
-        int updated = orderRepo.updateState(orderNo, targetState, order.getVersion());
-        if (updated == 0) {
-            // 被其他执行更新，重新查询状态
-            order = orderRepo.findByOrderNo(orderNo);
-            if (order.getState().equals(targetState)) {
-                return ExecuteResult.success(); // 目标已达成
-            }
-            return ExecuteResult.retry("Concurrent update, retry");
-        }
-        
+@Override
+public ExecuteResult execute(JobContext context) {
+    String jobId = context.getJobId();  // 框架提供的稳定幂等键
+    try {
+        recordRepo.insertWithUniqueJobId(jobId, ...);  // job_id 唯一索引
+        doWork();
+        return ExecuteResult.success();
+    } catch (DuplicateKeyException e) {
+        log.info("[IDEMPOTENCY] duplicate jobId={}", jobId);
         return ExecuteResult.success();
     }
 }
 ```
 
-### 幂等性检查清单
+#### 方案2: 状态机幂等
 
-业务实现 Executor 时，检查以下项目：
-
-- [ ] **是否存在唯一业务键**：如订单号、用户ID+操作类型+日期等
-- [ ] **是否使用数据库唯一约束**：防止重复插入
-- [ ] **是否检查前置状态**：接口幂等不等于"重复调用不报错"
-- [ ] **是否记录执行日志**：便于排查重复执行问题
-- [ ] **超时是否可重入**：长时间任务避免因超时触发无限重试
-- [ ] **是否清理过期幂等记录**：防止存储无限膨胀
-
-### 框架与业务的职责边界
-
+```java
+@Override
+public ExecuteResult execute(JobContext context) {
+    Order order = orderRepo.findByOrderNo(context.getParams().get("orderNo"));
+    String target = context.getParams().get("targetState");
+    if (target.equals(order.getState())) {
+        return ExecuteResult.success();  // 目标态已达成
+    }
+    if (!isValidTransition(order.getState(), target)) {
+        return ExecuteResult.failure("Invalid transition");
+    }
+    int updated = orderRepo.updateStateByVersion(...);  // 乐观锁
+    return updated > 0 ? ExecuteResult.success()
+                       : ExecuteResult.retry("Concurrent update");
+}
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Fluxion 框架职责                          │
-├─────────────────────────────────────────────────────────────┤
-│ • 调度层面的尽力去重（租约机制）                              │
-│ • 分发层面的去重（Worker 侧过滤）                             │
-│ • 故障后的安全恢复（保守重试）                                │
-│ • 提供 execution_id 用于业务幂等                              │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                    业务实现职责                              │
-├─────────────────────────────────────────────────────────────┤
-│ • 最终状态的一致性（幂等或补偿）                              │
-│ • 副作用的可重入性（数据库、外部API）                         │
-│ • 状态机或唯一约束的正确性                                    │
-│ • 执行完成后的幂等记录清理                                    │
-└─────────────────────────────────────────────────────────────┘
-```
+
+### 幂等检查清单
+
+- [ ] 是否有唯一业务键（订单号 / `jobId` / `executionId`）
+- [ ] 是否用数据库唯一约束防重复插入
+- [ ] 是否检查前置状态（幂等 ≠ 重复调用不报错）
+- [ ] 超时是否可重入（长任务避免无限重试）
+- [ ] 是否记录执行日志便于排查重复
 
 ---
 
 ## 附录
 
-### 配置参考
+### 关键配置参考（真实生效项）
 
-**最小生产配置（Broker）**：
+**Broker**（`fluxion-server-start/src/main/resources/application.yaml`）：
+
 ```yaml
 server:
-  port: 9786
-
-spring:
-  application:
-    name: fluxion-broker
-  datasource:
-    url: jdbc:mysql://mysql-host:3306/fluxion?useUnicode=true&characterEncoding=UTF-8
-    username: fluxion
-    password: <secure_password>
-
+  port: 9786                    # HTTP 管理
 fluxion:
   broker:
-    port: 9785
+    host:                       # 留空则自动取本机
+    port: 9785                  # RPC
     protocol: HTTP
+  schedule:
+    lease:                      # ScheduleLeaseProperties，真实生效
+      duration: 15
+      renewInterval: 10
+      reclaimInterval: 5
 ```
 
-**最小生产配置（Worker）**：
-```yaml
-server:
-  port: 8084
+**Worker**（`fluxion.worker` 前缀，心跳由 `WorkerRemoteConstant.HEARTBEAT_TIMEOUT_SECOND=3` 决定）：
 
+```yaml
 fluxion:
   worker:
     brokers:
       - http://broker-host:9785
-    port: 9787
     tags:
       - env=prod
 ```
 
-### 常见问题 FAQ
+### 失效配置（勿用）
 
-**Q: 任务调度延迟过大怎么办？**
-A: 检查以下几点：
-1. Broker 服务器时间和 Worker 是否同步
-2. 调度线程池是否足够（默认单线程）
-3. 数据库查询性能（schedule_delay 表索引）
+`fluxion.fault-tolerance.{retry,timeout,failover}` 整段未绑定代码，调整无效。同理 `fluxion.schedule.lease`（`ScheduleLeaseProperties`）也为死配置。真实故障转移参数由 `ExecutionScheduleCommandService` 常量、`ScheduleConstants.LOAD_INTERVAL` 与 `WorkerRemoteConstant` 决定。
+
+### FAQ
+
+**Q: 调度延迟过大怎么办？**
+A: (1) 检查 Broker 是否在正常 claim（日志 `ExecutionScheduleCommand`）；(2) 查积压：`SELECT COUNT(*) FROM fluxion_execution WHERE status='pending' AND trigger_at <= NOW(3)`；(3) 检查 `fluxion_worker` 在线数是否充足；(4) 检查 Broker 是否触发长时间 GC（`jstat -gcutil`）。
 
 **Q: Worker 频繁离线？**
-A: 排查方法：
-1. 检查网络稳定性（心跳超时 10 秒）
-2. 检查 Worker 负载（CPU、内存）
-3. 增加心跳间隔：fluxion.worker.heartbeat=5s
+A: 真实下线窗口是 6 秒（3s 心跳 × 2，见 `WorkerRemoteConstant`）。检查网络抖动、Worker 进程 GC/负载。**不要调 `fluxion.fault-tolerance.failover.worker-offline-timeout`，它不生效。**
 
 **Q: 数据库连接池耗尽？**
-A: 解决方案：
-1. 增加连接池大小：spring.datasource.hikari.maximum-pool-size=50
-2. 检查慢查询并优化索引
-3. 减少长时间执行的任务
-
----
-
-*文档版本: 2026-07-21*
-*适用版本: Fluxion 1.x*
+A: 增大 `spring.datasource.hikari.maximum-pool-size`；检查慢查询；关注 `ExecutionScheduleCommand` 事务内是否串行执行过久。

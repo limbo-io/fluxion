@@ -98,93 +98,99 @@ Attempt #2 (重试):
 
 ### Execution 状态流转
 
+> 状态名以 [CONTEXT.md](../../CONTEXT.md) 为权威。代码见 `ExecutionStatus` 与 `ExecutionScheduleCommandService`。旧文档的 `WAITING / DISPATCHING` 措辞不复使用。
+
 ```
-                    ┌───────────┐
-         ┌──────────│  WAITING  │◀─────────┐
-         │          │  (等待中)  │          │
-         │          └─────┬─────┘          │
-         │                │ trigger        │
-         │                ▼                │
-         │          ┌───────────┐          │
-         │          │  PENDING  │◀─────────┤
-         │          │ (待调度)   │          │
-         │          └─────┬─────┘          │
-         │                │ claim          │ retry
-         │                ▼                │
-         │         ┌────────────┐           │
-         │    ┌───▶│DISPATCHING │──────┐    │
-         │    │    │ (派发中)   │      │    │
-         │    │    └─────┬──────┘      │    │
-         │    │          │ dispatch    │    │
-         │    │          ▼             │    │
-         │    │    ┌───────────┐       │    │
-         │ timeout │  RUNNING  │       │    │
-         │    │    │ (运行中)   │       │    │
-         │    │    └─────┬─────┘       │    │
-         │    │          │ result      │    │
-         │    │          ▼             │    │
-         │    │    ┌───────────┐       │    │
-         └───┬┴───▶│  SUCCEED  │       │    │
-              │    │  (成功)   │       │    │
-              │    └───────────┘       │    │
-              │                        │    │
-              └────────────────────▶┌───┴────▼┴───┐
-                                  │   FAILED    │
-                                  │   (失败)     │
-                                  └─────────────┘
+        (ScheduleLoader 每 5 分钟生成触发点 → ExecutionCreateCmd 预建 Execution)
+                                │
+                                ▼
+                          ┌──────────┐
+        ┌── (SKIP 策略) ──▶│ PENDING  │◀────────────┐ (releaseForRetry)
+        │                  │ (已计划)  │             │ next_fire_at += 1s
+        │                  └────┬─────┘             │
+        │        ┌────────────┼──────────────┐    │
+        │        │ 到期可领取    │ 超过 5s       │    │
+        │        │ (逐条 claim) │ (misfire)     │    │
+        │        ▼            ▼              │    │
+        │  ┌──────────────┐ (attempt 耗尽 → MISFIRED)
+        │  │   CLAIMED    │                  │    │
+        │  │ 15s 一次性租约 │                  │    │
+        │  │ 创建 Job 中    │                  │    │
+        │  └──┬───────┬───┘                  │    │
+        │     │       │                      │    │
+        │     │ 事务内  │ Trigger 禁用          │    │
+        │     ▼       ▼                      │    │
+        │  ┌────────┐ ┌─────────┐            │    │
+        │  │RUNNING │ │ INVALID │            │    │
+        │  └───┬────┘ └─────────┘            │    │
+        │      │ (进入 RUNNING 即清租约，      │    │
+        │      │  移交 Job 自身的租约/重试)     │    │
+        │      ├── Workflow 到达唯一 END 成功 ──▶ SUCCEED
+        │      └── Workflow 失败规则判定 ─────▶ FAILED
+        │
+        └──▶ SKIPPED     (misfire 判定后策略要求跳过)
+             MISFIRED    (FIRE_RETRY.maxFireAttempts 耗尽仍未创建成功)
 ```
 
 ### 状态转换约束
 
-| 当前状态 | 允许转换 | 条件 |
-|----------|----------|------|
-| WAITING | PENDING | 触发时间到达 |
-| PENDING | DISPATCHING | Broker 领取租约成功 |
-| DISPATCHING | RUNNING | Worker 确认接收并成功启动 |
-| DISPATCHING | FAILED | 所有 Worker 派发失败 |
-| RUNNING | SUCCEED | Worker 上报成功，且 attempt/worker 匹配 |
-| RUNNING | FAILED | Worker 上报失败 或 超时 |
-| RUNNING | PENDING | Worker 下线或超时触发重试 |
+| 当前状态 | 允许转换 | 条件与归属 |
+|----------|----------|-----------|
+| PENDING | CLAIMED | Broker 条件 UPDATE 成功，置 `leaseOwner / executionToken / leaseUntil(+15s)` |
+| PENDING | SKIPPED | misfire 且策略为 SKIP，保留审计、阻止重复处理 |
+| PENDING | MISFIRED | FIRE_RETRY `maxFireAttempts` 耗尽仍未成功 claim |
+| CLAIMED | RUNNING | 同事务：Trigger `isEnabled` 校验通过 + Job 持久化 + fence token 条件迁拓 |
+| CLAIMED | INVALID | 事务内校验 Trigger `isEnabled=false`，以租约令牌条件迁拓 |
+| CLAIMED | MISFIRED | 事务内创建 Job 失败且 `fire_attempt` 已达上限 |
+| CLAIMED | PENDING | `releaseForRetry`：置 `nextFireAt = now + 1s`，保留原 lease 令牌 |
+| RUNNING | SUCCEED | Workflow 到达唯一 END 节点成功 |
+| RUNNING | FAILED | Workflow 失败规则判定失败 |
 
-**关键约束**：Worker 执行结果只接受与当前 `attempt + worker` 匹配的请求，过期 attempt 的结果被忽略。
+进入 `RUNNING` 的事务必须清除 Execution 调度租约；此后由每个 Job 自己的租约与重试机制负责。调度周周期：`ScheduleLoader` 每 5 分钟生成触发点，`ExecutionLoader` 每 1 分钟发 `ExecutionsLoadCmd` 扫描+claim。
+
+**关键约束**：Worker 执行结果只接受与当前 `attempt + worker` 匹配的请求，过期 attempt 的结果被忽略。终态为 `SUCCEED / FAILED / SKIPPED / MISFIRED / INVALID`。
 
 ## 租约机制
 
-### Broker 调度租约
+### Broker 调度租约（Execution claim lease）
 
-Broker 领取的调度记录是**带过期时间的租约**，防止 Broker 故障导致任务停滞。
+Broker 对 `PENDING` Execution 的领取是**一次性设租约，不续租**。设计目的：防止 Broker 故障导致任务停滞。参数以 `ExecutionScheduleCommandService` 常量与 `ScheduleLoader` / `ExecutionLoader` 周期为准。
 
 ```
-┌────────────────────────────────────────────────────────────┐\│                       租约生命周期                           │
+┌────────────────────────────────────────────────────────────┐
+│                  Execution claim lease 生命周期             │
 ├────────────────────────────────────────────────────────────┤
-│  1. Broker-A 领取记录                                       │
-│     └── 设置 lease_owner = broker-a-id                       │
-│     └── 设置 lease_until = now + 15s                         │
+│  1. Broker-A claim 成功                                    │
+│     └── 条件 UPDATE PENDING → CLAIMED                       │
+│     └── lease_owner = brokerA；execution_token = UUID       │
+│     └── lease_until = NOW(3) + 15s（CLAIM_LEASE_SECONDS）   │
+│     └── fire_attempt++（仅 misfired 时）                     │
+│  特点：单次设租约，进入 RUNNING 前不续租                     │
 │                                                             │
-│  2. LeaseMaintainer 每 10s 续租                             │
-│     └── 条件: lease_owner = current AND lease_until > now    │
-│     └── 新 lease_until = now + 15s                           │
+│  2. Broker-A 故障 / 慢                                      │
+│     └── lease_until 到期不动                                │
 │                                                             │
-│  3. Broker-A 故障                                           │
-│     └── 停止续租                                             │
+│  3. ExecutionLoader 每 1 分钟发 ExecutionsLoadCmd           │
+│     └── reclaimExpiredClaims：bucket 内 CLAIMED             │
+│         且 lease_until ≤ now 的记录可被重新 claim            │
+│     └── 后续 claim 由任意 Broker 条件领取                    │
 │                                                             │
-│  4. Broker-B 每 5s 扫描过期租约                             │
-│     └── 将过期的 CLAIMED 记录释放回 INIT                    │
-│     └── 后续 load 再由新的 Broker 条件领取                  │
-│                                                             │
-│  5. 最大接管延迟: 20s (15s 租约 + 5s 扫描间隔)                │
+│  说明：自恢复依赖下一趟 ExecutionsLoadCmd，              │
+│        最大接管延迟为 15s lease + 1min 小周期            │
 └────────────────────────────────────────────────────────────┘
 ```
 
+> ⚠️ `ScheduleLeaseProperties` 虽定义了 `duration=15 / renewInterval=10 / reclaimInterval=5`，但全仓代码均未调用其 getter，是死配置类。真实数值来自 `ExecutionScheduleCommandService.CLAIM_LEASE_SECONDS=15` 等常量与 Loader 周期。旧版 “LeaseMaintainer 每 10s 续租”、“过期 CLAIMED 释放回 INIT” 属于已删的 ScheduleDelay 模型，请勿参照。
+
 ### 交接围栏 (Fencing)
 
-Broker 在以下操作前必须验证租约有效性：
+Broker 在以下操作前必须以 `execution_token` 条件化验证租约有效性：
 
-1. `CLAIMED → RUNNING` 状态转换
-2. 创建 execution 记录
-3. 写入终态 (SUCCEED/FAILED)
+1. `CLAIMED → RUNNING` 状态转换（事务内）
+2. `CLAIMED → INVALID`（Trigger 未启用）
+3. `CLAIMED → MISFIRED` / `releaseForRetry` 等中间态变更
 
-旧 Broker 即使恢复，也不能继续执行已被接管的记录。
+写入终态（SUCCEED / FAILED / SKIPPED / MISFIRED / INVALID）均需验明归属令牌。旧 Broker 即使恢复，也不能继续执行已被接管的 Execution。
 
 ## 重试流程
 
@@ -228,21 +234,22 @@ retry_option: {
 
 ### 积压策略现状
 
-**当前语义（LATEST_ONLY）**：对 Cron / FixedRate schedule，只保留最新的已过期触发点；更早的历史点不进入后续调度。未来触发点必须保留，不能因一次积压处理而被删除。
+**当前语义**：对所有触发点，每个到期触发点都生成唯一 Execution，**不折叠、不丢弃历史点**。这对应 [CONTEXT.md](../../CONTEXT.md) 的“Execution 预生成窗口”与“历史补建不折叠”约定。`ScheduleBacklogPlanner.plan` 原样返回加载窗口内的全部触发点，不做 LATEST_ONLY 折叠；misfire 策略在 Execution 被加载到点后由 Broker 判定。
 
 ```
 积压触发点: 09:00, 09:01, 09:02, 09:03
 Broker 恢复时间: 09:05
 
-处理结果:
-  - 09:00 ~ 09:02: 跳过
-  - 09:03: 保留并执行（最新的历史触发点）
-  - 09:06: 正常触发（未来触发点不受影响）
+处理结果: 各点分别创建唯一 Execution（(triggerId, triggerAt) 唯一键）
+  每个到期点各自走 misfire 判定（now - triggerAt > 5s）
+  ├─ SKIP policy  → SKIPPED
+  └─ FIRE_RETRY   → 领取尝试创 Job，失败重试耗尽 → MISFIRED
+未来触发点（09:04 / 09:05+）正常触发。
 ```
 
-**当前实现**：`ScheduleCommandService` 收集加载窗口内的触发点，再由 `ScheduleBacklogPlanner` 仅折叠 `<= now` 的历史点；未来点均创建为 delay。上述处理结果可以作为当前能力依赖。
+**当前实现**：`ScheduleCommandService` 收集加载窗口内的触发点，`ScheduleBacklogPlanner.plan` 原样返回，再为每个点发 `ExecutionCreateCmd` 创建唯一 Execution。不适用旧版 LATEST_ONLY 的“只保留最新历史点”语义——那是已删除模型。
 
-**FixedDelay 调度**：从最后一次执行完成时间计算下次触发，自然跳过积压。
+**FixedDelay 调度**：从最后一次执行完成时间计算下次触发，自然跳过架上未点的中间点。
 
 ## Worker 心跳机制
 

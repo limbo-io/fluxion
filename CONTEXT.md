@@ -12,18 +12,25 @@ _避免使用_：ScheduleConfig、任务实例、执行计划
 被 Execution 运行的 Executor 或 Workflow。Executor 归属于一个 Trigger；Workflow 可以被多个 Trigger 复用。
 _避免使用_：Execution、ScheduleInstance
 
+**Job（运行单位）**：
+Execution 进入运行阶段后，Workflow 各节点产生的、由 Worker 实际执行的最小单位。一个 Execution 可聚合多个 Job；Job 是 Worker 选择、下发、超时、重试、租约与结果 fencing 的边界，独立于 Execution 拥有自己的派发租约与重试状态。`jobId` 是跨 Broker 和 Worker 的稳定幂等键。
+_避免使用_：Execution、Task、派发记录
+
 **Execution（执行实例）**：
 由 Schedule 在某个计划触发时间预先创建的唯一持久化实例，覆盖等待触发、领取、运行、完成或跳过的完整生命周期。其身份必须包含所属 Trigger（当前等同于 Schedule）和计划触发时间；不同 Trigger 即使引用同一个 Workflow，也各自拥有独立的 Execution。
 _避免使用_：ScheduleInstance、Job、仅指实际运行记录
 
 **Execution 状态**：
-`PENDING` 表示已计划但尚未被 Broker 领取；`CLAIMED` 表示 Broker 持有短租约、正在创建 Job，尚未开始实际运行；`RUNNING` 表示 Job 已创建并开始其生命周期；`SUCCEEDED`、`FAILED`、`SKIPPED` 和 `MISFIRED` 为终态。`MISFIRED` 表示补偿创建 Job 已耗尽仍失败，`FAILED` 表示已创建 Job 后的执行或 Workflow 最终失败，`SKIPPED` 表示策略明确选择不执行。状态定义与发生状态迁移的代码必须说明进入条件、租约归属、允许迁移及崩溃后的恢复动作。
+`PENDING` 表示已计划但尚未被 Broker 领取；`CLAIMED` 表示 Broker 持有短租约、正在创建 Job，尚未开始实际运行；`RUNNING` 表示 Job 已创建并开始其生命周期；`SUCCEED`、`FAILED`、`SKIPPED` 和 `MISFIRED` 为终态。`MISFIRED` 表示补偿创建 Job 已耗尽仍失败，`FAILED` 表示已创建 Job 后的执行或 Workflow 最终失败，`SKIPPED` 表示策略明确选择不执行。状态定义与发生状态迁移的代码必须说明进入条件、租约归属、允许迁移及崩溃后的恢复动作。
+
+**Job 状态**：
+`INITED` 表示已创建但尚未派发；`RESTARTED` 表示重试调度中、等待重新派发，二者同属可派发态。`RUNNING` 表示已派发到 Worker 且正在执行。`RETRY_WAIT` 表示失败后已持久化 `next_retry_at`、等待下一次重试到期。`SUCCEED`、`FAILED`、`CANCELLED`、`TERMINATED` 为终态：`SUCCEED` 表示 Worker 上报成功、`FAILED` 表示执行失败或 Worker 拒绝、`CANCELLED` 表示被取消、`TERMINATED` 表示被手工终止。`PAUSED` 表示暂停、不计入终态。状态定义与发生状态迁移的代码必须说明进入条件、所属租约、允许迁移及崩溃后的恢复动作。
 
 **节点失败后继续策略（continueOnFailure）**：
 Workflow 节点级配置，决定该节点的 Job 在重试耗尽后失败时，是否仍将该节点视为已完成并推进下游。启用时，Job 仍保持真实的 `FAILED` 状态，但在下游依赖判定中视为已完成；Execution 的终态由 Workflow 是否按其完成策略到达结束条件决定。旧名称 `skipWhenFail` 的兼容迁移不得改变既有配置的运行含义。
 
 **Workflow 结束条件**：
-Workflow 配置必须恰好有一个 `END` 节点；所有并行分支必须汇合至该节点。仅该节点成功完成时，Execution 才可进入 `SUCCEEDED`，从而避免某个分支提前结束导致 Execution 过早成功。
+Workflow 配置必须恰好有一个 `END` 节点；所有并行分支必须汇合至该节点。仅该节点成功完成时，Execution 才可进入 `SUCCEED`，从而避免某个分支提前结束导致 Execution 过早成功。
 
 **Execution 版本快照**：
 Execution 创建时必须固化所属 Trigger 和 Executable 的版本。每个 Execution 始终使用创建时的版本。

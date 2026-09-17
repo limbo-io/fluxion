@@ -1,83 +1,99 @@
 # Fluxion 测试指南
 
-本文档介绍 Fluxion 任务调度平台的测试流程和使用方法。
+本文档介绍 Fluxion 任务调度平台的测试流程与真实测试清单。所有 profile、测试类与命令均可用仓库验证。
+
+> 术语以 [CONTEXT.md](../../CONTEXT.md) 为权威。测试围绕当前 Execution 调度模型组织；旧文档中的 `ScheduleLeaseMySqlTest`、`ExecutionRecoveryMySqlTest`、`BrokerMultiNodeLeaseTest`、`LeaseBoundaryTest` 已在 `ScheduleDelay → Execution` 合并中删除，不再存在。
 
 ## 快速开始
 
 ```bash
-# 1. 执行非 MySQL 回归测试
+# 1. 回归测试（排除 integration/mysql 包，H2 驱动）
 mvn test -pl fluxion-test -am -Pregression-test
 
-# 2. 执行 MySQL 并发 SQL 集成测试（需要 Docker 或外部 MySQL）
-mvn test -pl fluxion-test -am -Pmysql-integration-test
+# 2. 集成回归（只跑 integration/mysql 包；H2 MySQL 兼容模式）
+mvn test -pl fluxion-test -am -Ph2-integration-test
 ```
 
-## 回归测试（发布前验证）
+> 注意：JDK 要求 21（`.mvn` 与 pom 的 release 配置）。本地若只有 JDK 17，测试不会执行。
 
-`regression-test` profile 执行除 `integration/mysql` 外的 `*Test`/`*Tests`。使用 `-am` 确保测试运行的是本次构建出的 server/worker 模块，而不是本地 Maven 仓库中的旧依赖。
+## 回归测试（regression-test）
+
+跑 `**/*Test.java` / `**/*Tests.java`，**排除** `**/integration/mysql/**`。使用 `-am` 确保测试运行的是本次构建出的 server/worker 模块，而不是本地 Maven 仓库的旧依赖。
 
 ```bash
-# 运行回归测试
 mvn test -pl fluxion-test -am -Pregression-test
 ```
 
-回归测试覆盖以下场景：
-1. 延迟任务调度配置
-2. Cron 表达式调度配置
-3. 任务分发配置
-4. Worker 执行配置
-5. 失败重试机制
-6. 工作流调度配置
-7. 核心 API 验证
+覆盖：调度配置（固定速率/延迟/Cron）、积压策略、时间轮调度器、Broker 生命周期、Executor/Job 协作、Worker 过滤与负载均衡。
 
-## MySQL 集成测试
+## 集成回归（h2-integration-test）
 
-lease fencing、数据库锁和 execution recovery 使用 MySQL 专有 SQL，必须在 MySQL 8 上验证，不能使用 H2 替代：
+**只跑** `fluxion-test/src/test/java/io/fluxion/test/integration/mysql/` 下的测试，用 H2（MySQL 兼容模式）作为数据库：
 
 ```bash
-# 默认通过 Testcontainers 启动 MySQL 8
-mvn test -pl fluxion-test -am -Pmysql-integration-test
-
-# 无 Docker 时，使用外部 MySQL
-export FLUXION_TEST_MYSQL_URL='jdbc:mysql://127.0.0.1:3306/fluxion_test?useSSL=false&serverTimezone=UTC'
-export FLUXION_TEST_MYSQL_USERNAME=root
-export FLUXION_TEST_MYSQL_PASSWORD='***'
-mvn test -pl fluxion-test -am -Pmysql-integration-test
+mvn test -pl fluxion-test -am -Ph2-integration-test
 ```
 
-该 profile 覆盖数据库锁竞争、schedule lease 续租/接管和 execution recovery 的 MySQL 行为。
+覆盖 Execution 唯一身份约束、Job 容错字段持久化、Job 租约与 attempt fencing、Worker 下线迁移链路与分布式锁语义。
 
-## 测试架构
+### H2 的边界
 
-Fluxion 测试采用**分层架构**：
+`h2-integration-test` 明确排除 `DistributedLockMySqlTest`：MySQL 原子 upsert（`INSERT ... ON DUPLICATE KEY`）语义不能由 H2 表达。**分布式锁的 MySQL 行为当前无自动化入口**：
 
-```
-Layer 1: 单元测试 (Unit Tests)
-Layer 2: MySQL 集成测试 (MySQL Integration Tests)
-```
+- 仓库**没有** `mysql-integration-test` profile（旧文档介绍的 Testcontainers 命令不存在）。
+- 该类需真实 MySQL 时，可参考 `fluxion-test/src/test/resources/application-test-mysql.yml` 自行配置外部 MySQL（`FLUXION_TEST_MYSQL_*` 环境变量），但当前没有现成的 Maven 命令把它跑起来——这是待补的运维缺口。
 
 ## 可用 Maven Profiles
 
+仓库仅存在以下两个测试 profile（见 `fluxion-test/pom.xml`）：
+
 | Profile | 命令 | 说明 |
 |---------|------|------|
-| `regression-test` | `mvn test -pl fluxion-test -am -Pregression-test` | 运行非 MySQL 测试 |
-| `mysql-integration-test` | `mvn test -pl fluxion-test -am -Pmysql-integration-test` | 仅运行 MySQL 集成测试 |
+| `regression-test` | `mvn test -pl fluxion-test -am -Pregression-test` | 跑所有测试，排除 `integration/mysql` 包 |
+| `h2-integration-test` | `mvn test -pl fluxion-test -am -Ph2-integration-test` | 只跑 `integration/mysql` 包（H2），排除 `DistributedLockMySqlTest` |
 
-## MySQL 集成测试清单
+不存在 `mysql-integration-test` profile。CI 使用的就是以上两个（见下）。
 
-位于 `fluxion-test/src/test/java/io/fluxion/test/integration/mysql/`：
+## 真实测试清单
+
+### core/（组件回归，regression-test）
 
 | 测试类 | 覆盖场景 |
 |--------|----------|
-| `ScheduleLeaseMySqlTest` | Schedule lease 续租、接管、验证 |
-| `ExecutionRecoveryMySqlTest` | Execution recovery、超时重试 |
-| `DistributedLockMySqlTest` | 分布式锁并发、过期、错误 unlock |
-| `BrokerMultiNodeLeaseTest` | 双 Broker lease Command 链路 |
-| `LeaseBoundaryTest` | Lease 参数边界、优雅停机 |
+| `core/broker/BrokerLifecycleTest` | Broker 启动时注册全部 core task（ScheduleLoader、ExecutionLoader、各 Checker 等） |
+| `core/executor/ExecutorExecutionTest` | Executor 为当前 Execution 创建 Job |
+| `core/job/JobRetryCommandServiceTest` | 重试触发时 Job 状态重置并可重新运行 |
+| `core/schedule/BacklogStrategyTest` | 积压策略保留**全部**历史与未来触发点（不折叠、不丢弃——与 CONTEXT“历史补建不折叠”一致） |
+| `core/schedule/DelayedTaskSchedulerTest` | 延迟任务入轮/到点执行/重复抑制/停止/过期触发时间 |
+| `core/schedule/PeriodicTaskSchedulerTest` | 固定速率、固定延迟、停止、时间窗口外调度 |
+| `core/worker/WorkerCpuLoadSelectionTest` | LEAST_CPU_LOAD 选择最低负载 Worker、CPU 阈值过滤 |
+| `core/worker/WorkerLoadBalancingTest` | 按 executor/CPU/内存过滤、RANDOM/ROUND_ROBIN 负载均衡 |
+
+### integration/mysql/（真实 MySQL 语义，H2 兼容模式跑）
+
+| 测试类 | 覆盖场景 |
+|--------|----------|
+| `ExecutionIdentityConstraintTest` | `(triggerId, triggerAt)` 唯一约束拒绝重复创建 Execution（ScheduleDelay→Execution 合并的核心回归） |
+| `JobFaultStatePersistenceTest` | `dispatch_attempt`/`lease_owner`/`lease_until`/`timeout_at`/`next_retry_at` 容错字段持久化 |
+| `JobLeaseServiceTest` | 租约 owner 单调分配 attempt、活跃 Job 续租、旧 attempt 结果拒绝、RETRY_WAIT 到期与唯一性 |
+| `WorkerOfflineMigrationTest` | Worker 指派检索、`recovery_owner` 与 worker 分离、终态排除，验证 Job 级接管 |
+| `ObservationOverviewMySqlTest` | 存量观测接口：状态分布 zero-fill、积压/misfire 候选/可回收租约边界（见 [operations.md](../guides/operations.md)「可观测性现状」） |
+| `MultiBrokerClaimConcurrencyTest` | 多 Broker 并发：双线程条件 UPDATE claim 竞争仅一胜者、并发创建唯一键兜底、租约过期bucket 移交后 handle() 完整接管（真实多线程） |
+| `DistributedLockMySqlTest` | MySQL 原子锁：获取/失败/过期/超时并发/仅持有者解锁（**被 h2 profile 排除**，见上文） |
+| `JsonTest` / `ReflectionTest` | 库级工具回归（非业务） |
+
+### support/（测试基础设施）
+
+| 类 | 作用 |
+|----|------|
+| `support/base/TestApplication` | core 组件测试的 Spring 入口（注意：不存在 `BaseIntegrationTest`） |
+| `support/environment/LocalDistributedLock` | 本地锁实现，替代数据库分布式锁 |
+| `integration/mysql/MySqlTestApplication` | integration/mysql 包测试的 Spring 入口 |
+| `integration/mysql/AbstractMySqlIntegrationTest` | 空 abstract 基类（仅作类型标记） |
 
 ## 编写新测试
 
-### 1. 单元测试
+### 1. 组件测试（core/）
 
 ```java
 package io.fluxion.test.core.schedule;
@@ -85,95 +101,70 @@ package io.fluxion.test.core.schedule;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class MyUtilityTest {
+class MyComponentTest {
     @Test
-    void shouldCalculateCorrectly() {
-        // Given
-        String input = "hello";
-
-        // When
-        String result = MyUtility.capitalize(input);
-
-        // Then
-        assertThat(result).isEqualTo("Hello");
+    void shouldDoSomething() {
+        // Given / When / Then
     }
 }
 ```
 
-### 2. MySQL 集成测试
+### 2. MySQL 语义测试（integration/mysql/）
 
 ```java
 package io.fluxion.test.integration.mysql;
 
-import io.fluxion.test.support.base.BaseIntegrationTest;
-import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(classes = MySqlTestApplication.class)
 @ActiveProfiles("test-mysql")
-class MyMySqlTest extends AbstractMySqlIntegrationTest {
+class MyMySqlTest {
 
     @Test
     void shouldWorkWithMySQL() {
-        // 使用真实 MySQL 数据库
+        // 事务/条件更新/锁语义验证
     }
 }
 ```
 
-## CI/CD 流水线
+配置见 `fluxion-test/src/test/resources/application-test-mysql.yml` 与 `schema-mysql.sql`。
 
-项目已配置 GitHub Actions 工作流：
+## CI 流水线（.github/workflows/）
 
-### `.github/workflows/ci.yml`
-
-```
-Push/PR → compile → regression-test → mysql-integration-test → all-tests-passed
-```
-
-### `.github/workflows/test.yml`
+### `test.yml`
 
 ```
-Push/PR → unit-test → regression-test → mysql-integration-test
+Push/PR → mvn test → mvn test -Pregression-test → mvn test -Ph2-integration-test
 ```
 
-### 本地模拟 CI 执行
+### `ci.yml`
+
+```
+Push/PR → mvn test -Pregression-test → mvn test -Ph2-integration-test
+```
 
 ```bash
-# 完整 CI 流程（本地模拟）
+# 本地模拟 CI
 mvn clean
-mvn test -pl fluxion-test -am --batch-mode                    # 单元测试
+mvn test -pl fluxion-test -am --batch-mode                    # 默认单元测试
 mvn test -pl fluxion-test -am -Pregression-test --batch-mode  # 回归测试
-mvn test -pl fluxion-test -am -Pmysql-integration-test        # MySQL 集成测试
+mvn test -pl fluxion-test -am -Ph2-integration-test --batch-mode  # 集成回归
 ```
 
-## 测试清理记录
+## 历史清理记录（供考古）
 
-### 已删除的过期测试
-
-| 测试类 | 删除原因 | 替代方案 |
-|--------|----------|----------|
-| `FencingConditionMySqlTest` | 仅测试 MySQL NOW(3) 临时表，不覆盖业务逻辑 | 使用真实 lease/lock 测试 |
-| `ExecutionRegistrationTest` | 纯 DTO builder 测试，无业务覆盖 | 由集成测试覆盖 |
-| `ExecutionResultTest` | 纯 DTO builder 测试，无业务覆盖 | 由集成测试覆盖 |
-| `ExecutionStateTest` | 纯 enum 测试，无业务覆盖 | 由集成测试覆盖 |
-| `ErrorCategoryTest` | 纯 enum 测试，无业务覆盖 | 由集成测试覆盖 |
-
-### 已重写的测试
-
-| 测试类 | 重写内容 |
-|--------|----------|
-| `ScheduleTaskTest` | 使用 FakeTimer 替代 Thread.sleep |
-
-### 已新增的测试
-
-| 测试类 | 覆盖场景 |
-|--------|----------|
-| `BrokerMultiNodeLeaseTest` | T2.1: 2 Broker Command → Handler → Database 链路 |
-| `LeaseBoundaryTest` | T2.2/T2.3: Lease 参数边界、优雅停机 |
+| 时代 | 测试类 | 现状 |
+|------|--------|------|
+| ScheduleDelay 时期 | `FencingConditionMySqlTest`、`ExecutionRegistrationTest`、`ExecutionResultTest`、`ExecutionStateTest`、`ErrorCategoryTest` | 已删除（纯 DTO/enum/临时表测试，无业务覆盖） |
+| ScheduleDelay 时期 | `ScheduleLeaseMySqlTest`、`ExecutionRecoveryMySqlTest`、`BrokerMultiNodeLeaseTest`、`LeaseBoundaryTest` | 在 `ScheduleDelay → Execution` 合并中删除 |
+| ScheduleDelay 时期 | `ScheduleTaskTest` | 已重写为 `PeriodicTaskSchedulerTest`/`DelayedTaskSchedulerTest` 等 |
+| 空目录遗迹 | `core/execution`、`core/faulttolerance/{failover,retry,store,timeout}`、`core/job/fault` | 空目录，无测试，可清理 |
+| 测试支撑 | `io.fluxion.server.core.execution.service.ExecutionScheduleClaimBridge` | 同包桥（测试源码），暴露 protected `claim()` 供并发测试直击原子原语，非测试类不参与任何 profile |
 
 ## 注意事项
 
-1. **ScheduleLease**、**ExecutionRecovery**、**DistributedLock** 必须在 MySQL 上测试
-2. `regression-test` 和 `mysql-integration-test` 是 CI 中唯二可用的 profile
-3. 测试文件命名遵循 `*Test.java` 或 `*Tests.java` 模式
+1. `DistributedLockMySqlTest` 无法在 H2 下运行，只能跑在真实 MySQL 上（当前无现成 profile，见上文）。
+2. 当前 CI 中只执行 `regression-test` 与 `h2-integration-test` 两个 profile。
+3. 测试文件命名遵循 `*Test.java` 或 `*Tests.java` 模式。
+4. H2 回归不覆盖 MySQL 原生 SQL 语义（原子 upsert、锁竞争、隔离级别），生产 MySQL 验证仍是未闭环项。

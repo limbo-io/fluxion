@@ -278,52 +278,59 @@ public class MapReduceJobTracker extends JobTracker {
 
 ## 任务状态流转
 
+> 状态名以 [CONTEXT.md](../../CONTEXT.md) 的「Job 状态」为权威。代码以 `io.fluxion.remote.core.constants.JobStatus` 为准。
+
 ### 状态定义
 
 ```java
 public enum JobStatus {
-    PENDING,      // 等待调度
-    SCHEDULING,   // 调度中
-    DISPATCHING,  // 分发中
-    RUNNING,      // 执行中
-    SUCCEED,      // 执行成功
-    FAILED;       // 执行失败
+    INITED("inited"),        // 已创建但尚未派发
+    RESTARTED("restarted"),  // 重试调度中，等待重新派发（与 INITED 同属可派发态）
+    RUNNING("running"),      // 已派发到 Worker 且正在执行
+    SUCCEED("succeed"),      // 终态：Worker 上报成功
+    FAILED("failed"),        // 终态：执行失败或 Worker 拒绝
+    CANCELLED("cancelled"),  // 终态：被取消
+    TERMINATED("terminated"),// 终态：被手工终止
+    RETRY_WAIT("retry_wait"),// 失败后持久化 next_retry_at，等待重试到期
+    PAUSED("paused");       // 暂停（非终态）
+
+    // 终态集合：SUCCEED / FAILED / CANCELLED / TERMINATED
 }
 ```
 
 ### 状态流转图
 
 ```
-                    ┌─────────────┐
-         ┌─────────│   PENDING   │──────────┐
-         │         │  (等待调度)  │          │
-         │         └──────┬──────┘          │
-         │                │ 调度触发          │
-         │                ▼                 │
-         │         ┌─────────────┐          │
-         │         │ SCHEDULING  │          │
-         │         │  (调度中)    │          │
-         │         └──────┬──────┘          │
-         │                │ 选择 Worker      │
-         │                ▼                 │
-         │         ┌─────────────┐          │
-         ├────────▶│ DISPATCHING │          │
-重试/重调度          │  (分发中)    │          │
-         │         └──────┬──────┘          │
-         │                │ 下发成功          │
-         │                ▼                 │
-         │         ┌─────────────┐          │
-         │         │   RUNNING   │          │
-         │         │  (执行中)    │          │
-         │         └──────┬──────┘          │
-         │           ┌────┴────┐            │
-         │           │         │            │
-         │           ▼         ▼            │
-         │    ┌─────────┐ ┌─────────┐       │
-         └────│ SUCCEED │ │  FAILED │◀──────┘
-              │(执行成功) │ │(执行失败) │
-              └─────────┘ └─────────┘
+   (Execution CLAIMED -> RUNNING 事务内创建 Job)
+                   │
+                   ▼
+             ┌──────────┐
+             │  INITED  │◀──────────────────┐
+             └────┬─────┘                   │
+        选择 Worker│ 派发                     │ 重试到期
+                  ▼                          │
+             ┌──────────┐   派发/重派        ┌───────────────┐
+             │ RUNNING  │──────────────▶│ RETRY_WAIT    │
+             └────┬─────┘   失败+可重试      └───────────────┘
+                  │                  （持久化 next_retry_at）
+        ┌─────────┼─────────┐
+        │成功      │失败      │失败已耗尽重试/被终止
+        ▼         ▼         ▼
+   ┌──────────┐┌─────────┐┌──────────┬────────────┐
+   │ SUCCEED  ││ FAILED  ││CANCELLED ││TERMINATED  │
+   └──────────┘└─────────┘└──────────┴────────────┘
+
+   RESTARTED：重试调度中的可派发态（语义同 INITED）；
+   PAUSED：暂停，不计入终态。
 ```
+
+### 关键约束
+
+- **fencing**：Worker 执行结果只接受与当前 `dispatch_attempt + worker` 匹配的请求，过期 attempt 的结果被忽略。
+- **终态判定**：`finishStatus = {SUCCEED, FAILED, CANCELLED, TERMINATED}`；Workflow 的 `continueOnFailure` 节点失败时 Job 保留真实 `FAILED`，但下游依赖视为已满足。
+- 旧文档中出现的 `PENDING / SCHEDULING / DISPATCHING` 不是 JobStatus 值，属已删除状态；
+  「等待触发」语义属于 Execution（见 `execution-state.md`）。
+
 
 ## 对比总结
 

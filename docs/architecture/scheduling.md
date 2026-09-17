@@ -144,11 +144,34 @@ public class ScheduleCalculatorFactory {
 
 ## 调度执行流程
 
-### 多 Broker 的 delay 领取
+### 多 Broker 在 Execution 表上的领取
 
-`fluxion_schedule_delay` 是实际的 Broker 协调记录。Broker 只处理自己 buckets 内的 delay，并以条件更新领取 `INIT` 记录。领取成功后写入 `lease_owner`、`lease_until` 并递增 `attempt`；只有 lease 仍有效的 owner 才能继续进入 `CLAIMED → RUNNING`。
+`fluxion_execution`（唯一键 `uk_execution_trigger(trigger_id, trigger_at)`）是实际领取目标；不再有独立的 `fluxion_schedule_delay` 表。Broker 在自己的 bucket 范围内按条件 UPDATE 领取：
 
-租约参数固定为 15 秒有效期、10 秒续租、5 秒过期扫描。故障 Broker 停止续租后，过期的 `CLAIMED` delay 会先被释放为 `INIT`，再由拥有该 bucket 的 Broker 重新领取。这个两步过程避免旧 owner 在恢复后继续推进已失去所有权的调度记录。
+```sql
+-- 选取候选（handle(ExecutionsLoadCmd)，按 bucket + 到期 + nextFireAt）：
+SELECT e FROM fluxion_execution e
+ WHERE e.status = 'PENDING' AND e.bucket IN :buckets
+   AND e.trigger_at <= :endAt                -- endAt = now + 60s 预加载窗口
+   AND (e.next_fire_at IS NULL OR e.next_fire_at <= NOW(3))
+ ORDER BY e.trigger_at ASC LIMIT 100;
+
+-- 逐条 condition-claim（claim()，一次一条，动到 1 行才算领取成功）：
+UPDATE fluxion_execution
+   SET status = 'CLAIMED',
+       lease_owner = :brokerId,
+       execution_token = :token,
+       lease_until = NOW(3) + INTERVAL :claimLeaseSeconds SECOND,  -- CLAIM_LEASE_SECONDS=15
+       fire_attempt = fire_attempt + :inc   -- 仅 misfired 时 +1
+ WHERE execution_id = :executionId
+   AND status = 'PENDING';
+```
+
+> 并发领取一致性的内核：按 `execution_id` 单条条件更新，多 Broker 同时抢同一行时仅一行 update 成功（`executeUpdate() == 1` 判定），无需分布式锁。
+
+领取后**不续租**：仅一次性设 `lease_until = NOW(3) + 15s`（常量 `ExecutionScheduleCommandService.CLAIM_LEASE_SECONDS=15`）。同一事务内创建 Job 并完成 `CLAIMED → RUNNING`，清掉调度租约。若 Broker 在事务提交前崩溃超过 15s，`ExecutionLoader`（每 1 分钟）发出的 `ExecutionsLoadCmd` 中 `reclaimExpiredClaims` 会把过期的 CLAIMED 重新放出，再由任意 Broker 领取。最大自恢复延迟约 15s + 1min。
+
+> 旧文档中所说的 `fluxion_schedule_delay`、`INIT/CLAIMED` 两阶段、`LeaseMaintainer` 每 10s 续租，都是 ScheduleDelay 时代残留，请勿参照。真实续租心跳与 Job lease 相关，但调度租约本身不续租。
 
 ### 完整流程
 
