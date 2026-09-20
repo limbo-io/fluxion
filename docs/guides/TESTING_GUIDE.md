@@ -38,21 +38,25 @@ mvn test -pl fluxion-test -am -Ph2-integration-test
 
 ### H2 的边界
 
-`h2-integration-test` 明确排除 `DistributedLockMySqlTest`：MySQL 原子 upsert（`INSERT ... ON DUPLICATE KEY`）语义不能由 H2 表达。**分布式锁的 MySQL 行为当前无自动化入口**：
+`h2-integration-test` 明确排除 `DistributedLockMySqlTest`：MySQL 原子 upsert（`INSERT ... ON DUPLICATE KEY`）语义不能由 H2 表达。真实 MySQL 回归入口：
 
-- 仓库**没有** `mysql-integration-test` profile（旧文档介绍的 Testcontainers 命令不存在）。
-- 该类需真实 MySQL 时，可参考 `fluxion-test/src/test/resources/application-test-mysql.yml` 自行配置外部 MySQL（`FLUXION_TEST_MYSQL_*` 环境变量），但当前没有现成的 Maven 命令把它跑起来——这是待补的运维缺口。
+```bash
+# 需可用 MySQL，默认 root/空密码 @127.0.0.1:3306/fluxion_test，可用环境变量覆盖
+export FLUXION_TEST_MYSQL_PASSWORD=***
+mvn test -pl fluxion-test -am -Pmysql-integration-test
+```
+
+连接配置见 `fluxion-test/src/test/resources/application-test-real-mysql.yml`（`FLUXION_TEST_MYSQL_*` 环境变量可覆盖 host/port/db/user/password）。MySQL 不可用时该 profile 直接失败，不静默跳过。
 
 ## 可用 Maven Profiles
 
-仓库仅存在以下两个测试 profile（见 `fluxion-test/pom.xml`）：
+仓库仅存在以下测试 profile（见 `fluxion-test/pom.xml`）：
 
 | Profile | 命令 | 说明 |
 |---------|------|------|
 | `regression-test` | `mvn test -pl fluxion-test -am -Pregression-test` | 跑所有测试，排除 `integration/mysql` 包 |
-| `h2-integration-test` | `mvn test -pl fluxion-test -am -Ph2-integration-test` | 只跑 `integration/mysql` 包（H2），排除 `DistributedLockMySqlTest` |
-
-不存在 `mysql-integration-test` profile。CI 使用的就是以上两个（见下）。
+| `h2-integration-test` | `mvn test -pl fluxion-test -am -Ph2-integration-test` | 只跑 `integration/mysql` 包（H2 MySQL 兼容模式），排除 `DistributedLockMySqlTest` |
+| `mysql-integration-test` | `mvn test -pl fluxion-test -am -Pmysql-integration-test` | 只跑 `DistributedLockMySqlTest`，需要真实 MySQL |
 
 ## 真实测试清单
 

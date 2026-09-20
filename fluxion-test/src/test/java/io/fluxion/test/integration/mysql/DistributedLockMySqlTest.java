@@ -26,6 +26,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.mockito.Mockito.mock;
@@ -58,10 +60,19 @@ import static org.assertj.core.api.Assertions.assertThat;
  * These tests verify the MySQL-safe implementation of distributed locking
  * using UUID tokens and ThreadLocal for proper ownership tracking.
  */
-@SpringBootTest(classes = MySqlTestApplication.class)
-@ActiveProfiles("test-mysql")
+@SpringBootTest(classes = {MySqlTestApplication.class, DistributedLockMySqlTest.LockConfig.class})
+@ActiveProfiles("test-real-mysql")
 @DisplayName("Distributed Lock MySQL Integration Tests")
 class DistributedLockMySqlTest extends AbstractMySqlIntegrationTest {
+
+    /**
+     * 真实 MySQL 专用：MySqlTestApplication 的扫描排除了 DatabaseDistributedLock（H2 路径用不到），
+     * 此处对 real-mysql 上下文显式注册回来。
+     */
+    @Configuration(proxyBeanMethods = false)
+    @Import(DatabaseDistributedLock.class)
+    static class LockConfig {
+    }
 
     @Autowired
     private DatabaseDistributedLock distributedLock;

@@ -160,6 +160,28 @@
                 </plugins>
             </build>
         </profile>
+        <!-- Real-MySQL Integration Profile（需可用 MySQL，连不上则失败，不静默跳过） -->
+        <profile>
+            <id>mysql-integration-test</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${maven-surefire-plugin.version}</version>
+                        <configuration>
+                            <includes>
+                                <include>**/integration/mysql/DistributedLockMySqlTest.java</include>
+                            </includes>
+                            <failIfNoTests>true</failIfNoTests>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
 </project>
