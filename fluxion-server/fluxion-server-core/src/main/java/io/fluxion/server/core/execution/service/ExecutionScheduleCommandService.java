@@ -6,6 +6,7 @@
 
 package io.fluxion.server.core.execution.service;
 
+import io.fluxion.common.thread.CommonThreadPool;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
 import io.fluxion.server.core.execution.Executable;
@@ -102,7 +103,9 @@ public class ExecutionScheduleCommandService {
             }
             DelayedTaskScheduler scheduler = BrokerContext.broker().delayedTaskScheduler();
             scheduler.schedule(DelayedTaskFactory.create(taskId(execution.getExecutionId()), execution.getTriggerAt(),
-                task -> runClaimedExecution(execution.getExecutionId(), brokerId, token)));
+                // 时间轮线程只做移交：建 Job 事务交给有界 IO 池，慢 SQL/大量到点不再串行阻塞整个时间轮。
+                // 顺序与重复由 claim 条件 UPDATE 仲裁；排队/被拒绝期间租约兜底（reclaim 后重领）。
+                task -> CommonThreadPool.IO.execute(() -> runClaimedExecution(execution.getExecutionId(), brokerId, token))));
         }
     }
 

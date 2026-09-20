@@ -38,12 +38,17 @@ public class CommonThreadPool {
             new LinkedBlockingDeque<>(4096),
             new ThreadPoolExecutor.CallerRunsPolicy());
 
+    /**
+     * 有界队列 + 快速拒绝：队列满时提交线程不会被拖入执行（否则会把时间轮/恢复检查器拖慢），
+     * 被拒绝的派发与触发回调由租约回收、JobUnRunChecker 等恢复机制兑底，at-least-once 幂等由 jobId 保证。
+     * ponytail: 队列容量 10k 为经验值；积压常态化时再加监控水位与分级队列。
+     */
     public static final ThreadPoolExecutor IO = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors() * 4,
             Runtime.getRuntime().availableProcessors() * 4,
             60,
             TimeUnit.SECONDS,
-            new LinkedBlockingDeque<>(1048576),
-            new ThreadPoolExecutor.CallerRunsPolicy());
+            new LinkedBlockingDeque<>(10_000),
+            new ThreadPoolExecutor.AbortPolicy());
 
 }
