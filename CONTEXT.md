@@ -21,10 +21,15 @@ _避免使用_：Execution、Task、派发记录
 _避免使用_：ScheduleInstance、Job、仅指实际运行记录
 
 **Execution 状态**：
-`PENDING` 表示已计划但尚未被 Broker 领取；`CLAIMED` 表示 Broker 持有短租约、正在创建 Job，尚未开始实际运行；`RUNNING` 表示 Job 已创建并开始其生命周期；`SUCCEED`、`FAILED`、`SKIPPED` 和 `MISFIRED` 为终态。`MISFIRED` 表示补偿创建 Job 已耗尽仍失败，`FAILED` 表示已创建 Job 后的执行或 Workflow 最终失败，`SKIPPED` 表示策略明确选择不执行。状态定义与发生状态迁移的代码必须说明进入条件、租约归属、允许迁移及崩溃后的恢复动作。
+`PENDING` 表示已计划但尚未被 Broker 领取；`CLAIMED` 表示 Broker 持有短租约、正在创建 Job，尚未开始实际运行；`RUNNING` 表示 Job 已创建并开始其生命周期；`INITED` 表示非调度方式（手动、接口触发）创建的 Execution 的初始状态，等待首个 Job 启动后进入 `RUNNING`（调度类 Execution 一律经 `PENDING` 进入，不走该状态）；`INVALID` 表示未运行即作废：Trigger 配置发布作废既有 `PENDING` 实例、领取时发现 Trigger 已停用时作废 `CLAIMED` 实例，均为终态，不派发、不补偿。`SUCCEED`、`FAILED`、`SKIPPED` 和 `MISFIRED` 为其余终态：`MISFIRED` 表示补偿创建 Job 已耗尽仍失败，`FAILED` 表示已创建 Job 后的执行或 Workflow 最终失败，`SKIPPED` 表示策略明确选择不执行。状态定义与发生状态迁移的代码必须说明进入条件、租约归属、允许迁移及崩溃后的恢复动作。
+_避免使用_：把 `INITED` 当作已开始运行；把 `INVALID` 混同于 `FAILED`
 
 **Job 状态**：
 `INITED` 表示已创建但尚未派发；`RESTARTED` 表示重试调度中、等待重新派发，二者同属可派发态。`RUNNING` 表示已派发到 Worker 且正在执行。`RETRY_WAIT` 表示失败后已持久化 `next_retry_at`、等待下一次重试到期。`SUCCEED`、`FAILED`、`CANCELLED`、`TERMINATED` 为终态：`SUCCEED` 表示 Worker 上报成功、`FAILED` 表示执行失败或 Worker 拒绝、`CANCELLED` 表示被取消、`TERMINATED` 表示被手工终止。`PAUSED` 表示暂停、不计入终态。状态定义与发生状态迁移的代码必须说明进入条件、所属租约、允许迁移及崩溃后的恢复动作。
+
+**调度反馈（Schedule Feedback）**：
+Execution 到达任一终态时，Broker 必须以该时刻记一次反馈：写入所属 Schedule 的反馈时间并据此推算下一个触发点。未创建 Job 的终态（`SKIPPED`、`MISFIRED`、`INVALID`）同样必须反馈；只有 Schedule 已删除时才允许不反馈。FIXED_DELAY 类型的 Schedule 完全依赖反馈推进——每个触发点的间隔从反馈时刻起算；任何到达终态却不反馈的 Execution 都会使该 Schedule 永久停摆。
+_避免使用_：Job 上报（那是 Worker 与 Broker 之间的运行通信）、心跳
 
 **节点失败后继续策略（continueOnFailure）**：
 Workflow 节点级配置，决定该节点的 Job 在重试耗尽后失败时，是否仍将该节点视为已完成并推进下游。启用时，Job 仍保持真实的 `FAILED` 状态，但在下游依赖判定中视为已完成；Execution 的终态由 Workflow 是否按其完成策略到达结束条件决定。旧名称 `skipWhenFail` 的兼容迁移不得改变既有配置的运行含义。

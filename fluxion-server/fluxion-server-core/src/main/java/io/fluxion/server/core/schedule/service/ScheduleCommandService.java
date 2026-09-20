@@ -135,6 +135,10 @@ public class ScheduleCommandService {
         List<LocalDateTime> triggerPoints = new ArrayList<>();
         LocalDateTime lastTriggerAt = schedule.getLastTriggerAt();
         LocalDateTime nextTriggerAt = schedule.getNextTriggerAt();
+        if (nextTriggerAt == null) {
+            // FIXED_DELAY 在途实例未反馈时会置空 nextTriggerAt，或调度已无后续触发点；由反馈链路/人工发布继续推进
+            return;
+        }
         if (nextTriggerAt.isBefore(now)) {
             nextTriggerAt = new BasicCalculation(
                     lastTriggerAt, lastTriggerAt, schedule.getOption()
@@ -222,9 +226,9 @@ public class ScheduleCommandService {
         if (rows <= 0 || ScheduleType.FIXED_DELAY != schedule.getOption().getType()) {
             return;
         }
-        // 触发下次调度
+        // 触发下次调度；反馈时刻必须用刚写入的 now，而非内存中尚未刷新的旧 lastFeedbackAt（首次反馈时其为 null，会使 FIXED_DELAY 无法推进）
         BasicCalculation calculation = new BasicCalculation(
-                schedule.getLastTriggerAt(), schedule.getLastFeedbackAt(), schedule.getOption()
+                schedule.getLastTriggerAt(), now, schedule.getOption()
         );
         schedule.setNextTriggerAt(calculation.triggerAt());
         Cmd.send(new ScheduleTriggerCmd(schedule));

@@ -16,6 +16,7 @@ import io.fluxion.server.core.execution.cmd.ExecutionsLoadCmd;
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
+import io.fluxion.server.core.execution.cmd.ExecutionScheduleFeedbackCmd;
 import io.fluxion.server.core.trigger.Trigger;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
@@ -33,6 +34,7 @@ import javax.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import io.limbo.cqrs.core.commandhandling.Cmd;
 import io.limbo.cqrs.core.queryhandling.Query;
 
 /**
@@ -181,7 +183,7 @@ public class ExecutionScheduleCommandService {
     }
 
     private void changeClaimedStatus(ExecutionEntity entity, ExecutionStatus status) {
-        entityManager.createQuery("update ExecutionEntity set status = :status, endAt = :now, " +
+        int updated = entityManager.createQuery("update ExecutionEntity set status = :status, endAt = :now, " +
                 "leaseOwner = null, leaseUntil = null, executionToken = null " +
                 "where executionId = :executionId and status = :claimed and executionToken = :token")
             .setParameter("status", status.value)
@@ -190,16 +192,27 @@ public class ExecutionScheduleCommandService {
             .setParameter("claimed", ExecutionStatus.CLAIMED.value)
             .setParameter("token", entity.getExecutionToken())
             .executeUpdate();
+        if (updated > 0) {
+            // 与 finishPending 同理：领取后作废/补偿耗尽也是终态，必须反馈
+            Cmd.send(new ExecutionScheduleFeedbackCmd(entity.getExecutionId()));
+        }
     }
 
     private void finishPending(String executionId, ExecutionStatus status) {
-        transactionService.transactional(() -> entityManager.createQuery("update ExecutionEntity set status = :status, endAt = :now " +
-                "where executionId = :executionId and status = :pending and deleted = false")
-            .setParameter("status", status.value)
-            .setParameter("now", LocalDateTime.now())
-            .setParameter("executionId", executionId)
-            .setParameter("pending", ExecutionStatus.PENDING.value)
-            .executeUpdate());
+        transactionService.transactional(() -> {
+            int updated = entityManager.createQuery("update ExecutionEntity set status = :status, endAt = :now " +
+                    "where executionId = :executionId and status = :pending and deleted = false")
+                .setParameter("status", status.value)
+                .setParameter("now", LocalDateTime.now())
+                .setParameter("executionId", executionId)
+                .setParameter("pending", ExecutionStatus.PENDING.value)
+                .executeUpdate();
+            if (updated > 0) {
+                // 根据领域规则：未创建 Job 的终态同样必须反馈，否则 FIXED_DELAY 会永久停摆
+                Cmd.send(new ExecutionScheduleFeedbackCmd(executionId));
+            }
+            return null;
+        });
     }
 
     private void releaseForRetry(String executionId, String token) {

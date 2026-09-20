@@ -24,6 +24,7 @@ import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionCleanCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
+import io.fluxion.server.core.execution.cmd.ExecutionScheduleFeedbackCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.schedule.Schedule;
 import io.fluxion.server.core.schedule.cmd.ScheduleFeedbackCmd;
@@ -149,12 +150,23 @@ public class ExecutionCommandService {
             .executeUpdate() > 0;
     }
 
+    /** 承接 Execution 侧发出的调度反馈触发：同一事务内解析 Schedule 并转发 {@code ScheduleFeedbackCmd} */
+    @Transactional
+    @CommandHandler
+    public void handle(ExecutionScheduleFeedbackCmd cmd) {
+        afterFinsh(cmd.getExecutionId());
+    }
+
     private void afterFinsh(String executionId) {
         ExecutionEntity entity = executionEntityRepo.findById(executionId).get();
         if (TriggerType.SCHEDULE != TriggerType.parse(entity.getTriggerType())) {
             return;
         }
         Schedule schedule = Query.query(new ScheduleByIdQuery(entity.getTriggerId())).getSchedule();
+        // 调度已删除：无需反馈，避免反馈链路图空指针回滚终态迁移
+        if (schedule == null) {
+            return;
+        }
         Cmd.send(new ScheduleFeedbackCmd(schedule));
     }
 
