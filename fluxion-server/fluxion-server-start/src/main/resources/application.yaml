@@ -36,23 +36,11 @@ logging:
   config: classpath:log4j2.xml
 
 # fluxion broker configuration
+# 真实的容错行为由代码内置：Worker 3s 心跳、超时 6s 判离线，
+# 派发失败/超时由 Job 检查器（1s 级）恢复；对外可调阈值前不设 dead config。
 fluxion:
   broker:
     host: 
     port: 9785
     protocol: HTTP
-  
-  # fluxion fault tolerance configuration
-  fault-tolerance:
-    retry:
-      max-retries: 5
-      initial-delay: 1s
-      max-delay: 30s
-      multiplier: 2.0
-      jitter: 0.1
-    timeout:
-      default-timeout: 30m
-    failover:
-      enabled: true
-      worker-offline-timeout: 10s
-      max-migrations: 3
+

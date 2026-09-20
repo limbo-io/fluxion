@@ -61,24 +61,7 @@ public enum ExecutionStatus {
     /**
      * Job 已创建，但执行或工作流的失败规则判定本次 Execution 失败。
      */
-    FAILED("failed"),
-    /**
-     * 重试 调度中
-     */
-    RESTARTED("restarted"),
-    /**
-     * 终止
-     * 比如重试时发现是未启用状态
-     */
-    CANCELLED("cancelled"),
-    /**
-     * 暂停
-     */
-    PAUSED("paused"),
-    /**
-     * 手工关闭任务
-     */
-    KILLING("killing");
+    FAILED("failed");
 
     @JsonValue
     public final String value;
@@ -103,23 +86,19 @@ public enum ExecutionStatus {
     }
 
     public boolean isFinished() {
-        return this == FAILED || this == SUCCEED || this == CANCELLED
+        return this == FAILED || this == SUCCEED
             || this == SKIPPED || this == MISFIRED || this == INVALID;
     }
 
     public boolean isCreated() {
-        return this == INITED || this == RESTARTED || this == PENDING || this == CLAIMED;
+        return this == INITED || this == PENDING || this == CLAIMED;
     }
 
     public boolean isRunning() {
-        return this == RUNNING || this == KILLING;
+        return this == RUNNING;
     }
 
     public boolean isFailed() {
         return this == FAILED;
-    }
-
-    public boolean isPaused() {
-        return this == PAUSED;
     }
 }

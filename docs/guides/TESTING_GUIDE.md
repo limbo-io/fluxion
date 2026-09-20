@@ -128,7 +128,7 @@ class MyMySqlTest {
 }
 ```
 
-配置见 `fluxion-test/src/test/resources/application-test-mysql.yml` 与 `schema-mysql.sql`。
+配置见 `fluxion-test/src/test/resources/application-test-mysql.yml`，schema 由 Flyway `migration/` 维护。
 
 ## CI 流水线（.github/workflows/）
 

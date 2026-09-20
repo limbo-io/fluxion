@@ -94,21 +94,6 @@ public class ExecutionEntity extends BaseEntity {
     private LocalDateTime endAt;
 
     /**
-     * Worker ID executing this execution
-     */
-    private String workerId;
-
-    /**
-     * Number of dispatch attempts
-     */
-    private Integer dispatchAttempt;
-
-    /**
-     * Last state update timestamp
-     */
-    private LocalDateTime stateUpdatedAt;
-
-    /**
      * Broker ID that owns the lease
      */
     private String leaseOwner;
@@ -137,12 +122,6 @@ public class ExecutionEntity extends BaseEntity {
      * Bucket number for broker assignment (computed from executionId)
      */
     private Integer bucket;
-
-    /**
-     * Recovery owner broker ID (set when broker claims for recovery)
-     * Separate from workerId to preserve actual worker assignment
-     */
-    private String recoveryOwner;
 
     @Override
     public Object getUid() {

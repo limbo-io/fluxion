@@ -105,7 +105,7 @@ class MyMySqlTest {
 }
 ```
 
-schema 定义见 `src/test/resources/schema-mysql.sql` / `schema-h2.sql` / `migration/`。
+schema 定义见 `src/test/resources/migration/`（Flyway）。
 
 ---
 

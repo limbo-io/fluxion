@@ -19,13 +19,9 @@ package io.fluxion.server.infrastructure.dao.repository;
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * @author Devil
@@ -33,43 +29,9 @@ import java.util.List;
 @Repository
 public interface ExecutionEntityRepo extends JpaRepository<ExecutionEntity, String>, JpaSpecificationExecutor<ExecutionEntity> {
 
+    /**
+     * Execution 创建幂等：每个 (triggerId, triggerAt) 只允许一个实例
+     */
     ExecutionEntity findByTriggerIdAndTriggerAt(String triggerId, LocalDateTime triggerAt);
 
-    /**
-     * Find executions by status list and bucket list
-     * Note: executions may not have bucket field directly, this is for potential bucket-based queries
-     */
-    List<ExecutionEntity> findByStatusIn(List<String> statuses);
-
-    @Query(value = "SELECT * FROM fluxion_execution " +
-            "WHERE status IN (:statuses) " +
-            "AND (bucket IN (:buckets) OR bucket IS NULL) " +
-            "AND (lease_until IS NULL OR lease_until < CURRENT_TIMESTAMP)", nativeQuery = true)
-    List<ExecutionEntity> findActiveExecutionsForRecovery(
-            @Param("statuses") List<String> statuses,
-            @Param("buckets") List<Integer> buckets
-    );
-
-    @Modifying
-    @Query(value = "UPDATE fluxion_execution " +
-            "SET recovery_owner = :brokerId, lease_owner = :brokerId, " +
-            "lease_until = TIMESTAMPADD(SECOND, :leaseSeconds, CURRENT_TIMESTAMP), state_updated_at = CURRENT_TIMESTAMP " +
-            "WHERE execution_id = :executionId " +
-            "AND status IN ('running', 'restarted') " +
-            "AND (lease_until IS NULL OR lease_until < CURRENT_TIMESTAMP)", nativeQuery = true)
-    int claimRecoveryLease(
-            @Param("executionId") String executionId,
-            @Param("brokerId") String brokerId,
-            @Param("leaseSeconds") int leaseSeconds
-    );
-
-    /**
-     * Find executions by lease owner (broker ID)
-     */
-    List<ExecutionEntity> findByLeaseOwner(String leaseOwner);
-
-    /**
-     * Find executions by worker ID or lease owner
-     */
-    List<ExecutionEntity> findByWorkerIdOrLeaseOwner(String workerId, String leaseOwner);
 }
