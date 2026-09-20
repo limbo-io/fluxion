@@ -101,6 +101,7 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
     @DisplayName("T1: 两 Broker 并发 claim 同一 PENDING：条件 UPDATE 仅一个胜出")
     void shouldAllowOnlyOneWinnerWhenTwoBrokersClaimTheSamePendingRow() throws Exception {
         String executionId = seedPendingExecution(LocalDateTime.now().minusSeconds(1), 1);
+        LocalDateTime triggerAt = LocalDateTime.now().minusSeconds(1);
         AtomicInteger winners = new AtomicInteger();
 
         CyclicBarrier barrier = new CyclicBarrier(2);
@@ -109,12 +110,12 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
             Callable<Boolean> brokerA = () -> {
                 barrier.await(10, TimeUnit.SECONDS);
                 return ExecutionScheduleClaimBridge.claim(executionScheduleCommandService,
-                    executionId, "broker-a-" + executionId, "token-a-" + executionId, false);
+                    executionId, triggerAt, "broker-a-" + executionId, "token-a-" + executionId, false);
             };
             Callable<Boolean> brokerB = () -> {
                 barrier.await(10, TimeUnit.SECONDS);
                 return ExecutionScheduleClaimBridge.claim(executionScheduleCommandService,
-                    executionId, "broker-b-" + executionId, "token-b-" + executionId, false);
+                    executionId, triggerAt, "broker-b-" + executionId, "token-b-" + executionId, false);
             };
             List<Future<Boolean>> futures = new ArrayList<>();
             futures.add(pool.submit(brokerA));
@@ -209,7 +210,24 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
         assertThat(after.getFireAttempt()).isZero();
     }
 
-    // ==================== helpers ====================
+    @Test
+    @DisplayName("T4: 预加载领取的租约必须覆盖触发时刻，否则到点守卫必然拒绝")
+    void claimLeaseMustCoverPreloadedTriggerTime() {
+        // 领取提前量 45s（预载窗口 60s、租约 15s 的典型中间态）
+        LocalDateTime triggerAt = LocalDateTime.now().plusSeconds(45);
+        String executionId = seedPendingExecution(triggerAt, 1);
+
+        assertThat(handleAsBroker("broker-lease")).isEqualTo(1);
+
+        ExecutionEntity after = executionEntityRepo.findById(executionId).orElseThrow();
+        assertThat(after.getStatus()).isEqualTo("claimed");
+        // 修复前：leaseUntil = now+15s < triggerAt，到点时守卫将静默拒绝、依赖 reclaim 重领
+        assertThat(after.getLeaseUntil())
+            .as("claim lease should survive until the wheel fires at triggerAt")
+            .isAfter(triggerAt);
+    }
+
+    // ==================== helpers =====================
 
     /** 以指定 broker 身份执行一轮完整 handle()；返回时间轮捕获的领取个数（即 claim 成功数） */
     private int handleAsBroker(String brokerId) {
@@ -234,14 +252,15 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
         return captured;
     }
 
-    /** bucket=1 建给指定 broker；移交时直接改写归属 */
+    /** bucket=1 归属改写为指定 broker（同 JVM 内多个测试类共享库，已有行时必须改写归属而非沿用旧主） */
     private void seedBucketFor(String brokerId) {
-        bucketEntityRepo.findById(1).orElseGet(() -> {
-            BucketEntity bucket = new BucketEntity();
+        BucketEntity bucket = bucketEntityRepo.findById(1).orElse(null);
+        if (bucket == null) {
+            bucket = new BucketEntity();
             bucket.setBucket(1);
-            bucket.setBrokerId(brokerId);
-            return bucketEntityRepo.saveAndFlush(bucket);
-        });
+        }
+        bucket.setBrokerId(brokerId);
+        bucketEntityRepo.saveAndFlush(bucket);
     }
 
     private void handoverBucketTo(String brokerId) {

@@ -97,7 +97,7 @@ public class ExecutionScheduleCommandService {
                 }
             }
             String token = UUID.randomUUID().toString();
-            if (!claim(execution.getExecutionId(), brokerId, token, misfired)) {
+            if (!claim(execution.getExecutionId(), execution.getTriggerAt(), brokerId, token, misfired)) {
                 continue;
             }
             DelayedTaskScheduler scheduler = BrokerContext.broker().delayedTaskScheduler();
@@ -106,14 +106,17 @@ public class ExecutionScheduleCommandService {
         }
     }
 
-    protected boolean claim(String executionId, String brokerId, String token, boolean misfired) {
+    protected boolean claim(String executionId, LocalDateTime triggerAt, String brokerId, String token, boolean misfired) {
+        // 领取后到真正触发（建 Job）有一个预加载间隔，租约必须覆盖触发时刻，
+        // 否则到点守卫会静默拒绝、只能依赖下轮 reclaim 重领（曾使约 75% 的预载执行首触发被拒）
+        LocalDateTime leaseFrom = triggerAt != null && triggerAt.isAfter(LocalDateTime.now()) ? triggerAt : LocalDateTime.now();
         return transactionService.transactional(() -> entityManager.createQuery("update ExecutionEntity set status = :claimed, leaseOwner = :brokerId, " +
                 "leaseUntil = :leaseUntil, executionToken = :token, fireAttempt = fireAttempt + :attemptIncrement " +
                 "where executionId = :executionId and status = :pending and deleted = false")
             .setParameter("claimed", ExecutionStatus.CLAIMED.value)
             .setParameter("pending", ExecutionStatus.PENDING.value)
             .setParameter("brokerId", brokerId)
-            .setParameter("leaseUntil", LocalDateTime.now().plusSeconds(CLAIM_LEASE_SECONDS))
+            .setParameter("leaseUntil", leaseFrom.plusSeconds(CLAIM_LEASE_SECONDS))
             .setParameter("token", token)
             .setParameter("attemptIncrement", misfired ? 1 : 0)
             .setParameter("executionId", executionId)
