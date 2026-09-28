@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 批量下线指定时间范围内未心跳的 Worker。
+ * 批量下线截止时刻前仍未心跳的 Worker。
  *
  * @author Devil
  */
@@ -32,17 +32,20 @@ import java.util.List;
 @AllArgsConstructor
 public class WorkerSliceOfflineCmd implements ICommand<WorkerSliceOfflineCmd.Response> {
 
-    private LocalDateTime startTime;
+    private LocalDateTime cutoff;
 
-    private LocalDateTime endTime;
+    private LocalDateTime cursorHeartbeatAt;
+
+    private String cursorWorkerId;
 
     private int limit;
 
     @Getter
     @AllArgsConstructor
     public static class Response {
-        private long num;
-        private List<String> workerIds;  // 下线的 Worker ID 列表
+        private List<String> workerIds;
+        private LocalDateTime nextCursorHeartbeatAt;
+        private String nextCursorWorkerId;
     }
 
 }

@@ -16,18 +16,15 @@
 
 package io.fluxion.server.core.broker.task;
 
-import io.limbo.utils.time.Formatters;
-import io.limbo.utils.time.LocalDateTimeUtils;
 import io.limbo.utils.time.TimeUtils;
-import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.query.JobRunningByWorkerQuery;
+import io.fluxion.server.core.worker.WorkerLivenessProperties;
 import io.fluxion.server.core.worker.cmd.WorkerSliceOfflineCmd;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -44,48 +41,44 @@ public class WorkerChecker extends CoreTask {
 
     private static final int limit = 100;
 
-    private LocalDateTime lastCheckAt = LocalDateTimeUtils.parse("2000-01-01 00:00:00", Formatters.YMD_HMS);
+    private final WorkerLivenessProperties livenessProperties;
 
-    public WorkerChecker() {
-        super(0, WorkerRemoteConstant.HEARTBEAT_TIMEOUT_SECOND, TimeUnit.SECONDS);
+    public WorkerChecker(WorkerLivenessProperties livenessProperties) {
+        super(0, livenessProperties.getCheckIntervalSeconds(), TimeUnit.SECONDS);
+        this.livenessProperties = livenessProperties;
     }
 
     @Override
     public void run() {
         try {
-            LocalDateTime endTime = TimeUtils.currentLocalDateTime().plusSeconds(-WorkerRemoteConstant.HEARTBEAT_TIMEOUT_SECOND * 2);
-            List<String> offlineWorkerIds = new ArrayList<>();
-
-            WorkerSliceOfflineCmd.Response response = Cmd.send(new WorkerSliceOfflineCmd(lastCheckAt, endTime, limit));
-            long num = response.getNum();
-
-            // 获取下线的 Worker ID 列表用于故障迁移
-            if (response.getWorkerIds() != null) {
-                offlineWorkerIds.addAll(response.getWorkerIds());
-            }
-
-            while (num >= limit) {
-                response = Cmd.send(new WorkerSliceOfflineCmd(lastCheckAt, endTime, limit));
-                num = response.getNum();
-                if (response.getWorkerIds() != null) {
-                    offlineWorkerIds.addAll(response.getWorkerIds());
+            LocalDateTime cutoff = TimeUtils.currentLocalDateTime()
+                .plusSeconds(-livenessProperties.getOfflineTimeoutSeconds());
+            LocalDateTime cursorHeartbeatAt = null;
+            String cursorWorkerId = null;
+            do {
+                WorkerSliceOfflineCmd.Response response = Cmd.send(new WorkerSliceOfflineCmd(
+                    cutoff, cursorHeartbeatAt, cursorWorkerId, limit
+                ));
+                // 按持久化 Job 状态接管，不能依赖本 Broker 的 execution 内存索引。
+                for (String workerId : response.getWorkerIds()) {
+                    List<JobRunningByWorkerQuery.JobRunning> jobs;
+                    String lastJobId = null;
+                    do {
+                        jobs = Query.query(new JobRunningByWorkerQuery(workerId, lastJobId, limit)).getJobs();
+                        for (JobRunningByWorkerQuery.JobRunning job : jobs) {
+                            Cmd.send(new JobFailCmd(
+                                job.getJobId(), TimeUtils.currentLocalDateTime(), job.getDispatchAttempt(),
+                                "Worker offline: " + workerId, null
+                            ));
+                        }
+                        if (!jobs.isEmpty()) {
+                            lastJobId = jobs.get(jobs.size() - 1).getJobId();
+                        }
+                    } while (jobs.size() >= limit);
                 }
-            }
-            lastCheckAt = endTime;
-
-            // 按持久化 Job 状态接管，不能依赖本 Broker 的 execution 内存索引。
-            for (String workerId : offlineWorkerIds) {
-                List<JobRunningByWorkerQuery.JobRunning> jobs;
-                do {
-                    jobs = Query.query(new JobRunningByWorkerQuery(workerId, limit)).getJobs();
-                    for (JobRunningByWorkerQuery.JobRunning job : jobs) {
-                        Cmd.send(new JobFailCmd(
-                            job.getJobId(), TimeUtils.currentLocalDateTime(), job.getDispatchAttempt(),
-                            "Worker offline: " + workerId, null
-                        ));
-                    }
-                } while (jobs.size() >= limit);
-            }
+                cursorHeartbeatAt = response.getNextCursorHeartbeatAt();
+                cursorWorkerId = response.getNextCursorWorkerId();
+            } while (cursorHeartbeatAt != null);
         } catch (Exception e) {
             log.error("[{}] execute fail", this.getClass().getSimpleName(), e);
         }

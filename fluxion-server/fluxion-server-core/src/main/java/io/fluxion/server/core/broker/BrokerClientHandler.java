@@ -49,6 +49,7 @@ import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.limbo.utils.json.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import io.limbo.cqrs.core.commandhandling.Cmd;
@@ -117,7 +118,7 @@ public class BrokerClientHandler implements ClientHandler {
         // 心跳
         Cmd.send(new WorkerHeartbeatCmd(
             request.getWorkerId(),
-            BrokerClientConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), request.getHeartbeatAt())
+            BrokerClientConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), LocalDateTime.now())
         ));
         BrokersQuery.Response brokersRes = Query.query(new BrokersQuery());
         BrokerTopologyDTO brokerTopologyDTO = new BrokerTopologyDTO();

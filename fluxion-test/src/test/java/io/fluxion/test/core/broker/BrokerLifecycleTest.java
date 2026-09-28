@@ -5,6 +5,7 @@ import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.Broker;
 import io.fluxion.server.core.broker.BrokerManger;
 import io.fluxion.server.core.schedule.ScheduleLeaseProperties;
+import io.fluxion.server.core.worker.WorkerLivenessProperties;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ScheduledExecutorService;
@@ -25,7 +26,7 @@ class BrokerLifecycleTest {
         ClientServer clientServer = mock(ClientServer.class);
         ScheduledExecutorService coreExecutor = mock(ScheduledExecutorService.class);
         Broker broker = new Broker(Protocol.HTTP, "127.0.0.1", 19785, brokerManger, clientServer,
-            leaseProperties(), coreExecutor);
+            leaseProperties(), workerLivenessProperties(), coreExecutor);
 
         broker.start();
 
@@ -42,6 +43,10 @@ class BrokerLifecycleTest {
         properties.setRenewInterval(10);
         properties.setReclaimInterval(5);
         return properties;
+    }
+
+    private WorkerLivenessProperties workerLivenessProperties() {
+        return new WorkerLivenessProperties();
     }
 
 }

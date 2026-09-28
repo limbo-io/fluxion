@@ -27,6 +27,7 @@ import io.fluxion.server.core.broker.Broker;
 import io.fluxion.server.core.broker.BrokerClientHandler;
 import io.fluxion.server.core.broker.BrokerManger;
 import io.fluxion.server.core.schedule.ScheduleLeaseProperties;
+import io.fluxion.server.core.worker.WorkerLivenessProperties;
 import io.limbo.utils.ReflectionUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -62,6 +63,9 @@ public class FluxionServerAutoConfiguration {
     @Resource
     private ScheduleLeaseProperties scheduleLeaseProperties;
 
+    @Resource
+    private WorkerLivenessProperties workerLivenessProperties;
+
     @Bean
     @ConditionalOnMissingBean
     public Broker broker() {
@@ -81,7 +85,7 @@ public class FluxionServerAutoConfiguration {
 
         return new FluxionBroker(
             properties.getProtocol(), host, port,
-            brokerManger, clientServer, scheduleLeaseProperties
+            brokerManger, clientServer, scheduleLeaseProperties, workerLivenessProperties
         );
     }
 
@@ -92,8 +96,8 @@ public class FluxionServerAutoConfiguration {
 
         FluxionBroker(Protocol protocol, String host, int port,
                       BrokerManger brokerManger, ClientServer clientServer,
-                      ScheduleLeaseProperties leaseProperties) {
-            super(protocol, host, port, brokerManger, clientServer, leaseProperties);
+                      ScheduleLeaseProperties leaseProperties, WorkerLivenessProperties workerLivenessProperties) {
+            super(protocol, host, port, brokerManger, clientServer, leaseProperties, workerLivenessProperties);
             ReflectionUtils.configure("io.fluxion");
         }
 

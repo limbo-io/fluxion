@@ -34,6 +34,7 @@ import io.fluxion.server.core.broker.task.ExecutionLoader;
 import io.fluxion.server.core.broker.task.ScheduleLoader;
 import io.fluxion.server.core.broker.task.WorkerChecker;
 import io.fluxion.server.core.schedule.ScheduleLeaseProperties;
+import io.fluxion.server.core.worker.WorkerLivenessProperties;
 import io.fluxion.server.infrastructure.concurrent.LoggingTask;
 import io.fluxion.server.infrastructure.schedule.scheduler.DelayedTaskScheduler;
 import io.fluxion.server.infrastructure.schedule.scheduler.TimingWheelTimer;
@@ -71,12 +72,14 @@ public class Broker {
     private final DelayedTaskScheduler delayedTaskScheduler;
 
     public Broker(Protocol protocol, String host, int port, BrokerManger brokerManger,
-                  ClientServer clientServer, ScheduleLeaseProperties leaseProperties) {
-        this(protocol, host, port, brokerManger, clientServer, leaseProperties, null);
+                  ClientServer clientServer, ScheduleLeaseProperties leaseProperties,
+                  WorkerLivenessProperties workerLivenessProperties) {
+        this(protocol, host, port, brokerManger, clientServer, leaseProperties, workerLivenessProperties, null);
     }
 
     public Broker(Protocol protocol, String host, int port, BrokerManger brokerManger,
                   ClientServer clientServer, ScheduleLeaseProperties leaseProperties,
+                  WorkerLivenessProperties workerLivenessProperties,
                   ScheduledExecutorService coreThreadPool) {
         Assert.isTrue(Protocol.UNKNOWN != protocol, "protocol is unknown");
         Assert.isTrue(StringUtils.isNotBlank(host), "host is null");
@@ -89,7 +92,7 @@ public class Broker {
             new ExecutionLoader(),
             new BucketChecker(),
             new DataCleaner(),
-            new WorkerChecker(),
+            new WorkerChecker(workerLivenessProperties),
             new JobUnRunChecker(),
             new JobRetryChecker(),
             new JobTimeoutChecker(),

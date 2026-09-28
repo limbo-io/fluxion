@@ -132,10 +132,12 @@ public class JobQueryService {
             return new JobRunningByWorkerQuery.Response(java.util.Collections.emptyList());
         }
         List<JobRunningByWorkerQuery.JobRunning> jobs = entityManager.createQuery("select e.jobId, e.dispatchAttempt from JobEntity e "
-                + "where e.bucket in :buckets and e.status = :status and e.workerAddress = :workerAddress", Object[].class)
+                + "where e.bucket in :buckets and e.status = :status and e.workerAddress = :workerAddress "
+                + "and (:lastJobId is null or e.jobId > :lastJobId) order by e.jobId asc", Object[].class)
             .setParameter("buckets", buckets)
             .setParameter("status", JobStatus.RUNNING.value)
             .setParameter("workerAddress", query.getWorkerAddress())
+            .setParameter("lastJobId", query.getLastJobId())
             .setMaxResults(query.getLimit())
             .getResultList().stream()
             .map(row -> new JobRunningByWorkerQuery.JobRunning((String) row[0], (Integer) row[1]))

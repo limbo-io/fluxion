@@ -12,6 +12,8 @@ public class JobRunningByWorkerQuery implements IQuery<JobRunningByWorkerQuery.R
 
     private final String workerAddress;
 
+    private final String lastJobId;
+
     private final int limit;
 
     @Getter

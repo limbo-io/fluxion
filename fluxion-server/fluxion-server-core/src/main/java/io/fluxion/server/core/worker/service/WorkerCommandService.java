@@ -34,7 +34,6 @@ import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
 import io.fluxion.server.infrastructure.tag.TagRefType;
 import io.fluxion.server.infrastructure.tag.cmd.TagsSaveByRefCmd;
-import io.fluxion.server.infrastructure.utils.JpaHelper;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import io.limbo.cqrs.spring.annotation.CommandHandler;
@@ -114,26 +113,39 @@ public class WorkerCommandService {
     @Transactional
     @CommandHandler
     public WorkerSliceOfflineCmd.Response handle(WorkerSliceOfflineCmd cmd) {
-        List<WorkerMetricEntity> metricEntities = workerMetricEntityRepo.findByLastHeartbeatAtBetween(
-            cmd.getStartTime(), cmd.getEndTime(), JpaHelper.pageable(0, cmd.getLimit())
-        );
+        List<WorkerMetricEntity> metricEntities = entityManager.createQuery(
+                "select m from WorkerMetricEntity m, WorkerEntity w " +
+                    "where m.workerId = w.workerId and m.deleted = false and w.deleted = false " +
+                    "and w.status = :online and m.lastHeartbeatAt < :cutoff " +
+                    "and (:cursorHeartbeatAt is null or m.lastHeartbeatAt > :cursorHeartbeatAt " +
+                    "or (m.lastHeartbeatAt = :cursorHeartbeatAt and m.workerId > :cursorWorkerId)) " +
+                    "order by m.lastHeartbeatAt asc, m.workerId asc", WorkerMetricEntity.class)
+            .setParameter("online", Worker.Status.ONLINE.status)
+            .setParameter("cutoff", cmd.getCutoff())
+            .setParameter("cursorHeartbeatAt", cmd.getCursorHeartbeatAt())
+            .setParameter("cursorWorkerId", cmd.getCursorWorkerId())
+            .setMaxResults(cmd.getLimit())
+            .getResultList();
         if (CollectionUtils.isEmpty(metricEntities)) {
-            return new WorkerSliceOfflineCmd.Response(0, java.util.Collections.emptyList());
+            return new WorkerSliceOfflineCmd.Response(java.util.Collections.emptyList(), null, null);
         }
 
         List<String> workerIds = metricEntities.stream()
+            .filter(metric -> entityManager.createQuery(
+                    "update WorkerEntity w set w.status = :offline " +
+                        "where w.workerId = :workerId and w.status = :online and w.deleted = false " +
+                        "and exists (select 1 from WorkerMetricEntity m where m.workerId = w.workerId " +
+                        "and m.deleted = false and m.lastHeartbeatAt < :cutoff)")
+                .setParameter("offline", Worker.Status.OFFLINE.status)
+                .setParameter("online", Worker.Status.ONLINE.status)
+                .setParameter("workerId", metric.getWorkerId())
+                .setParameter("cutoff", cmd.getCutoff())
+                .executeUpdate() == 1)
             .map(WorkerMetricEntity::getWorkerId)
             .collect(Collectors.toList());
 
-        entityManager.createQuery("update WorkerEntity " +
-                "set status = :status " +
-                "where workerId in :workerIds"
-            )
-            .setParameter("status", Worker.Status.OFFLINE.status)
-            .setParameter("workerIds", workerIds)
-            .executeUpdate();
-
-        return new WorkerSliceOfflineCmd.Response(metricEntities.size(), workerIds);
+        WorkerMetricEntity last = metricEntities.get(metricEntities.size() - 1);
+        return new WorkerSliceOfflineCmd.Response(workerIds, last.getLastHeartbeatAt(), last.getWorkerId());
     }
 
 }
