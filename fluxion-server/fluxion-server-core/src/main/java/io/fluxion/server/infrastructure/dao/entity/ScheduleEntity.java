@@ -83,9 +83,13 @@ public class ScheduleEntity extends BaseEntity {
      */
     private String scheduleCronType;
 
+    private String timeZone;
+
     private String misfirePolicy;
 
     private Integer maxFireAttempts;
+
+    private Long maxStartDelayMillis;
 
     /**
      * 上次触发时间

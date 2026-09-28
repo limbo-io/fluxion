@@ -18,6 +18,7 @@ package io.fluxion.remote.core.api.request.worker;
 
 import io.fluxion.remote.core.api.Request;
 import io.fluxion.remote.core.constants.ExecuteMode;
+import io.fluxion.remote.core.constants.JobDispatchResult;
 
 /**
  * dispatch to worker
@@ -25,7 +26,7 @@ import io.fluxion.remote.core.constants.ExecuteMode;
  * @author Devil
  * @since 2023/8/3
  */
-public class JobDispatchRequest implements Request<Boolean> {
+public class JobDispatchRequest implements Request<JobDispatchResult> {
 
     private String jobId;
     /**
@@ -44,6 +45,12 @@ public class JobDispatchRequest implements Request<Boolean> {
      * 下发尝试次数，用于幂等控制
      */
     private int dispatchAttempt;
+
+    /**
+     * 激活截止时间，UTC epoch millis；为空表示不设截止，允许迟到执行。
+     * 仅约束本次下发对应的首批 Job 启动（见 CONTEXT.md「Execution 激活截止时间」）。
+     */
+    private Long deadlineEpochMillis;
 
     public String getExecuteMode() {
         return executeMode;
@@ -75,5 +82,13 @@ public class JobDispatchRequest implements Request<Boolean> {
 
     public void setDispatchAttempt(int dispatchAttempt) {
         this.dispatchAttempt = dispatchAttempt;
+    }
+
+    public Long getDeadlineEpochMillis() {
+        return deadlineEpochMillis;
+    }
+
+    public void setDeadlineEpochMillis(Long deadlineEpochMillis) {
+        this.deadlineEpochMillis = deadlineEpochMillis;
     }
 }

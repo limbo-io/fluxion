@@ -56,6 +56,12 @@ public class Job {
 
     private JobType type;
 
+    /**
+     * 激活截止时间快照：仅调度型 Execution 的首批 Job 创建时从 Execution 复制；
+     * 手动/API Execution 与工作流下游 Job 为空（见 CONTEXT.md「Execution 激活截止时间」）。约束首个 Job 开始前的全部投递尝试，不约束开始后的执行。
+     */
+    private LocalDateTime deadlineAt;
+
     private String result;
 
     @JsonTypeInfo(

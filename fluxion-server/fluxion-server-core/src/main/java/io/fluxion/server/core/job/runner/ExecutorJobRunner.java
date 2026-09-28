@@ -18,11 +18,13 @@ package io.fluxion.server.core.job.runner;
 
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.request.worker.JobDispatchRequest;
+import io.fluxion.remote.core.constants.JobDispatchResult;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.executor.option.OvertimeOption;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
+import io.fluxion.server.core.job.cmd.JobExpiredCmd;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.config.ExecutorJobConfig;
 import io.fluxion.server.core.job.query.JobConfigQuery;
@@ -33,11 +35,11 @@ import io.fluxion.server.core.worker.selector.WorkerStatisticsRepository;
 import io.limbo.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -140,6 +142,11 @@ public class ExecutorJobRunner extends JobRunner {
                 return result;
             }
 
+            if (result.getErrorType() == DispatchErrorType.DEADLINE_EXPIRED) {
+                // 激活截止时间已到是硬上限：不换 Worker、不重试，直接收敛为 EXPIRED
+                return result;
+            }
+
             // 下发失败，从候选列表移除该worker并尝试下一个
             log.warn("[ExecutorJobRunner] Dispatch failed to worker {} for job {}: errorType={}",
                 worker.id(), job.getJobId(), result.getErrorType());
@@ -162,8 +169,13 @@ public class ExecutorJobRunner extends JobRunner {
             request.setExecutorName(config.getExecutorName());
             request.setExecuteMode(config.getExecuteMode().mode);
             request.setDispatchAttempt(dispatchAttempt);
+            // 激活截止时间以 UTC epoch millis 越过 RPC 传递；口径固定 UTC：同一 DB 墙钟在任意 Broker 上
+            // 换算出同一绝对时刻，不因部署时区漂移（见 CONTEXT.md「统一时间模型」）。
+            // ponytail: 排程域（triggerAt/lease 等）仍是本机墙钟，非 UTC 统一时区部署下激活窗口随 offset 后移；
+            // Instant 迁移（另立计划）落地后归一。
+            request.setDeadlineEpochMillis(toDeadlineEpochMillis(job.getDeadlineAt()));
 
-            Response<Boolean> response = BrokerContext.call(
+            Response<JobDispatchResult> response = BrokerContext.call(
                 WorkerRemoteConstant.API_JOB_DISPATCH, worker.getHost(), worker.getPort(), request
             );
 
@@ -174,10 +186,17 @@ public class ExecutorJobRunner extends JobRunner {
                 return DispatchResult.failure(DispatchErrorType.NETWORK_ERROR, response.getMessage(), dispatchAttempt);
             }
 
-            if (!BooleanUtils.isTrue(response.getData())) {
-                // Worker拒绝执行
-                log.warn("[ExecutorJobRunner] Worker {} rejected job {}: returned false",
+            JobDispatchResult result = response.getData();
+            if (result == JobDispatchResult.REJECTED_DEADLINE) {
+                // Worker 最终拒绝：迟到任务不得启动，也不得进入普通重试
+                log.warn("[ExecutorJobRunner] Worker {} rejected job {} by start deadline",
                     worker.id(), job.getJobId());
+                return DispatchResult.failure(DispatchErrorType.DEADLINE_EXPIRED, "Job start deadline exceeded", dispatchAttempt);
+            }
+            if (result != JobDispatchResult.ACCEPTED) {
+                // REJECTED_UNAVAILABLE/UNKNOWN：Worker 暂不可用，按既有容错策略换候选重试
+                log.warn("[ExecutorJobRunner] Worker {} rejected job {}: result={}",
+                    worker.id(), job.getJobId(), result == null ? null : result.value);
                 return DispatchResult.failure(DispatchErrorType.WORKER_REJECTION, "Worker rejected the job", dispatchAttempt);
             }
 
@@ -202,6 +221,18 @@ public class ExecutorJobRunner extends JobRunner {
      * 处理下发失败
      */
     private void handleDispatchFailure(Job job, DispatchResult result) {
+        if (result.getErrorType() == DispatchErrorType.DEADLINE_EXPIRED) {
+            // Deadline 是硬上限：Job 与 Execution 收敛为 EXPIRED，不进入 RetryOption
+            String reason = buildFailureReason(result);
+            log.error("[ExecutorJobRunner] Job start deadline exceeded: jobId={}, attempt={}, reason={}",
+                job.getJobId(), result.getDispatchAttempt(), reason);
+            Cmd.send(new JobExpiredCmd(
+                job.getJobId(),
+                result.getDispatchAttempt(),
+                TimeUtils.currentLocalDateTime()
+            ));
+            return;
+        }
         String reason = buildFailureReason(result);
         log.error("[ExecutorJobRunner] Job dispatch failed after all attempts: jobId={}, errorType={}, reason={}",
             job.getJobId(), result.getErrorType(), reason);
@@ -218,6 +249,14 @@ public class ExecutorJobRunner extends JobRunner {
     /**
      * 构建失败原因描述
      */
+    /**
+     * 将 deadlineAt 墙钟按 UTC 固定口径换算为绝对 epoch millis；null 透传。
+     * 供 Worker 侧以 System.currentTimeMillis() 作最终比较（见 CONTEXT.md「Execution 激活截止时间」）。
+     */
+    public static Long toDeadlineEpochMillis(LocalDateTime deadlineAt) {
+        return deadlineAt == null ? null : deadlineAt.toInstant(ZoneOffset.UTC).toEpochMilli();
+    }
+
     private String buildFailureReason(DispatchResult result) {
         switch (result.getErrorType()) {
             case NO_CANDIDATES:
@@ -228,6 +267,8 @@ public class ExecutorJobRunner extends JobRunner {
                 return "All candidate workers rejected the job";
             case MAX_ATTEMPTS_EXCEEDED:
                 return "Maximum dispatch attempts exceeded";
+            case DEADLINE_EXPIRED:
+                return "Job start deadline exceeded: " + result.getMessage();
             case EXCEPTION:
                 return "Dispatch failed with exception: " + result.getMessage();
             default:
@@ -306,6 +347,7 @@ public class ExecutorJobRunner extends JobRunner {
         NETWORK_ERROR,
         WORKER_REJECTION,
         MAX_ATTEMPTS_EXCEEDED,
+        DEADLINE_EXPIRED,
         EXCEPTION
     }
 

@@ -20,12 +20,14 @@ import com.google.common.collect.Lists;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.broker.cmd.BucketAllotCmd;
 import io.fluxion.server.core.execution.Execution;
+import io.fluxion.server.core.execution.cmd.ExecutionExpiredCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.execution.query.ExecutionByIdQuery;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobMonitor;
 import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
+import io.fluxion.server.core.job.cmd.JobExpiredCmd;
 import io.fluxion.server.core.job.cmd.JobLeaseRenewCmd;
 import io.fluxion.server.core.job.cmd.JobReportCmd;
 import io.fluxion.server.core.job.cmd.JobRetryCmd;
@@ -122,6 +124,7 @@ public class JobCommandService {
             entity.setExecutionId(executionId);
             entity.setBucket(bucket);
             entity.setTriggerAt(job.getTriggerAt());
+            entity.setDeadlineAt(job.getDeadlineAt());
             entity.setStatus(job.getStatus().value);
             entity.setJobType(job.getType().value);
             entity.setRefId(job.getRefId());
@@ -348,6 +351,57 @@ public class JobCommandService {
         );
     }
 
+    /**
+     * 激活截止时间已到（Worker 返回 REJECTED_DEADLINE 或工作流根节点本地拒绝）：
+     * Job 与 Execution 收敛为 EXPIRED，不可重试，不进入 RetryOption（见 CONTEXT.md「Job 派发结果」）。
+     * 条件更新匹配 Job 当前状态与 dispatch attempt，防止旧下发结果覆盖新尝试。
+     */
+    @Transactional
+    @CommandHandler
+    public boolean handle(JobExpiredCmd cmd) {
+        JobEntity entity = jobEntityRepo.findById(cmd.getJobId()).orElse(null);
+        if (entity == null) {
+            log.warn("JobExpiredCmd job not found jobId:{}", cmd.getJobId());
+            return false;
+        }
+
+        String attemptCondition = cmd.getDispatchAttempt() == null ? "" : " and dispatchAttempt = :dispatchAttempt ";
+        javax.persistence.Query expireUpdate = entityManager.createQuery("update JobEntity " +
+                "set lastReportAt = :reportAt, status = :newStatus, endAt = :endAt, " +
+                "leaseOwner = null, leaseUntil = null, timeoutAt = null, nextRetryAt = null, errorMsg = :errorMsg " +
+                "where jobId = :jobId and status = :oldStatus " + attemptCondition
+            )
+            .setParameter("reportAt", cmd.getReportAt())
+            .setParameter("endAt", cmd.getReportAt())
+            .setParameter("jobId", cmd.getJobId())
+            .setParameter("oldStatus", JobStatus.INITED.value)
+            .setParameter("newStatus", JobStatus.EXPIRED.value)
+            .setParameter("errorMsg", "job start deadline exceeded");
+        if (cmd.getDispatchAttempt() != null) {
+            expireUpdate.setParameter("dispatchAttempt", cmd.getDispatchAttempt());
+        }
+        int updated = expireUpdate.executeUpdate();
+        if (updated <= 0) {
+            // 围栏未命中：Job 已被新尝试接管或已进入其它状态，旧拒绝结果不生效
+            log.warn("JobExpiredCmd update fail jobId:{} attempt:{}", cmd.getJobId(), cmd.getDispatchAttempt());
+            return false;
+        }
+        // 保存记录
+        JobRecordEntity recordEntity = new JobRecordEntity();
+        recordEntity.setId(new JobRecordEntity.ID(
+            cmd.getJobId(), entity.getRetryTimes()
+        ));
+        recordEntity.setStartAt(entity.getStartAt());
+        recordEntity.setEndAt(cmd.getReportAt());
+        recordEntity.setStatus(JobStatus.EXPIRED.value);
+        recordEntity.setWorkerAddress(entity.getWorkerAddress());
+        recordEntity.setErrorMsg("job start deadline exceeded");
+        jobRecordEntityRepo.saveAndFlush(recordEntity);
+
+        // 首批 Job 因 Deadline 被拒，Execution 同步收敛为 EXPIRED
+        return Cmd.send(new ExecutionExpiredCmd(entity.getExecutionId(), cmd.getReportAt()));
+    }
+
     @Transactional
     @CommandHandler
     public boolean handle(JobRetryCmd cmd) {
@@ -371,6 +425,7 @@ public class JobCommandService {
         job.setType(JobType.parse(entity.getJobType()));
         job.setStatus(JobStatus.INITED);
         job.setTriggerAt(entity.getTriggerAt());
+        job.setDeadlineAt(entity.getDeadlineAt());
         job.setRetryTimes(cmd.getRetryTimes());
         run(job);
         return true;

@@ -44,7 +44,8 @@ public class ExecutionQueryService {
         }
         Execution execution = new Execution(
             entity.getExecutionId(), ExecutionStatus.parse(entity.getStatus()),
-            entity.getExecutableId(), entity.getExecutableVersion(), ExecutableType.parse(entity.getExecutableType())
+            entity.getExecutableId(), entity.getExecutableVersion(), ExecutableType.parse(entity.getExecutableType()),
+            entity.getDeadlineAt()
         );
         return new ExecutionByIdQuery.Response(execution);
     }

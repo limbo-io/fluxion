@@ -18,12 +18,12 @@ package io.fluxion.server.infrastructure.schedule;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.limbo.utils.time.TimeUtils;
 import lombok.Getter;
 
 import javax.validation.constraints.NotNull;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 import static io.limbo.utils.time.TimeUtils.TIME_FOREVER;
 
@@ -62,6 +62,12 @@ public class ScheduleOption {
     private final LocalDateTime endTime;
 
     /**
+     * 解释 Cron 与日历时间字段的 IANA 时区。
+     */
+    @NotNull
+    private final ZoneId timeZone;
+
+    /**
      * 延迟时间 -- 当前时间多久后调度
      */
     private final Duration delay;
@@ -91,6 +97,11 @@ public class ScheduleOption {
     /** Total allowed Job-creation attempts after a misfire. */
     private final int maxFireAttempts;
 
+    /**
+     * 首个 Job 允许启动的最长延后时间（毫秒）；null 表示不限制。
+     */
+    private final Long maxStartDelayMillis;
+
     @JsonCreator
     public ScheduleOption(@JsonProperty("type") ScheduleType type,
                           @JsonProperty("startTime") LocalDateTime startTime,
@@ -100,9 +111,15 @@ public class ScheduleOption {
                           @JsonProperty("cron") String cron,
                           @JsonProperty("cronType") String cronType,
                           @JsonProperty("misfirePolicy") MisfirePolicy misfirePolicy,
-                          @JsonProperty("maxFireAttempts") Integer maxFireAttempts) {
+                          @JsonProperty("maxFireAttempts") Integer maxFireAttempts,
+                          @JsonProperty("timeZone") String timeZone,
+                          @JsonProperty("maxStartDelayMillis") Long maxStartDelayMillis) {
         this.type = type;
-        this.startTime = startTime == null ? TimeUtils.currentLocalDateTime() : startTime;
+        if (timeZone == null || timeZone.trim().isEmpty()) {
+            throw new IllegalArgumentException("timeZone is required");
+        }
+        this.timeZone = ZoneId.of(timeZone);
+        this.startTime = startTime == null ? LocalDateTime.now(this.timeZone) : startTime;
         this.endTime = endTime == null ? TIME_FOREVER : endTime;
         this.delay = delay == null ? Duration.ZERO : delay;
         this.interval = interval == null ? Duration.ZERO : interval;
@@ -110,11 +127,16 @@ public class ScheduleOption {
         this.cronType = cronType;
         this.misfirePolicy = misfirePolicy == null ? MisfirePolicy.FIRE_RETRY : misfirePolicy;
         this.maxFireAttempts = maxFireAttempts == null ? 1 : Math.max(1, maxFireAttempts);
+        if (maxStartDelayMillis != null && maxStartDelayMillis < 1000L) {
+            throw new IllegalArgumentException("maxStartDelayMillis must be at least 1000");
+        }
+        this.maxStartDelayMillis = maxStartDelayMillis;
     }
 
     public ScheduleOption(ScheduleType type, LocalDateTime startTime, LocalDateTime endTime,
-                          Duration delay, Duration interval, String cron, String cronType) {
-        this(type, startTime, endTime, delay, interval, cron, cronType, null, null);
+                          Duration delay, Duration interval, String cron, String cronType, ZoneId timeZone) {
+        this(type, startTime, endTime, delay, interval, cron, cronType, null, null,
+            timeZone == null ? null : timeZone.getId(), null);
     }
 
 }

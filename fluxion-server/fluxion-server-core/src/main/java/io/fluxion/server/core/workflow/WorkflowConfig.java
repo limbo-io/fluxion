@@ -77,6 +77,12 @@ public class WorkflowConfig implements ValidatableConfig {
             infos.add(new ValidateSuppressInfo(WorkflowConstants.FLOW_START_NODES_HAS_ERROR_TYPE_NODE));
             return infos;
         }
+        // 起始节点必须唯一（CONTEXT.md「Workflow 结束条件」：恰好一个 START；多根会分叉激活语义，
+        // 首批根 Job 也不唯一，Deadline 收敛无法以单根为准）
+        if (dag.origins().size() != 1) {
+            infos.add(new ValidateSuppressInfo(WorkflowConstants.FLOW_START_NODES_NOT_UNIQUE));
+            return infos;
+        }
         // 结束节点
         if (CollectionUtils.isEmpty(dag.lasts())) {
             infos.add(new ValidateSuppressInfo(WorkflowConstants.FLOW_END_NODES_IS_EMPTY));

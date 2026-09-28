@@ -28,6 +28,8 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -176,7 +178,8 @@ class PeriodicTaskSchedulerTest {
             Duration.ZERO,
             Duration.ofMillis(100),
             null,
-            null
+            null,
+            ZoneOffset.UTC
         );
 
         PeriodicTask task = new PeriodicTask("expired-task",
@@ -213,7 +216,8 @@ class PeriodicTaskSchedulerTest {
             Duration.ZERO,
             Duration.ofMillis(100),
             null,
-            null
+            null,
+            ZoneOffset.UTC
         );
 
         PeriodicTask task = new PeriodicTask("future-task",
@@ -248,7 +252,8 @@ class PeriodicTaskSchedulerTest {
             Duration.ZERO,
             null,
             null,
-            null
+            null,
+            ZoneOffset.UTC
         );
 
         PeriodicTask task = new PeriodicTask("unknown-type-task",
@@ -260,6 +265,25 @@ class PeriodicTaskSchedulerTest {
         timer.executeScheduledTask();
 
         Assertions.assertEquals(0, executionCount.get());
+    }
+
+    @Test
+    void testScheduleOptionRequiresTimeZoneAndValidStartDeadline() {
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new ScheduleOption(
+            ScheduleType.FIXED_RATE, null, null, Duration.ZERO, Duration.ofSeconds(1), null, null,
+            null, null, null, null
+        ));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new ScheduleOption(
+            ScheduleType.FIXED_RATE, null, null, Duration.ZERO, Duration.ofSeconds(1), null, null,
+            null, null, "UTC", 999L
+        ));
+
+        ScheduleOption option = new ScheduleOption(
+            ScheduleType.FIXED_RATE, null, null, Duration.ZERO, Duration.ofSeconds(1), null, null,
+            null, null, "Asia/Shanghai", 1000L
+        );
+        Assertions.assertEquals(ZoneId.of("Asia/Shanghai"), option.getTimeZone());
+        Assertions.assertEquals(1000L, option.getMaxStartDelayMillis());
     }
 
     /**
@@ -356,7 +380,8 @@ class PeriodicTaskSchedulerTest {
             Duration.ZERO,
             interval,
             null,
-            null
+            null,
+            ZoneOffset.UTC
         );
         return new PeriodicTask(id,
             new BasicCalculation(null, null, option),
@@ -380,7 +405,8 @@ class PeriodicTaskSchedulerTest {
             Duration.ZERO,
             interval,
             null,
-            null
+            null,
+            ZoneOffset.UTC
         );
         return new PeriodicTask(id,
             new BasicCalculation(null, null, option),

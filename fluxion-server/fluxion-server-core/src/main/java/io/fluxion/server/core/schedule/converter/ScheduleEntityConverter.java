@@ -50,8 +50,10 @@ public class ScheduleEntityConverter {
         entity.setScheduleInterval(scheduleOption.getInterval() == null ? 0L : scheduleOption.getInterval().getSeconds());
         entity.setScheduleCron(scheduleOption.getCron() == null ? StringUtils.EMPTY : scheduleOption.getCron());
         entity.setScheduleCronType(scheduleOption.getCronType() == null ? StringUtils.EMPTY : scheduleOption.getCronType());
+        entity.setTimeZone(scheduleOption.getTimeZone().getId());
         entity.setMisfirePolicy(scheduleOption.getMisfirePolicy().name());
         entity.setMaxFireAttempts(scheduleOption.getMaxFireAttempts());
+        entity.setMaxStartDelayMillis(scheduleOption.getMaxStartDelayMillis());
     }
 
     public static ScheduleEntity convert(Schedule schedule) {
@@ -68,8 +70,10 @@ public class ScheduleEntityConverter {
         entity.setScheduleInterval(scheduleOption.getInterval().getSeconds());
         entity.setScheduleCron(scheduleOption.getCron());
         entity.setScheduleCronType(scheduleOption.getCronType());
+        entity.setTimeZone(scheduleOption.getTimeZone().getId());
         entity.setMisfirePolicy(scheduleOption.getMisfirePolicy().name());
         entity.setMaxFireAttempts(scheduleOption.getMaxFireAttempts());
+        entity.setMaxStartDelayMillis(scheduleOption.getMaxStartDelayMillis());
         entity.setNextTriggerAt(schedule.getNextTriggerAt());
         entity.setLastFeedbackAt(schedule.getLastFeedbackAt());
         entity.setLastTriggerAt(schedule.getLastTriggerAt());
@@ -101,7 +105,9 @@ public class ScheduleEntityConverter {
             entity.getScheduleCron(),
             entity.getScheduleCronType(),
             entity.getMisfirePolicy() == null ? null : MisfirePolicy.valueOf(entity.getMisfirePolicy()),
-            entity.getMaxFireAttempts()
+            entity.getMaxFireAttempts(),
+            entity.getTimeZone(),
+            entity.getMaxStartDelayMillis()
         );
     }
 

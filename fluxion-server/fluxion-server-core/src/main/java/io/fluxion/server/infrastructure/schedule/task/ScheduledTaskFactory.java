@@ -23,6 +23,7 @@ import io.fluxion.server.infrastructure.schedule.ScheduleType;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.function.Consumer;
 
 /**
@@ -46,7 +47,7 @@ public class ScheduledTaskFactory {
     public static PeriodicTask cron(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
                                     Duration delay, String cron, String cronType, Consumer<PeriodicTask> consumer) {
         return task(id, lastTriggerAt, lastFeedbackAt,
-            new ScheduleOption(ScheduleType.CRON, null, null, delay, null, cron, cronType),
+            new ScheduleOption(ScheduleType.CRON, null, null, delay, null, cron, cronType, ZoneOffset.UTC),
             consumer
         );
     }
@@ -58,7 +59,7 @@ public class ScheduledTaskFactory {
     public static PeriodicTask fixDelay(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
                                         Duration delay, Duration interval, Consumer<PeriodicTask> consumer) {
         return task(id, lastTriggerAt, lastFeedbackAt,
-            new ScheduleOption(ScheduleType.FIXED_DELAY, null, null, delay, interval, null, null),
+            new ScheduleOption(ScheduleType.FIXED_DELAY, null, null, delay, interval, null, null, ZoneOffset.UTC),
             consumer
         );
     }
@@ -70,7 +71,7 @@ public class ScheduledTaskFactory {
     public static PeriodicTask fixRate(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
                                        Duration delay, Duration interval, Consumer<PeriodicTask> consumer) {
         return task(id, lastTriggerAt, lastFeedbackAt,
-            new ScheduleOption(ScheduleType.FIXED_RATE, null, null, delay, interval, null, null),
+            new ScheduleOption(ScheduleType.FIXED_RATE, null, null, delay, interval, null, null, ZoneOffset.UTC),
             consumer
         );
     }

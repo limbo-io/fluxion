@@ -20,6 +20,7 @@ import io.fluxion.remote.core.constants.JobStateEvent;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.JobType;
+import io.fluxion.server.core.job.cmd.JobExpiredCmd;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.cmd.JobStateTransitionCmd;
 import io.fluxion.server.core.job.cmd.JobSuccessCmd;
@@ -27,6 +28,9 @@ import io.limbo.cqrs.core.commandhandling.Cmd;
 import io.limbo.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /**
  * @author Devil
@@ -42,6 +46,14 @@ public class InputOutputJobRunner extends JobRunner {
 
     @Override
     public void run(Job job) {
+        // 工作流根节点（首批 Job）的激活截止时间最终检查：
+        // 本地执行不经 Worker RPC，在此拒绝迟到启动；与下发 RPC 固定同一 UTC 口径（见 CONTEXT.md「统一时间模型」）。
+        // ponytail: 排程域仍本机墙钟，非 UTC 统一时区部署下激活窗口随 offset 后移；Instant 迁移落地后归一。
+        if (job.getDeadlineAt() != null && !job.getDeadlineAt().isAfter(LocalDateTime.now(ZoneOffset.UTC))) {
+            log.warn("[InputOutputTaskRunner] job {} start deadline exceeded", job.getJobId());
+            Cmd.send(new JobExpiredCmd(job.getJobId(), null, TimeUtils.currentLocalDateTime()));
+            return;
+        }
         JobStateTransitionCmd.Response response = Cmd.send(new JobStateTransitionCmd(
             job.getJobId(),
             null,

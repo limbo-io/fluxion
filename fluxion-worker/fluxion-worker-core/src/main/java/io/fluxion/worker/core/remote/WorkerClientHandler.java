@@ -24,6 +24,7 @@ import io.fluxion.remote.core.api.request.worker.TaskStateTransitionRequest;
 import io.fluxion.remote.core.api.response.worker.TaskReportResponse;
 import io.fluxion.remote.core.api.response.worker.TaskStateTransitionResponse;
 import io.fluxion.remote.core.client.server.ClientHandler;
+import io.fluxion.remote.core.constants.JobDispatchResult;
 import io.fluxion.remote.core.constants.WorkerRemoteConstant;
 import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.executor.Executor;
@@ -89,16 +90,26 @@ public class WorkerClientHandler implements ClientHandler {
      */
     private static final long DISPATCH_CACHE_EXPIRE_MS = 10 * 60 * 1000;
 
-    private boolean jobDispatch(String data) {
+    private JobDispatchResult jobDispatch(String data) {
         JobDispatchRequest request = JacksonUtils.toType(data, JobDispatchRequest.class);
 
-        // 幂等性检查：相同的(jobId, dispatchAttempt)直接返回缓存结果
+        // 幂等性检查：相同的(jobId, dispatchAttempt)直接返回缓存结果；
+        // 已在 Deadline 内接收成功的任务，重传不得制造假拒绝，仍返回 ACCEPTED
         DispatchCacheKey cacheKey = new DispatchCacheKey(request.getJobId(), request.getDispatchAttempt());
         DispatchCacheEntry cached = dispatchCache.get(cacheKey);
         if (cached != null && !cached.isExpired()) {
-            log.info("[WorkerClientHandler] Returning cached dispatch result for job {} attempt {}: success={}",
-                request.getJobId(), request.getDispatchAttempt(), cached.isSuccess());
-            return cached.isSuccess();
+            log.info("[WorkerClientHandler] Returning cached dispatch result for job {} attempt {}: {}",
+                request.getJobId(), request.getDispatchAttempt(), cached.getResult());
+            return cached.getResult();
+        }
+
+        // 激活截止时间最终检查（见 CONTEXT.md「Execution 激活截止时间」）：
+        // 在新建 Tracker 前以本机时钟拒绝迟到任务，收敛为 EXPIRED 而不重试
+        Long deadline = request.getDeadlineEpochMillis();
+        if (deadline != null && System.currentTimeMillis() >= deadline) {
+            log.info("[WorkerClientHandler] Reject job {} by deadline: now={} deadline={}",
+                request.getJobId(), System.currentTimeMillis(), deadline);
+            return cacheDispatchResult(cacheKey, JobDispatchResult.REJECTED_DEADLINE);
         }
 
         Job job = WorkerClientConverter.toJob(request);
@@ -108,8 +119,7 @@ public class WorkerClientHandler implements ClientHandler {
         }
         if (!workerContext.status().isRunning()) {
             log.info("Worker is not running: {}", workerContext.status());
-            cacheDispatchResult(cacheKey, false);
-            return false;
+            return cacheDispatchResult(cacheKey, JobDispatchResult.REJECTED_UNAVAILABLE);
         }
         JobTracker tracker;
         switch (job.getExecuteMode()) {
@@ -128,18 +138,17 @@ public class WorkerClientHandler implements ClientHandler {
         }
         if (!workerContext.saveJobTracker(tracker)) {
             log.info("Receive job [{}], but already in repository", job.getId());
-            cacheDispatchResult(cacheKey, true);
-            return true;
+            return cacheDispatchResult(cacheKey, JobDispatchResult.ACCEPTED);
         }
         boolean success = tracker.start();
-        cacheDispatchResult(cacheKey, success);
-        return success;
+        return cacheDispatchResult(cacheKey, success ? JobDispatchResult.ACCEPTED : JobDispatchResult.REJECTED_UNAVAILABLE);
     }
 
-    private void cacheDispatchResult(DispatchCacheKey key, boolean success) {
-        dispatchCache.put(key, new DispatchCacheEntry(success, System.currentTimeMillis()));
+    private JobDispatchResult cacheDispatchResult(DispatchCacheKey key, JobDispatchResult result) {
+        dispatchCache.put(key, new DispatchCacheEntry(result, System.currentTimeMillis()));
         // 简单清理过期条目（实际生产环境应使用带过期时间的缓存）
         cleanupExpiredCacheEntries();
+        return result;
     }
 
     private void cleanupExpiredCacheEntries() {
@@ -177,15 +186,15 @@ public class WorkerClientHandler implements ClientHandler {
      * 幂等缓存条目
      */
     private static class DispatchCacheEntry {
-        private final boolean success;
+        private final JobDispatchResult result;
         private final long timestamp;
 
-        DispatchCacheEntry(boolean success, long timestamp) {
-            this.success = success;
+        DispatchCacheEntry(JobDispatchResult result, long timestamp) {
+            this.result = result;
             this.timestamp = timestamp;
         }
 
-        boolean isSuccess() { return success; }
+        JobDispatchResult getResult() { return result; }
 
         boolean isExpired() { return isExpired(System.currentTimeMillis()); }
 

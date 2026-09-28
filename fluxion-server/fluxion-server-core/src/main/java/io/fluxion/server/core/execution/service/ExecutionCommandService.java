@@ -21,12 +21,14 @@ import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.execution.cmd.ExecutionCreateCmd;
+import io.fluxion.server.core.execution.cmd.ExecutionExpiredCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionCleanCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionFailCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionScheduleFeedbackCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.schedule.Schedule;
+import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
 import io.fluxion.server.core.schedule.cmd.ScheduleFeedbackCmd;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
 import io.fluxion.server.core.trigger.TriggerType;
@@ -77,11 +79,18 @@ public class ExecutionCommandService {
             entity.setStatus(cmd.getTriggerType() == TriggerType.SCHEDULE
                 ? ExecutionStatus.PENDING.value : ExecutionStatus.INITED.value);
             entity.setFireAttempt(0);
+            if (cmd.getTriggerType() == TriggerType.SCHEDULE) {
+                Schedule schedule = Query.query(new ScheduleByIdQuery(cmd.getTriggerId())).getSchedule();
+                Long maxStartDelayMillis = schedule == null ? null : schedule.getOption().getMaxStartDelayMillis();
+                if (maxStartDelayMillis != null) {
+                    entity.setDeadlineAt(cmd.getTriggerAt().plusNanos(maxStartDelayMillis * 1_000_000));
+                }
+            }
             executionEntityRepo.saveAndFlush(entity);
         }
         Execution execution = new Execution(
             entity.getExecutionId(), ExecutionStatus.parse(entity.getStatus()),
-            entity.getExecutableId(), entity.getExecutableVersion(), executable.type()
+            entity.getExecutableId(), entity.getExecutableVersion(), executable.type(), entity.getDeadlineAt()
         );
         return new ExecutionCreateCmd.Response(execution);
     }
@@ -133,6 +142,7 @@ public class ExecutionCommandService {
             .setParameter("statuses", java.util.Arrays.asList(
                 ExecutionStatus.SUCCEED.value, ExecutionStatus.FAILED.value,
                 ExecutionStatus.SKIPPED.value, ExecutionStatus.MISFIRED.value,
+                ExecutionStatus.EXPIRED.value,
                 ExecutionStatus.INVALID.value
             ))
             .executeUpdate();
@@ -148,6 +158,32 @@ public class ExecutionCommandService {
             .setParameter("oldStatus", ExecutionStatus.RUNNING.value)
             .setParameter("newStatus", status.value)
             .executeUpdate() > 0;
+    }
+
+    /**
+     * 首批 Job 因激活截止时间被拒：Execution 由 RUNNING 收敛为 EXPIRED，并发反馈。
+     * 不影响同 Execution 的其它 Job（下游节点无截止时间，不会走此路）。
+     */
+    @Transactional
+    @CommandHandler
+    public boolean handle(ExecutionExpiredCmd cmd) {
+        int updated = entityManager.createQuery("update ExecutionEntity " +
+                "set status = :newStatus, endAt = :endAt " +
+                "where executionId = :executionId and status = :oldStatus"
+            )
+            .setParameter("newStatus", ExecutionStatus.EXPIRED.value)
+            .setParameter("endAt", cmd.getEndAt())
+            .setParameter("executionId", cmd.getExecutionId())
+            .setParameter("oldStatus", ExecutionStatus.RUNNING.value)
+            .executeUpdate();
+        if (updated <= 0) {
+            // Execution 已进入其它终态，旧拒绝结果不生效
+            log.warn("ExecutionExpiredCmd update fail executionId:{}", cmd.getExecutionId());
+            return false;
+        }
+        // EXPIRED 也是终态，必须反馈，否则 FIXED_DELAY 会永久停摆（CONTEXT.md「调度反馈」）
+        afterFinsh(cmd.getExecutionId());
+        return true;
     }
 
     /** 承接 Execution 侧发出的调度反馈触发：同一事务内解析 Schedule 并转发 {@code ScheduleFeedbackCmd} */

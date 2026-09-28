@@ -19,6 +19,6 @@ class ExecutorExecutionTest {
     @Test
     void shouldCreateJobForTheCurrentExecution() {
         Executor executor = Executor.of("executor-1", "v1", null, null, null);
-        executor.execute(new Execution("execution-1", null, "executor-1", "v1", ExecutableType.EXECUTOR));
+        executor.execute(new Execution("execution-1", null, "executor-1", "v1", ExecutableType.EXECUTOR, null));
     }
 }

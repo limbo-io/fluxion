@@ -119,6 +119,11 @@ public class ExecutionEntity extends BaseEntity {
     private LocalDateTime nextFireAt;
 
     /**
+     * 创建首批 Job 的最晚允许时刻；为空表示允许延迟启动。
+     */
+    private LocalDateTime deadlineAt;
+
+    /**
      * Bucket number for broker assignment (computed from executionId)
      */
     private Integer bucket;

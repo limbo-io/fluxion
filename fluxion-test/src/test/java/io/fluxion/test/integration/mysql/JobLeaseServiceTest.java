@@ -11,10 +11,17 @@ import io.fluxion.server.core.job.service.JobCommandService;
 import io.fluxion.server.core.broker.task.JobLeaseRenewChecker;
 import io.fluxion.server.core.broker.Broker;
 import io.fluxion.server.core.broker.BrokerContext;
+import io.fluxion.server.core.worker.Worker;
+import io.fluxion.server.core.worker.cmd.WorkerSliceOfflineCmd;
+import io.fluxion.server.core.worker.service.WorkerCommandService;
 import io.fluxion.server.infrastructure.dao.entity.BucketEntity;
 import io.fluxion.server.infrastructure.dao.entity.JobEntity;
+import io.fluxion.server.infrastructure.dao.entity.WorkerEntity;
+import io.fluxion.server.infrastructure.dao.entity.WorkerMetricEntity;
 import io.fluxion.server.infrastructure.dao.repository.BucketEntityRepo;
 import io.fluxion.server.infrastructure.dao.repository.JobEntityRepo;
+import io.fluxion.server.infrastructure.dao.repository.WorkerEntityRepo;
+import io.fluxion.server.infrastructure.dao.repository.WorkerMetricEntityRepo;
 import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.remote.core.constants.Protocol;
@@ -56,10 +63,21 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
     @Autowired
     private EntityManager entityManager;
 
+    @Autowired
+    private WorkerEntityRepo workerEntityRepo;
+
+    @Autowired
+    private WorkerMetricEntityRepo workerMetricEntityRepo;
+
+    @Autowired
+    private WorkerCommandService workerCommandService;
+
     @AfterEach
     void clearJobs() {
         jobEntityRepo.deleteAll();
         bucketEntityRepo.deleteAll();
+        workerMetricEntityRepo.deleteAll();
+        workerEntityRepo.deleteAll();
     }
 
     @Test
@@ -203,7 +221,7 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
         unrelated.setLeaseUntil(LocalDateTime.now().plusMinutes(1));
         jobEntityRepo.saveAndFlush(unrelated);
 
-        assertThat(Query.query(new JobRunningByWorkerQuery("http://worker-a:8080", 10)).getJobs())
+        assertThat(Query.query(new JobRunningByWorkerQuery("http://worker-a:8080", null, 10)).getJobs())
             .extracting(JobRunningByWorkerQuery.JobRunning::getJobId,
                 JobRunningByWorkerQuery.JobRunning::getDispatchAttempt)
             .containsExactly(org.assertj.core.groups.Tuple.tuple("job-due", 3));
@@ -215,6 +233,48 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
             .extracting(JobExpiredLeaseQuery.JobLease::getJobId,
                 JobExpiredLeaseQuery.JobLease::getDispatchAttempt)
             .containsExactly(org.assertj.core.groups.Tuple.tuple("job-due", 3));
+    }
+
+    @Test
+    void shouldPageOfflineWorkersByHeartbeatWithoutSkippingAny() {
+        LocalDateTime cutoff = LocalDateTime.now().minusSeconds(10);
+        saveWorker("worker-a", cutoff.minusSeconds(3));
+        saveWorker("worker-b", cutoff.minusSeconds(2));
+        saveWorker("worker-c", cutoff.minusSeconds(1));
+        saveWorker("worker-fresh", cutoff.plusSeconds(1));
+
+        WorkerSliceOfflineCmd.Response first = workerCommandService.handle(
+            new WorkerSliceOfflineCmd(cutoff, null, null, 2)
+        );
+        WorkerSliceOfflineCmd.Response second = workerCommandService.handle(
+            new WorkerSliceOfflineCmd(cutoff, first.getNextCursorHeartbeatAt(), first.getNextCursorWorkerId(), 2)
+        );
+        entityManager.clear();
+
+        assertThat(first.getWorkerIds()).containsExactly("worker-a", "worker-b");
+        assertThat(second.getWorkerIds()).containsExactly("worker-c");
+        assertThat(workerEntityRepo.findById("worker-a").orElseThrow().getStatus()).isEqualTo(Worker.Status.OFFLINE.status);
+        assertThat(workerEntityRepo.findById("worker-b").orElseThrow().getStatus()).isEqualTo(Worker.Status.OFFLINE.status);
+        assertThat(workerEntityRepo.findById("worker-c").orElseThrow().getStatus()).isEqualTo(Worker.Status.OFFLINE.status);
+        assertThat(workerEntityRepo.findById("worker-fresh").orElseThrow().getStatus()).isEqualTo(Worker.Status.ONLINE.status);
+    }
+
+    private void saveWorker(String workerId, LocalDateTime lastHeartbeatAt) {
+        WorkerEntity worker = new WorkerEntity();
+        worker.setWorkerId(workerId);
+        worker.setAppId("test-app");
+        worker.setProtocol(Protocol.HTTP.value);
+        worker.setHost("127.0.0.1");
+        worker.setPort(8080);
+        worker.setStatus(Worker.Status.ONLINE.status);
+        worker.setEnabled(true);
+        workerEntityRepo.save(worker);
+
+        WorkerMetricEntity metric = new WorkerMetricEntity();
+        metric.setWorkerId(workerId);
+        metric.setLastHeartbeatAt(lastHeartbeatAt);
+        workerMetricEntityRepo.save(metric);
+        workerMetricEntityRepo.flush();
     }
 
     private JobEntity newJob(String jobId) {

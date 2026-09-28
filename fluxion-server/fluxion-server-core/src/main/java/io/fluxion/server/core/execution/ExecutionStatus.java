@@ -55,6 +55,11 @@ public enum ExecutionStatus {
      */
     MISFIRED("misfired"),
     /**
+     * 超过创建首批 Job 的最晚允许时间，不再执行：
+     * 领取前/建 Job 前的 Broker 预检查，或首批 Job 下发时被 Worker/本地因截止时间拒绝。
+     */
+    EXPIRED("expired"),
+    /**
      * Job 已创建，且 Execution 的全部完成条件已满足。
      */
     SUCCEED("succeed"),
@@ -87,7 +92,7 @@ public enum ExecutionStatus {
 
     public boolean isFinished() {
         return this == FAILED || this == SUCCEED
-            || this == SKIPPED || this == MISFIRED || this == INVALID;
+            || this == SKIPPED || this == MISFIRED || this == EXPIRED || this == INVALID;
     }
 
     public boolean isCreated() {

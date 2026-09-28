@@ -241,6 +241,8 @@ class FixedDelayScheduleFeedbackTest extends AbstractMySqlIntegrationTest {
         entity.setScheduleInterval(INTERVAL.getSeconds());
         entity.setScheduleCron("");
         entity.setScheduleCronType("");
+        // 基线 ScheduleOption 要求必填 IANA 时区：日历语义解译依赖。
+        entity.setTimeZone("UTC");
         entity.setMisfirePolicy("SKIP");
         entity.setMaxFireAttempts(1);
         entity.setLastTriggerAt(now.minus(Duration.ofSeconds(20)));

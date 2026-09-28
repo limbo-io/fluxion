@@ -40,6 +40,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -225,6 +226,23 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
         assertThat(after.getLeaseUntil())
             .as("claim lease should survive until the wheel fires at triggerAt")
             .isAfter(triggerAt);
+    }
+
+    @Test
+    @DisplayName("T5: 超过创建首批 Job 的 Deadline：不领取且 Execution 终态为 EXPIRED")
+    void shouldExpireExecutionBeforeItIsClaimedWhenDeadlineHasPassed() {
+        String executionId = seedPendingExecution(LocalDateTime.now().minusSeconds(10), 1);
+        ExecutionEntity execution = executionEntityRepo.findById(executionId).orElseThrow();
+        // Deadline 域固定 UTC 口径（与 Broker 预检查同基准），seed 用 UTC 墙钟避免跨时区偏差
+        execution.setDeadlineAt(LocalDateTime.now(ZoneOffset.UTC).minusSeconds(1));
+        executionEntityRepo.saveAndFlush(execution);
+
+        assertThat(handleAsBroker("broker-deadline")).isZero();
+
+        ExecutionEntity after = executionEntityRepo.findById(executionId).orElseThrow();
+        assertThat(after.getStatus()).isEqualTo("expired");
+        assertThat(after.getLeaseOwner()).isNull();
+        assertThat(after.getExecutionToken()).isNull();
     }
 
     // ==================== helpers =====================

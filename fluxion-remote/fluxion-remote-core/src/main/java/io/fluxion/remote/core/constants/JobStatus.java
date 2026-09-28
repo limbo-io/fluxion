@@ -55,13 +55,17 @@ public enum JobStatus {
      */
     TERMINATED("terminated"),
     /**
+     * Worker 因激活截止时间拒绝开始业务代码；不可重试的终态，不进入 RetryOption。
+     */
+    EXPIRED("expired"),
+    /**
      * 暂停
      */
     PAUSED("paused"),
     ;
 
     public static final Set<JobStatus> FINISH_STATUS = Sets.newHashSet(
-        SUCCEED, FAILED, CANCELLED, TERMINATED
+        SUCCEED, FAILED, CANCELLED, TERMINATED, EXPIRED
     );
 
     @JsonValue

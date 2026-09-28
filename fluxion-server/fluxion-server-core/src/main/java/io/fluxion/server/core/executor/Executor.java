@@ -91,6 +91,8 @@ public class Executor implements Executable {
         job.setExecutionId(execution.getId());
         job.setType(JobType.EXECUTOR);
         job.setTriggerAt(TimeUtils.currentLocalDateTime());
+        // 激活截止时间仅约束首个 Job 启动：单执行器的 Job 即首批 Job，复制快照
+        job.setDeadlineAt(execution.getDeadlineAt());
         // 保存数据
         Cmd.send(new JobsCreateCmd(Collections.singletonList(job)));
         // 执行

@@ -70,12 +70,19 @@ public class Execution {
      */
     private LocalDateTime leaseUntil;
 
-    public Execution(String id, ExecutionStatus status, String executableId, String executableVersion, ExecutableType type) {
+    /**
+     * 激活截止时间快照：仅调度型 Execution 的首批 Job 创建时从 Execution.deadlineAt 复制；为空表示允许延迟启动。
+     */
+    private LocalDateTime deadlineAt;
+
+    public Execution(String id, ExecutionStatus status, String executableId, String executableVersion, ExecutableType type,
+                     LocalDateTime deadlineAt) {
         this.id = id;
         this.type = type;
         this.status = status;
         this.executableId = executableId;
         this.executableVersion = executableVersion;
+        this.deadlineAt = deadlineAt;
     }
 
     public Executable executable() {

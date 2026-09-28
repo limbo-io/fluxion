@@ -33,6 +33,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import io.limbo.cqrs.core.commandhandling.Cmd;
@@ -85,6 +86,12 @@ public class ExecutionScheduleCommandService {
             .setMaxResults(100)
             .getResultList();
         for (ExecutionEntity execution : executions) {
+            // Deadline 域固定 UTC 口径：与下发 RPC 换算（ExecutorJobRunner#toDeadlineEpochMillis）同基准，
+            // 不受节点部署时区影响（见 CONTEXT.md「统一时间模型」）
+            if (isExpired(execution, LocalDateTime.now(ZoneOffset.UTC))) {
+                finishPending(execution.getExecutionId(), ExecutionStatus.EXPIRED);
+                continue;
+            }
             boolean misfired = execution.getTriggerAt().isBefore(LocalDateTime.now().minusSeconds(MISFIRE_THRESHOLD_SECONDS));
             if (misfired) {
                 Schedule schedule = Query.query(new ScheduleByIdQuery(execution.getTriggerId())).getSchedule();
@@ -156,6 +163,10 @@ public class ExecutionScheduleCommandService {
                 || entity.getLeaseUntil() == null || !entity.getLeaseUntil().isAfter(LocalDateTime.now())) {
             return;
         }
+        if (isExpired(entity, LocalDateTime.now(ZoneOffset.UTC))) {
+            changeClaimedStatus(entity, ExecutionStatus.EXPIRED);
+            return;
+        }
         Trigger trigger = Query.query(new TriggerByIdQuery(entity.getTriggerId())).getTrigger();
         if (trigger == null || !trigger.isEnabled()) {
             changeClaimedStatus(entity, ExecutionStatus.INVALID);
@@ -171,7 +182,8 @@ public class ExecutionScheduleCommandService {
 
         // Job persistence and CLAIMED -> RUNNING are in this transaction.
         executable.execute(new Execution(entity.getExecutionId(), ExecutionStatus.CLAIMED,
-            entity.getExecutableId(), entity.getExecutableVersion(), ExecutableType.parse(entity.getExecutableType())));
+            entity.getExecutableId(), entity.getExecutableVersion(), ExecutableType.parse(entity.getExecutableType()),
+            entity.getDeadlineAt()));
         int updated = entityManager.createQuery("update ExecutionEntity set status = :running, startAt = :now, " +
                 "leaseOwner = null, leaseUntil = null, executionToken = null " +
                 "where executionId = :executionId and status = :claimed and leaseOwner = :brokerId " +
@@ -235,5 +247,9 @@ public class ExecutionScheduleCommandService {
 
     private String taskId(String executionId) {
         return "execution:" + executionId;
+    }
+
+    private boolean isExpired(ExecutionEntity execution, LocalDateTime now) {
+        return execution.getDeadlineAt() != null && !execution.getDeadlineAt().isAfter(now);
     }
 }

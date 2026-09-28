@@ -78,6 +78,7 @@ public class JobQueryService {
         job.setRefId(entity.getRefId());
         job.setExecutionId(entity.getExecutionId());
         job.setTriggerAt(entity.getTriggerAt());
+        job.setDeadlineAt(entity.getDeadlineAt());
         job.setRetryTimes(entity.getRetryTimes());
         job.setJobMonitor(JacksonUtils.toType(entity.getMonitor(), JobMonitor.class));
         job.setResult(entity.getResult());

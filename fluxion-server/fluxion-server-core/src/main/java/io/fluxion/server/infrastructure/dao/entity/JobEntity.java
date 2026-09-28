@@ -75,6 +75,11 @@ public class JobEntity extends BaseEntity {
     private LocalDateTime triggerAt;
 
     /**
+     * 激活截止时间快照；仅调度型 Execution 的首批 Job 非空，约束首个 Job 开始前的全部投递尝试。
+     */
+    private LocalDateTime deadlineAt;
+
+    /**
      * 开始时间
      */
     private LocalDateTime startAt;

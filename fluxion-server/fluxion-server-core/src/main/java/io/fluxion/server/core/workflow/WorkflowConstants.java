@@ -32,6 +32,9 @@ public interface WorkflowConstants {
 
     String FLOW_START_NODES_HAS_ERROR_TYPE_NODE = "flow_start_nodes_has_error_type_node";
 
+    /** 结束节点数量限制（同 FLOW_NODE_START_END_LIMIT）之外，起始节点也必须唯一 */
+    String FLOW_START_NODES_NOT_UNIQUE = "flow_start_nodes_not_unique";
+
     String FLOW_END_NODES_IS_EMPTY = "flow_end_nodes_is_empty";
 
     String FLOW_END_NODES_HAS_ERROR_TYPE_NODE = "flow_end_nodes_has_error_type_node";
