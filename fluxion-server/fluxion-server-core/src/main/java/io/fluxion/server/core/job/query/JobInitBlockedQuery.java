@@ -22,7 +22,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -38,7 +38,7 @@ public class JobInitBlockedQuery implements IQuery<JobInitBlockedQuery.Response>
 
     private String lastJobId;
 
-    private LocalDateTime endAt;
+    private Instant endAt;
 
     @Getter
     @AllArgsConstructor

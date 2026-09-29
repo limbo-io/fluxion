@@ -20,10 +20,9 @@ import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import io.fluxion.server.infrastructure.schedule.task.PeriodicTask;
-import io.limbo.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 周期task调度器
@@ -117,13 +116,13 @@ public class PeriodicTaskScheduler extends AbstractTaskScheduler<PeriodicTask> {
     }
 
     /**
-     * 检查当前时间是否在调度窗口内
+     * 检查当前时间是否在调度窗口内；窗口按配置时区展开为绝对时刻后与运行态比较（CONTEXT.md「统一时间模型」）
      */
     private boolean isInTimeWindow(ScheduleOption option) {
-        LocalDateTime now = TimeUtils.currentLocalDateTime();
+        Instant now = Instant.now();
 
-        LocalDateTime startTime = option.getStartTime();
-        LocalDateTime endTime = option.getEndTime();
+        Instant startTime = option.startInstant();
+        Instant endTime = option.endInstant();
 
         // 检查开始时间
         if (startTime != null && startTime.isAfter(now)) {
@@ -161,7 +160,7 @@ public class PeriodicTaskScheduler extends AbstractTaskScheduler<PeriodicTask> {
         try {
             // 计算下次触发时间
             PeriodicTask nextTask = task.nextTrigger();
-            LocalDateTime nextTriggerAt = nextTask.triggerAt();
+            Instant nextTriggerAt = nextTask.triggerAt();
 
             if (nextTriggerAt == null) {
                 log.info("Task [{}] has no more trigger times, stopping", taskId);

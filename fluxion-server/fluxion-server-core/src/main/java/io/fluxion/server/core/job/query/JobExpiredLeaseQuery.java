@@ -4,7 +4,7 @@ import io.limbo.cqrs.core.queryhandling.IQuery;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Getter
@@ -12,7 +12,7 @@ import java.util.List;
 public class JobExpiredLeaseQuery implements IQuery<JobExpiredLeaseQuery.Response> {
 
     private final int limit;
-    private final LocalDateTime now;
+    private final Instant now;
 
     @Getter
     @AllArgsConstructor

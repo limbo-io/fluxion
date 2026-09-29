@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -60,7 +60,7 @@ class DelayedTaskSchedulerTest {
     @Test
     void testScheduleDelayedTask() {
         AtomicBoolean executed = new AtomicBoolean(false);
-        LocalDateTime triggerAt = LocalDateTime.now().plusSeconds(1);
+        Instant triggerAt = Instant.now().plusSeconds(1);
         DelayedTask task = new DelayedTask("test-task", triggerAt, t -> executed.set(true));
 
         scheduler.schedule(task);
@@ -82,7 +82,7 @@ class DelayedTaskSchedulerTest {
     void testDelayedTaskExecutionRemovesFromScheduling() {
         AtomicBoolean executed1 = new AtomicBoolean(false);
         AtomicBoolean executed2 = new AtomicBoolean(false);
-        LocalDateTime triggerAt = LocalDateTime.now().plusSeconds(1);
+        Instant triggerAt = Instant.now().plusSeconds(1);
 
         DelayedTask task = new DelayedTask("same-task", triggerAt, t -> executed1.set(true));
         scheduler.schedule(task);
@@ -112,7 +112,7 @@ class DelayedTaskSchedulerTest {
     void testDuplicateTaskNotScheduled() {
         AtomicReference<String> firstResult = new AtomicReference<>();
         AtomicReference<String> secondResult = new AtomicReference<>();
-        LocalDateTime triggerAt = LocalDateTime.now().plusSeconds(1);
+        Instant triggerAt = Instant.now().plusSeconds(1);
 
         DelayedTask task1 = new DelayedTask("duplicate-task", triggerAt, t -> firstResult.set("first"));
         DelayedTask task2 = new DelayedTask("duplicate-task", triggerAt, t -> secondResult.set("second"));
@@ -133,7 +133,7 @@ class DelayedTaskSchedulerTest {
     @Test
     void testStopTask() {
         AtomicBoolean executed = new AtomicBoolean(false);
-        LocalDateTime triggerAt = LocalDateTime.now().plusSeconds(5);
+        Instant triggerAt = Instant.now().plusSeconds(5);
         DelayedTask task = new DelayedTask("stop-task", triggerAt, t -> executed.set(true));
 
         scheduler.schedule(task);
@@ -156,7 +156,7 @@ class DelayedTaskSchedulerTest {
     @Test
     void testTaskWithPastTriggerTime() {
         AtomicBoolean executed = new AtomicBoolean(false);
-        LocalDateTime pastTriggerAt = LocalDateTime.now().minusSeconds(1);
+        Instant pastTriggerAt = Instant.now().minusSeconds(1);
         DelayedTask task = new DelayedTask("past-task", pastTriggerAt, t -> executed.set(true));
 
         scheduler.schedule(task);
@@ -187,7 +187,7 @@ class DelayedTaskSchedulerTest {
     @Test
     void testTaskDelayCalculation() {
         long delaySeconds = 3;
-        LocalDateTime futureTriggerAt = LocalDateTime.now().plusSeconds(delaySeconds);
+        Instant futureTriggerAt = Instant.now().plusSeconds(delaySeconds);
         DelayedTask task = new DelayedTask("delay-task", futureTriggerAt, t -> {});
 
         scheduler.schedule(task);

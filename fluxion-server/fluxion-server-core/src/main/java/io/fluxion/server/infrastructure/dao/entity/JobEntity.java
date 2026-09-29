@@ -27,7 +27,7 @@ import org.hibernate.annotations.DynamicUpdate;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 一个任务 实例 存储运行数据
@@ -72,22 +72,22 @@ public class JobEntity extends BaseEntity {
     /**
      * 应该触发的时间
      */
-    private LocalDateTime triggerAt;
+    private Instant triggerAt;
 
     /**
      * 激活截止时间快照；仅调度型 Execution 的首批 Job 非空，约束首个 Job 开始前的全部投递尝试。
      */
-    private LocalDateTime deadlineAt;
+    private Instant deadlineAt;
 
     /**
      * 开始时间
      */
-    private LocalDateTime startAt;
+    private Instant startAt;
 
     /**
      * 结束时间
      */
-    private LocalDateTime endAt;
+    private Instant endAt;
 
     /**
      * 执行节点
@@ -97,7 +97,7 @@ public class JobEntity extends BaseEntity {
     /**
      * 上次上报时间戳，毫秒
      */
-    private LocalDateTime lastReportAt;
+    private Instant lastReportAt;
 
     /**
      * 当前是第几次重试
@@ -117,17 +117,17 @@ public class JobEntity extends BaseEntity {
     /**
      * Broker 处理 lease 的过期时间
      */
-    private LocalDateTime leaseUntil;
+    private Instant leaseUntil;
 
     /**
      * 当前下发 attempt 的超时时间
      */
-    private LocalDateTime timeoutAt;
+    private Instant timeoutAt;
 
     /**
      * 下一次允许重试的时间
      */
-    private LocalDateTime nextRetryAt;
+    private Instant nextRetryAt;
 
     /**
      * 最后一次的执行结果

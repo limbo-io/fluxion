@@ -19,7 +19,7 @@ package io.fluxion.worker.core.task.repository;
 import io.fluxion.remote.core.constants.TaskStatus;
 import io.fluxion.worker.core.task.Task;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 
@@ -37,7 +37,7 @@ public interface TaskRepository {
     /**
      * init -> running
      */
-    boolean start(String jobId, String taskId, String workerAddress, LocalDateTime reportAt);
+    boolean start(String jobId, String taskId, String workerAddress, Instant reportAt);
 
     /**
      * 修改report时间
@@ -47,7 +47,7 @@ public interface TaskRepository {
      *
      * running
      */
-    boolean report(String jobId, String taskId, TaskStatus status, String workerAddress, LocalDateTime reportTime);
+    boolean report(String jobId, String taskId, TaskStatus status, String workerAddress, Instant reportTime);
 
     /**
      * running -> success

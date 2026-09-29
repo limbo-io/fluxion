@@ -21,7 +21,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * @author Devil
@@ -32,6 +32,6 @@ public interface ExecutionEntityRepo extends JpaRepository<ExecutionEntity, Stri
     /**
      * Execution 创建幂等：每个 (triggerId, triggerAt) 只允许一个实例
      */
-    ExecutionEntity findByTriggerIdAndTriggerAt(String triggerId, LocalDateTime triggerAt);
+    ExecutionEntity findByTriggerIdAndTriggerAt(String triggerId, Instant triggerAt);
 
 }

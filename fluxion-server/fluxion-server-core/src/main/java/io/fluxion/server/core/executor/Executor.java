@@ -30,8 +30,7 @@ import io.fluxion.server.core.job.JobType;
 import io.fluxion.server.core.job.cmd.JobsCreateCmd;
 import io.fluxion.server.core.job.config.ExecutorJobConfig;
 import io.limbo.cqrs.core.commandhandling.Cmd;
-import io.limbo.utils.time.TimeUtils;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collections;
 
 /**
@@ -90,7 +89,7 @@ public class Executor implements Executable {
         Job job = new Job();
         job.setExecutionId(execution.getId());
         job.setType(JobType.EXECUTOR);
-        job.setTriggerAt(TimeUtils.currentLocalDateTime());
+        job.setTriggerAt(Instant.now());
         // 激活截止时间仅约束首个 Job 启动：单执行器的 Job 即首批 Job，复制快照
         job.setDeadlineAt(execution.getDeadlineAt());
         // 保存数据
@@ -100,12 +99,12 @@ public class Executor implements Executable {
     }
 
     @Override
-    public boolean success(String executionId, String refId, LocalDateTime time) {
+    public boolean success(String executionId, String refId, Instant time) {
         return Cmd.send(new ExecutionSuccessCmd(executionId, time));
     }
 
     @Override
-    public boolean fail(String executionId, String refId, LocalDateTime time) {
+    public boolean fail(String executionId, String refId, Instant time) {
         return Cmd.send(new ExecutionFailCmd(executionId, time));
     }
 

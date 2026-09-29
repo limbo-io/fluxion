@@ -26,6 +26,10 @@ spring:
     properties:
       hibernate:
         enable_lazy_load_no_trans: true
+        # 运行态时间统一 UTC：Instant 读写与 JPQL 参数绑定均以 UTC 日历落 DATETIME(3)，
+        # 不依赖 JVM/连接默认时区（见 CONTEXT.md「统一时间模型」）
+        jdbc:
+          time_zone: UTC
   flyway:
     baseline-on-migrate: true
     baseline-version: 0

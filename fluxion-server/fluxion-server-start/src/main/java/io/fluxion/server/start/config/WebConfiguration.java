@@ -22,8 +22,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.fluxion.server.infrastructure.utils.json.LocalDateTimeTimestampDeserializer;
-import io.fluxion.server.infrastructure.utils.json.LocalDateTimeTimestampSerializer;
 import io.limbo.utils.time.Formatters;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -33,7 +31,6 @@ import org.springframework.format.datetime.DateFormatter;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 
 /**
  * @author Devil
@@ -52,12 +49,16 @@ public class WebConfiguration implements WebMvcConfigurer {
 
         // 注册JDK8的日期API处理模块
         JavaTimeModule javaTimeModule = new JavaTimeModule();
-        javaTimeModule.addSerializer(new LocalDateTimeTimestampSerializer());
-        javaTimeModule.addDeserializer(LocalDateTime.class, new LocalDateTimeTimestampDeserializer());
 
         //在反序列化时忽略在 json 中存在但 Java 对象不存在的属性
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+
+        // 管理/API 的运行态时间返回 RFC 3339 UTC 字符串（Instant → 2026-09-28T12:00:00Z，
+        // 见 CONTEXT.md「统一时间模型」：HTTP 由 JavaTimeModule 默认 ISO 输出承载；
+        // Worker RPC 不走本 mapper，其线协议为 epoch millis（DTO 字段为 Long））。
+        // 不关 WRITE_DATES_AS_TIMESTAMPS 时 Jackson 会把 Instant 写成十进制秒，不是 millis。
+        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
 
         //在序列化时日期格式默认为 yyyy-MM-dd HH:mm:ss
         String dateTimePattern = Formatters.YMD_HMS;

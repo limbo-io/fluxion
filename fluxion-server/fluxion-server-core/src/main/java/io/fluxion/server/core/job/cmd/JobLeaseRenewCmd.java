@@ -4,7 +4,7 @@ import io.limbo.cqrs.core.commandhandling.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /** Renews one active Job lease through the Job command service. */
 @Getter
@@ -14,5 +14,5 @@ public class JobLeaseRenewCmd implements ICommand<Boolean> {
     private final String jobId;
     private final String brokerId;
     private final int dispatchAttempt;
-    private final LocalDateTime leaseUntil;
+    private final Instant leaseUntil;
 }

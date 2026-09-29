@@ -25,7 +25,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 创建执行实例。
@@ -42,7 +42,7 @@ public class ExecutionCreateCmd implements ICommand<ExecutionCreateCmd.Response>
 
     private Executable executable;
 
-    private LocalDateTime triggerAt;
+    private Instant triggerAt;
 
     @Getter
     @AllArgsConstructor

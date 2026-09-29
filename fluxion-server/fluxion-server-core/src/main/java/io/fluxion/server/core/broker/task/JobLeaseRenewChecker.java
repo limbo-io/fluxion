@@ -1,5 +1,6 @@
 package io.fluxion.server.core.broker.task;
 
+import java.time.Instant;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.job.cmd.JobLeaseRenewCmd;
 import io.fluxion.server.core.job.query.JobLeaseOwnedQuery;
@@ -7,7 +8,6 @@ import io.fluxion.server.core.job.service.JobLeaseService;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import io.limbo.cqrs.core.commandhandling.Cmd;
 import io.limbo.cqrs.core.queryhandling.Query;
-import io.limbo.utils.time.TimeUtils;
 import java.util.concurrent.TimeUnit;
 
 /** Keeps active Job leases alive while the current Broker awaits Worker completion. */
@@ -29,7 +29,7 @@ public class JobLeaseRenewChecker extends CoreTask {
             response = Query.query(new JobLeaseOwnedQuery(brokerId, 100, lastJobId));
             for (JobLeaseOwnedQuery.JobLease job : response.getJobs()) {
                 Cmd.send(new JobLeaseRenewCmd(job.getJobId(), brokerId, job.getDispatchAttempt(),
-                    TimeUtils.currentLocalDateTime().plusSeconds(JobLeaseService.LEASE_DURATION_SECONDS)));
+                    Instant.now().plusSeconds(JobLeaseService.LEASE_DURATION_SECONDS)));
             }
             if (!response.getJobs().isEmpty()) {
                 lastJobId = response.getJobs().get(response.getJobs().size() - 1).getJobId();

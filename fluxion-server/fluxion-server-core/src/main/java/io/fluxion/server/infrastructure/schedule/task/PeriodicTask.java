@@ -16,13 +16,12 @@
 
 package io.fluxion.server.infrastructure.schedule.task;
 
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.BasicCalculation;
 import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.function.Consumer;
 
 /**
@@ -54,7 +53,7 @@ public class PeriodicTask extends AbstractTask {
     }
 
     @Override
-    public LocalDateTime triggerAt() {
+    public Instant triggerAt() {
         return calculation.triggerAt();
     }
 
@@ -63,9 +62,9 @@ public class PeriodicTask extends AbstractTask {
     }
 
     public PeriodicTask nextTrigger() {
-        LocalDateTime lastTriggerAt = calculation.triggerAt();
+        Instant lastTriggerAt = calculation.triggerAt();
         ScheduleOption scheduleOption = calculation.scheduleOption();
-        calculation = new BasicCalculation(lastTriggerAt, TimeUtils.currentLocalDateTime(), scheduleOption);
+        calculation = new BasicCalculation(lastTriggerAt, Instant.now(), scheduleOption);
         return this;
     }
 

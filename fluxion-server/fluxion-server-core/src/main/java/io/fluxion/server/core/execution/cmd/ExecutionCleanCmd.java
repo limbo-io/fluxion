@@ -10,10 +10,10 @@ import io.limbo.cqrs.core.commandhandling.VoidCommand;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @AllArgsConstructor
 public class ExecutionCleanCmd implements VoidCommand {
-    private LocalDateTime endAt;
+    private Instant endAt;
 }

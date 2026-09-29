@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Job 下发 lease 和 attempt 的条件更新。
@@ -37,8 +37,8 @@ public class JobLeaseService {
     private EntityManager entityManager;
 
     @Transactional
-    public Integer claimFirstAttempt(String jobId, String brokerId, LocalDateTime leaseUntil) {
-        LocalDateTime now = LocalDateTime.now();
+    public Integer claimFirstAttempt(String jobId, String brokerId, Instant leaseUntil) {
+        Instant now = Instant.now();
         int updated = entityManager.createQuery("update JobEntity set leaseOwner = :brokerId, leaseUntil = :leaseUntil, "
                 + "dispatchAttempt = coalesce(dispatchAttempt, 0) + 1 "
                 + "where jobId = :jobId and status = :status and "
@@ -53,8 +53,8 @@ public class JobLeaseService {
     }
 
     @Transactional
-    public Integer nextAttempt(String jobId, String brokerId, int currentAttempt, LocalDateTime leaseUntil) {
-        LocalDateTime now = LocalDateTime.now();
+    public Integer nextAttempt(String jobId, String brokerId, int currentAttempt, Instant leaseUntil) {
+        Instant now = Instant.now();
         int updated = entityManager.createQuery("update JobEntity set leaseUntil = :leaseUntil, "
                 + "dispatchAttempt = dispatchAttempt + 1 "
                 + "where jobId = :jobId and status = :status and leaseOwner = :brokerId "
@@ -70,7 +70,7 @@ public class JobLeaseService {
     }
 
     @Transactional
-    public boolean renew(String jobId, String brokerId, int dispatchAttempt, LocalDateTime leaseUntil) {
+    public boolean renew(String jobId, String brokerId, int dispatchAttempt, Instant leaseUntil) {
         return entityManager.createQuery("update JobEntity set leaseUntil = :leaseUntil "
                 + "where jobId = :jobId and leaseOwner = :brokerId and dispatchAttempt = :dispatchAttempt "
                 + "and leaseUntil >= :now")
@@ -78,7 +78,7 @@ public class JobLeaseService {
             .setParameter("jobId", jobId)
             .setParameter("brokerId", brokerId)
             .setParameter("dispatchAttempt", dispatchAttempt)
-            .setParameter("now", LocalDateTime.now())
+            .setParameter("now", Instant.now())
             .executeUpdate() == 1;
     }
 
@@ -93,7 +93,7 @@ public class JobLeaseService {
     }
 
     @Transactional
-    public boolean setTimeout(String jobId, String brokerId, int dispatchAttempt, LocalDateTime timeoutAt) {
+    public boolean setTimeout(String jobId, String brokerId, int dispatchAttempt, Instant timeoutAt) {
         return entityManager.createQuery("update JobEntity set timeoutAt = :timeoutAt "
                 + "where jobId = :jobId and leaseOwner = :brokerId and dispatchAttempt = :dispatchAttempt "
                 + "and leaseUntil >= :now")
@@ -101,7 +101,7 @@ public class JobLeaseService {
             .setParameter("jobId", jobId)
             .setParameter("brokerId", brokerId)
             .setParameter("dispatchAttempt", dispatchAttempt)
-            .setParameter("now", LocalDateTime.now())
+            .setParameter("now", Instant.now())
             .executeUpdate() == 1;
     }
 

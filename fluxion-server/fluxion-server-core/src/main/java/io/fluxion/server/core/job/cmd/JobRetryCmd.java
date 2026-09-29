@@ -22,7 +22,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 重试指定 Job。
@@ -42,7 +42,7 @@ public class JobRetryCmd implements ICommand<Boolean> {
      */
     private int retryTimes;
 
-    private LocalDateTime nextRetryAt;
+    private Instant nextRetryAt;
 
     public JobRetryCmd(String jobId, int retryTimes) {
         this(jobId, retryTimes, null);

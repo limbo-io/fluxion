@@ -37,7 +37,6 @@ import io.fluxion.server.core.trigger.TriggerType;
 import io.fluxion.server.core.trigger.query.TriggerByIdQuery;
 import io.limbo.utils.MD5Utils;
 import io.limbo.utils.json.JacksonUtils;
-import io.limbo.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 import io.limbo.cqrs.spring.annotation.CommandHandler;
 import org.springframework.stereotype.Service;
@@ -45,7 +44,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import io.limbo.cqrs.core.commandhandling.Cmd;
@@ -130,11 +129,11 @@ public class ScheduleCommandService {
         if (!schedule.isEnabled()) {
             return;
         }
-        LocalDateTime now = TimeUtils.currentLocalDateTime();
+        Instant now = Instant.now();
         // 为每个计划触发点创建唯一的 PENDING Execution。
-        List<LocalDateTime> triggerPoints = new ArrayList<>();
-        LocalDateTime lastTriggerAt = schedule.getLastTriggerAt();
-        LocalDateTime nextTriggerAt = schedule.getNextTriggerAt();
+        List<Instant> triggerPoints = new ArrayList<>();
+        Instant lastTriggerAt = schedule.getLastTriggerAt();
+        Instant nextTriggerAt = schedule.getNextTriggerAt();
         if (nextTriggerAt == null) {
             // FIXED_DELAY 在途实例未反馈时会置空 nextTriggerAt，或调度已无后续触发点；由反馈链路/人工发布继续推进
             return;
@@ -155,11 +154,14 @@ public class ScheduleCommandService {
             nextTriggerAt = null; // 反馈的时候计算下次触发时间，先置空
         } else {
             // CRON/FIXED_RATE: preserve every historical and future trigger point.
-            LocalDateTime loadEndAt = now.plusSeconds(ScheduleConstants.EXECUTION_LOOK_AHEAD_SECONDS);
+            Instant loadEndAt = now.plusSeconds(ScheduleConstants.EXECUTION_LOOK_AHEAD_SECONDS);
+            // 生效窗口是配置时区解释的日历窗口，展开为绝对时刻后与运行态比较
+            Instant windowStart = schedule.getOption().startInstant();
+            Instant windowEnd = schedule.getOption().endInstant();
             while (nextTriggerAt != null
-                    && !nextTriggerAt.isAfter(schedule.getOption().getEndTime())
+                    && !nextTriggerAt.isAfter(windowEnd)
                     && !nextTriggerAt.isAfter(loadEndAt)) {
-                if (!nextTriggerAt.isBefore(schedule.getOption().getStartTime())) {
+                if (!nextTriggerAt.isBefore(windowStart)) {
                     triggerPoints.add(nextTriggerAt);
                 }
                 lastTriggerAt = nextTriggerAt;
@@ -175,7 +177,7 @@ public class ScheduleCommandService {
         Executable executable = Query.query(new ExecutableByIdQuery(
             trigger.executableId(), trigger.getConfig().getExecuteConfig().type()
         )).getExecutable();
-        for (LocalDateTime triggerPoint : triggerPoints) {
+        for (Instant triggerPoint : triggerPoints) {
             Cmd.send(new ExecutionCreateCmd(trigger.getId(), TriggerType.SCHEDULE, executable, triggerPoint));
         }
 
@@ -190,12 +192,12 @@ public class ScheduleCommandService {
                 .executeUpdate();
     }
 
-    private boolean scheduleTriggerCheck(LocalDateTime nextTriggerAt, LocalDateTime now, ScheduleOption option) {
+    private boolean scheduleTriggerCheck(Instant nextTriggerAt, Instant now, ScheduleOption option) {
         if (nextTriggerAt.isBefore(now)
-                || nextTriggerAt.isBefore(option.getStartTime())) {
+                || nextTriggerAt.isBefore(option.startInstant())) {
             return false;
         }
-        if (nextTriggerAt.isAfter(option.getEndTime())
+        if (nextTriggerAt.isAfter(option.endInstant())
                 || nextTriggerAt.isAfter(now.plusSeconds(ScheduleConstants.EXECUTION_LOOK_AHEAD_SECONDS))) {
             return false;
         }
@@ -215,7 +217,7 @@ public class ScheduleCommandService {
     @CommandHandler
     public void handle(ScheduleFeedbackCmd cmd) {
         Schedule schedule = cmd.getSchedule();
-        LocalDateTime now = TimeUtils.currentLocalDateTime();
+        Instant now = Instant.now();
         int rows = entityManager.createQuery("update ScheduleEntity " +
                         " set lastFeedbackAt = :lastFeedbackAt " +
                         " where id = :id"

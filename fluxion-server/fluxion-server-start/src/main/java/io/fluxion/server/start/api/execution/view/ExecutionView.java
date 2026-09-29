@@ -21,7 +21,7 @@ import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.trigger.TriggerType;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * @author Devil
@@ -63,16 +63,16 @@ public class ExecutionView {
     /**
      * 期望的调度触发时间
      */
-    private LocalDateTime triggerAt;
+    private Instant triggerAt;
 
     /**
      * 执行开始时间
      */
-    private LocalDateTime startAt;
+    private Instant startAt;
 
     /**
      * 执行结束时间
      */
-    private LocalDateTime endAt;
+    private Instant endAt;
 
 }

@@ -21,6 +21,7 @@ import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 /**
@@ -37,7 +38,7 @@ public interface ScheduleCalculator {
      * @param calculable 可计算的对象
      * @return 下次触发调度的时间戳，当返回负数时，表示作业不会有触发时间。
      */
-    LocalDateTime calculate(Calculable calculable);
+    Instant calculate(Calculable calculable);
 
     /**
      * 此策略适用的调度类型
@@ -45,18 +46,22 @@ public interface ScheduleCalculator {
     ScheduleType scheduleType();
 
     /**
-     * 计算作业的开始调度时间，从作业创建时间开始，加上delay。
+     * 计算作业的开始调度时间，从作业配置的起始时刻开始，加上 delay。
+     * 结束/起始窗口是按 schedule 时区解释的本地日历配置，展开为绝对时刻参与运行态比较
+     * （见 CONTEXT.md「统一时间模型」）。
      *
      * @param scheduleOption 作业调度配置
-     * @return 作业开始进行调度计算的时间
+     * @return 作业开始进行调度计算的绝对时刻
      */
-    default LocalDateTime calculateStartScheduleTime(ScheduleOption scheduleOption) {
+    default Instant calculateStartScheduleTime(ScheduleOption scheduleOption) {
         LocalDateTime startTime = scheduleOption.getStartTime();
+        Instant startAt = startTime == null ? Instant.now()
+            : startTime.atZone(scheduleOption.getTimeZone()).toInstant();
         Duration delay = scheduleOption.getDelay();
-        return delay != null ? startTime.plusSeconds(delay.getSeconds()) : startTime;
+        return delay != null ? startAt.plusSeconds(delay.getSeconds()) : startAt;
     }
 
-    default LocalDateTime laterTime(LocalDateTime a, LocalDateTime b) {
+    default Instant laterTime(Instant a, Instant b) {
         if (a == null) {
             return b;
         } else if (b == null) {

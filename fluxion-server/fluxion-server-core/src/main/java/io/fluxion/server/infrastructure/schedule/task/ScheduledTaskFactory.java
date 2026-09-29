@@ -22,7 +22,7 @@ import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.function.Consumer;
 
@@ -44,7 +44,7 @@ public class ScheduledTaskFactory {
      * @param cron     cron表达式
      * @param cronType cron表达式类型 {@link CronType}
      */
-    public static PeriodicTask cron(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+    public static PeriodicTask cron(String id, Instant lastTriggerAt, Instant lastFeedbackAt,
                                     Duration delay, String cron, String cronType, Consumer<PeriodicTask> consumer) {
         return task(id, lastTriggerAt, lastFeedbackAt,
             new ScheduleOption(ScheduleType.CRON, null, null, delay, null, cron, cronType, ZoneOffset.UTC),
@@ -56,7 +56,7 @@ public class ScheduledTaskFactory {
         return fixDelay(id, null, null, Duration.ZERO, interval, consumer);
     }
 
-    public static PeriodicTask fixDelay(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+    public static PeriodicTask fixDelay(String id, Instant lastTriggerAt, Instant lastFeedbackAt,
                                         Duration delay, Duration interval, Consumer<PeriodicTask> consumer) {
         return task(id, lastTriggerAt, lastFeedbackAt,
             new ScheduleOption(ScheduleType.FIXED_DELAY, null, null, delay, interval, null, null, ZoneOffset.UTC),
@@ -68,7 +68,7 @@ public class ScheduledTaskFactory {
         return fixRate(id, null, null, Duration.ZERO, interval, consumer);
     }
 
-    public static PeriodicTask fixRate(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+    public static PeriodicTask fixRate(String id, Instant lastTriggerAt, Instant lastFeedbackAt,
                                        Duration delay, Duration interval, Consumer<PeriodicTask> consumer) {
         return task(id, lastTriggerAt, lastFeedbackAt,
             new ScheduleOption(ScheduleType.FIXED_RATE, null, null, delay, interval, null, null, ZoneOffset.UTC),
@@ -76,7 +76,7 @@ public class ScheduledTaskFactory {
         );
     }
 
-    public static PeriodicTask task(String id, LocalDateTime lastTriggerAt, LocalDateTime lastFeedbackAt,
+    public static PeriodicTask task(String id, Instant lastTriggerAt, Instant lastFeedbackAt,
                                     ScheduleOption scheduleOption, Consumer<PeriodicTask> consumer) {
         return new PeriodicTask(id, new BasicCalculation(
             lastTriggerAt, lastFeedbackAt, scheduleOption

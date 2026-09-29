@@ -17,7 +17,6 @@
 package io.fluxion.server.core.broker.task;
 
 import io.fluxion.common.thread.CommonThreadPool;
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.core.job.Job;
 import io.fluxion.server.core.job.cmd.JobRunCmd;
 import io.fluxion.server.core.job.query.JobByIdQuery;
@@ -27,7 +26,7 @@ import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -51,7 +50,7 @@ public class JobUnRunChecker extends CoreTask {
 
     @Override
     public void run() {
-        LocalDateTime endAt = TimeUtils.currentLocalDateTime().plusSeconds(- INTERVAL);
+        Instant endAt = Instant.now().plusSeconds(- INTERVAL);
         String lastId = "";
         // 返回的job必定是inited
         List<String> jobIds = Query.query(new JobInitBlockedQuery(100, lastId, endAt)).getJobIds();

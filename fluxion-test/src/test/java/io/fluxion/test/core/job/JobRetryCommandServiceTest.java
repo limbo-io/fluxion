@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import java.lang.reflect.Field;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,7 +31,7 @@ class JobRetryCommandServiceTest {
         entity.setExecutionId("execution-1");
         entity.setRefId("task-1");
         entity.setJobType(JobType.EXECUTOR.value);
-        entity.setTriggerAt(LocalDateTime.now());
+        entity.setTriggerAt(Instant.now());
         JobEntityRepo jobRepo = mock(JobEntityRepo.class);
         when(jobRepo.findById("job-1")).thenReturn(Optional.of(entity));
         EntityManager entityManager = mock(EntityManager.class);

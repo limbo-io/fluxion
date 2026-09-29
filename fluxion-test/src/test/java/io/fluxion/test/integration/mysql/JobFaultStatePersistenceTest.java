@@ -10,7 +10,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -62,9 +62,9 @@ class JobFaultStatePersistenceTest extends AbstractMySqlIntegrationTest {
         job.setRefId(jobId);
         job.setStatus("inited");
         job.setRetryTimes(0);
-        job.setTriggerAt(LocalDateTime.now());
-        job.setCreatedAt(LocalDateTime.now());
-        job.setUpdatedAt(LocalDateTime.now());
+        job.setTriggerAt(Instant.now());
+        job.setCreatedAt(Instant.now());
+        job.setUpdatedAt(Instant.now());
         job.setDeleted(false);
         return job;
     }

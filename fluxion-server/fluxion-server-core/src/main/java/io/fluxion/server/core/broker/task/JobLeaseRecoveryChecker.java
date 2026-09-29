@@ -1,12 +1,12 @@
 package io.fluxion.server.core.broker.task;
 
+import java.time.Instant;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.query.JobExpiredLeaseQuery;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import io.limbo.cqrs.core.commandhandling.Cmd;
 import io.limbo.cqrs.core.queryhandling.Query;
-import io.limbo.utils.time.TimeUtils;
 import java.util.concurrent.TimeUnit;
 
 /** 接管 Broker 崩溃后仍处于运行态且 lease 已过期的 Job。 */
@@ -21,9 +21,9 @@ public class JobLeaseRecoveryChecker extends CoreTask {
         if (BrokerContext.broker() == null) {
             return;
         }
-        JobExpiredLeaseQuery.Response response = Query.query(new JobExpiredLeaseQuery(100, TimeUtils.currentLocalDateTime()));
+        JobExpiredLeaseQuery.Response response = Query.query(new JobExpiredLeaseQuery(100, Instant.now()));
         for (JobExpiredLeaseQuery.JobLease job : response.getJobs()) {
-            Cmd.send(new JobFailCmd(job.getJobId(), TimeUtils.currentLocalDateTime(), job.getDispatchAttempt(),
+            Cmd.send(new JobFailCmd(job.getJobId(), Instant.now(), job.getDispatchAttempt(),
                 "Broker lease expired", null));
         }
     }

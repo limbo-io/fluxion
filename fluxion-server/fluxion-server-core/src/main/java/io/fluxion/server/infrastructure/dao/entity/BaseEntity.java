@@ -23,7 +23,9 @@ import org.hibernate.Hibernate;
 
 import javax.persistence.Column;
 import javax.persistence.MappedSuperclass;
-import java.time.LocalDateTime;
+import javax.persistence.PrePersist;
+import javax.persistence.PreUpdate;
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -35,16 +37,14 @@ import java.util.Objects;
 public abstract class BaseEntity {
 
     /**
-     * 记录创建时间
+     * 记录创建时间；运行态绝对时间，应用侧生成（见 CONTEXT.md「统一时间模型」）。
      */
-    @Column(insertable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     /**
-     * 记录更新时间
+     * 记录更新时间；运行态绝对时间，应用侧生成。
      */
-    @Column(insertable = false, updatable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     /**
      * 是否删除
@@ -53,6 +53,22 @@ public abstract class BaseEntity {
     private boolean deleted;
 
     public abstract Object getUid();
+
+    /**
+     * createdAt/updatedAt 由数据库 DEFAULT CURRENT_TIMESTAMP 生成，取决于数据库会话时区；
+     * 改为应用侧 UTC 生成，不再依赖会话时钟（见 CONTEXT.md「统一时间模型」）。
+     */
+    @PrePersist
+    public void prePersistTimestamps() {
+        Instant now = Instant.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    public void preUpdateTimestamps() {
+        this.updatedAt = Instant.now();
+    }
 
     @Override
     public boolean equals(Object o) {

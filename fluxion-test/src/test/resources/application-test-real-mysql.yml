@@ -24,5 +24,7 @@ spring:
       hibernate:
         jdbc:
           batch_size: 50
+          # 运行态时间统一 UTC：与生产同口径
+          time_zone: UTC
         order_updates: true
         order_inserts: true

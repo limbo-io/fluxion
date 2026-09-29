@@ -1,10 +1,10 @@
 package io.fluxion.server.core.broker.task;
 
+import java.time.Instant;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.job.cmd.JobRetryCmd;
 import io.fluxion.server.core.job.query.JobRetryDueQuery;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.limbo.utils.time.TimeUtils;
 
 import java.util.concurrent.TimeUnit;
 
@@ -25,7 +25,7 @@ public class JobRetryChecker extends CoreTask {
         if (BrokerContext.broker() == null) {
             return;
         }
-        JobRetryDueQuery.Response response = Query.query(new JobRetryDueQuery(100, TimeUtils.currentLocalDateTime()));
+        JobRetryDueQuery.Response response = Query.query(new JobRetryDueQuery(100, Instant.now()));
         for (JobRetryDueQuery.JobRetry job : response.getJobs()) {
             Cmd.send(new JobRetryCmd(job.getJobId(), job.getRetryTimes()));
         }

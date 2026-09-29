@@ -19,7 +19,7 @@ package io.fluxion.server.core.job.cmd;
 import io.limbo.cqrs.core.commandhandling.ICommand;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 将 Job 标记为 EXPIRED：Worker/本地因激活截止时间拒绝启动（见 CONTEXT.md「Job 派发结果」，联结 {@code rejected_deadline}）。
@@ -39,9 +39,9 @@ public class JobExpiredCmd implements ICommand<Boolean> {
      */
     private final Integer dispatchAttempt;
 
-    private final LocalDateTime reportAt;
+    private final Instant reportAt;
 
-    public JobExpiredCmd(String jobId, Integer dispatchAttempt, LocalDateTime reportAt) {
+    public JobExpiredCmd(String jobId, Integer dispatchAttempt, Instant reportAt) {
         this.jobId = jobId;
         this.dispatchAttempt = dispatchAttempt;
         this.reportAt = reportAt;

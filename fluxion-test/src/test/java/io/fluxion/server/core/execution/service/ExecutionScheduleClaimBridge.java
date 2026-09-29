@@ -16,7 +16,7 @@
 
 package io.fluxion.server.core.execution.service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 测试桥：与被测类同包，以包内可见性暴露 protected 的 claim 原语供并发测试直击。
@@ -33,7 +33,7 @@ public final class ExecutionScheduleClaimBridge {
     }
 
     public static boolean claim(ExecutionScheduleCommandService service, String executionId,
-                                LocalDateTime triggerAt, String brokerId, String token, boolean misfired) {
+                                Instant triggerAt, String brokerId, String token, boolean misfired) {
         return service.claim(executionId, triggerAt, brokerId, token, misfired);
     }
 }

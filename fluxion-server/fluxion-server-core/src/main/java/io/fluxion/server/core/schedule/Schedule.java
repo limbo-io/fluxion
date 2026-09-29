@@ -19,7 +19,7 @@ package io.fluxion.server.core.schedule;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * @author Devil
@@ -34,17 +34,17 @@ public class Schedule {
     /**
      * 上次触发时间
      */
-    private LocalDateTime lastTriggerAt;
+    private Instant lastTriggerAt;
 
     /**
      * 上次回调时间
      */
-    private LocalDateTime lastFeedbackAt;
+    private Instant lastFeedbackAt;
 
     /**
      * 下次触发时间
      */
-    private LocalDateTime nextTriggerAt;
+    private Instant nextTriggerAt;
 
     private boolean enabled;
 

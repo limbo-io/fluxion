@@ -19,7 +19,7 @@ package io.fluxion.server.core.execution.cmd;
 import io.limbo.cqrs.core.commandhandling.ICommand;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 首批 Job 因激活截止时间被拒后，将 Execution 由 RUNNING 收敛为 EXPIRED。
@@ -32,9 +32,9 @@ public class ExecutionExpiredCmd implements ICommand<Boolean> {
 
     private final String executionId;
 
-    private final LocalDateTime endAt;
+    private final Instant endAt;
 
-    public ExecutionExpiredCmd(String executionId, LocalDateTime endAt) {
+    public ExecutionExpiredCmd(String executionId, Instant endAt) {
         this.executionId = executionId;
         this.endAt = endAt;
     }

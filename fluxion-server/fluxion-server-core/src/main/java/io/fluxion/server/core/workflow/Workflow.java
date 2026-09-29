@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.workflow;
 
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.ExecutableType;
@@ -39,7 +38,7 @@ import io.fluxion.server.infrastructure.dag.DAG;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -109,7 +108,7 @@ public class Workflow implements Executable {
      * 某个 node 成功后执行的逻辑
      */
     @Override
-    public boolean success(String executionId, String refId, LocalDateTime time) {
+    public boolean success(String executionId, String refId, Instant time) {
         List<WorkflowNode> subNodes = dag.subNodes(refId);
         if (CollectionUtils.isEmpty(subNodes)) {
             // 最终节点 execution 完成
@@ -134,7 +133,7 @@ public class Workflow implements Executable {
     }
 
     @Override
-    public boolean fail(String executionId, String refId, LocalDateTime time) {
+    public boolean fail(String executionId, String refId, Instant time) {
         WorkflowNode node = dag.node(refId);
         if (node.isContinueOnFailure()) {
             return success(executionId, refId, time);
@@ -177,8 +176,8 @@ public class Workflow implements Executable {
         return JobType.UNKNOWN;
     }
 
-    private List<Job> createJobs(String executionId, List<WorkflowNode> nodes, LocalDateTime deadlineAt) {
-        LocalDateTime now = TimeUtils.currentLocalDateTime();
+    private List<Job> createJobs(String executionId, List<WorkflowNode> nodes, Instant deadlineAt) {
+        Instant now = Instant.now();
         List<Job> jobs = nodes.stream()
             .map(n -> {
                 Job job = new Job();

@@ -18,8 +18,7 @@ package io.fluxion.server.core.broker.task;
 
 import io.fluxion.server.core.execution.cmd.ExecutionCleanCmd;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
-import io.limbo.utils.time.TimeUtils;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 import io.limbo.cqrs.core.commandhandling.Cmd;
@@ -40,7 +39,7 @@ public class DataCleaner extends CoreTask {
 
     @Override
     public void run() {
-        LocalDateTime endAt = TimeUtils.currentLocalDateTime().plusDays(-INTERVAL);
+        Instant endAt = Instant.now().minus(INTERVAL, java.time.temporal.ChronoUnit.DAYS);
         Cmd.send(new ExecutionCleanCmd(endAt));
         // broker
         // worker

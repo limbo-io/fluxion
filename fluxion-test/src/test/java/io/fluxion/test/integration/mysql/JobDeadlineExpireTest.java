@@ -33,8 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -95,13 +94,13 @@ class JobDeadlineExpireTest extends AbstractMySqlIntegrationTest {
     void shouldExpireJobAndExecutionWhenWorkerRejectedByDeadline() {
         String executionId = seedExecution("running");
         String jobId = seedJob(executionId, "executor", 2,
-            LocalDateTime.now().minusSeconds(5), LocalDateTime.now().plusSeconds(5));
+            Instant.now().minusSeconds(5), Instant.now().plusSeconds(5));
         // 预置残留的重试等待字段：EXPIRED 必须将其清除，证明未走 RetryOption
         JobEntity seeded = jobEntityRepo.findById(jobId).orElseThrow();
-        seeded.setNextRetryAt(LocalDateTime.now().plusSeconds(30));
+        seeded.setNextRetryAt(Instant.now().plusSeconds(30));
         jobEntityRepo.saveAndFlush(seeded);
 
-        boolean accepted = jobCommandService.handle(new JobExpiredCmd(jobId, 2, LocalDateTime.now()));
+        boolean accepted = jobCommandService.handle(new JobExpiredCmd(jobId, 2, Instant.now()));
 
         assertThat(accepted).isTrue();
         JobEntity job = jobEntityRepo.findById(jobId).orElseThrow();
@@ -125,10 +124,10 @@ class JobDeadlineExpireTest extends AbstractMySqlIntegrationTest {
     @DisplayName("E2: 围栏——过期的旧下发拒绝（attempt 不匹配）被丢弃，不误杀新尝试")
     void shouldIgnoreStaleDeadlineRejectionFromOldAttempt() {
         String executionId = seedExecution("running");
-        String jobId = seedJob(executionId, "executor", 3, LocalDateTime.now().plusSeconds(30), null);
+        String jobId = seedJob(executionId, "executor", 3, Instant.now().plusSeconds(30), null);
 
         // 旧 attempt=1 的迟到拒绝到达时，Job 已被新 attempt=3 接管
-        boolean applied = jobCommandService.handle(new JobExpiredCmd(jobId, 1, LocalDateTime.now()));
+        boolean applied = jobCommandService.handle(new JobExpiredCmd(jobId, 1, Instant.now()));
 
         assertThat(applied).isFalse();
         assertThat(jobEntityRepo.findById(jobId).orElseThrow().getStatus()).isEqualTo("inited");
@@ -139,10 +138,10 @@ class JobDeadlineExpireTest extends AbstractMySqlIntegrationTest {
     @DisplayName("E3: 幂等——同一 JobExpiredCmd 重复发送只有第一次生效")
     void shouldApplyExpirationOnlyOnce() {
         String executionId = seedExecution("running");
-        String jobId = seedJob(executionId, "executor", 1, LocalDateTime.now().minusSeconds(5), null);
+        String jobId = seedJob(executionId, "executor", 1, Instant.now().minusSeconds(5), null);
 
-        assertThat(jobCommandService.handle(new JobExpiredCmd(jobId, 1, LocalDateTime.now()))).isTrue();
-        assertThat(jobCommandService.handle(new JobExpiredCmd(jobId, 1, LocalDateTime.now()))).isFalse();
+        assertThat(jobCommandService.handle(new JobExpiredCmd(jobId, 1, Instant.now()))).isTrue();
+        assertThat(jobCommandService.handle(new JobExpiredCmd(jobId, 1, Instant.now()))).isFalse();
 
         assertThat(jobEntityRepo.findById(jobId).orElseThrow().getStatus()).isEqualTo("expired");
         assertThat(executionEntityRepo.findById(executionId).orElseThrow().getStatus()).isEqualTo("expired");
@@ -152,10 +151,10 @@ class JobDeadlineExpireTest extends AbstractMySqlIntegrationTest {
     @DisplayName("E4: Execution 已进入其它终态：Job 过期不再反向改写 Execution")
     void shouldNotResurrectAlreadyFinishedExecution() {
         String executionId = seedExecution("failed");
-        String jobId = seedJob(executionId, "executor", 1, LocalDateTime.now().minusSeconds(5), null);
+        String jobId = seedJob(executionId, "executor", 1, Instant.now().minusSeconds(5), null);
 
         // Job 围栏命中（inited + attempt 匹配），Execution 围栏不命中（已 failed）
-        boolean executed = jobCommandService.handle(new JobExpiredCmd(jobId, 1, LocalDateTime.now()));
+        boolean executed = jobCommandService.handle(new JobExpiredCmd(jobId, 1, Instant.now()));
 
         assertThat(executed).isFalse();
         assertThat(jobEntityRepo.findById(jobId).orElseThrow().getStatus()).isEqualTo("expired");
@@ -168,14 +167,14 @@ class JobDeadlineExpireTest extends AbstractMySqlIntegrationTest {
         String executionId = seedExecution("running");
         // Deadline 域固定 UTC 口径（与本地终检/下发 RPC 同基准）
         String jobId = seedJob(executionId, "input_output", 0,
-            LocalDateTime.now(ZoneOffset.UTC).minusSeconds(1), null);
+            Instant.now().minusSeconds(1), null);
 
         Job job = new Job();
         job.setJobId(jobId);
         job.setExecutionId(executionId);
         job.setRefId("start-node-1");
         job.setType(JobType.INPUT_OUTPUT);
-        job.setDeadlineAt(LocalDateTime.now(ZoneOffset.UTC).minusSeconds(1));
+        job.setDeadlineAt(Instant.now().minusSeconds(1));
 
         inputOutputJobRunner.run(job);
 
@@ -196,7 +195,7 @@ class JobDeadlineExpireTest extends AbstractMySqlIntegrationTest {
         entity.setExecutableType("executor");
         entity.setExecutableVersion("1");
         entity.setStatus(status);
-        entity.setTriggerAt(LocalDateTime.now());
+        entity.setTriggerAt(Instant.now());
         entity.setBucket(1);
         entity.setFireAttempt(0);
         executionEntityRepo.saveAndFlush(entity);
@@ -211,7 +210,7 @@ class JobDeadlineExpireTest extends AbstractMySqlIntegrationTest {
      * @param leaseUntil 可空的持有租约
      */
     private String seedJob(String executionId, String jobType, int dispatchAttempt,
-                           LocalDateTime deadlineAt, LocalDateTime leaseUntil) {
+                           Instant deadlineAt, Instant leaseUntil) {
         String jobId = "job-" + UUID.randomUUID();
         JobEntity entity = new JobEntity();
         entity.setJobId(jobId);
@@ -220,7 +219,7 @@ class JobDeadlineExpireTest extends AbstractMySqlIntegrationTest {
         entity.setJobType(jobType);
         entity.setRefId("node-" + UUID.randomUUID());
         entity.setStatus("inited");
-        entity.setTriggerAt(LocalDateTime.now());
+        entity.setTriggerAt(Instant.now());
         entity.setRetryTimes(0);
         entity.setDeadlineAt(deadlineAt);
         entity.setDispatchAttempt(dispatchAttempt);

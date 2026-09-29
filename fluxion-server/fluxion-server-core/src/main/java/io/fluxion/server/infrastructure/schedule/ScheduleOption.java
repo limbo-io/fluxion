@@ -22,6 +22,7 @@ import lombok.Getter;
 
 import javax.validation.constraints.NotNull;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
@@ -137,6 +138,21 @@ public class ScheduleOption {
                           Duration delay, Duration interval, String cron, String cronType, ZoneId timeZone) {
         this(type, startTime, endTime, delay, interval, cron, cronType, null, null,
             timeZone == null ? null : timeZone.getId(), null);
+    }
+
+    /**
+     * 生效窗口起点的绝对时刻：以配置时区解释。供运行态比较使用
+     * （见 CONTEXT.md「统一时间模型」：日历配置在边界处解释为绝对时间）。
+     */
+    public Instant startInstant() {
+        return startTime == null ? null : startTime.atZone(timeZone).toInstant();
+    }
+
+    /**
+     * 生效窗口终点的绝对时刻：以配置时区解释。
+     */
+    public Instant endInstant() {
+        return endTime == null ? null : endTime.atZone(timeZone).toInstant();
     }
 
 }

@@ -29,7 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -266,7 +266,7 @@ class WorkerLoadBalancingTest {
     // Helper methods
 
     private Worker createWorker(String workerId, String executorName) {
-        WorkerMetric metric = new WorkerMetric(4, 0.3, 4000, 10, LocalDateTime.now());
+        WorkerMetric metric = new WorkerMetric(4, 0.3, 4000, 10, Instant.now());
         WorkerExecutor executor = new WorkerExecutor(executorName);
         return new Worker(
             workerId, "test-app", "localhost", 8080, Protocol.HTTP,
@@ -280,7 +280,7 @@ class WorkerLoadBalancingTest {
     }
 
     private Worker createWorkerWithMetrics(String workerId, double cpuLoad, long freeMemoryMB) {
-        WorkerMetric metric = new WorkerMetric(4, cpuLoad, freeMemoryMB, 10, LocalDateTime.now());
+        WorkerMetric metric = new WorkerMetric(4, cpuLoad, freeMemoryMB, 10, Instant.now());
         WorkerExecutor executor = new WorkerExecutor("test-executor");
         return new Worker(
             workerId, "test-app", "localhost", 8080, Protocol.HTTP,
@@ -290,7 +290,7 @@ class WorkerLoadBalancingTest {
     }
 
     private Worker createWorkerWithQueue(String workerId, int availableQueue) {
-        WorkerMetric metric = new WorkerMetric(4, 0.3, 4000, availableQueue, LocalDateTime.now());
+        WorkerMetric metric = new WorkerMetric(4, 0.3, 4000, availableQueue, Instant.now());
         WorkerExecutor executor = new WorkerExecutor("test-executor");
         return new Worker(
             workerId, "test-app", "localhost", 8080, Protocol.HTTP,

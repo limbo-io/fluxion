@@ -23,6 +23,18 @@
             <artifactId>fluxion-server-spring-boot-starter</artifactId>
         </dependency>
 
+        <!--test: 管理 HTTP 时间序列化协议回归（HttpTimeProtocolTest） -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Flyway 数据库迁移 -->
         <dependency>
             <groupId>org.flywaydb</groupId>
@@ -70,4 +82,16 @@
         </profile>
     </profiles>
 
+
+    <build>
+        <plugins>
+            <!-- 根 pom 未管理 surefire 版本,沿 Maven 默认的 2.12.4 无法发现 JUnit5 测试;
+                 与 fluxion-test 对齐使用同版本，供 HttpTimeProtocolTest 等模块内测试运行 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M7</version>
+            </plugin>
+        </plugins>
+    </build>
 </project>

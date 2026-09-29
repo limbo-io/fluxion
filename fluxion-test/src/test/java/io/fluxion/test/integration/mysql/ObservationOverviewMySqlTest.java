@@ -31,7 +31,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import javax.transaction.Transactional;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
@@ -55,8 +55,8 @@ class ObservationOverviewMySqlTest extends AbstractMySqlIntegrationTest {
     @Test
     @DisplayName("状态分布 zero-fill 全枚举键且只计数未删除记录")
     void shouldReturnZeroFilledDistributionsCountingOnlyLiveRows() {
-        executionEntityRepo.saveAndFlush(pendingExecution(LocalDateTime.now().minusMinutes(1)));
-        ExecutionEntity deleted = pendingExecution(LocalDateTime.now());
+        executionEntityRepo.saveAndFlush(pendingExecution(Instant.now().minusSeconds(60)));
+        ExecutionEntity deleted = pendingExecution(Instant.now());
         deleted.setDeleted(true);
         executionEntityRepo.saveAndFlush(deleted);
 
@@ -96,21 +96,21 @@ class ObservationOverviewMySqlTest extends AbstractMySqlIntegrationTest {
     @DisplayName("积压/misfire 候选/可回收租约的边界判定")
     void shouldCountBacklogMisfireCandidatesAndReclaimableClaims() {
         // 积压：pending 到期（含）计数
-        executionEntityRepo.saveAndFlush(pendingExecution(LocalDateTime.now().minusSeconds(10)));
-        executionEntityRepo.saveAndFlush(pendingExecution(LocalDateTime.now().plusMinutes(5)));
+        executionEntityRepo.saveAndFlush(pendingExecution(Instant.now().minusSeconds(10)));
+        executionEntityRepo.saveAndFlush(pendingExecution(Instant.now().plusSeconds(300)));
 
         // misfire 候选：now - triggerAt > 5s
-        executionEntityRepo.saveAndFlush(pendingExecution(LocalDateTime.now().minusSeconds(7)));
-        executionEntityRepo.saveAndFlush(pendingExecution(LocalDateTime.now().minusSeconds(3)));
+        executionEntityRepo.saveAndFlush(pendingExecution(Instant.now().minusSeconds(7)));
+        executionEntityRepo.saveAndFlush(pendingExecution(Instant.now().minusSeconds(3)));
 
         // 可回收租约：claimed 且 leaseUntil 过期
-        ExecutionEntity expiredClaim = pendingExecution(LocalDateTime.now());
+        ExecutionEntity expiredClaim = pendingExecution(Instant.now());
         expiredClaim.setStatus("claimed");
-        expiredClaim.setLeaseUntil(LocalDateTime.now().minusSeconds(1));
+        expiredClaim.setLeaseUntil(Instant.now().minusSeconds(1));
         executionEntityRepo.saveAndFlush(expiredClaim);
-        ExecutionEntity liveClaim = pendingExecution(LocalDateTime.now());
+        ExecutionEntity liveClaim = pendingExecution(Instant.now());
         liveClaim.setStatus("claimed");
-        liveClaim.setLeaseUntil(LocalDateTime.now().plusSeconds(15));
+        liveClaim.setLeaseUntil(Instant.now().plusSeconds(15));
         executionEntityRepo.saveAndFlush(liveClaim);
 
         ObservationOverviewQuery.Response response = Query.query(new ObservationOverviewQuery());
@@ -122,7 +122,7 @@ class ObservationOverviewMySqlTest extends AbstractMySqlIntegrationTest {
         assertThat(response.getExecutionReclaimableClaims()).isEqualTo(1L);
     }
 
-    private ExecutionEntity pendingExecution(LocalDateTime triggerAt) {
+    private ExecutionEntity pendingExecution(Instant triggerAt) {
         ExecutionEntity entity = new ExecutionEntity();
         entity.setExecutionId("execution-" + UUID.randomUUID());
         entity.setTriggerId("trigger-" + UUID.randomUUID());
@@ -145,7 +145,7 @@ class ObservationOverviewMySqlTest extends AbstractMySqlIntegrationTest {
         entity.setJobType("normal");
         entity.setRefId("ref-1");
         entity.setStatus(status);
-        entity.setTriggerAt(LocalDateTime.now());
+        entity.setTriggerAt(Instant.now());
         entity.setWorkerAddress("127.0.0.1:8080");
         entity.setRetryTimes(0);
         entity.setDispatchAttempt(0);

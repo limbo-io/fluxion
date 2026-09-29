@@ -29,7 +29,7 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 一次执行
@@ -81,17 +81,17 @@ public class ExecutionEntity extends BaseEntity {
     /**
      * 期望的调度触发时间
      */
-    private LocalDateTime triggerAt;
+    private Instant triggerAt;
 
     /**
      * 执行开始时间
      */
-    private LocalDateTime startAt;
+    private Instant startAt;
 
     /**
      * 执行结束时间
      */
-    private LocalDateTime endAt;
+    private Instant endAt;
 
     /**
      * Broker ID that owns the lease
@@ -101,7 +101,7 @@ public class ExecutionEntity extends BaseEntity {
     /**
      * Lease expiration time
      */
-    private LocalDateTime leaseUntil;
+    private Instant leaseUntil;
 
     /**
      * Fencing token for the short-lived Broker claim. It is cleared once Jobs are committed.
@@ -116,12 +116,12 @@ public class ExecutionEntity extends BaseEntity {
     /**
      * Earliest time a misfire retry may be claimed again.
      */
-    private LocalDateTime nextFireAt;
+    private Instant nextFireAt;
 
     /**
      * 创建首批 Job 的最晚允许时刻；为空表示允许延迟启动。
      */
-    private LocalDateTime deadlineAt;
+    private Instant deadlineAt;
 
     /**
      * Bucket number for broker assignment (computed from executionId)

@@ -18,9 +18,6 @@ package io.fluxion.server.core.broker;
 
 import io.fluxion.common.thread.NamedThreadFactory;
 import io.limbo.utils.MD5Utils;
-import io.limbo.utils.time.Formatters;
-import io.limbo.utils.time.LocalTimeUtils;
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.remote.core.constants.Protocol;
 import io.fluxion.server.core.broker.cmd.BucketRebalanceCmd;
 import io.fluxion.server.infrastructure.dao.entity.BrokerEntity;
@@ -31,7 +28,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -162,7 +159,7 @@ public class BrokerManger {
         entity.setId(new BrokerEntity.ID(node.host(), node.port()));
         entity.setProtocol(node.protocol().value);
         entity.setBrokerLoad(node.load());
-        entity.setLastHeartbeatAt(TimeUtils.currentLocalDateTime());
+        entity.setLastHeartbeatAt(Instant.now());
         return entity;
     }
 
@@ -177,7 +174,7 @@ public class BrokerManger {
                 brokerEntityRepo.saveAndFlush(entity);
                 if (log.isDebugEnabled()) {
                     log.debug("{} send heartbeat id: {} time:{}",
-                        TASK_NAME, node.id(), LocalTimeUtils.format(entity.getLastHeartbeatAt(), Formatters.YMD_HMS)
+                        TASK_NAME, node.id(), entity.getLastHeartbeatAt()
                     );
                 }
             } catch (Exception e) {
@@ -191,15 +188,15 @@ public class BrokerManger {
 
         private static final String TASK_NAME = "[NodeOnlineCheckTask]";
 
-        LocalDateTime lastCheckAt = TimeUtils.currentLocalDateTime().plusSeconds(-heartbeatTimeout.getSeconds());
+        Instant lastCheckAt = Instant.now().plusSeconds(-heartbeatTimeout.getSeconds());
 
         @Override
         public void run() {
             try {
-                LocalDateTime startTime = lastCheckAt;
-                LocalDateTime endTime = TimeUtils.currentLocalDateTime();
+                Instant startTime = lastCheckAt;
+                Instant endTime = Instant.now();
                 if (log.isDebugEnabled()) {
-                    log.info("{} checkOnline start:{} end:{}", TASK_NAME, LocalTimeUtils.format(startTime, Formatters.YMD_HMS), LocalTimeUtils.format(endTime, Formatters.YMD_HMS));
+                    log.info("{} checkOnline start:{} end:{}", TASK_NAME, startTime, endTime);
                 }
                 List<BrokerEntity> onlineBrokers = brokerEntityRepo.findByLastHeartbeatAtBetween(startTime, endTime);
                 if (CollectionUtils.isNotEmpty(onlineBrokers)) {
@@ -219,15 +216,15 @@ public class BrokerManger {
 
         private static final String TASK_NAME = "[NodeOfflineCheckTask]";
 
-        LocalDateTime lastCheckAt = TimeUtils.currentLocalDateTime().plusSeconds(-2 * heartbeatTimeout.getSeconds());
+        Instant lastCheckAt = Instant.now().plusSeconds(-2 * heartbeatTimeout.getSeconds());
 
         @Override
         public void run() {
             try {
-                LocalDateTime startTime = lastCheckAt;
-                LocalDateTime endTime = TimeUtils.currentLocalDateTime().plusSeconds(-heartbeatTimeout.getSeconds());
+                Instant startTime = lastCheckAt;
+                Instant endTime = Instant.now().plusSeconds(-heartbeatTimeout.getSeconds());
                 if (log.isDebugEnabled()) {
-                    log.debug("{} checkOffline start:{} end:{}", TASK_NAME, LocalTimeUtils.format(startTime, Formatters.YMD_HMS), LocalTimeUtils.format(endTime, Formatters.YMD_HMS));
+                    log.debug("{} checkOffline start:{} end:{}", TASK_NAME, startTime, endTime);
                 }
                 List<BrokerEntity> offlineBrokers = brokerEntityRepo.findByLastHeartbeatAtBetween(startTime, endTime);
                 if (CollectionUtils.isNotEmpty(offlineBrokers)) {

@@ -26,7 +26,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 
 import javax.transaction.Transactional;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -44,14 +44,14 @@ class ExecutionIdentityConstraintTest extends AbstractMySqlIntegrationTest {
     @DisplayName("same trigger and trigger time can create only one execution")
     void shouldRejectDuplicateScheduleOccurrence() {
         String triggerId = "trigger-" + UUID.randomUUID();
-        LocalDateTime triggerAt = LocalDateTime.of(2026, 9, 12, 10, 0);
+        Instant triggerAt = java.time.LocalDateTime.of(2026, 9, 12, 10, 0).toInstant(java.time.ZoneOffset.UTC);
         executionEntityRepo.saveAndFlush(newExecution(triggerId, triggerAt));
 
         assertThatThrownBy(() -> executionEntityRepo.saveAndFlush(newExecution(triggerId, triggerAt)))
             .isInstanceOf(DataIntegrityViolationException.class);
     }
 
-    private ExecutionEntity newExecution(String triggerId, LocalDateTime triggerAt) {
+    private ExecutionEntity newExecution(String triggerId, Instant triggerAt) {
         ExecutionEntity entity = new ExecutionEntity();
         entity.setExecutionId("execution-" + UUID.randomUUID());
         entity.setTriggerId(triggerId);

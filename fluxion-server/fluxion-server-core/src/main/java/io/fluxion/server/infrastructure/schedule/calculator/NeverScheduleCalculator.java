@@ -19,7 +19,7 @@ package io.fluxion.server.infrastructure.schedule.calculator;
 import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * @author Brozen
@@ -33,7 +33,7 @@ public class NeverScheduleCalculator implements ScheduleCalculator {
      * @return
      */
     @Override
-    public LocalDateTime calculate(Calculable calculable) {
+    public Instant calculate(Calculable calculable) {
         return null;
     }
 

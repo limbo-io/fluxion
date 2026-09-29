@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.broker.converter;
 
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
 import io.fluxion.remote.core.api.dto.TagDTO;
@@ -33,7 +32,7 @@ import io.fluxion.server.core.worker.metric.WorkerMetric;
 import io.fluxion.server.infrastructure.tag.Tag;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -44,7 +43,7 @@ import java.util.stream.Collectors;
 public class BrokerClientConverter {
 
     public static Worker toWorker(String appId, WorkerRegisterRequest request) {
-        WorkerMetric metric = toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), TimeUtils.currentLocalDateTime());
+        WorkerMetric metric = toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), Instant.now());
         List<Tag> tags = convert(request.getTags());
         List<WorkerExecutor> executors = request.getExecutors().stream()
             .map(e -> WorkerExecutor.builder()
@@ -58,7 +57,7 @@ public class BrokerClientConverter {
         );
     }
 
-    public static WorkerMetric toMetric(SystemInfoDTO systemInfoDTO, int availableQueueNum, LocalDateTime lastHeartbeatAt) {
+    public static WorkerMetric toMetric(SystemInfoDTO systemInfoDTO, int availableQueueNum, Instant lastHeartbeatAt) {
         return new WorkerMetric(
             systemInfoDTO.getCpuProcessors(),
             systemInfoDTO.getCpuLoad(),

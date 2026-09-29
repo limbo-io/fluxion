@@ -30,7 +30,7 @@ import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 一个任务运行记录，job最终状态的一次记录
@@ -52,12 +52,12 @@ public class JobRecordEntity extends BaseEntity {
     /**
      * 开始时间
      */
-    private LocalDateTime startAt;
+    private Instant startAt;
 
     /**
      * 结束时间
      */
-    private LocalDateTime endAt;
+    private Instant endAt;
 
     /**
      * 状态

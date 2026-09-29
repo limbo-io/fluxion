@@ -16,14 +16,13 @@
 
 package io.fluxion.server.infrastructure.schedule.calculator;
 
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 固定间隔作业调度时间计算器
@@ -38,18 +37,18 @@ public class FixDelayScheduleCalculator implements ScheduleCalculator {
      * 通过此策略计算下一次触发调度的时间戳。如果不应该被触发，返回0或负数。
      *
      * @param calculable 待调度对象
-     * @return 下次触发调度的时间戳，当返回非正数时，表示作业不会有触发时间。
+     * @return 下次触发调度的绝对时刻，当返回 null 时，表示作业不会有触发时间。
      */
     @Override
-    public LocalDateTime calculate(Calculable calculable) {
+    public Instant calculate(Calculable calculable) {
         ScheduleOption scheduleOption = calculable.scheduleOption();
-        LocalDateTime lastFeedbackAt = calculable.lastFeedbackAt();
+        Instant lastFeedbackAt = calculable.lastFeedbackAt();
         // 如果为空，表示此次上次任务还没反馈，等待反馈后重新调度
         if (lastFeedbackAt == null) {
             // 如果上次触发为空表示这是第一次
             if (calculable.lastTriggerAt() == null) {
-                LocalDateTime startScheduleAt = calculateStartScheduleTime(calculable.scheduleOption());
-                return laterTime(startScheduleAt, TimeUtils.currentLocalDateTime());
+                Instant startScheduleAt = calculateStartScheduleTime(calculable.scheduleOption());
+                return laterTime(startScheduleAt, Instant.now());
             } else {
                 return null;
             }
@@ -57,17 +56,16 @@ public class FixDelayScheduleCalculator implements ScheduleCalculator {
 
         Duration interval = scheduleOption.getInterval();
         if (interval == null) {
-            return TimeUtils.currentLocalDateTime();
+            return Instant.now();
         }
 
-        LocalDateTime startScheduleAt = lastFeedbackAt.plus(interval);
-        return laterTime(startScheduleAt, TimeUtils.currentLocalDateTime());
+        Instant startScheduleAt = lastFeedbackAt.plus(interval);
+        return laterTime(startScheduleAt, Instant.now());
     }
 
     @Override
     public ScheduleType scheduleType() {
         return ScheduleType.FIXED_DELAY;
     }
-
 
 }

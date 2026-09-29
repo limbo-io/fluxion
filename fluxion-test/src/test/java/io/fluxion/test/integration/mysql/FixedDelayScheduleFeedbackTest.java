@@ -46,7 +46,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import javax.persistence.EntityManager;
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -137,12 +137,12 @@ class FixedDelayScheduleFeedbackTest extends AbstractMySqlIntegrationTest {
         String triggerId = "trigger-" + UUID.randomUUID();
         seedTriggerChain(triggerId);
         seedFixDelaySchedule(triggerId, false, true);
-        LocalDateTime firedAt = LocalDateTime.now().minus(Duration.ofSeconds(10));
+        Instant firedAt = Instant.now().minus(Duration.ofSeconds(10));
         ExecutionEntity running = seedExecution(triggerId, "running", firedAt, 1);
 
-        LocalDateTime before = LocalDateTime.now();
+        Instant before = Instant.now();
         Boolean ok = executionCommandService.handle(
-            ExecutionSuccessCmd.builder().executionId(running.getExecutionId()).endAt(LocalDateTime.now()).build());
+            ExecutionSuccessCmd.builder().executionId(running.getExecutionId()).endAt(Instant.now()).build());
 
         assertThat(ok).isTrue();
         ExecutionEntity finished = executionEntityRepo.findById(running.getExecutionId()).orElseThrow();
@@ -150,7 +150,7 @@ class FixedDelayScheduleFeedbackTest extends AbstractMySqlIntegrationTest {
 
         ScheduleEntity after = scheduleEntityRepo.findById(triggerId).orElseThrow();
         // 反馈落库（修复前：整个事务因后续链路 NPE 回滚，反馈丢失）
-        assertThat(after.getLastFeedbackAt()).isBetween(before, LocalDateTime.now());
+        assertThat(after.getLastFeedbackAt()).isBetween(before, Instant.now());
         // 下一个触发点 = 反馈时刻 + 间隔
         assertThat(after.getLastTriggerAt()).isBetween(
             after.getLastFeedbackAt().plus(INTERVAL).minusSeconds(1),
@@ -186,7 +186,7 @@ class FixedDelayScheduleFeedbackTest extends AbstractMySqlIntegrationTest {
         // 调度已删除；保留一个过期的 PENDING 实例
         seedFixDelaySchedule(triggerId, true, true);
         ExecutionEntity misfired = seedExecution(triggerId, "pending",
-            LocalDateTime.now().minus(Duration.ofSeconds(30)), 1);
+            Instant.now().minus(Duration.ofSeconds(30)), 1);
 
         recordingBrokerContext("broker-" + UUID.randomUUID());
         executionScheduleCommandService.handle(new ExecutionsLoadCmd());
@@ -202,9 +202,9 @@ class FixedDelayScheduleFeedbackTest extends AbstractMySqlIntegrationTest {
         seedTriggerChain(triggerId);
         seedFixDelaySchedule(triggerId, false, true);
         ExecutionEntity misfired = seedExecution(triggerId, "pending",
-            LocalDateTime.now().minus(Duration.ofSeconds(30)), 1);
+            Instant.now().minus(Duration.ofSeconds(30)), 1);
 
-        LocalDateTime before = LocalDateTime.now();
+        Instant before = Instant.now();
         recordingBrokerContext("broker-" + UUID.randomUUID());
         executionScheduleCommandService.handle(new ExecutionsLoadCmd());
 
@@ -213,7 +213,7 @@ class FixedDelayScheduleFeedbackTest extends AbstractMySqlIntegrationTest {
         assertThat(skipped.getStatus()).isEqualTo("skipped");
 
         ScheduleEntity after = scheduleEntityRepo.findById(triggerId).orElseThrow();
-        assertThat(after.getLastFeedbackAt()).isBetween(before, LocalDateTime.now());
+        assertThat(after.getLastFeedbackAt()).isBetween(before, Instant.now());
         assertThat(after.getLastTriggerAt()).isNotNull();
         // 修复前：SKIPPED 不反馈，nextTriggerAt 永久为 null，调度永久停摆
         ExecutionEntity next = executionEntityRepo
@@ -230,13 +230,13 @@ class FixedDelayScheduleFeedbackTest extends AbstractMySqlIntegrationTest {
      * deleted 参数控制是否已删除，enabled 参数控制是否已启用。
      */
     private void seedFixDelaySchedule(String triggerId, boolean deleted, boolean enabled) {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         ScheduleEntity entity = new ScheduleEntity();
         entity.setScheduleId(triggerId);
         entity.setBucket(1);
         entity.setScheduleType("fixed_delay");
         entity.setStartTime(now.minus(Duration.ofHours(1)));
-        entity.setEndTime(now.plusYears(1));
+        entity.setEndTime(now.plus(java.time.Duration.ofDays(365)));
         entity.setScheduleDelay(0L);
         entity.setScheduleInterval(INTERVAL.getSeconds());
         entity.setScheduleCron("");
@@ -273,7 +273,7 @@ class FixedDelayScheduleFeedbackTest extends AbstractMySqlIntegrationTest {
         versionEntityRepo.saveAndFlush(version);
     }
 
-    private ExecutionEntity seedExecution(String triggerId, String status, LocalDateTime triggerAt, int bucket) {
+    private ExecutionEntity seedExecution(String triggerId, String status, Instant triggerAt, int bucket) {
         ExecutionEntity entity = new ExecutionEntity();
         entity.setExecutionId("execution-" + UUID.randomUUID());
         entity.setTriggerId(triggerId);

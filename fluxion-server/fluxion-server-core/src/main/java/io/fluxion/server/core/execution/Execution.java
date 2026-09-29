@@ -18,7 +18,7 @@ package io.fluxion.server.core.execution;
 
 import io.fluxion.server.core.execution.query.ExecutableByIdQuery;
 import io.limbo.cqrs.core.queryhandling.Query;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -58,7 +58,7 @@ public class Execution {
     /**
      * Last state update timestamp
      */
-    private LocalDateTime stateUpdatedAt;
+    private Instant stateUpdatedAt;
 
     /**
      * Broker ID that owns the lease
@@ -68,15 +68,15 @@ public class Execution {
     /**
      * Lease expiration time
      */
-    private LocalDateTime leaseUntil;
+    private Instant leaseUntil;
 
     /**
      * 激活截止时间快照：仅调度型 Execution 的首批 Job 创建时从 Execution.deadlineAt 复制；为空表示允许延迟启动。
      */
-    private LocalDateTime deadlineAt;
+    private Instant deadlineAt;
 
     public Execution(String id, ExecutionStatus status, String executableId, String executableVersion, ExecutableType type,
-                     LocalDateTime deadlineAt) {
+                     Instant deadlineAt) {
         this.id = id;
         this.type = type;
         this.status = status;

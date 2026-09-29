@@ -16,7 +16,6 @@
 
 package io.fluxion.server.infrastructure.lock;
 
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.infrastructure.dao.repository.LockEntityRepo;
 import io.fluxion.server.infrastructure.dao.tx.TransactionService;
@@ -26,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -107,7 +106,7 @@ public class DatabaseDistributedLock implements DistributedLock {
      */
     public Locked tryAcquireLock(String name, long expire) {
         String token = generateToken();
-        LocalDateTime expireAt = TimeUtils.currentLocalDateTime().plus(expire, ChronoUnit.MILLIS);
+        Instant expireAt = Instant.now().plus(expire, ChronoUnit.MILLIS);
 
         return transactionService.transactional(() -> {
             int affected = lockEntityRepo.tryAcquireLock(name, token, expireAt);

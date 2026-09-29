@@ -32,7 +32,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
@@ -73,7 +73,7 @@ public class ExecutionScheduleCommandService {
             return;
         }
         reclaimExpiredClaims(buckets);
-        LocalDateTime endAt = LocalDateTime.now().plusSeconds(PRELOAD_SECONDS);
+        Instant endAt = Instant.now().plusSeconds(PRELOAD_SECONDS);
         List<ExecutionEntity> executions = entityManager.createQuery(
                 "select e from ExecutionEntity e where e.deleted = false " +
                     "and e.status = :status and e.bucket in :buckets " +
@@ -82,17 +82,16 @@ public class ExecutionScheduleCommandService {
             .setParameter("status", ExecutionStatus.PENDING.value)
             .setParameter("buckets", buckets)
             .setParameter("endAt", endAt)
-            .setParameter("now", LocalDateTime.now())
+            .setParameter("now", Instant.now())
             .setMaxResults(100)
             .getResultList();
         for (ExecutionEntity execution : executions) {
-            // Deadline 域固定 UTC 口径：与下发 RPC 换算（ExecutorJobRunner#toDeadlineEpochMillis）同基准，
-            // 不受节点部署时区影响（见 CONTEXT.md「统一时间模型」）
-            if (isExpired(execution, LocalDateTime.now(ZoneOffset.UTC))) {
+            // 运行态均为 Instant 绝对时刻，Broker 预检查与 Worker 终检语义同一事实源（见 CONTEXT.md「统一时间模型」）
+            if (isExpired(execution, Instant.now())) {
                 finishPending(execution.getExecutionId(), ExecutionStatus.EXPIRED);
                 continue;
             }
-            boolean misfired = execution.getTriggerAt().isBefore(LocalDateTime.now().minusSeconds(MISFIRE_THRESHOLD_SECONDS));
+            boolean misfired = execution.getTriggerAt().isBefore(Instant.now().minusSeconds(MISFIRE_THRESHOLD_SECONDS));
             if (misfired) {
                 Schedule schedule = Query.query(new ScheduleByIdQuery(execution.getTriggerId())).getSchedule();
                 if (schedule == null || schedule.getOption().getMisfirePolicy() == MisfirePolicy.SKIP) {
@@ -116,10 +115,10 @@ public class ExecutionScheduleCommandService {
         }
     }
 
-    protected boolean claim(String executionId, LocalDateTime triggerAt, String brokerId, String token, boolean misfired) {
+    protected boolean claim(String executionId, Instant triggerAt, String brokerId, String token, boolean misfired) {
         // 领取后到真正触发（建 Job）有一个预加载间隔，租约必须覆盖触发时刻，
         // 否则到点守卫会静默拒绝、只能依赖下轮 reclaim 重领（曾使约 75% 的预载执行首触发被拒）
-        LocalDateTime leaseFrom = triggerAt != null && triggerAt.isAfter(LocalDateTime.now()) ? triggerAt : LocalDateTime.now();
+        Instant leaseFrom = triggerAt != null && triggerAt.isAfter(Instant.now()) ? triggerAt : Instant.now();
         return transactionService.transactional(() -> entityManager.createQuery("update ExecutionEntity set status = :claimed, leaseOwner = :brokerId, " +
                 "leaseUntil = :leaseUntil, executionToken = :token, fireAttempt = fireAttempt + :attemptIncrement " +
                 "where executionId = :executionId and status = :pending and deleted = false")
@@ -140,7 +139,7 @@ public class ExecutionScheduleCommandService {
             .setParameter("pending", ExecutionStatus.PENDING.value)
             .setParameter("claimed", ExecutionStatus.CLAIMED.value)
             .setParameter("buckets", buckets)
-            .setParameter("now", LocalDateTime.now())
+            .setParameter("now", Instant.now())
             .executeUpdate());
     }
 
@@ -160,10 +159,10 @@ public class ExecutionScheduleCommandService {
         ExecutionEntity entity = entityManager.find(ExecutionEntity.class, executionId);
         if (entity == null || !ExecutionStatus.CLAIMED.is(entity.getStatus())
                 || !brokerId.equals(entity.getLeaseOwner()) || !token.equals(entity.getExecutionToken())
-                || entity.getLeaseUntil() == null || !entity.getLeaseUntil().isAfter(LocalDateTime.now())) {
+                || entity.getLeaseUntil() == null || !entity.getLeaseUntil().isAfter(Instant.now())) {
             return;
         }
-        if (isExpired(entity, LocalDateTime.now(ZoneOffset.UTC))) {
+        if (isExpired(entity, Instant.now())) {
             changeClaimedStatus(entity, ExecutionStatus.EXPIRED);
             return;
         }
@@ -189,7 +188,7 @@ public class ExecutionScheduleCommandService {
                 "where executionId = :executionId and status = :claimed and leaseOwner = :brokerId " +
                 "and executionToken = :token")
             .setParameter("running", ExecutionStatus.RUNNING.value)
-            .setParameter("now", LocalDateTime.now())
+            .setParameter("now", Instant.now())
             .setParameter("executionId", entity.getExecutionId())
             .setParameter("claimed", ExecutionStatus.CLAIMED.value)
             .setParameter("brokerId", brokerId)
@@ -205,7 +204,7 @@ public class ExecutionScheduleCommandService {
                 "leaseOwner = null, leaseUntil = null, executionToken = null " +
                 "where executionId = :executionId and status = :claimed and executionToken = :token")
             .setParameter("status", status.value)
-            .setParameter("now", LocalDateTime.now())
+            .setParameter("now", Instant.now())
             .setParameter("executionId", entity.getExecutionId())
             .setParameter("claimed", ExecutionStatus.CLAIMED.value)
             .setParameter("token", entity.getExecutionToken())
@@ -221,7 +220,7 @@ public class ExecutionScheduleCommandService {
             int updated = entityManager.createQuery("update ExecutionEntity set status = :status, endAt = :now " +
                     "where executionId = :executionId and status = :pending and deleted = false")
                 .setParameter("status", status.value)
-                .setParameter("now", LocalDateTime.now())
+                .setParameter("now", Instant.now())
                 .setParameter("executionId", executionId)
                 .setParameter("pending", ExecutionStatus.PENDING.value)
                 .executeUpdate();
@@ -238,7 +237,7 @@ public class ExecutionScheduleCommandService {
                 "leaseOwner = null, leaseUntil = null, executionToken = null, nextFireAt = :nextFireAt " +
                 "where executionId = :executionId and status = :claimed and executionToken = :token")
             .setParameter("pending", ExecutionStatus.PENDING.value)
-            .setParameter("nextFireAt", LocalDateTime.now().plusSeconds(FIRE_RETRY_INTERVAL_SECONDS))
+            .setParameter("nextFireAt", Instant.now().plusSeconds(FIRE_RETRY_INTERVAL_SECONDS))
             .setParameter("executionId", executionId)
             .setParameter("claimed", ExecutionStatus.CLAIMED.value)
             .setParameter("token", token)
@@ -249,7 +248,7 @@ public class ExecutionScheduleCommandService {
         return "execution:" + executionId;
     }
 
-    private boolean isExpired(ExecutionEntity execution, LocalDateTime now) {
+    private boolean isExpired(ExecutionEntity execution, Instant now) {
         return execution.getDeadlineAt() != null && !execution.getDeadlineAt().isAfter(now);
     }
 }

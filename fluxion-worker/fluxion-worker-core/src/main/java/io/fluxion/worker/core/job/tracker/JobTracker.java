@@ -16,6 +16,7 @@
 
 package io.fluxion.worker.core.job.tracker;
 
+import java.time.Instant;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.JobMonitorDTO;
 import io.fluxion.remote.core.api.request.broker.JobReportRequest;
@@ -30,7 +31,6 @@ import io.fluxion.worker.core.executor.Executor;
 import io.fluxion.worker.core.job.Job;
 import io.fluxion.worker.core.remote.WorkerClientConverter;
 import io.limbo.utils.json.JacksonUtils;
-import io.limbo.utils.time.TimeUtils;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
@@ -147,7 +147,7 @@ public abstract class JobTracker extends AbstractTracker {
             JobMonitorDTO monitor = jobMonitor();
             request.setJobId(job.getId());
             request.setDispatchAttempt(job.getDispatchAttempt());
-            request.setReportAt(TimeUtils.currentLocalDateTime());
+            request.setReportAt(Instant.now().toEpochMilli());
             request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
             request.setMonitor(monitor);
             request.setEvent(event.value);
@@ -198,7 +198,7 @@ public abstract class JobTracker extends AbstractTracker {
             JobMonitorDTO monitor = jobMonitor();
             request.setJobId(job.getId());
             request.setDispatchAttempt(job.getDispatchAttempt());
-            request.setReportAt(TimeUtils.currentLocalDateTime());
+            request.setReportAt(Instant.now().toEpochMilli());
             request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
             request.setMonitor(monitor);
             request.setStatus(job.getStatus().value);

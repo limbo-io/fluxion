@@ -21,7 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
@@ -32,5 +32,5 @@ import java.util.List;
 public interface WorkerMetricEntityRepo extends JpaRepository<WorkerMetricEntity, String> {
     List<WorkerMetricEntity> findByWorkerIdIn(Collection<String> workerIds);
 
-    List<WorkerMetricEntity> findByLastHeartbeatAtBetween(LocalDateTime lastHeartbeatAtAfter, LocalDateTime lastHeartbeatAtBefore, Pageable pageable);
+    List<WorkerMetricEntity> findByLastHeartbeatAtBetween(Instant lastHeartbeatAtAfter, Instant lastHeartbeatAtBefore, Pageable pageable);
 }

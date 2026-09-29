@@ -32,13 +32,12 @@ import io.fluxion.server.core.job.service.JobLeaseService;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.fluxion.server.core.worker.selector.WorkerStatisticsRepository;
-import io.limbo.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -93,7 +92,7 @@ public class ExecutorJobRunner extends JobRunner {
                 job.getJobId(), config.getAppId(), config.getExecutorName());
             Cmd.send(new JobFailCmd(
                 job.getJobId(),
-                TimeUtils.currentLocalDateTime(),
+                Instant.now(),
                 "No available workers for dispatch",
                 null
             ));
@@ -118,7 +117,7 @@ public class ExecutorJobRunner extends JobRunner {
         String brokerId = BrokerContext.broker().id();
 
         while (!candidates.isEmpty() && attemptInThisRun < MAX_DISPATCH_ATTEMPTS) {
-            LocalDateTime leaseUntil = TimeUtils.currentLocalDateTime().plusSeconds(JobLeaseService.LEASE_DURATION_SECONDS);
+            Instant leaseUntil = Instant.now().plusSeconds(JobLeaseService.LEASE_DURATION_SECONDS);
             dispatchAttempt = dispatchAttempt == null
                 ? jobLeaseService.claimFirstAttempt(job.getJobId(), brokerId, leaseUntil)
                 : jobLeaseService.nextAttempt(job.getJobId(), brokerId, dispatchAttempt, leaseUntil);
@@ -169,11 +168,9 @@ public class ExecutorJobRunner extends JobRunner {
             request.setExecutorName(config.getExecutorName());
             request.setExecuteMode(config.getExecuteMode().mode);
             request.setDispatchAttempt(dispatchAttempt);
-            // 激活截止时间以 UTC epoch millis 越过 RPC 传递；口径固定 UTC：同一 DB 墙钟在任意 Broker 上
-            // 换算出同一绝对时刻，不因部署时区漂移（见 CONTEXT.md「统一时间模型」）。
-            // ponytail: 排程域（triggerAt/lease 等）仍是本机墙钟，非 UTC 统一时区部署下激活窗口随 offset 后移；
-            // Instant 迁移（另立计划）落地后归一。
-            request.setDeadlineEpochMillis(toDeadlineEpochMillis(job.getDeadlineAt()));
+            // 激活截止时间以 UTC epoch millis 越过 RPC；null 透传。运行态已 Instant 化，
+            // 无任何时区解释环节（见 CONTEXT.md「统一时间模型」「Execution 激活截止时间」）
+            request.setDeadlineEpochMillis(job.getDeadlineAt() == null ? null : job.getDeadlineAt().toEpochMilli());
 
             Response<JobDispatchResult> response = BrokerContext.call(
                 WorkerRemoteConstant.API_JOB_DISPATCH, worker.getHost(), worker.getPort(), request
@@ -203,7 +200,7 @@ public class ExecutorJobRunner extends JobRunner {
             OvertimeOption overtimeOption = config.getOvertimeOption();
             if (overtimeOption != null && overtimeOption.getSchedule() != null && overtimeOption.getSchedule() >= 0) {
                 jobLeaseService.setTimeout(job.getJobId(), BrokerContext.broker().id(), dispatchAttempt,
-                    TimeUtils.currentLocalDateTime().plusNanos(overtimeOption.getSchedule() * 1_000_000L));
+                    Instant.now().plusNanos(overtimeOption.getSchedule() * 1_000_000L));
             }
             log.info("[ExecutorJobRunner] Job registered: jobId={}, worker={}, dispatchAttempt={}",
                 job.getJobId(), worker.id(), dispatchAttempt);
@@ -229,7 +226,7 @@ public class ExecutorJobRunner extends JobRunner {
             Cmd.send(new JobExpiredCmd(
                 job.getJobId(),
                 result.getDispatchAttempt(),
-                TimeUtils.currentLocalDateTime()
+                Instant.now()
             ));
             return;
         }
@@ -239,7 +236,7 @@ public class ExecutorJobRunner extends JobRunner {
 
         Cmd.send(new JobFailCmd(
             job.getJobId(),
-            TimeUtils.currentLocalDateTime(),
+            Instant.now(),
             result.getDispatchAttempt(),
             reason,
             null
@@ -249,14 +246,6 @@ public class ExecutorJobRunner extends JobRunner {
     /**
      * 构建失败原因描述
      */
-    /**
-     * 将 deadlineAt 墙钟按 UTC 固定口径换算为绝对 epoch millis；null 透传。
-     * 供 Worker 侧以 System.currentTimeMillis() 作最终比较（见 CONTEXT.md「Execution 激活截止时间」）。
-     */
-    public static Long toDeadlineEpochMillis(LocalDateTime deadlineAt) {
-        return deadlineAt == null ? null : deadlineAt.toInstant(ZoneOffset.UTC).toEpochMilli();
-    }
-
     private String buildFailureReason(DispatchResult result) {
         switch (result.getErrorType()) {
             case NO_CANDIDATES:

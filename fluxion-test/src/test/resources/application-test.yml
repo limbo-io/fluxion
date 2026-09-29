@@ -19,6 +19,9 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          # 运行态时间统一 UTC：与生产同口径（Instant/JPQL 参数按 UTC 落 DATETIME）
+          time_zone: UTC
 
   # SQL 初始化（暂时禁用，数据库结构由应用自动维护）
   sql:

@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.execution.service;
 
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.core.execution.Executable;
 import io.fluxion.server.core.execution.Execution;
 import io.fluxion.server.core.execution.ExecutionStatus;
@@ -43,7 +42,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import io.limbo.cqrs.core.commandhandling.Cmd;
 import io.limbo.cqrs.core.queryhandling.Query;
 
@@ -105,7 +104,7 @@ public class ExecutionCommandService {
             .setParameter("newStatus", ExecutionStatus.RUNNING.value)
             .setParameter("executionId", cmd.getExecutionId())
             .setParameter("oldStatus", ExecutionStatus.INITED.value)
-            .setParameter("startAt", TimeUtils.currentLocalDateTime())
+            .setParameter("startAt", Instant.now())
             .executeUpdate();
     }
 
@@ -148,7 +147,7 @@ public class ExecutionCommandService {
             .executeUpdate();
     }
 
-    private boolean updateToFinish(String executionId, ExecutionStatus status, LocalDateTime endTime) {
+    private boolean updateToFinish(String executionId, ExecutionStatus status, Instant endTime) {
         return entityManager.createQuery("update ExecutionEntity " +
                 "set status = :newStatus, endAt = :endAt " +
                 "where executionId = :executionId and status = :oldStatus "

@@ -27,7 +27,7 @@ import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Optional;
@@ -50,29 +50,33 @@ public class CronScheduleCalculator implements ScheduleCalculator {
 
     /**
      * 通过此策略计算下一次触发调度的时间戳。如果不应该被触发，返回0或负数。
+     * <p>
+     * CRON 是日历语义：以 schedule 配置的 IANA timeZone 解释（Cron/回拨/夏令时前跳按该时区规则），
+     * 计算结果返回绝对时刻（见 CONTEXT.md「统一时间模型」），不依赖任何节点默认时区。
      *
      * @param calculable 待调度对象
-     * @return 下次触发调度的时间戳，当返回非正数时，表示作业不会有触发时间。
+     * @return 下次触发调度的绝对时刻，null 表示无下次触发。
      */
     @Override
-    public LocalDateTime calculate(Calculable calculable) {
+    public Instant calculate(Calculable calculable) {
         ScheduleOption scheduleOption = calculable.scheduleOption();
         // 计算下一次调度
         String cron = scheduleOption.getCron();
         String cronType = scheduleOption.getCronType();
+        ZoneId tz = scheduleOption.getTimeZone();
         try {
             ExecutionTime executionTime = ExecutionTime.forCron(getCron(cron, cronType));
 
-            // 解析下次触发时间
-            Optional<ZonedDateTime> nextSchedule = executionTime.nextExecution(
-                calculable.lastTriggerAt() == null ? ZonedDateTime.now()
-                    : calculable.lastTriggerAt().atZone(ZoneId.systemDefault())
-            );
+            // 解析下次触发时间：上次触发时刻按配置时区展开为日历时间参与 CRON 匹配
+            ZonedDateTime lastTrigger = calculable.lastTriggerAt() == null
+                ? ZonedDateTime.now(tz)
+                : calculable.lastTriggerAt().atZone(tz);
+            Optional<ZonedDateTime> nextSchedule = executionTime.nextExecution(lastTrigger);
             if (!nextSchedule.isPresent()) {
                 log.error("cron expression {} {} next schedule is null", cron, cronType);
                 return null;
             }
-            return nextSchedule.get().toLocalDateTime();
+            return nextSchedule.get().toInstant();
         } catch (Exception e) {
             log.error("parse cron expression {} {} failed!", cron, cronType, e);
             return null;

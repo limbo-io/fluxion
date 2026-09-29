@@ -29,7 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -190,7 +190,7 @@ class WorkerCpuLoadSelectionTest {
             .cpuLoad(cpuLoad)
             .freeMemory(8000L)
             .availableQueueNum(10)
-            .lastHeartbeatAt(LocalDateTime.now())
+            .lastHeartbeatAt(Instant.now())
             .build();
         WorkerExecutor executor = WorkerExecutor.builder()
             .name("test-executor")

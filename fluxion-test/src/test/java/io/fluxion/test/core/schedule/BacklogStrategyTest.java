@@ -9,7 +9,7 @@ package io.fluxion.test.core.schedule;
 import io.fluxion.server.core.schedule.ScheduleBacklogPlanner;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,10 +19,10 @@ class BacklogStrategyTest {
 
     @Test
     void preservesEveryHistoricalAndFutureTriggerPoint() {
-        LocalDateTime now = LocalDateTime.of(2025, 1, 1, 10, 0, 0);
-        List<LocalDateTime> triggerPoints = List.of(
-            now.minusMinutes(2), now.minusMinutes(1), now,
-            now.plusMinutes(1), now.plusMinutes(2)
+        Instant now = java.time.LocalDateTime.of(2025, 1, 1, 10, 0, 0).toInstant(java.time.ZoneOffset.UTC);
+        List<Instant> triggerPoints = List.of(
+            now.minusSeconds(120), now.minusSeconds(60), now,
+            now.plusSeconds(60), now.plusSeconds(120)
         );
 
         ScheduleBacklogPlanner.Plan plan = ScheduleBacklogPlanner.plan(triggerPoints, now);
@@ -33,10 +33,10 @@ class BacklogStrategyTest {
     @Test
     void truncatesOversizedBackfillToEarliestBatchAndDefersTheRestToCursor() {
         // 超过单轮批次上限时只补最早一批，其余由持久化的 nextTriggerAt 游标下轮续传
-        LocalDateTime base = LocalDateTime.of(2025, 1, 1, 10, 0, 0);
-        List<LocalDateTime> triggerPoints = new ArrayList<>();
+        Instant base = java.time.LocalDateTime.of(2025, 1, 1, 10, 0, 0).toInstant(java.time.ZoneOffset.UTC);
+        List<Instant> triggerPoints = new ArrayList<>();
         for (int i = 0; i < ScheduleBacklogPlanner.BACKFILL_BATCH + 9; i++) {
-            triggerPoints.add(base.plusMinutes(i));
+            triggerPoints.add(base.plusSeconds(i*60));
         }
 
         ScheduleBacklogPlanner.Plan plan = ScheduleBacklogPlanner.plan(triggerPoints, base);

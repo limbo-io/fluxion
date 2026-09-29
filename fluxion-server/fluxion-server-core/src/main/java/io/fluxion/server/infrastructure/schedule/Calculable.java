@@ -16,7 +16,7 @@
 
 package io.fluxion.server.infrastructure.schedule;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 可计算调度的信息
@@ -34,11 +34,11 @@ public interface Calculable {
     /**
      * 获取上次触发时间
      */
-    LocalDateTime lastTriggerAt();
+    Instant lastTriggerAt();
 
     /**
      * 获取上次调度反馈的时间
      */
-    LocalDateTime lastFeedbackAt();
+    Instant lastFeedbackAt();
 
 }

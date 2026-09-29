@@ -16,8 +16,6 @@
 
 package io.fluxion.worker.core.task.repository;
 
-import io.limbo.utils.time.Formatters;
-import io.limbo.utils.time.LocalDateTimeUtils;
 import io.fluxion.remote.core.cluster.BaseNode;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.Protocol;
@@ -39,7 +37,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -55,9 +53,17 @@ public class DBTaskRepository implements TaskRepository {
 
     private static final Logger log = LoggerFactory.getLogger(DBTaskRepository.class);
 
-    private static final LocalDateTime DEFAULT_REPORT_TIME = LocalDateTimeUtils.parse("2000-01-01 00:00:00", Formatters.YMD_HMS);
 
-    private static final String DEFAULT_REPORT_TIME_STR = LocalDateTimeUtils.formatYMDHMSS(DEFAULT_REPORT_TIME);
+    /**
+     * 原生 JDBC 不经 Hibernate 的 jdbc.time_zone，显式以 UTC 日历读写 DATETIME 字面量，
+     * 不依赖 worker JVM/连接会话时区（见 CONTEXT.md「统一时间模型」）。
+     * Calendar 非线程安全且 Repository 被并发任务共享，每次 JDBC 调用新建实例。
+     */
+    private static final java.util.TimeZone UTC = java.util.TimeZone.getTimeZone("UTC");
+
+    private static java.util.Calendar utcCalendar() {
+        return java.util.Calendar.getInstance(UTC);
+    }
 
     private final ConnectionFactory connectionFactory;
 
@@ -165,9 +171,9 @@ public class DBTaskRepository implements TaskRepository {
                 ps.setString(++idx, task.workerAddress() == null ? "" : task.workerAddress());
                 ps.setString(++idx, task.getStatus().value);
 
-                ps.setString(++idx, task.getStartAt() == null ? null : LocalDateTimeUtils.formatYMDHMSS(task.getStartAt()));
-                ps.setString(++idx, task.getEndAt() == null ? null : LocalDateTimeUtils.formatYMDHMSS(task.getEndAt()));
-                ps.setString(++idx, task.getLastReportAt() == null ? null : LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt()));
+                setInstant(++idx, ps, task.getStartAt());
+                setInstant(++idx, ps, task.getEndAt());
+                setInstant(++idx, ps, task.getLastReportAt());
 
                 ps.setString(++idx, task.getResult() == null ? "" : task.getResult());
                 ps.setString(++idx, task.getErrorMsg() == null ? "" : task.getErrorMsg());
@@ -181,15 +187,14 @@ public class DBTaskRepository implements TaskRepository {
     }
 
     @Override
-    public boolean start(String jobId, String taskId, String workerAddress, LocalDateTime reportAt) {
+    public boolean start(String jobId, String taskId, String workerAddress, Instant reportAt) {
         String sql = "update " + TABLE_NAME + " set `status` = ?, start_at = ?, last_report_at = ?, worker_address = ? " +
             " where job_id = ? and task_id = ? and `status` = ? ";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
-            String reportAtStr = LocalDateTimeUtils.formatYMDHMSS(reportAt);
             ps.setString(++i, TaskStatus.RUNNING.value);
-            ps.setString(++i, reportAtStr);
-            ps.setString(++i, reportAtStr);
+            setInstant(++i, ps, reportAt);
+            setInstant(++i, ps, reportAt);
             ps.setString(++i, workerAddress);
             ps.setString(++i, jobId);
             ps.setString(++i, taskId);
@@ -202,12 +207,12 @@ public class DBTaskRepository implements TaskRepository {
     }
 
     @Override
-    public boolean report(String jobId, String taskId, TaskStatus status, String workerAddress, LocalDateTime reportAt) {
+    public boolean report(String jobId, String taskId, TaskStatus status, String workerAddress, Instant reportAt) {
         String sql = "update " + TABLE_NAME + " set `last_report_at` = ? " +
             " where job_id = ? and task_id = ? and status = ? and `worker_address` = ? ";
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
-            ps.setString(++i, LocalDateTimeUtils.formatYMDHMSS(reportAt));
+            setInstant(++i, ps, reportAt);
             ps.setString(++i, jobId);
             ps.setString(++i, taskId);
             ps.setString(++i, status.value);
@@ -226,7 +231,7 @@ public class DBTaskRepository implements TaskRepository {
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
             ps.setString(++i, TaskStatus.SUCCEED.value);
-            ps.setString(++i, LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt()));
+            setInstant(++i, ps, task.getLastReportAt());
             ps.setString(++i, task.getResult());
             ps.setString(++i, task.getJobId());
             ps.setString(++i, task.getTaskId());
@@ -245,7 +250,7 @@ public class DBTaskRepository implements TaskRepository {
         try (Connection conn = connectionFactory.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 0;
             ps.setString(++i, TaskStatus.FAILED.value);
-            ps.setString(++i, LocalDateTimeUtils.formatYMDHMSS(task.getLastReportAt()));
+            setInstant(++i, ps, task.getLastReportAt());
             ps.setString(++i, task.getErrorMsg() == null ? "" : task.getErrorMsg());
             ps.setString(++i, task.getErrorStackTrace() == null ? "" : task.getErrorStackTrace());
             ps.setString(++i, task.getJobId());
@@ -260,21 +265,25 @@ public class DBTaskRepository implements TaskRepository {
     }
 
     private Task convert(ResultSet rs) throws SQLException {
-        Timestamp startAt = rs.getTimestamp("start_at");
-        Timestamp endAt = rs.getTimestamp("end_at");
-        Timestamp lastReportAt = rs.getTimestamp("last_report_at");
+        Timestamp startAt = rs.getTimestamp("start_at", utcCalendar());
+        Timestamp endAt = rs.getTimestamp("end_at", utcCalendar());
+        Timestamp lastReportAt = rs.getTimestamp("last_report_at", utcCalendar());
 
         Task task = new Task(rs.getString("task_id"), rs.getString("job_id"));
         task.setStatus(TaskStatus.parse(rs.getString("status")));
         task.setWorkerNode(addressToNode(rs.getString("worker_address")));
         task.setRemoteNode(workerContext.node());
-        task.setStartAt(startAt == null ? null : startAt.toLocalDateTime());
-        task.setEndAt(endAt == null ? null : endAt.toLocalDateTime());
-        task.setLastReportAt(lastReportAt == null ? null : lastReportAt.toLocalDateTime());
+        task.setStartAt(startAt == null ? null : startAt.toInstant());
+        task.setEndAt(endAt == null ? null : endAt.toInstant());
+        task.setLastReportAt(lastReportAt == null ? null : lastReportAt.toInstant());
         task.setResult(rs.getString("result"));
         task.setErrorMsg(rs.getString("error_msg"));
         task.setErrorStackTrace(rs.getString("error_stack_trace"));
         return task;
+    }
+
+    private static void setInstant(int idx, PreparedStatement ps, Instant instant) throws SQLException {
+        ps.setTimestamp(idx, instant == null ? null : Timestamp.from(instant), utcCalendar());
     }
 
     private Node addressToNode(String address) {

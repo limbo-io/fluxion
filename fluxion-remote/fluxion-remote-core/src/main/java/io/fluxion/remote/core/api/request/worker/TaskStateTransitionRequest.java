@@ -21,7 +21,6 @@ import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.response.worker.TaskStateTransitionResponse;
 import io.fluxion.remote.core.constants.TaskStateEvent;
 
-import java.time.LocalDateTime;
 
 /**
  * @author Devil
@@ -35,7 +34,7 @@ public class TaskStateTransitionRequest implements Request<TaskStateTransitionRe
 
     private NodeDTO workerNode;
 
-    private LocalDateTime reportAt;
+    private Long reportAt;
     /**
      * event
      * @see TaskStateEvent
@@ -58,11 +57,11 @@ public class TaskStateTransitionRequest implements Request<TaskStateTransitionRe
         this.taskId = taskId;
     }
 
-    public LocalDateTime getReportAt() {
+    public Long getReportAt() {
         return reportAt;
     }
 
-    public void setReportAt(LocalDateTime reportAt) {
+    public void setReportAt(Long reportAt) {
         this.reportAt = reportAt;
     }
 

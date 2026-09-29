@@ -25,12 +25,10 @@ import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.cmd.JobStateTransitionCmd;
 import io.fluxion.server.core.job.cmd.JobSuccessCmd;
 import io.limbo.cqrs.core.commandhandling.Cmd;
-import io.limbo.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 
 /**
  * @author Devil
@@ -49,16 +47,16 @@ public class InputOutputJobRunner extends JobRunner {
         // 工作流根节点（首批 Job）的激活截止时间最终检查：
         // 本地执行不经 Worker RPC，在此拒绝迟到启动；与下发 RPC 固定同一 UTC 口径（见 CONTEXT.md「统一时间模型」）。
         // ponytail: 排程域仍本机墙钟，非 UTC 统一时区部署下激活窗口随 offset 后移；Instant 迁移落地后归一。
-        if (job.getDeadlineAt() != null && !job.getDeadlineAt().isAfter(LocalDateTime.now(ZoneOffset.UTC))) {
+        if (job.getDeadlineAt() != null && !job.getDeadlineAt().isAfter(Instant.now())) {
             log.warn("[InputOutputTaskRunner] job {} start deadline exceeded", job.getJobId());
-            Cmd.send(new JobExpiredCmd(job.getJobId(), null, TimeUtils.currentLocalDateTime()));
+            Cmd.send(new JobExpiredCmd(job.getJobId(), null, Instant.now()));
             return;
         }
         JobStateTransitionCmd.Response response = Cmd.send(new JobStateTransitionCmd(
             job.getJobId(),
             null,
             BrokerContext.broker().node(),
-            TimeUtils.currentLocalDateTime(),
+            Instant.now(),
             null,
             JobStateEvent.START,
             null, null
@@ -73,7 +71,7 @@ public class InputOutputJobRunner extends JobRunner {
             }
             Cmd.send(new JobSuccessCmd(
                 job.getJobId(),
-                TimeUtils.currentLocalDateTime(),
+                Instant.now(),
                 null,
                 ""
             ));
@@ -81,7 +79,7 @@ public class InputOutputJobRunner extends JobRunner {
             log.error("InputOutputTaskRunner error", e);
             Cmd.send(new JobFailCmd(
                 job.getJobId(),
-                TimeUtils.currentLocalDateTime(),
+                Instant.now(),
                 e.getMessage(),
                 null
             ));

@@ -24,7 +24,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 上报 Job 执行状态。
@@ -42,7 +42,7 @@ public class JobReportCmd implements ICommand<JobReportCmd.Response> {
 
     private Node workerNode;
 
-    private LocalDateTime reportAt;
+    private Instant reportAt;
 
     private JobMonitor monitor;
 

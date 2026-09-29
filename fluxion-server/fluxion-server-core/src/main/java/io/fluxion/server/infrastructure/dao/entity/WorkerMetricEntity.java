@@ -25,7 +25,7 @@ import org.hibernate.annotations.DynamicUpdate;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * @author Brozen
@@ -62,7 +62,7 @@ public class WorkerMetricEntity extends BaseEntity {
     /**
      * 上次心跳上报时间戳，毫秒
      */
-    private LocalDateTime lastHeartbeatAt;
+    private Instant lastHeartbeatAt;
 
     @Override
     public Object getUid() {

@@ -22,7 +22,6 @@ import io.fluxion.remote.core.api.dto.JobMonitorDTO;
 import io.fluxion.remote.core.api.response.broker.JobReportResponse;
 import io.fluxion.remote.core.constants.JobStatus;
 
-import java.time.LocalDateTime;
 
 /**
  * @author Devil
@@ -36,7 +35,7 @@ public class JobReportRequest implements Request<JobReportResponse> {
 
     private NodeDTO workerNode;
 
-    private LocalDateTime reportAt;
+    private Long reportAt;
 
     private JobMonitorDTO monitor;
 
@@ -70,11 +69,11 @@ public class JobReportRequest implements Request<JobReportResponse> {
         this.dispatchAttempt = dispatchAttempt;
     }
 
-    public LocalDateTime getReportAt() {
+    public Long getReportAt() {
         return reportAt;
     }
 
-    public void setReportAt(LocalDateTime reportAt) {
+    public void setReportAt(Long reportAt) {
         this.reportAt = reportAt;
     }
 

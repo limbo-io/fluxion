@@ -19,7 +19,7 @@ package io.fluxion.worker.core.task;
 import io.fluxion.remote.core.cluster.Node;
 import io.fluxion.remote.core.constants.TaskStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * @author Devil
@@ -48,17 +48,17 @@ public class Task {
     /**
      * 开始时间
      */
-    private LocalDateTime startAt;
+    private Instant startAt;
 
     /**
      * 结束时间
      */
-    private LocalDateTime endAt;
+    private Instant endAt;
 
     /**
      * 上次上报时间
      */
-    private LocalDateTime lastReportAt;
+    private Instant lastReportAt;
 
     private String result;
 
@@ -108,27 +108,27 @@ public class Task {
         this.status = status;
     }
 
-    public LocalDateTime getStartAt() {
+    public Instant getStartAt() {
         return startAt;
     }
 
-    public void setStartAt(LocalDateTime startAt) {
+    public void setStartAt(Instant startAt) {
         this.startAt = startAt;
     }
 
-    public LocalDateTime getEndAt() {
+    public Instant getEndAt() {
         return endAt;
     }
 
-    public void setEndAt(LocalDateTime endAt) {
+    public void setEndAt(Instant endAt) {
         this.endAt = endAt;
     }
 
-    public LocalDateTime getLastReportAt() {
+    public Instant getLastReportAt() {
         return lastReportAt;
     }
 
-    public void setLastReportAt(LocalDateTime lastReportAt) {
+    public void setLastReportAt(Instant lastReportAt) {
         this.lastReportAt = lastReportAt;
     }
 

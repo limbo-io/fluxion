@@ -16,6 +16,7 @@
 
 package io.fluxion.worker.core.task.tracker;
 
+import java.time.Instant;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.request.worker.TaskReportRequest;
@@ -31,7 +32,6 @@ import io.fluxion.worker.core.remote.WorkerClientConverter;
 import io.fluxion.worker.core.task.Task;
 import io.fluxion.worker.core.task.TaskContext;
 import io.limbo.utils.json.JacksonUtils;
-import io.limbo.utils.time.TimeUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.util.concurrent.Future;
@@ -122,12 +122,12 @@ public class TaskTracker extends AbstractTracker {
     }
 
     private void statTransition(TaskStateEvent event) {
-        task.setLastReportAt(TimeUtils.currentLocalDateTime());
+        task.setLastReportAt(Instant.now());
         TaskStateTransitionRequest request = new TaskStateTransitionRequest();
         try {
             request.setTaskId(task.getTaskId());
             request.setJobId(task.getJobId());
-            request.setReportAt(task.getLastReportAt());
+            request.setReportAt(task.getLastReportAt().toEpochMilli());
             request.setEvent(event.value);
             request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
 
@@ -171,12 +171,12 @@ public class TaskTracker extends AbstractTracker {
     }
 
     private void report() {
-        task.setLastReportAt(TimeUtils.currentLocalDateTime());
+        task.setLastReportAt(Instant.now());
         TaskReportRequest request = new TaskReportRequest();
         try {
             request.setTaskId(task.getTaskId());
             request.setJobId(task.getJobId());
-            request.setReportAt(task.getLastReportAt());
+            request.setReportAt(task.getLastReportAt().toEpochMilli());
             request.setStatus(task.getStatus().value);
             request.setWorkerNode(WorkerClientConverter.toDTO(workerContext.node()));
 

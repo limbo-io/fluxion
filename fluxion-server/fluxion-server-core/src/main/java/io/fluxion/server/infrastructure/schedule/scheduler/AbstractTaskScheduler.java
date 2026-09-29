@@ -20,7 +20,7 @@ import io.fluxion.server.infrastructure.schedule.task.AbstractTask;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -205,11 +205,11 @@ public abstract class AbstractTaskScheduler<T extends AbstractTask> implements S
      * 计算延迟时间
      */
     protected Long calDelay(T task) {
-        LocalDateTime triggerAt = task.triggerAt();
+        Instant triggerAt = task.triggerAt();
         if (triggerAt == null) {
             return null;
         }
-        long delay = Duration.between(LocalDateTime.now(), triggerAt).toMillis();
+        long delay = Duration.between(Instant.now(), triggerAt).toMillis();
         return Math.max(delay, 0);
     }
 

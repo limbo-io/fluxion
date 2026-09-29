@@ -27,9 +27,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -168,8 +169,8 @@ class PeriodicTaskSchedulerTest {
     void testScheduleOutsideTimeWindow() {
         AtomicInteger executionCount = new AtomicInteger(0);
 
-        LocalDateTime pastEndTime = LocalDateTime.now().minusMinutes(10);
-        LocalDateTime pastStartTime = LocalDateTime.now().minusMinutes(20);
+        LocalDateTime pastEndTime = LocalDateTime.now(ZoneOffset.UTC).minusSeconds(600);
+        LocalDateTime pastStartTime = LocalDateTime.now(ZoneOffset.UTC).minusSeconds(1200);
 
         ScheduleOption option = new ScheduleOption(
             ScheduleType.FIXED_RATE,
@@ -207,7 +208,7 @@ class PeriodicTaskSchedulerTest {
     void testScheduleBeforeStartTime() {
         AtomicInteger executionCount = new AtomicInteger(0);
 
-        LocalDateTime futureStartTime = LocalDateTime.now().plusMinutes(10);
+        LocalDateTime futureStartTime = LocalDateTime.now(ZoneOffset.UTC).plusSeconds(600);
 
         ScheduleOption option = new ScheduleOption(
             ScheduleType.FIXED_RATE,

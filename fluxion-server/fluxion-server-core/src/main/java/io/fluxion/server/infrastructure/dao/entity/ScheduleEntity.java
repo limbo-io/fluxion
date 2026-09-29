@@ -27,7 +27,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * @author Devil
@@ -56,12 +56,12 @@ public class ScheduleEntity extends BaseEntity {
     /**
      * 从何时开始调度作业
      */
-    private LocalDateTime startTime;
+    private Instant startTime;
 
     /**
      * 从何时结束调度作业
      */
-    private LocalDateTime endTime;
+    private Instant endTime;
 
     /**
      * 作业调度延迟时间，单位秒
@@ -94,17 +94,17 @@ public class ScheduleEntity extends BaseEntity {
     /**
      * 上次触发时间
      */
-    private LocalDateTime lastTriggerAt;
+    private Instant lastTriggerAt;
 
     /**
      * 上次回调时间
      */
-    private LocalDateTime lastFeedbackAt;
+    private Instant lastFeedbackAt;
 
     /**
      * 下次触发时间
      */
-    private LocalDateTime nextTriggerAt;
+    private Instant nextTriggerAt;
 
     /**
      * 是否启动

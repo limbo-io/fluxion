@@ -20,7 +20,7 @@ import io.fluxion.server.core.job.JobMonitor;
 import io.limbo.cqrs.core.commandhandling.ICommand;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 将 Job 标记为执行成功。
@@ -32,7 +32,7 @@ public class JobSuccessCmd implements ICommand<Boolean> {
 
     private final String jobId;
 
-    private final LocalDateTime reportAt;
+    private final Instant reportAt;
 
     private final Integer dispatchAttempt;
 
@@ -42,15 +42,15 @@ public class JobSuccessCmd implements ICommand<Boolean> {
 
     private String result;
 
-    public JobSuccessCmd(String jobId, LocalDateTime reportAt, JobMonitor monitor, String result) {
+    public JobSuccessCmd(String jobId, Instant reportAt, JobMonitor monitor, String result) {
         this(jobId, reportAt, null, null, monitor, result);
     }
 
-    public JobSuccessCmd(String jobId, LocalDateTime reportAt, Integer dispatchAttempt, JobMonitor monitor, String result) {
+    public JobSuccessCmd(String jobId, Instant reportAt, Integer dispatchAttempt, JobMonitor monitor, String result) {
         this(jobId, reportAt, dispatchAttempt, null, monitor, result);
     }
 
-    public JobSuccessCmd(String jobId, LocalDateTime reportAt, Integer dispatchAttempt, String workerAddress, JobMonitor monitor, String result) {
+    public JobSuccessCmd(String jobId, Instant reportAt, Integer dispatchAttempt, String workerAddress, JobMonitor monitor, String result) {
         this.jobId = jobId;
         this.reportAt = reportAt;
         this.dispatchAttempt = dispatchAttempt;

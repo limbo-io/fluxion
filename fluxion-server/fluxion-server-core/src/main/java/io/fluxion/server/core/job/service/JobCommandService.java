@@ -48,7 +48,6 @@ import io.fluxion.server.infrastructure.id.cmd.IDGenerateCmd;
 import io.fluxion.server.infrastructure.id.data.IDType;
 import io.fluxion.server.infrastructure.lock.DistributedLock;
 import io.limbo.utils.json.JacksonUtils;
-import io.limbo.utils.time.TimeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -58,7 +57,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -196,7 +195,7 @@ public class JobCommandService {
     /**
      * 更新上报时间等信息
      */
-    private boolean report(String jobId, int dispatchAttempt, JobStatus status, String workerAddress, JobMonitor monitor, LocalDateTime reportAt) {
+    private boolean report(String jobId, int dispatchAttempt, JobStatus status, String workerAddress, JobMonitor monitor, Instant reportAt) {
         return transactionService.transactional(() -> {
             int updated = entityManager.createQuery("update JobEntity " +
                     "set lastReportAt = :lastReportAt, monitor = :monitor, workerAddress = :workerAddress " +
@@ -213,7 +212,7 @@ public class JobCommandService {
         });
     }
 
-    private boolean start(JobEntity entity, Integer dispatchAttempt, String workerAddress, LocalDateTime reportAt) {
+    private boolean start(JobEntity entity, Integer dispatchAttempt, String workerAddress, Instant reportAt) {
         return transactionService.transactional(() -> {
             String attemptCondition = dispatchAttempt == null ? "" : " and dispatchAttempt = :dispatchAttempt";
             javax.persistence.Query startUpdate = entityManager.createQuery("update JobEntity " +
@@ -340,7 +339,7 @@ public class JobCommandService {
         // 重试逻辑
         Job.Config config = Query.query(new JobConfigQuery(entity.getExecutionId(), entity.getRefId())).getConfig();
         if (config.getRetryOption().canRetry(entity.getRetryTimes())) {
-            LocalDateTime nextRetryAt = TimeUtils.currentLocalDateTime().plusSeconds(config.getRetryOption().getRetryInterval());
+            Instant nextRetryAt = Instant.now().plusSeconds(config.getRetryOption().getRetryInterval());
             return Cmd.send(new JobRetryCmd(entity.getJobId(), entity.getRetryTimes() + 1, nextRetryAt));
         }
         String lockName = entity.getExecutionId() + LOCK_SUFFIX;
@@ -414,7 +413,7 @@ public class JobCommandService {
         if (cmd.getNextRetryAt() != null) {
             return jobRetryService.schedule(cmd.getJobId(), entity.getRetryTimes(), cmd.getRetryTimes(), cmd.getNextRetryAt());
         }
-        if (!jobRetryService.activate(cmd.getJobId(), cmd.getRetryTimes(), TimeUtils.currentLocalDateTime())) {
+        if (!jobRetryService.activate(cmd.getJobId(), cmd.getRetryTimes(), Instant.now())) {
             return false;
         }
 

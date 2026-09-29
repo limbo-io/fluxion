@@ -16,14 +16,13 @@
 
 package io.fluxion.server.infrastructure.schedule.calculator;
 
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.infrastructure.schedule.Calculable;
 import io.fluxion.server.infrastructure.schedule.ScheduleOption;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 固定速度作业调度时间计算器
@@ -42,22 +41,22 @@ public class FixRateScheduleCalculator implements ScheduleCalculator {
      * @return 下次触发调度的时间戳，当返回非正数时，表示作业不会有触发时间。
      */
     @Override
-    public LocalDateTime calculate(Calculable calculable) {
+    public Instant calculate(Calculable calculable) {
         ScheduleOption scheduleOption = calculable.scheduleOption();
         // 上次调度一定间隔后调度
         Duration interval = scheduleOption.getInterval();
         if (interval == null) {
-            return TimeUtils.currentLocalDateTime();
+            return Instant.now();
         }
 
         // 如果上次为空则根据 delay 来
         if (calculable.lastTriggerAt() == null) {
-            LocalDateTime startScheduleAt = calculateStartScheduleTime(calculable.scheduleOption());
-            return laterTime(startScheduleAt, TimeUtils.currentLocalDateTime());
+            Instant startScheduleAt = calculateStartScheduleTime(calculable.scheduleOption());
+            return laterTime(startScheduleAt, Instant.now());
         }
 
-        LocalDateTime scheduleAt = calculable.lastTriggerAt().plus(interval);
-        return laterTime(scheduleAt, TimeUtils.currentLocalDateTime());
+        Instant scheduleAt = calculable.lastTriggerAt().plus(interval);
+        return laterTime(scheduleAt, Instant.now());
     }
 
     @Override

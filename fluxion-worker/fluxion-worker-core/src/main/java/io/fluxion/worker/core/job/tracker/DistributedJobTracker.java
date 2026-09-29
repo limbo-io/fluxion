@@ -16,7 +16,6 @@
 
 package io.fluxion.worker.core.job.tracker;
 
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.remote.core.api.Response;
 import io.fluxion.remote.core.api.dto.JobMonitorDTO;
 import io.fluxion.remote.core.api.request.worker.TaskDispatchRequest;
@@ -36,7 +35,7 @@ import io.fluxion.worker.core.task.repository.TaskRepository;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
@@ -110,7 +109,7 @@ public abstract class DistributedJobTracker extends JobTracker {
         }
         taskFail(
             task.getTaskId(),
-            TimeUtils.currentLocalDateTime(),
+            Instant.now(),
             String.format("task dispatch fail over limit last worker=%s", worker == null ? null : worker.address()),
             null
         );
@@ -131,7 +130,7 @@ public abstract class DistributedJobTracker extends JobTracker {
         }
         Node worker = WorkerClientConverter.toNode(request.getWorkerNode());
         String workerAddress = worker == null ? null : worker.address();
-        LocalDateTime reportAt = request.getReportAt();
+        Instant reportAt = Instant.ofEpochMilli(request.getReportAt());
         boolean success = false;
         switch (TaskStateEvent.parse(request.getEvent())) {
             case START:
@@ -155,7 +154,7 @@ public abstract class DistributedJobTracker extends JobTracker {
     public TaskReportResponse handleTaskReport(TaskReportRequest request) {
         Node worker = WorkerClientConverter.toNode(request.getWorkerNode());
         String workerAddress = worker == null ? null : worker.address();
-        LocalDateTime reportAt = request.getReportAt();
+        Instant reportAt = Instant.ofEpochMilli(request.getReportAt());
 
         TaskReportResponse response = new TaskReportResponse();
         boolean success = taskRepository.report(request.getJobId(), request.getTaskId(), TaskStatus.parse(request.getStatus()), workerAddress, reportAt);
@@ -170,7 +169,7 @@ public abstract class DistributedJobTracker extends JobTracker {
         if (TaskStatus.RUNNING != task.getStatus()) {
             return false;
         }
-        taskSuccess(task.getTaskId(), request.getReportAt(), request.getResult());
+        taskSuccess(task.getTaskId(), Instant.ofEpochMilli(request.getReportAt()), request.getResult());
         success();
         return true;
     }
@@ -182,7 +181,7 @@ public abstract class DistributedJobTracker extends JobTracker {
         if (TaskStatus.RUNNING != task.getStatus()) {
             return false;
         }
-        taskFail(task.getTaskId(), request.getReportAt(), request.getErrorMsg(), request.getErrorStackTrace());
+        taskFail(task.getTaskId(), Instant.ofEpochMilli(request.getReportAt()), request.getErrorMsg(), request.getErrorStackTrace());
         fail();
         return true;
     }
@@ -204,7 +203,7 @@ public abstract class DistributedJobTracker extends JobTracker {
         taskCounter.total.set(tasks.size());
     }
 
-    private void taskSuccess(String taskId, LocalDateTime endAt, String result) {
+    private void taskSuccess(String taskId, Instant endAt, String result) {
         Task task = taskRepository.getById(job.getId(), taskId);
         task.setStatus(TaskStatus.SUCCEED);
         task.setLastReportAt(endAt);
@@ -214,7 +213,7 @@ public abstract class DistributedJobTracker extends JobTracker {
         taskCounter.success.incrementAndGet();
     }
 
-    private void taskFail(String taskId, LocalDateTime endAt, String errorMsg, String errorStack) {
+    private void taskFail(String taskId, Instant endAt, String errorMsg, String errorStack) {
         Task task = taskRepository.getById(job.getId(), taskId);
         task.setStatus(TaskStatus.FAILED);
         task.setLastReportAt(endAt);

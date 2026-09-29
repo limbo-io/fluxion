@@ -49,7 +49,7 @@ import io.fluxion.server.core.worker.query.WorkersFilterQuery;
 import io.limbo.utils.json.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import io.limbo.cqrs.core.commandhandling.Cmd;
@@ -118,7 +118,7 @@ public class BrokerClientHandler implements ClientHandler {
         // 心跳
         Cmd.send(new WorkerHeartbeatCmd(
             request.getWorkerId(),
-            BrokerClientConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), LocalDateTime.now())
+            BrokerClientConverter.toMetric(request.getSystemInfo(), request.getAvailableQueueNum(), Instant.now())
         ));
         BrokersQuery.Response brokersRes = Query.query(new BrokersQuery());
         BrokerTopologyDTO brokerTopologyDTO = new BrokerTopologyDTO();
@@ -136,7 +136,7 @@ public class BrokerClientHandler implements ClientHandler {
         JobReportRequest request = JacksonUtils.toType(data, JobReportRequest.class);
         JobReportCmd.Response response = Cmd.send(new JobReportCmd(
             request.getJobId(), request.getDispatchAttempt(), BrokerClientConverter.toNode(request.getWorkerNode()),
-            request.getReportAt(), BrokerClientConverter.convert(request.getMonitor()),
+            Instant.ofEpochMilli(request.getReportAt()), BrokerClientConverter.convert(request.getMonitor()),
             JobStatus.parse(request.getStatus())
         ));
         JobReportResponse res = new JobReportResponse();
@@ -148,7 +148,7 @@ public class BrokerClientHandler implements ClientHandler {
         JobStateTransitionRequest request = JacksonUtils.toType(data, JobStateTransitionRequest.class);
         JobStateTransitionCmd.Response response = Cmd.send(new JobStateTransitionCmd(
             request.getJobId(), request.getDispatchAttempt(), BrokerClientConverter.toNode(request.getWorkerNode()),
-            request.getReportAt(), BrokerClientConverter.convert(request.getMonitor()),
+            Instant.ofEpochMilli(request.getReportAt()), BrokerClientConverter.convert(request.getMonitor()),
             JobStateEvent.parse(request.getEvent()), request.getResult(), request.getErrorMsg()
         ));
         JobStateTransitionResponse res = new JobStateTransitionResponse();

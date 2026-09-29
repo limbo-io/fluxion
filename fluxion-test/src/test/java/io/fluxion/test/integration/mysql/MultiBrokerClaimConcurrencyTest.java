@@ -39,8 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -101,8 +100,8 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
     @Test
     @DisplayName("T1: 两 Broker 并发 claim 同一 PENDING：条件 UPDATE 仅一个胜出")
     void shouldAllowOnlyOneWinnerWhenTwoBrokersClaimTheSamePendingRow() throws Exception {
-        String executionId = seedPendingExecution(LocalDateTime.now().minusSeconds(1), 1);
-        LocalDateTime triggerAt = LocalDateTime.now().minusSeconds(1);
+        String executionId = seedPendingExecution(Instant.now().minusSeconds(1), 1);
+        Instant triggerAt = Instant.now().minusSeconds(1);
         AtomicInteger winners = new AtomicInteger();
 
         CyclicBarrier barrier = new CyclicBarrier(2);
@@ -136,14 +135,14 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
         // 胜者身份唯一：owner 与 token 一致地归属于两个候选之一
         assertThat(after.getLeaseOwner()).isIn("broker-a-" + executionId, "broker-b-" + executionId);
         assertThat(after.getExecutionToken()).isEqualTo(after.getLeaseOwner().replace("broker-", "token-"));
-        assertThat(after.getLeaseUntil()).isAfter(LocalDateTime.now());
+        assertThat(after.getLeaseUntil()).isAfter(Instant.now());
     }
 
     @Test
     @DisplayName("T2: 两线程并发创建同一 (triggerId, triggerAt)：唯一键兜底，仅一个成功")
     void shouldCreateSingleExecutionForSameTriggerPointWhenCreatedConcurrently() throws Exception {
         String triggerId = "trigger-" + UUID.randomUUID();
-        LocalDateTime triggerAt = LocalDateTime.now().plusMinutes(5);
+        Instant triggerAt = Instant.now().plusSeconds(300);
         // T2 只触达创建路径：mock 的 Executable 仅提供 id/version/type 身份信息，其余方法不使用
         Executable executable = mock(Executable.class);
         when(executable.id()).thenReturn(triggerId);
@@ -186,7 +185,7 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
     @Test
     @DisplayName("T3: 持有者租约过期：bucket 移交后存活 Broker 的 handle 先回收再重领，旧 token 作废")
     void shouldReclaimExpiredClaimAndReassignToSurvivingBrokerViaFullHandle() {
-        String executionId = seedPendingExecution(LocalDateTime.now(), 1);
+        String executionId = seedPendingExecution(Instant.now(), 1);
 
         // broker-a 通过完整 handle() 领取
         assertThat(handleAsBroker("broker-a")).isEqualTo(1);
@@ -196,7 +195,7 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
 
         // 模拟 broker-a 死亡：租约拨过期 + BucketChecker 把 bucket 移交给 broker-b
         ExecutionEntity expired = executionEntityRepo.findById(executionId).orElseThrow();
-        expired.setLeaseUntil(LocalDateTime.now().minusSeconds(1));
+        expired.setLeaseUntil(Instant.now().minusSeconds(1));
         executionEntityRepo.saveAndFlush(expired);
         handoverBucketTo("broker-b");
 
@@ -215,7 +214,7 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
     @DisplayName("T4: 预加载领取的租约必须覆盖触发时刻，否则到点守卫必然拒绝")
     void claimLeaseMustCoverPreloadedTriggerTime() {
         // 领取提前量 45s（预载窗口 60s、租约 15s 的典型中间态）
-        LocalDateTime triggerAt = LocalDateTime.now().plusSeconds(45);
+        Instant triggerAt = Instant.now().plusSeconds(45);
         String executionId = seedPendingExecution(triggerAt, 1);
 
         assertThat(handleAsBroker("broker-lease")).isEqualTo(1);
@@ -231,10 +230,10 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
     @Test
     @DisplayName("T5: 超过创建首批 Job 的 Deadline：不领取且 Execution 终态为 EXPIRED")
     void shouldExpireExecutionBeforeItIsClaimedWhenDeadlineHasPassed() {
-        String executionId = seedPendingExecution(LocalDateTime.now().minusSeconds(10), 1);
+        String executionId = seedPendingExecution(Instant.now().minusSeconds(10), 1);
         ExecutionEntity execution = executionEntityRepo.findById(executionId).orElseThrow();
         // Deadline 域固定 UTC 口径（与 Broker 预检查同基准），seed 用 UTC 墙钟避免跨时区偏差
-        execution.setDeadlineAt(LocalDateTime.now(ZoneOffset.UTC).minusSeconds(1));
+        execution.setDeadlineAt(Instant.now().minusSeconds(1));
         executionEntityRepo.saveAndFlush(execution);
 
         assertThat(handleAsBroker("broker-deadline")).isZero();
@@ -287,7 +286,7 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
         bucketEntityRepo.saveAndFlush(bucket);
     }
 
-    private String seedPendingExecution(LocalDateTime triggerAt, int bucket) {
+    private String seedPendingExecution(Instant triggerAt, int bucket) {
         ExecutionEntity entity = new ExecutionEntity();
         entity.setExecutionId("execution-" + UUID.randomUUID());
         entity.setTriggerId("trigger-" + UUID.randomUUID());

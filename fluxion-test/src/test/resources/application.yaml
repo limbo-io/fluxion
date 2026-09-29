@@ -25,6 +25,9 @@ spring:
     properties:
       hibernate:
         enable_lazy_load_no_trans: true # 解决懒加载问题 no Session
+        jdbc:
+          # 运行态时间统一 UTC：与生产同口径
+          time_zone: UTC
   flyway:
     baseline-on-migrate: true
     baseline-version: 0

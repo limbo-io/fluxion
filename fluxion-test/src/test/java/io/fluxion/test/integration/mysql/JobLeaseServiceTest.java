@@ -33,7 +33,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import javax.transaction.Transactional;
 import javax.persistence.EntityManager;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -84,10 +84,10 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
     void shouldAssignMonotonicAttemptsOnlyToTheLeaseOwner() {
         jobEntityRepo.saveAndFlush(newJob("job-lease"));
 
-        Integer firstAttempt = jobLeaseService.claimFirstAttempt("job-lease", "broker-a", LocalDateTime.now().plusSeconds(15));
-        Integer deniedAttempt = jobLeaseService.claimFirstAttempt("job-lease", "broker-b", LocalDateTime.now().plusSeconds(15));
-        Integer secondAttempt = jobLeaseService.nextAttempt("job-lease", "broker-a", firstAttempt, LocalDateTime.now().plusSeconds(15));
-        boolean renewed = jobLeaseService.renew("job-lease", "broker-a", secondAttempt, LocalDateTime.now().plusSeconds(15));
+        Integer firstAttempt = jobLeaseService.claimFirstAttempt("job-lease", "broker-a", Instant.now().plusSeconds(15));
+        Integer deniedAttempt = jobLeaseService.claimFirstAttempt("job-lease", "broker-b", Instant.now().plusSeconds(15));
+        Integer secondAttempt = jobLeaseService.nextAttempt("job-lease", "broker-a", firstAttempt, Instant.now().plusSeconds(15));
+        boolean renewed = jobLeaseService.renew("job-lease", "broker-a", secondAttempt, Instant.now().plusSeconds(15));
         boolean released = jobLeaseService.release("job-lease", "broker-a", secondAttempt);
 
         assertThat(firstAttempt).isEqualTo(1);
@@ -108,13 +108,13 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
         JobEntity job = newJob("job-lease-renew");
         job.setLeaseOwner(brokerId);
         job.setDispatchAttempt(1);
-        job.setLeaseUntil(LocalDateTime.now().plusSeconds(2));
+        job.setLeaseUntil(Instant.now().plusSeconds(2));
         jobEntityRepo.saveAndFlush(job);
 
         JobEntity deletedJob = newJob("job-lease-renew-deleted");
         deletedJob.setLeaseOwner(brokerId);
         deletedJob.setDispatchAttempt(1);
-        deletedJob.setLeaseUntil(LocalDateTime.now().plusSeconds(2));
+        deletedJob.setLeaseUntil(Instant.now().plusSeconds(2));
         deletedJob.setDeleted(true);
         jobEntityRepo.saveAndFlush(deletedJob);
 
@@ -122,9 +122,9 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
         entityManager.clear();
 
         assertThat(jobEntityRepo.findById(job.getJobId()).orElseThrow().getLeaseUntil())
-            .isAfter(LocalDateTime.now().plusSeconds(10));
+            .isAfter(Instant.now().plusSeconds(10));
         assertThat(jobEntityRepo.findById(deletedJob.getJobId()).orElseThrow().getLeaseUntil())
-            .isBefore(LocalDateTime.now().plusSeconds(5));
+            .isBefore(Instant.now().plusSeconds(5));
     }
 
     @Test
@@ -135,10 +135,10 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
         jobEntityRepo.saveAndFlush(job);
 
         JobReportCmd.Response oldAttempt = jobCommandService.handle(new JobReportCmd(
-            job.getJobId(), 1, new BaseNode(Protocol.HTTP, "worker-a", 8080), LocalDateTime.now(), null, JobStatus.RUNNING
+            job.getJobId(), 1, new BaseNode(Protocol.HTTP, "worker-a", 8080), Instant.now(), null, JobStatus.RUNNING
         ));
         JobReportCmd.Response currentAttempt = jobCommandService.handle(new JobReportCmd(
-            job.getJobId(), 2, new BaseNode(Protocol.HTTP, "worker-a", 8080), LocalDateTime.now(), null, JobStatus.RUNNING
+            job.getJobId(), 2, new BaseNode(Protocol.HTTP, "worker-a", 8080), Instant.now(), null, JobStatus.RUNNING
         ));
 
         assertThat(oldAttempt.isSuccess()).isFalse();
@@ -153,7 +153,7 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
         jobEntityRepo.saveAndFlush(job);
 
         boolean accepted = jobCommandService.handle(new JobFailCmd(
-            job.getJobId(), LocalDateTime.now(), 1, "stale dispatch failure", null
+            job.getJobId(), Instant.now(), 1, "stale dispatch failure", null
         ));
 
         entityManager.clear();
@@ -167,10 +167,10 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
         job.setStatus(JobStatus.FAILED.value);
         job.setRetryTimes(0);
         jobEntityRepo.saveAndFlush(job);
-        LocalDateTime retryAt = LocalDateTime.now().minusSeconds(1);
+        Instant retryAt = Instant.now().minusSeconds(1);
 
         assertThat(jobRetryService.schedule(job.getJobId(), 0, 1, retryAt)).isTrue();
-        assertThat(jobRetryService.activate(job.getJobId(), 1, LocalDateTime.now())).isTrue();
+        assertThat(jobRetryService.activate(job.getJobId(), 1, Instant.now())).isTrue();
 
         entityManager.clear();
         assertThat(jobEntityRepo.findById(job.getJobId()).orElseThrow().getStatus()).isEqualTo(JobStatus.INITED.value);
@@ -183,7 +183,7 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
         job.setRetryTimes(0);
         jobEntityRepo.saveAndFlush(job);
 
-        LocalDateTime retryAt = LocalDateTime.now().plusSeconds(10);
+        Instant retryAt = Instant.now().plusSeconds(10);
         assertThat(jobRetryService.schedule(job.getJobId(), 0, 1, retryAt)).isTrue();
         assertThat(jobRetryService.schedule(job.getJobId(), 0, 1, retryAt)).isFalse();
 
@@ -209,27 +209,27 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
         due.setStatus(JobStatus.RUNNING.value);
         due.setWorkerAddress("http://worker-a:8080");
         due.setDispatchAttempt(3);
-        due.setTimeoutAt(LocalDateTime.now().minusSeconds(1));
-        due.setLeaseUntil(LocalDateTime.now().minusSeconds(1));
+        due.setTimeoutAt(Instant.now().minusSeconds(1));
+        due.setLeaseUntil(Instant.now().minusSeconds(1));
         jobEntityRepo.saveAndFlush(due);
 
         JobEntity unrelated = newJob("job-unrelated");
         unrelated.setStatus(JobStatus.RUNNING.value);
         unrelated.setWorkerAddress("http://worker-b:8080");
         unrelated.setDispatchAttempt(4);
-        unrelated.setTimeoutAt(LocalDateTime.now().plusMinutes(1));
-        unrelated.setLeaseUntil(LocalDateTime.now().plusMinutes(1));
+        unrelated.setTimeoutAt(Instant.now().plusSeconds(60));
+        unrelated.setLeaseUntil(Instant.now().plusSeconds(60));
         jobEntityRepo.saveAndFlush(unrelated);
 
         assertThat(Query.query(new JobRunningByWorkerQuery("http://worker-a:8080", null, 10)).getJobs())
             .extracting(JobRunningByWorkerQuery.JobRunning::getJobId,
                 JobRunningByWorkerQuery.JobRunning::getDispatchAttempt)
             .containsExactly(org.assertj.core.groups.Tuple.tuple("job-due", 3));
-        assertThat(Query.query(new JobTimeoutDueQuery(10, LocalDateTime.now())).getJobs())
+        assertThat(Query.query(new JobTimeoutDueQuery(10, Instant.now())).getJobs())
             .extracting(JobTimeoutDueQuery.JobTimeout::getJobId,
                 JobTimeoutDueQuery.JobTimeout::getDispatchAttempt)
             .containsExactly(org.assertj.core.groups.Tuple.tuple("job-due", 3));
-        assertThat(Query.query(new JobExpiredLeaseQuery(10, LocalDateTime.now())).getJobs())
+        assertThat(Query.query(new JobExpiredLeaseQuery(10, Instant.now())).getJobs())
             .extracting(JobExpiredLeaseQuery.JobLease::getJobId,
                 JobExpiredLeaseQuery.JobLease::getDispatchAttempt)
             .containsExactly(org.assertj.core.groups.Tuple.tuple("job-due", 3));
@@ -237,7 +237,7 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
 
     @Test
     void shouldPageOfflineWorkersByHeartbeatWithoutSkippingAny() {
-        LocalDateTime cutoff = LocalDateTime.now().minusSeconds(10);
+        Instant cutoff = Instant.now().minusSeconds(10);
         saveWorker("worker-a", cutoff.minusSeconds(3));
         saveWorker("worker-b", cutoff.minusSeconds(2));
         saveWorker("worker-c", cutoff.minusSeconds(1));
@@ -259,7 +259,7 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
         assertThat(workerEntityRepo.findById("worker-fresh").orElseThrow().getStatus()).isEqualTo(Worker.Status.ONLINE.status);
     }
 
-    private void saveWorker(String workerId, LocalDateTime lastHeartbeatAt) {
+    private void saveWorker(String workerId, Instant lastHeartbeatAt) {
         WorkerEntity worker = new WorkerEntity();
         worker.setWorkerId(workerId);
         worker.setAppId("test-app");
@@ -286,9 +286,9 @@ class JobLeaseServiceTest extends AbstractMySqlIntegrationTest {
         job.setRefId(jobId);
         job.setStatus("inited");
         job.setRetryTimes(0);
-        job.setTriggerAt(LocalDateTime.now());
-        job.setCreatedAt(LocalDateTime.now());
-        job.setUpdatedAt(LocalDateTime.now());
+        job.setTriggerAt(Instant.now());
+        job.setCreatedAt(Instant.now());
+        job.setUpdatedAt(Instant.now());
         job.setDeleted(false);
         return job;
     }

@@ -22,7 +22,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 将执行实例标记为成功。
@@ -37,6 +37,6 @@ public class ExecutionSuccessCmd implements ICommand<Boolean> {
 
     private String executionId;
 
-    private LocalDateTime endAt;
+    private Instant endAt;
 
 }

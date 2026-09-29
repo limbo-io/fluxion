@@ -29,7 +29,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +52,7 @@ public class ObservationQueryService {
 
     @QueryHandler
     public ObservationOverviewQuery.Response handle(ObservationOverviewQuery query) {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         Map<String, Long> executions = statusDistribution(ExecutionEntity.class, ExecutionStatus.values(),
             ExecutionStatus.UNKNOWN);
@@ -87,22 +87,22 @@ public class ObservationQueryService {
     }
 
     /** 积压：已到triggerAt 但尚未 claim 的 PENDING */
-    private long countPendingDue(LocalDateTime now) {
+    private long countPendingDue(Instant now) {
         return countExecutions(PENDING, "e.triggerAt <= :time", now);
     }
 
     /** 错过触发候选：now - triggerAt > misfireThreshold 的 PENDING */
-    private long countMisfireCandidates(LocalDateTime now) {
-        LocalDateTime threshold = now.minusSeconds(ExecutionScheduleCommandService.MISFIRE_THRESHOLD_SECONDS);
+    private long countMisfireCandidates(Instant now) {
+        Instant threshold = now.minusSeconds(ExecutionScheduleCommandService.MISFIRE_THRESHOLD_SECONDS);
         return countExecutions(PENDING, "e.triggerAt < :time", threshold);
     }
 
     /** 可回收租约：CLAIMED 且租约已过期，下一轮 ExecutionsLoadCmd 可重新领取 */
-    private long countReclaimableClaims(LocalDateTime now) {
+    private long countReclaimableClaims(Instant now) {
         return countExecutions(CLAIMED, "e.leaseUntil <= :time", now);
     }
 
-    private long countExecutions(String status, String condition, LocalDateTime time) {
+    private long countExecutions(String status, String condition, Instant time) {
         return entityManager.createQuery(
             "select count(e) from ExecutionEntity e"
                 + " where e.deleted = false and e.status = :status and " + condition, Long.class)

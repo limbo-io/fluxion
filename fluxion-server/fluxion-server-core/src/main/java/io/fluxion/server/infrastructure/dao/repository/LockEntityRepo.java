@@ -22,7 +22,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * @author Devil
@@ -62,7 +62,7 @@ public interface LockEntityRepo extends JpaRepository<LockEntity, String> {
     int tryAcquireLock(
         @Param("name") String name,
         @Param("owner") String owner,
-        @Param("expireAt") LocalDateTime expireAt
+        @Param("expireAt") Instant expireAt
     );
 
     /**

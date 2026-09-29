@@ -24,7 +24,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 根据事件变更 Job 状态。
@@ -42,7 +42,7 @@ public class JobStateTransitionCmd implements ICommand<JobStateTransitionCmd.Res
 
     private Node workerNode;
 
-    private LocalDateTime reportAt;
+    private Instant reportAt;
 
     private JobMonitor monitor;
 

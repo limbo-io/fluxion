@@ -20,7 +20,7 @@ import io.limbo.cqrs.core.commandhandling.ICommand;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -32,9 +32,9 @@ import java.util.List;
 @AllArgsConstructor
 public class WorkerSliceOfflineCmd implements ICommand<WorkerSliceOfflineCmd.Response> {
 
-    private LocalDateTime cutoff;
+    private Instant cutoff;
 
-    private LocalDateTime cursorHeartbeatAt;
+    private Instant cursorHeartbeatAt;
 
     private String cursorWorkerId;
 
@@ -44,7 +44,7 @@ public class WorkerSliceOfflineCmd implements ICommand<WorkerSliceOfflineCmd.Res
     @AllArgsConstructor
     public static class Response {
         private List<String> workerIds;
-        private LocalDateTime nextCursorHeartbeatAt;
+        private Instant nextCursorHeartbeatAt;
         private String nextCursorWorkerId;
     }
 

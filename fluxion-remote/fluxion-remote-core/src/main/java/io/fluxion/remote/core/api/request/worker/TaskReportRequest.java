@@ -21,7 +21,6 @@ import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.response.worker.TaskReportResponse;
 import io.fluxion.remote.core.constants.TaskStatus;
 
-import java.time.LocalDateTime;
 
 /**
  * @author Devil
@@ -35,7 +34,7 @@ public class TaskReportRequest implements Request<TaskReportResponse> {
 
     private NodeDTO workerNode;
 
-    private LocalDateTime reportAt;
+    private Long reportAt;
     /**
      * task status
      * @see TaskStatus
@@ -50,11 +49,11 @@ public class TaskReportRequest implements Request<TaskReportResponse> {
         this.taskId = taskId;
     }
 
-    public LocalDateTime getReportAt() {
+    public Long getReportAt() {
         return reportAt;
     }
 
-    public void setReportAt(LocalDateTime reportAt) {
+    public void setReportAt(Long reportAt) {
         this.reportAt = reportAt;
     }
 

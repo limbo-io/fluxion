@@ -16,6 +16,7 @@
 
 package io.fluxion.server.core.job.service;
 
+import java.time.Instant;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.broker.BrokerContext;
 import io.fluxion.server.core.broker.query.BucketsByBrokerQuery;
@@ -190,7 +191,7 @@ public class JobQueryService {
                 + "where e.deleted = false and e.leaseOwner = :brokerId and e.leaseUntil > :now and e.status in :statuses and e.jobId > :lastJobId "
                 + "order by e.jobId asc", Object[].class)
             .setParameter("brokerId", query.getBrokerId())
-            .setParameter("now", java.time.LocalDateTime.now())
+            .setParameter("now", java.time.Instant.now())
             .setParameter("statuses", java.util.Arrays.asList(JobStatus.INITED.value, JobStatus.RUNNING.value))
             .setParameter("lastJobId", query.getLastJobId())
             .setMaxResults(query.getLimit())

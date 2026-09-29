@@ -29,7 +29,7 @@ import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * @author Devil
@@ -59,7 +59,7 @@ public class BrokerEntity extends BaseEntity {
     /**
      * 上次心跳时间
      */
-    private LocalDateTime lastHeartbeatAt;
+    private Instant lastHeartbeatAt;
 
     @Override
     public Object getUid() {

@@ -16,7 +16,7 @@
 
 package io.fluxion.worker.core.discovery;
 
-import io.limbo.utils.time.TimeUtils;
+import java.time.Instant;
 import io.fluxion.remote.core.api.dto.BrokerTopologyDTO;
 import io.fluxion.remote.core.api.dto.NodeDTO;
 import io.fluxion.remote.core.api.dto.SystemInfoDTO;
@@ -137,7 +137,7 @@ public class DefaultServerDiscovery implements ServerDiscovery {
                 request.setWorkerId(workerContext.node().address());
                 request.setSystemInfo(systemInfoDTO());
                 request.setTopologyVersion(version);
-                request.setHeartbeatAt(TimeUtils.currentLocalDateTime());
+                request.setHeartbeatAt(Instant.now().toEpochMilli());
                 request.setAvailableQueueNum(workerContext.availableQueueNum());
 
                 WorkerHeartbeatResponse heartbeatResponse = client.call(

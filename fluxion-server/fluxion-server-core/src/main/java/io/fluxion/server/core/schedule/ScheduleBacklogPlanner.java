@@ -19,7 +19,7 @@ package io.fluxion.server.core.schedule;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +40,7 @@ public final class ScheduleBacklogPlanner {
     private ScheduleBacklogPlanner() {
     }
 
-    public static Plan plan(List<LocalDateTime> triggerPoints, LocalDateTime now) {
+    public static Plan plan(List<Instant> triggerPoints, Instant now) {
         if (triggerPoints.size() <= BACKFILL_BATCH) {
             return new Plan(triggerPoints);
         }
@@ -51,6 +51,6 @@ public final class ScheduleBacklogPlanner {
     @Getter
     @AllArgsConstructor
     public static class Plan {
-        private final List<LocalDateTime> delays;
+        private final List<Instant> delays;
     }
 }

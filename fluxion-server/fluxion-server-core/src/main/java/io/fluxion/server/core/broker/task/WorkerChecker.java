@@ -16,7 +16,6 @@
 
 package io.fluxion.server.core.broker.task;
 
-import io.limbo.utils.time.TimeUtils;
 import io.fluxion.server.core.job.cmd.JobFailCmd;
 import io.fluxion.server.core.job.query.JobRunningByWorkerQuery;
 import io.fluxion.server.core.worker.WorkerLivenessProperties;
@@ -24,7 +23,7 @@ import io.fluxion.server.core.worker.cmd.WorkerSliceOfflineCmd;
 import io.fluxion.server.infrastructure.schedule.ScheduleType;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -51,9 +50,9 @@ public class WorkerChecker extends CoreTask {
     @Override
     public void run() {
         try {
-            LocalDateTime cutoff = TimeUtils.currentLocalDateTime()
+            Instant cutoff = Instant.now()
                 .plusSeconds(-livenessProperties.getOfflineTimeoutSeconds());
-            LocalDateTime cursorHeartbeatAt = null;
+            Instant cursorHeartbeatAt = null;
             String cursorWorkerId = null;
             do {
                 WorkerSliceOfflineCmd.Response response = Cmd.send(new WorkerSliceOfflineCmd(
@@ -67,7 +66,7 @@ public class WorkerChecker extends CoreTask {
                         jobs = Query.query(new JobRunningByWorkerQuery(workerId, lastJobId, limit)).getJobs();
                         for (JobRunningByWorkerQuery.JobRunning job : jobs) {
                             Cmd.send(new JobFailCmd(
-                                job.getJobId(), TimeUtils.currentLocalDateTime(), job.getDispatchAttempt(),
+                                job.getJobId(), Instant.now(), job.getDispatchAttempt(),
                                 "Worker offline: " + workerId, null
                             ));
                         }
