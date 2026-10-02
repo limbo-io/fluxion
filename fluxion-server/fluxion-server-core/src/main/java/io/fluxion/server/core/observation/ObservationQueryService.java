@@ -19,6 +19,7 @@ package io.fluxion.server.core.observation;
 import io.fluxion.remote.core.constants.JobStatus;
 import io.fluxion.server.core.execution.ExecutionStatus;
 import io.fluxion.server.core.execution.service.ExecutionScheduleCommandService;
+import io.fluxion.server.core.schedule.ScheduleRecoveryMetrics;
 import io.fluxion.server.core.worker.Worker;
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
 import io.fluxion.server.infrastructure.dao.entity.JobEntity;
@@ -50,6 +51,9 @@ public class ObservationQueryService {
     @Resource
     private EntityManager entityManager;
 
+    @Resource
+    private ScheduleRecoveryMetrics recoveryMetrics;
+
     @QueryHandler
     public ObservationOverviewQuery.Response handle(ObservationOverviewQuery query) {
         Instant now = Instant.now();
@@ -64,7 +68,8 @@ public class ObservationQueryService {
             Worker.Status.UNKNOWN);
 
         return new ObservationOverviewQuery.Response(
-            executions, backlog, misfireCandidates, reclaimableClaims, jobs, workers);
+            executions, backlog, misfireCandidates, reclaimableClaims,
+            recoveryMetrics.getRecovered(), recoveryMetrics.getDropped(), jobs, workers);
     }
 
     /** 状态计数（zero-fill 枚举值并排除 UNKNOWN；库中若出现未识别状态值也会原样保留） */

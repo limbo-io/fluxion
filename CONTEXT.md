@@ -8,6 +8,14 @@ Fluxion 在 Broker 与 Worker 之间协调任务调度。本词汇表用于统�
 一个 SCHEDULE 类型 Trigger 的调度生命周期，依据 Trigger 的配置维护未来触发点并产生 Execution。
 _避免使用_：ScheduleConfig、任务实例、执行计划
 
+**Schedule 触发游标**：
+`lastTriggerAt` 是 Schedule 最后一个已作出处理决策的计划触发时间，`nextTriggerAt` 是下一个尚未处理的计划触发时间。处理决策可以是创建 Execution 或按遗漏触发恢复明确丢弃；两者都不等同于最后一个实际运行的 Execution。除幂等重复外，任何点处理失败都不构成处理决策，游标不得推进。
+_避免使用_：最后执行时间、Execution 游标
+
+**Schedule 处理所有权**：
+Schedule 只能由其 Bucket 的当前 Broker 处理。处理者在同一事务中确认 Bucket 所有权并串行化该 Schedule 的状态变更；Bucket 转移必须等待旧处理完成，转移后旧 Broker 不得继续推进 Schedule。非 Owner 的配置发布不直接推进触发游标，由当前 Owner 后续扫描处理。
+_避免使用_：仅凭扫描时的 Bucket 归属、无所有权校验的直接触发
+
 **Executable（可执行体）**：
 被 Execution 运行的 Executor 或 Workflow。Executor 归属于一个 Trigger；Workflow 可以被多个 Trigger 复用。
 _避免使用_：Execution、ScheduleInstance
@@ -55,6 +63,10 @@ Trigger 的启用和禁用操作不直接修改既有 Execution。Broker 在持�
 **Job 派发语义**：
 Fluxion 保证 Execution 创建一次，但 Job 为至少一次派发。Worker 超时、网络响应丢失或租约恢复可能导致同一个 Job 再次派发；`jobId` 是跨 Broker 和 Worker 的稳定幂等键，业务侧必须据此防止外部副作用重复发生。
 
+**Job 时间语义**：
+`triggerAt` 是 Job 自身可被调度的时刻，随派发请求交给 Worker。调度 Execution 的首批 Job 继承 `Execution.triggerAt`；Workflow 后续 Job 在前序完成后创建，其 `triggerAt` 是自身创建时刻，不继承 Execution 的计划触发时刻。Worker 在本机实际接收 Job 时记录 `acceptedAt`；该时刻不由 Broker 提供，以免将发送时刻误作接收时刻。
+_避免使用_：Broker 接收时间、所有 Job 继承 Execution 的触发时刻
+
 **Worker 存活时刻**：
 Broker 接收 Worker 心跳的 UTC 时刻，是判断 Worker 在线与否的唯一事实源；Worker 随请求携带的发送时刻只用于诊断，不能参与存活判定。只有从 `ONLINE` 条件迁移为 `OFFLINE` 成功的 Worker，才触发其 Job 接管。
 _避免使用_：客户端心跳时间、仅凭扫描到记录就接管
@@ -67,7 +79,15 @@ _避免使用_：Boolean 派发结果、把截止拒绝视为普通下发失败
 Execution 的 Broker 短租约只保护 `PENDING → CLAIMED → RUNNING` 中创建 Job 的权限。进入 `RUNNING` 的事务必须清除 Execution 租约；之后由每个 Job 自己的派发和运行租约、超时检查与重试机制负责恢复。两层租约不能互相回收或重建对方的记录。
 
 **Execution 预生成窗口**：
-`ScheduleLoader` 每 5 分钟扫描一次，并预生成未来 10 分钟的 Execution，保留一个完整扫描周期的冗余。Broker 恢复后，缺失的历史触发点必须按原计划时间补建为唯一 Execution，再由 misfire 策略决定其终态或补偿运行；不得以“最新一次”折叠丢弃触发点。历史补建按固定批次和游标持续推进，作为吞吐保护，不丢弃或合并应有触发点。
+`ScheduleLoader` 每 5 分钟扫描一次，并预生成未来 10 分钟的 Execution，保留一个完整扫描周期的冗余。未被预生成的历史触发点属于遗漏触发点，其是否物化为 Execution 由遗漏触发恢复决定；它们不能与已创建但延迟激活的 Execution 混同。
+
+**遗漏触发恢复（Missed-trigger Recovery）**：
+Schedule 对未创建 Execution 的历史触发点采用的恢复规则，仅适用于 `CRON` 和 `FIXED_RATE`。恢复范围是 `nextTriggerAt` 之后尚未作出处理决策的历史区间，每个点只处理一次。触发点晚于当前时刻超过 5 秒才被认定为遗漏。默认关闭并丢弃全部遗漏触发点；显式开启时，仅按原计划触发时间检查最接近当前时刻的 10 个，较早的点明确丢弃且不创建 `SKIPPED` Execution。该上限按原始触发点计数，已存在的同点 Execution 也占用范围，不向更早历史扩张。恢复开关按 Broker 实际读取到的配置即时生效。恢复点若已满足 `SKIP` 的 Misfire 条件，或其首批 Job 的 Deadline 已过，同样直接丢弃、不创建 Execution；其余恢复点才物化并适用 Misfire Policy。同一 `(triggerId, triggerAt)` 的 Execution 已存在或发生唯一键冲突时，视为该点已处理并继续恢复。`FIXED_DELAY` 不允许开启恢复，因为其下一次触发依赖前一次的调度反馈。
+_避免使用_：Misfire、完整历史补建
+
+**遗漏触发恢复观测**：
+遗漏触发恢复只按结果累计已恢复与已丢弃的数量，用于告警和容量判断；不为丢弃点创建审计记录，不将 Schedule 标识作为指标标签。
+_避免使用_：逐触发点日志、按 Schedule 的时序标签
 
 **调度背压**：
 Broker 的内部容量不足以即时处理到期 Execution 时，对新领取和 Job 创建施加的有界限制。背压只能造成可观测的延迟与补偿，不能将内部饱和误判为用户选择的 `SKIPPED`；`SKIP` 只表达 Misfire Policy 的明确业务决定。

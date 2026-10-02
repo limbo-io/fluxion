@@ -19,6 +19,8 @@ package io.fluxion.worker.core.job;
 import io.fluxion.remote.core.constants.ExecuteMode;
 import io.fluxion.remote.core.constants.JobStatus;
 
+import java.time.Instant;
+
 /**
  * @author Devil
  * @since 2021/7/24
@@ -41,10 +43,23 @@ public class Job {
      */
     private JobStatus status = JobStatus.INITED;
 
+    /**
+     * Job 的原始计划触发时刻（见 CONTEXT.md「Job 时间语义」）：调度 Execution 的首批 Job
+     * 继承 Execution.triggerAt；后续 Workflow 节点是自身就绪时刻。接收时刻由 Worker 本机自行取得。
+     */
+    private Instant triggerAt;
 
     private String result;
 
     private String errorMsg;
+
+    public Instant getTriggerAt() {
+        return triggerAt;
+    }
+
+    public void setTriggerAt(Instant triggerAt) {
+        this.triggerAt = triggerAt;
+    }
 
     public ExecuteMode getExecuteMode() {
         return executeMode;

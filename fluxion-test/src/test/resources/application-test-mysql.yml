@@ -4,7 +4,9 @@ spring:
     name: fluxion-test-h2-integration
 
   datasource:
-    url: jdbc:h2:mem:integrationdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    # LOCK_TIMEOUT=10000：唯一索引/行锁竞争的等待窗口拉长到 10s。默认 1s 会让并发竞争
+    # 直接流为锁等待超时（HYT00/50200），无法覆盖“竞争点插锁等待→对方提交→唯一键冲突”的真路径。
+    url: jdbc:h2:mem:integrationdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;LOCK_TIMEOUT=10000
     driver-class-name: org.h2.Driver
     username: sa
     password:

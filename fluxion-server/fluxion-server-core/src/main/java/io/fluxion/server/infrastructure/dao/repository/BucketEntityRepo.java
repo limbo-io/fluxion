@@ -18,7 +18,9 @@ package io.fluxion.server.infrastructure.dao.repository;
 
 import io.fluxion.server.infrastructure.dao.entity.BucketEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 
+import javax.persistence.LockModeType;
 import java.util.List;
 
 /**
@@ -28,4 +30,11 @@ import java.util.List;
 public interface BucketEntityRepo extends JpaRepository<BucketEntity, Integer> {
 
     List<BucketEntity> findByBrokerId(String brokerId);
+
+    /**
+     * 悲观锁 Bucket 行（见 CONTEXT.md「Schedule 处理所有权」）：Schedule 处理与
+     * Bucket 重平衡在同一行锁上串行，防止交接期间新旧 Owner 并发推进同一 Schedule。
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    BucketEntity findWithLockingByBucket(Integer bucket);
 }

@@ -16,6 +16,8 @@
 
 package io.fluxion.worker.core.job;
 
+import java.time.Instant;
+
 /**
  * @author Devil
  */
@@ -23,15 +25,27 @@ public class JobContext {
 
     private String id;
 
+    /**
+     * Job 的原始计划触发时刻（见 CONTEXT.md「Job 时间语义」）：调度 Execution 的首批
+     * Job 继承 Execution.triggerAt；后续 Workflow 节点是自身就绪时刻。实际接收时刻由
+     * Worker 本机在需要时自行取得（如 Instant.now()），不由 Broker 提供。
+     */
+    private Instant triggerAt;
+
     private JobContext() {}
 
     public String getId() {
         return id;
     }
 
+    public Instant getTriggerAt() {
+        return triggerAt;
+    }
+
     public static JobContext from(Job job) {
         JobContext context = new JobContext();
         context.id = job.getId();
+        context.triggerAt = job.getTriggerAt();
         return context;
     }
 }

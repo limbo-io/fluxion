@@ -16,24 +16,24 @@
 
 package io.fluxion.server.core.schedule.cmd;
 
-import io.fluxion.server.core.schedule.Schedule;
 import io.limbo.cqrs.core.commandhandling.VoidCommand;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 触发调度并创建待执行的延迟任务。
+ * 触发调度处理：处理者在自身事务内依次锁定 Bucket 行、校验当前 Broker 为
+ * Bucket Owner、再锁定 Schedule 行并按库内最新配置与游标推进（见 CONTEXT.md
+ * 「Schedule 处理所有权」）。命令只携带 scheduleId，禁止携带 Schedule 快照参与计算，
+ * 从接口上杜绝 Bucket 交接或并发入口用旧快照覆盖游标。
  *
  * @author Devil
  */
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class ScheduleTriggerCmd implements VoidCommand {
 
-    private Schedule schedule;
+    private String scheduleId;
 
 }

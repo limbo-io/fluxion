@@ -97,7 +97,9 @@ public class Workflow implements Executable {
 
     @Override
     public void execute(Execution execution) {
-        List<Job> jobs = createJobs(execution.getId(), dag.origins(), execution.getDeadlineAt());
+        // 首批（根节点）Job 继承 Execution 的原始计划触发时刻；下游节点在 success() 中以自身就绪时刻创建
+        List<Job> jobs = createJobs(execution.getId(), dag.origins(),
+            execution.getTriggerAt() == null ? Instant.now() : execution.getTriggerAt(), execution.getDeadlineAt());
         // 执行
         for (Job job : jobs) {
             JobDispatcher.dispatchAfterCommit(job);
@@ -125,8 +127,9 @@ public class Workflow implements Executable {
         if (CollectionUtils.isEmpty(continueNodes)) {
             return true;
         }
-        // 下游节点不继承激活截止时间：Deadline 只约束首批 Job 启动，不中断已运行的 Workflow 后继
-        createJobs(executionId, continueNodes, null);
+        // 下游节点不继承激活截止时间：Deadline 只约束首批 Job 启动，不中断已运行的 Workflow 后继；
+        // 下游 Job 的 triggerAt 是自身就绪时刻，不继承 Execution 的计划触发时刻（见 CONTEXT.md「Job 时间语义」）
+        createJobs(executionId, continueNodes, Instant.now(), null);
         // 待优化：这里不能和execute一样直接异步执行 success是在事务中 由于这里是异步的，
         // 可能导致input这个任务执行start的时候事务还没提交，查不到数据。交由JobUnRunChecker
         return true;
@@ -176,16 +179,19 @@ public class Workflow implements Executable {
         return JobType.UNKNOWN;
     }
 
-    private List<Job> createJobs(String executionId, List<WorkflowNode> nodes, Instant deadlineAt) {
-        Instant now = Instant.now();
+    /**
+     * 创建节点对应的 Job；triggerAt/deadlineAt 由调用方决定：首批（根节点）Job 继承 Execution
+     * 的原始计划触发时刻与激活截止快照，下游节点只携带自身就绪时刻且不继承截止时间
+     * （见 CONTEXT.md「Job 时间语义」「Execution 激活截止时间」）。
+     */
+    private List<Job> createJobs(String executionId, List<WorkflowNode> nodes, Instant triggerAt, Instant deadlineAt) {
         List<Job> jobs = nodes.stream()
             .map(n -> {
                 Job job = new Job();
                 job.setRefId(n.getId());
                 job.setType(jobType(n.getId()));
                 job.setExecutionId(executionId);
-                job.setTriggerAt(now);
-                // 仅根节点（首批 Job）复制激活截止时间快照；下游节点传 null，不继承
+                job.setTriggerAt(triggerAt);
                 job.setDeadlineAt(deadlineAt);
                 return job;
             })
@@ -216,5 +222,4 @@ public class Workflow implements Executable {
             )).getCount();
         return successCount + continuedFailureCount >= preNodes.size();
     }
-
 }

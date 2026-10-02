@@ -140,6 +140,9 @@ class FixedDelayScheduleFeedbackTest extends AbstractMySqlIntegrationTest {
         Instant firedAt = Instant.now().minus(Duration.ofSeconds(10));
         ExecutionEntity running = seedExecution(triggerId, "running", firedAt, 1);
 
+        // 触发处理需在锁内校验 Bucket 所有权：反馈链推进必须由归属 Broker 完成
+        recordingBrokerContext("broker-" + UUID.randomUUID(), triggerId);
+
         Instant before = Instant.now();
         Boolean ok = executionCommandService.handle(
             ExecutionSuccessCmd.builder().executionId(running.getExecutionId()).endAt(Instant.now()).build());
@@ -186,9 +189,9 @@ class FixedDelayScheduleFeedbackTest extends AbstractMySqlIntegrationTest {
         // 调度已删除；保留一个过期的 PENDING 实例
         seedFixDelaySchedule(triggerId, true, true);
         ExecutionEntity misfired = seedExecution(triggerId, "pending",
-            Instant.now().minus(Duration.ofSeconds(30)), 1);
+            Instant.now().minus(Duration.ofSeconds(30)), allotBucket(triggerId));
 
-        recordingBrokerContext("broker-" + UUID.randomUUID());
+        recordingBrokerContext("broker-" + UUID.randomUUID(), triggerId);
         executionScheduleCommandService.handle(new ExecutionsLoadCmd());
 
         ExecutionEntity after = executionEntityRepo.findById(misfired.getExecutionId()).orElseThrow();
@@ -202,10 +205,10 @@ class FixedDelayScheduleFeedbackTest extends AbstractMySqlIntegrationTest {
         seedTriggerChain(triggerId);
         seedFixDelaySchedule(triggerId, false, true);
         ExecutionEntity misfired = seedExecution(triggerId, "pending",
-            Instant.now().minus(Duration.ofSeconds(30)), 1);
+            Instant.now().minus(Duration.ofSeconds(30)), allotBucket(triggerId));
 
         Instant before = Instant.now();
-        recordingBrokerContext("broker-" + UUID.randomUUID());
+        recordingBrokerContext("broker-" + UUID.randomUUID(), triggerId);
         executionScheduleCommandService.handle(new ExecutionsLoadCmd());
 
         // 到期未领实例按策略置为 SKIPPED
@@ -233,7 +236,7 @@ class FixedDelayScheduleFeedbackTest extends AbstractMySqlIntegrationTest {
         Instant now = Instant.now();
         ScheduleEntity entity = new ScheduleEntity();
         entity.setScheduleId(triggerId);
-        entity.setBucket(1);
+        entity.setBucket(allotBucket(triggerId));
         entity.setScheduleType("fixed_delay");
         entity.setStartTime(now.minus(Duration.ofHours(1)));
         entity.setEndTime(now.plus(java.time.Duration.ofDays(365)));
@@ -288,23 +291,30 @@ class FixedDelayScheduleFeedbackTest extends AbstractMySqlIntegrationTest {
         entity.setDeleted(false);
         return executionEntityRepo.saveAndFlush(entity);
     }
-    /** mock BrokerContext + 只记录不执行的时间轮；bucket=1 归属该 broker */
-    private void recordingBrokerContext(String brokerId) {
+    /** mock BrokerContext + 只记录不执行的时间轮；scheduleId 反查出的 bucket 归属该 broker */
+    private void recordingBrokerContext(String brokerId, String triggerId) {
         DelayedTaskScheduler scheduler = mock(DelayedTaskScheduler.class);
         doAnswer(inv -> null).when(scheduler).schedule(any(DelayedTask.class));
         Broker broker = mock(Broker.class);
         when(broker.id()).thenReturn(brokerId);
         when(broker.delayedTaskScheduler()).thenReturn(scheduler);
         BrokerContext.initialize(broker);
-        // 幽共享库：bucket=1 可能已归属上一个测试的 broker，必须改写归属
-        BucketEntity bucket = bucketEntityRepo.findById(1).orElse(null);
+        // 触发处理以 BucketAllotCmd(scheduleId) 反查 bucket 并校验归属：
+        // 种子必须与该派生 bucket 对齐，bucket=1 的旧约定不再成立
+        Integer derived = allotBucket(triggerId);
+        BucketEntity bucket = bucketEntityRepo.findById(derived).orElse(null);
         if (bucket == null) {
             bucket = new BucketEntity();
-            bucket.setBucket(1);
+            bucket.setBucket(derived);
         }
         bucket.setBrokerId(brokerId);
         bucketEntityRepo.saveAndFlush(bucket);
         seededBrokerIds.add(brokerId);
+    }
+
+    /** 与 BucketCommandService.BUCKET_SIZE=64 相同的派生规则（仅测试种子用） */
+    private static int allotBucket(String resourceId) {
+        return Math.abs(resourceId.hashCode()) % 64 + 1;
     }
 
 }

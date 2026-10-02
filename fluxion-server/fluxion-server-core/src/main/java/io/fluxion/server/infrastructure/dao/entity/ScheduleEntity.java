@@ -92,6 +92,11 @@ public class ScheduleEntity extends BaseEntity {
     private Long maxStartDelayMillis;
 
     /**
+     * 遗漏触发恢复开关（见 CONTEXT.md「遗漏触发恢复」）；仅 CRON/FIXED_RATE 可开启，默认关闭。
+     */
+    private boolean recoveryEnabled;
+
+    /**
      * 上次触发时间
      */
     private Instant lastTriggerAt;

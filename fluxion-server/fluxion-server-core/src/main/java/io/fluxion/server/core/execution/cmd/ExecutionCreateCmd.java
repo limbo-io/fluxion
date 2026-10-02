@@ -48,6 +48,8 @@ public class ExecutionCreateCmd implements ICommand<ExecutionCreateCmd.Response>
     @AllArgsConstructor
     public static class Response {
         private Execution execution;
+        /** 本次调用是否真正落库创建了 Execution；否则为已存在实例的幂等确认（EXISTING） */
+        private boolean created;
     }
 
 }

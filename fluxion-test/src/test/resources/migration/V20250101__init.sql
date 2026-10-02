@@ -182,6 +182,7 @@ CREATE TABLE `fluxion_schedule`
     `schedule_cron_type` varchar(32)     NOT NULL DEFAULT '',
     `misfire_policy`     varchar(32)     NOT NULL DEFAULT 'FIRE_RETRY',
     `max_fire_attempts`  int unsigned    NOT NULL DEFAULT 1,
+    `recovery_enabled`   bit(1)          NOT NULL DEFAULT 0,
     `last_trigger_at`    datetime(3)              DEFAULT NULL,
     `last_feedback_at`   datetime(3)              DEFAULT NULL,
     `next_trigger_at`    datetime(3)              DEFAULT NULL,

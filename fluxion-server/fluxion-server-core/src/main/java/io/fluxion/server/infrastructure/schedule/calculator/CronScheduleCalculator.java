@@ -49,6 +49,22 @@ public class CronScheduleCalculator implements ScheduleCalculator {
     }
 
     /**
+     * 反向计算：严格早于 before 的最近一次 CRON 触发时刻（cron-utils lastExecution 在
+     * 等于给定时刻时会回退一秒）。供遗漏触发恢复在不展开历史的前提下逐步取最近的原始点。
+     */
+    public static Instant previousExecution(String cron, String cronType, ZoneId timeZone, Instant before) {
+        try {
+            ExecutionTime executionTime = ExecutionTime.forCron(getCron(cron, cronType));
+            return executionTime.lastExecution(before.atZone(timeZone))
+                .map(ZonedDateTime::toInstant)
+                .orElse(null);
+        } catch (Exception e) {
+            log.error("parse cron expression {} {} failed!", cron, cronType, e);
+            return null;
+        }
+    }
+
+    /**
      * 通过此策略计算下一次触发调度的时间戳。如果不应该被触发，返回0或负数。
      * <p>
      * CRON 是日历语义：以 schedule 配置的 IANA timeZone 解释（Cron/回拨/夏令时前跳按该时区规则），

@@ -18,10 +18,13 @@ package io.fluxion.server.infrastructure.dao.repository;
 
 import io.fluxion.server.infrastructure.dao.entity.ScheduleEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import javax.persistence.LockModeType;
 
 /**
  * @author Devil
@@ -34,5 +37,12 @@ public interface ScheduleEntityRepo extends JpaRepository<ScheduleEntity, String
     int updateEnable(@Param("scheduleId") String scheduleId, @Param("enabled") boolean enabled);
 
     ScheduleEntity findByScheduleIdAndDeleted(@Param("scheduleId") String scheduleId, @Param("deleted") boolean deleted);
+
+    /**
+     * 悲观锁后读取 Schedule 最新配置与游标：仅 Bucket Owner 在持有 Bucket 行锁的前提下调用，
+     * 保证处理期间配置发布与反馈不与游标推进交错（见 CONTEXT.md「Schedule 处理所有权」）。
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    ScheduleEntity findWithLockingByScheduleIdAndDeleted(@Param("scheduleId") String scheduleId, @Param("deleted") boolean deleted);
 
 }

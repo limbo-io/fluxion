@@ -36,4 +36,10 @@ public interface ScheduleConstants {
 
     long EXECUTION_LOOK_AHEAD_SECONDS = LOAD_INTERVAL_SECONDS * 2;
 
+    /**
+     * 开启遗漏触发恢复时，每个 Schedule 单轮仅检查最接近当前时刻的原始触发点个数；
+     * 更早点随游标推进明确丢弃，不向更早历史扩张（见 CONTEXT.md「遗漏触发恢复」）。
+     */
+    int RECOVERY_POINTS_LIMIT = 10;
+
 }

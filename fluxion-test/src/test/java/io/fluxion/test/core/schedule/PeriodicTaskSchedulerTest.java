@@ -272,16 +272,16 @@ class PeriodicTaskSchedulerTest {
     void testScheduleOptionRequiresTimeZoneAndValidStartDeadline() {
         Assertions.assertThrows(IllegalArgumentException.class, () -> new ScheduleOption(
             ScheduleType.FIXED_RATE, null, null, Duration.ZERO, Duration.ofSeconds(1), null, null,
-            null, null, null, null
+            null, null, null, null, null
         ));
         Assertions.assertThrows(IllegalArgumentException.class, () -> new ScheduleOption(
             ScheduleType.FIXED_RATE, null, null, Duration.ZERO, Duration.ofSeconds(1), null, null,
-            null, null, "UTC", 999L
+            null, null, "UTC", 999L, null
         ));
 
         ScheduleOption option = new ScheduleOption(
             ScheduleType.FIXED_RATE, null, null, Duration.ZERO, Duration.ofSeconds(1), null, null,
-            null, null, "Asia/Shanghai", 1000L
+            null, null, "Asia/Shanghai", 1000L, null
         );
         Assertions.assertEquals(ZoneId.of("Asia/Shanghai"), option.getTimeZone());
         Assertions.assertEquals(1000L, option.getMaxStartDelayMillis());

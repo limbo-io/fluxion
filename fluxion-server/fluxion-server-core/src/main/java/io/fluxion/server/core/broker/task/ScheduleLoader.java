@@ -37,6 +37,12 @@ import io.limbo.cqrs.core.queryhandling.Query;
 @Slf4j
 public class ScheduleLoader extends CoreTask {
 
+    /**
+     * 单轮扫描的分页上限：正常调度的游标推进后即退出查询窗口；存在无法推进的异常调度
+     * （如配置缺失）时，靠本上限兜底避免 Loader 线程停摆，下轮扫描重试。
+     */
+    private static final int MAX_PAGES = 100;
+
     public ScheduleLoader() {
         super(0, ScheduleConstants.LOAD_INTERVAL, ScheduleConstants.LOAD_TIME_UNIT);
     }
@@ -45,9 +51,10 @@ public class ScheduleLoader extends CoreTask {
     public void run() {
         try {
             List<Schedule> schedules = Query.query(new ScheduleNextTriggerQuery(100)).getSchedules();
-            while (CollectionUtils.isNotEmpty(schedules)) {
+            for (int pages = 0; CollectionUtils.isNotEmpty(schedules) && pages < MAX_PAGES; pages++) {
                 for (Schedule schedule : schedules) {
-                    Cmd.send(new ScheduleTriggerCmd(schedule));
+                    // 只携带 scheduleId：处理事务在锁内校验 Bucket 所有权并读取最新配置与游标
+                    Cmd.send(new ScheduleTriggerCmd(schedule.getId()));
                 }
                 // 拉取后续的
                 schedules = Query.query(new ScheduleNextTriggerQuery(100)).getSchedules();

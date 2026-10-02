@@ -171,6 +171,8 @@ public class ExecutorJobRunner extends JobRunner {
             // 激活截止时间以 UTC epoch millis 越过 RPC；null 透传。运行态已 Instant 化，
             // 无任何时区解释环节（见 CONTEXT.md「统一时间模型」「Execution 激活截止时间」）
             request.setDeadlineEpochMillis(job.getDeadlineAt() == null ? null : job.getDeadlineAt().toEpochMilli());
+            // Job 的原始计划触发时刻同样以 epoch millis 透传；接收时刻是 Worker 本机事实，不由 Broker 提供
+            request.setTriggerAt(job.getTriggerAt() == null ? null : job.getTriggerAt().toEpochMilli());
 
             Response<JobDispatchResult> response = BrokerContext.call(
                 WorkerRemoteConstant.API_JOB_DISPATCH, worker.getHost(), worker.getPort(), request

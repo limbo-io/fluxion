@@ -52,6 +52,21 @@ public class JobDispatchRequest implements Request<JobDispatchResult> {
      */
     private Long deadlineEpochMillis;
 
+    /**
+     * Job 的原始计划触发时刻（领域名 triggerAt）：UTC epoch millis 编码的绝对时间，为空表示
+     * 非调度来源。调度 Execution 的首批 Job 继承 Execution.triggerAt，后续 Workflow 节点是自身
+     * 就绪时刻（见 CONTEXT.md「Job 时间语义」）；接收时刻由 Worker 本机自行取得，不由 Broker 提供。
+     */
+    private Long triggerAt;
+
+    public Long getTriggerAt() {
+        return triggerAt;
+    }
+
+    public void setTriggerAt(Long triggerAt) {
+        this.triggerAt = triggerAt;
+    }
+
     public String getExecuteMode() {
         return executeMode;
     }

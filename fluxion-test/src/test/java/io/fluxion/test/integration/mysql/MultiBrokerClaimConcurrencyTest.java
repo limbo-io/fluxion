@@ -139,7 +139,7 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
     }
 
     @Test
-    @DisplayName("T2: 两线程并发创建同一 (triggerId, triggerAt)：唯一键兜底，仅一个成功")
+    @DisplayName("T2: 两线程并发创建同一 (triggerId, triggerAt)：幂等写入兼容两者，恰好一个 CREATED、单行落库")
     void shouldCreateSingleExecutionForSameTriggerPointWhenCreatedConcurrently() throws Exception {
         String triggerId = "trigger-" + UUID.randomUUID();
         Instant triggerAt = Instant.now().plusSeconds(300);
@@ -150,6 +150,7 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
         when(executable.type()).thenReturn(ExecutableType.EXECUTOR);
 
         AtomicInteger successes = new AtomicInteger();
+        AtomicInteger creations = new AtomicInteger();
         CyclicBarrier barrier = new CyclicBarrier(2);
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
@@ -157,15 +158,17 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
                 pool.submit(() -> {
                     try {
                         barrier.await(10, TimeUnit.SECONDS);
-                        executionCommandService.handle(new ExecutionCreateCmd(
-                            triggerId, TriggerType.SCHEDULE, executable, triggerAt));
+                        ExecutionCreateCmd.Response response =
+                            executionCommandService.handle(new ExecutionCreateCmd(
+                                triggerId, TriggerType.SCHEDULE, executable, triggerAt));
                         successes.incrementAndGet();
-                    } catch (org.springframework.dao.DataIntegrityViolationException e) {
-                        // 唯一键 (trigger_id, trigger_at) 兜底：另一个并发创建被数据库拒绝
+                        if (response.isCreated()) {
+                            creations.incrementAndGet();
+                        }
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     } catch (Exception e) {
-                        // 其他异常视为失败，交由成功计数断言暴露
+                        // 任何异常（含唯一键冲突逸出）都视为失败，交由计数断言暴露
                     }
                     return null;
                 });
@@ -176,7 +179,9 @@ class MultiBrokerClaimConcurrencyTest extends AbstractMySqlIntegrationTest {
             pool.shutdownNow();
         }
 
-        assertThat(successes.get()).isEqualTo(1);
+        // 同点竞争不抛异常：双方都成功；身份唯一键保证恰一行，且只有一个 CREATED
+        assertThat(successes.get()).isEqualTo(2);
+        assertThat(creations.get()).isEqualTo(1);
         ExecutionEntity created = executionEntityRepo.findByTriggerIdAndTriggerAt(triggerId, triggerAt);
         assertThat(created).isNotNull();
         assertThat(created.getStatus()).isEqualTo("pending");

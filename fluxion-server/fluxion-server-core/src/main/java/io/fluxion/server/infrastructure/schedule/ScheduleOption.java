@@ -103,6 +103,13 @@ public class ScheduleOption {
      */
     private final Long maxStartDelayMillis;
 
+    /**
+     * 遗漏触发恢复开关（见 CONTEXT.md「遗漏触发恢复」）：对未创建 Execution 的历史触发点，
+     * 仅检查最接近当前时刻的固定数量个原始点，其余点随游标推进明确丢弃。仅适用于
+     * CRON/FIXED_RATE；FIXED_DELAY 的下一次触发依赖调度反馈，无法从历史反推，禁止开启。
+     */
+    private final boolean recoveryEnabled;
+
     @JsonCreator
     public ScheduleOption(@JsonProperty("type") ScheduleType type,
                           @JsonProperty("startTime") LocalDateTime startTime,
@@ -114,7 +121,8 @@ public class ScheduleOption {
                           @JsonProperty("misfirePolicy") MisfirePolicy misfirePolicy,
                           @JsonProperty("maxFireAttempts") Integer maxFireAttempts,
                           @JsonProperty("timeZone") String timeZone,
-                          @JsonProperty("maxStartDelayMillis") Long maxStartDelayMillis) {
+                          @JsonProperty("maxStartDelayMillis") Long maxStartDelayMillis,
+                          @JsonProperty("recoveryEnabled") Boolean recoveryEnabled) {
         this.type = type;
         if (timeZone == null || timeZone.trim().isEmpty()) {
             throw new IllegalArgumentException("timeZone is required");
@@ -132,12 +140,17 @@ public class ScheduleOption {
             throw new IllegalArgumentException("maxStartDelayMillis must be at least 1000");
         }
         this.maxStartDelayMillis = maxStartDelayMillis;
+        // 恢复开关的配置边界：FIXED_DELAY 依赖反馈推进，不能从历史反推触发点
+        this.recoveryEnabled = recoveryEnabled != null && recoveryEnabled;
+        if (this.recoveryEnabled && type == ScheduleType.FIXED_DELAY) {
+            throw new IllegalArgumentException("recoveryEnabled is not supported for FIXED_DELAY schedules");
+        }
     }
 
     public ScheduleOption(ScheduleType type, LocalDateTime startTime, LocalDateTime endTime,
                           Duration delay, Duration interval, String cron, String cronType, ZoneId timeZone) {
         this(type, startTime, endTime, delay, interval, cron, cronType, null, null,
-            timeZone == null ? null : timeZone.getId(), null);
+            timeZone == null ? null : timeZone.getId(), null, null);
     }
 
     /**

@@ -28,6 +28,8 @@ import io.fluxion.worker.core.WorkerContext;
 import io.fluxion.worker.core.job.Job;
 import io.fluxion.worker.core.task.Task;
 
+import java.time.Instant;
+
 /**
  * @author PengQ
  * @since 0.0.1
@@ -40,6 +42,9 @@ public class WorkerClientConverter {
         job.setDispatchAttempt(request.getDispatchAttempt());
         job.setExecutorName(request.getExecutorName());
         job.setExecuteMode(ExecuteMode.parse(request.getExecuteMode()));
+        // 触发时刻以 epoch millis 过线后还原为 Instant；缺失（非调度来源/旧版本 Broker）时保持 null
+        job.setTriggerAt(request.getTriggerAt() == null
+            ? null : Instant.ofEpochMilli(request.getTriggerAt()));
         return job;
     }
 

@@ -36,6 +36,8 @@ public class ObservationService {
         view.setExecutionBacklog(response.getExecutionBacklog());
         view.setExecutionMisfireCandidates(response.getExecutionMisfireCandidates());
         view.setExecutionReclaimableClaims(response.getExecutionReclaimableClaims());
+        view.setExecutionRecoveredPoints(response.getExecutionRecoveredPoints());
+        view.setExecutionRecoveryDroppedPoints(response.getExecutionRecoveryDroppedPoints());
         view.setJobs(response.getJobs());
         view.setWorkers(response.getWorkers());
         return view;

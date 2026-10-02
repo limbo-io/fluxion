@@ -75,14 +75,26 @@ public class Execution {
      */
     private Instant deadlineAt;
 
+    /**
+     * 计划触发时刻：调度型 Execution 在创建时固化的原始触发时间，由首批 Job 继承并随派发
+     * 请求交给 Worker（见 CONTEXT.md「Job 时间语义」）。为空表示非调度来源，无原始触发时间。
+     */
+    private Instant triggerAt;
+
     public Execution(String id, ExecutionStatus status, String executableId, String executableVersion, ExecutableType type,
                      Instant deadlineAt) {
+        this(id, status, executableId, executableVersion, type, deadlineAt, null);
+    }
+
+    public Execution(String id, ExecutionStatus status, String executableId, String executableVersion, ExecutableType type,
+                     Instant deadlineAt, Instant triggerAt) {
         this.id = id;
         this.type = type;
         this.status = status;
         this.executableId = executableId;
         this.executableVersion = executableVersion;
         this.deadlineAt = deadlineAt;
+        this.triggerAt = triggerAt;
     }
 
     public Executable executable() {

@@ -61,6 +61,7 @@ public class ScheduleEntityConverter {
         entity.setMisfirePolicy(scheduleOption.getMisfirePolicy().name());
         entity.setMaxFireAttempts(scheduleOption.getMaxFireAttempts());
         entity.setMaxStartDelayMillis(scheduleOption.getMaxStartDelayMillis());
+        entity.setRecoveryEnabled(scheduleOption.isRecoveryEnabled());
     }
 
     public static ScheduleEntity convert(Schedule schedule) {
@@ -105,7 +106,8 @@ public class ScheduleEntityConverter {
             entity.getMisfirePolicy() == null ? null : MisfirePolicy.valueOf(entity.getMisfirePolicy()),
             entity.getMaxFireAttempts(),
             tz.getId(),
-            entity.getMaxStartDelayMillis()
+            entity.getMaxStartDelayMillis(),
+            entity.isRecoveryEnabled()
         );
     }
 

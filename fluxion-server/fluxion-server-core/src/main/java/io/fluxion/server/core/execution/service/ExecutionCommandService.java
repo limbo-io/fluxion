@@ -59,39 +59,50 @@ public class ExecutionCommandService {
     @Resource
     private EntityManager entityManager;
 
+    /**
+     * 以 (triggerId, triggerAt) 身份唯一键为目标的幂等创建：已存在（或并发竞争）时返回
+     * 既有实例（created=false），不抛唯一键异常；本次真正落库时 created=true。
+     * 常见路径先查后写；并发盲区由 {@link ExecutionEntityRepo#insertExecutionIdentity}
+     * 的数据库幂等写入兼底——回查行的 executionId 判定归属，不依赖驱动返回行数。
+     */
     @Transactional
     @CommandHandler
     public ExecutionCreateCmd.Response handle(ExecutionCreateCmd cmd) {
         Executable executable = cmd.getExecutable();
-        // 判断是否已经创建
+        // 快速路径：先查能查见的已存在实例，避免无谓的身份证号写入
         ExecutionEntity entity = executionEntityRepo.findByTriggerIdAndTriggerAt(cmd.getTriggerId(), cmd.getTriggerAt());
-        if (entity == null) {
-            entity = new ExecutionEntity();
-            entity.setExecutionId(Cmd.send(new IDGenerateCmd(IDType.EXECUTION)).getId());
-            entity.setBucket(Math.floorMod(entity.getExecutionId().hashCode(), 64) + 1);
-            entity.setTriggerId(cmd.getTriggerId());
-            entity.setTriggerType(cmd.getTriggerType().value);
-            entity.setExecutableId(executable.id());
-            entity.setExecutableVersion(executable.version());
-            entity.setExecutableType(executable.type().value);
-            entity.setTriggerAt(cmd.getTriggerAt());
-            entity.setStatus(cmd.getTriggerType() == TriggerType.SCHEDULE
-                ? ExecutionStatus.PENDING.value : ExecutionStatus.INITED.value);
-            entity.setFireAttempt(0);
+        boolean created = entity == null;
+        if (created) {
+            String executionId = Cmd.send(new IDGenerateCmd(IDType.EXECUTION)).getId();
+            Instant deadlineAt = null;
             if (cmd.getTriggerType() == TriggerType.SCHEDULE) {
                 Schedule schedule = Query.query(new ScheduleByIdQuery(cmd.getTriggerId())).getSchedule();
                 Long maxStartDelayMillis = schedule == null ? null : schedule.getOption().getMaxStartDelayMillis();
                 if (maxStartDelayMillis != null) {
-                    entity.setDeadlineAt(cmd.getTriggerAt().plusNanos(maxStartDelayMillis * 1_000_000));
+                    deadlineAt = cmd.getTriggerAt().plusNanos(maxStartDelayMillis * 1_000_000);
                 }
             }
-            executionEntityRepo.saveAndFlush(entity);
+            String status = cmd.getTriggerType() == TriggerType.SCHEDULE
+                ? ExecutionStatus.PENDING.value : ExecutionStatus.INITED.value;
+            executionEntityRepo.insertExecutionIdentity(executionId,
+                cmd.getTriggerId(), cmd.getTriggerType().value,
+                executable.id(), executable.type().value, executable.version(),
+                status, cmd.getTriggerAt(), deadlineAt,
+                Math.floorMod(executionId.hashCode(), 64) + 1);
+            entity = executionEntityRepo.findByTriggerIdAndTriggerAt(cmd.getTriggerId(), cmd.getTriggerAt());
+            // 回查结果必然非空：本事务已写入或并发方已提交；并将身份归属判定为 CREATED/EXISTING
+            if (entity == null) {
+                throw new IllegalStateException("execution identity not found after upsert, triggerId:"
+                    + cmd.getTriggerId() + " triggerAt:" + cmd.getTriggerAt());
+            }
+            created = executionId.equals(entity.getExecutionId());
         }
         Execution execution = new Execution(
             entity.getExecutionId(), ExecutionStatus.parse(entity.getStatus()),
-            entity.getExecutableId(), entity.getExecutableVersion(), executable.type(), entity.getDeadlineAt()
+            entity.getExecutableId(), entity.getExecutableVersion(), executable.type(), entity.getDeadlineAt(),
+            entity.getTriggerAt()
         );
-        return new ExecutionCreateCmd.Response(execution);
+        return new ExecutionCreateCmd.Response(execution, created);
     }
 
     @Transactional

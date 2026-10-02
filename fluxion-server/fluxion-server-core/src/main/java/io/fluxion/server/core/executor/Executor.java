@@ -89,7 +89,8 @@ public class Executor implements Executable {
         Job job = new Job();
         job.setExecutionId(execution.getId());
         job.setType(JobType.EXECUTOR);
-        job.setTriggerAt(Instant.now());
+        // 单执行器的 Job 即首批 Job：继承 Execution 的原始计划触发时刻（见 CONTEXT.md「Job 时间语义」）
+        job.setTriggerAt(execution.getTriggerAt() == null ? Instant.now() : execution.getTriggerAt());
         // 激活截止时间仅约束首个 Job 启动：单执行器的 Job 即首批 Job，复制快照
         job.setDeadlineAt(execution.getDeadlineAt());
         // 保存数据

@@ -180,9 +180,10 @@ public class ExecutionScheduleCommandService {
         }
 
         // Job persistence and CLAIMED -> RUNNING are in this transaction.
+        // 首批 Job 继承 Execution 的原始计划触发时刻（见 CONTEXT.md「Job 时间语义」）
         executable.execute(new Execution(entity.getExecutionId(), ExecutionStatus.CLAIMED,
             entity.getExecutableId(), entity.getExecutableVersion(), ExecutableType.parse(entity.getExecutableType()),
-            entity.getDeadlineAt()));
+            entity.getDeadlineAt(), entity.getTriggerAt()));
         int updated = entityManager.createQuery("update ExecutionEntity set status = :running, startAt = :now, " +
                 "leaseOwner = null, leaseUntil = null, executionToken = null " +
                 "where executionId = :executionId and status = :claimed and leaseOwner = :brokerId " +

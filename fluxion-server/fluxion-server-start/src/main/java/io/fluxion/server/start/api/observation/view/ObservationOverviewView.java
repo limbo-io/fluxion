@@ -49,6 +49,16 @@ public class ObservationOverviewView {
     private long executionReclaimableClaims;
 
     /**
+     * 遗漏触发恢复：本 broker 自启动以来已恢复（含幂等确认）的遗漏点数；不携带 Schedule 标签
+     */
+    private long executionRecoveredPoints;
+
+    /**
+     * 遗漏触发恢复：本 broker 自启动以来明确丢弃（SKIP/激活 Deadline 已过）的遗漏点数
+     */
+    private long executionRecoveryDroppedPoints;
+
+    /**
      * Job 状态 -> 数量（key 见 CONTEXT.md「Job 状态」）
      */
     private Map<String, Long> jobs;
