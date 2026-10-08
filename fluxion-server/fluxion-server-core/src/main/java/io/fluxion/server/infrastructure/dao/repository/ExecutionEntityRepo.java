@@ -19,11 +19,13 @@ package io.fluxion.server.infrastructure.dao.repository;
 import io.fluxion.server.infrastructure.dao.entity.ExecutionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import javax.persistence.LockModeType;
 import java.time.Instant;
 
 /**
@@ -36,6 +38,13 @@ public interface ExecutionEntityRepo extends JpaRepository<ExecutionEntity, Stri
      * Execution 创建幂等：每个 (triggerId, triggerAt) 只允许一个实例
      */
     ExecutionEntity findByTriggerIdAndTriggerAt(String triggerId, Instant triggerAt);
+
+    /**
+     * 身份回查的加锁当前读：REPEATABLE READ 下普通 SELECT 走事务快照——先行者后提交的行
+     * 对后到者事务不可见，归属判定会误判为不存在；悲观锁读走 InnoDB 当前读，必取最新已提交行。
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    ExecutionEntity findWithLockingByTriggerIdAndTriggerAt(String triggerId, Instant triggerAt);
 
     /**
      * 以 (trigger_id, trigger_at) 身份唯一键为目标的数据库幂等写入：重复键时对已有行

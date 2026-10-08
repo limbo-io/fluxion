@@ -25,6 +25,7 @@ import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
+import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
@@ -59,21 +60,28 @@ public class TagEntity extends BaseEntity {
     @Embeddable
     public static class ID implements Serializable {
 
+        /** 列长度与生产 DDL（V20250101__init.sql uk_tag）对齐：hbm2ddl 默认 varchar(255)
+         * 会让复合主键达 4080 bytes，超过 MySQL utf8mb4 的 3072-byte 索引上限，
+         * create-drop 在真实 MySQL 上建表失败（Specified key was too long）。 */
+        @Column(length = 64)
         private String refId;
 
         /**
          * @see TagRefType
          */
+        @Column(length = 64)
         private String refType;
 
         /**
          * tag name
          */
+        @Column(length = 128)
         private String tagName;
 
         /**
          * tag value
          */
+        @Column(length = 255)
         private String tagValue;
     }
 }

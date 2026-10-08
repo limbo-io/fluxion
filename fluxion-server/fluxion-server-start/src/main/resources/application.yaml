@@ -13,12 +13,21 @@ spring:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/fluxion?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&serverTimezone=Asia/Shanghai
+    # useAffectedRows=true：锁的 INSERT ... ON DUPLICATE KEY UPDATE 依赖真实受影响行数
+    # 判定获取结果——Connector/J 默认 CLIENT_FOUND_ROWS 模式对“命中已有行但值未变”返回 1
+    # 而非 0，会使 tryAcquireLock 的判定恒真，互斥完全失效。
+    # serverTimezone=UTC + 会话强制 time_zone='+00:00'（统一时间模型，见 CONTEXT.md）：
+    # expire_at 等由 Hibernate jdbc.time_zone=UTC 按 UTC 日历落 DATETIME，而锁 SQL 的
+    # NOW(3) 按服务器会话时区求值——若会话非 UTC（如系统 Asia/Shanghai），锁过期会被
+    # 提前约 8 小时误判，互斥完全破坏。serverTimezone 只影响驱动解释，不改变会话时区，
+    # 因此必须由 connection-init-sql 在每个连接上显式固定。
+    url: jdbc:mysql://127.0.0.1:3306/fluxion?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&serverTimezone=UTC&useAffectedRows=true
     username: root
     password: 
     hikari:
       connection-test-query: SELECT 1
-      connection-init-sql: set names utf8mb4
+      # allowMultiQueries=true（见 url）：两条语句在一次初始化中执行
+      connection-init-sql: set names utf8mb4; set time_zone='+00:00'
   jpa:
     hibernate:
       ddl-auto: none

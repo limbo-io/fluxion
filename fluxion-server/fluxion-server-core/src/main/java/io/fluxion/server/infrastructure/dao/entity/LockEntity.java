@@ -27,6 +27,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 import java.time.Instant;
 
 /**
@@ -35,7 +36,8 @@ import java.time.Instant;
  */
 @Setter
 @Getter
-@Table(name = TableConstants.FLUXION_LOCK)
+@Table(name = TableConstants.FLUXION_LOCK,
+    uniqueConstraints = @UniqueConstraint(name = "uk_lock", columnNames = "name"))
 @Entity
 @DynamicInsert
 @DynamicUpdate

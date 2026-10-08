@@ -103,17 +103,22 @@ public class DatabaseDistributedLock implements DistributedLock {
     /**
      * 尝试获取锁，返回 Locked 句柄（包含 name 和 token）。
      * 使用 MySQL INSERT ... ON DUPLICATE KEY UPDATE 实现原子性条件获取。
+     *
+     * 死锁自愈：ON-DUP 命中已存在行时存在 dup-key-check(S)→UPDATE(X) 的锁升级瞬间，
+     * 与并发解锁的同行 DELETE 可形成等待环（InnoDB 官方记载的已知模式）。牺牲事务被
+     * 完整回滚，属于事务级瞬时错误——重放安全（谓词重新求值），失败一次后续由
+     * doTryLockWithWait 的退避循环收敛。
      */
     public Locked tryAcquireLock(String name, long expire) {
         String token = generateToken();
         Instant expireAt = Instant.now().plus(expire, ChronoUnit.MILLIS);
 
-        return transactionService.transactional(() -> {
+        return retryOnDeadlock(() -> transactionService.transactional(() -> {
             int affected = lockEntityRepo.tryAcquireLock(name, token, expireAt);
             if (affected > 0) {
                 // 原子操作成功：我们取得了锁（无论是新插入还是覆盖了过期记录）
                 if (log.isDebugEnabled()) {
-                    log.debug("[DistributedLock] acquired lock: name={}, owner={}, expireAt={}", 
+                    log.debug("[DistributedLock] acquired lock: name={}, owner={}, expireAt={}",
                         name, token, expireAt);
                 }
                 // 存储令牌到 ThreadLocal
@@ -121,7 +126,7 @@ public class DatabaseDistributedLock implements DistributedLock {
                 return new Locked(name, token);
             }
             return null;
-        });
+        }));
     }
 
     /**
@@ -206,13 +211,17 @@ public class DatabaseDistributedLock implements DistributedLock {
     /**
      * 使用令牌解锁，确保只能删除自己持有的锁。
      * 使用 WHERE name=? AND owner=? 确保原子性验证。
+     *
+     * 死锁自愈：解锁 DELETE 与并发锁获取（ON-DUP dup-check S→X 升级）存在毫秒级窗口的
+     * 等待环可能（InnoDB 会选 DELETE 事务作牺牲回滚）；unlock 发生在 lock() 的 finally 中，
+     * 异常上抛会掩盖业务异常/使调度任务失败，因此此处捕获死锁后重放一次（删除以 owner
+     * 匹配为准，重放幂等）。
      */
     private boolean unlockWithToken(String name, String token) {
         if (name == null || token == null) {
             return false;
         }
-        
-        return transactionService.transactional(() -> {
+         return retryOnDeadlock(() -> transactionService.transactional(() -> {
             int deleted = lockEntityRepo.deleteByNameAndOwner(name, token);
             if (deleted > 0) {
                 if (log.isDebugEnabled()) {
@@ -224,7 +233,37 @@ public class DatabaseDistributedLock implements DistributedLock {
                 log.warn("[DistributedLock] unlock failed - not owner or lock expired: name={}", name);
                 return false;
             }
-        });
+        }));
+    }
+
+    /**
+     * 死锁自愈重试：仅在异常链确为 InnoDB 死锁（SQLState 40001 / errorCode 1213）时重放一次，
+     * 其余异常立即上抛。死锁牺牲者已被数据库完整回滚，重放在新事务重新求值，语义安全
+     * （获取：谓词重新评估；释放：owner 匹配再删）；连续二次碰撞概率为单次窗口的平方量级，
+     * 若仍碰撞则上抛交由调用方语义处理（wait 循环退避重试 / finally 语义）。
+     */
+    private <T> T retryOnDeadlock(java.util.function.Supplier<T> work) {
+        try {
+            return work.get();
+        } catch (RuntimeException e) {
+            if (!isDeadlock(e)) {
+                throw e;
+            }
+            log.warn("[DistributedLock] deadlock victim, retrying once: {}", e.getMessage());
+            return work.get();
+        }
+    }
+
+    /** 判定异常链是否 InnoDB 死锁（SQLState 40001 / MySQL errorCode 1213）；防止极端自引用链 */
+    private static boolean isDeadlock(Throwable error) {
+        java.util.Set<Throwable> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        for (Throwable t = error; t != null && seen.add(t); t = t.getCause()) {
+            if (t instanceof java.sql.SQLException) {
+                java.sql.SQLException sqlEx = (java.sql.SQLException) t;
+                return "40001".equals(sqlEx.getSQLState()) || 1213 == sqlEx.getErrorCode();
+            }
+        }
+        return false;
     }
 
     /**

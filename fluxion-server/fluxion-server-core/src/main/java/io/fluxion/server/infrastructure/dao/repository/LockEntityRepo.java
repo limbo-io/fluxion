@@ -32,7 +32,16 @@ public interface LockEntityRepo extends JpaRepository<LockEntity, String> {
 
     LockEntity findByName(String name);
 
-    int deleteByNameAndOwner(String name, String owner);
+    /**
+     * 解锁删除：按 name+owner 双匹配删除持有的锁行。
+     * 刻意使用单语句 JPQL bulk delete（而非 Spring Data 衍生删除）：衍生删除走
+     * SELECT 载入实体→remove→flush 逐主键 delete 的多阶段路径，事务窗口更长且经
+     * JDBC batch 抛 BatchUpdateException，与并发的锁获取 ON-DUP 升级窗口更易碰撞；
+     * bulk delete 单语句直发，把锁窗口压到最短。
+     */
+    @Modifying
+    @Query("delete from LockEntity l where l.name = :name and l.owner = :owner")
+    int deleteByNameAndOwner(@Param("name") String name, @Param("owner") String owner);
 
     /**
      * 原子性条件更新或插入锁记录（MySQL 方言）。

@@ -9,12 +9,20 @@ spring:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${FLUXION_TEST_MYSQL_HOST:127.0.0.1}:${FLUXION_TEST_MYSQL_PORT:3306}/${FLUXION_TEST_MYSQL_DB:fluxion_test}?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&serverTimezone=Asia/Shanghai
+    # useAffectedRows=true 是锁语义的硬前提：Connector/J 默认 CLIENT_FOUND_ROWS 模式下
+    # ON DUPLICATE KEY UPDATE 命中已有行而值未变时返回 1（found row）而非 0，
+    # tryAcquireLock 的 affected>0 判定会恒真——互斥完全失效。开启后返回真实受影响行数。
+    # 会话时区强制 UTC（与 hibernate jdbc.time_zone 同口径）：锁 SQL 的 NOW(3) 按服务器
+    # 会话时区求值；serverTimezone 只影响驱动解释不改变会话，必须 connection-init-sql
+    # 显式固定，否则非 UTC 服务器（如系统 Asia/Shanghai）上锁过期会被提前约 8 小时误判。
+    # 本 profile 由 testMetadataVersionAndIsolation 断言 @@session.time_zone 与 NOW(3)=UTC。
+    url: jdbc:mysql://${FLUXION_TEST_MYSQL_HOST:127.0.0.1}:${FLUXION_TEST_MYSQL_PORT:3306}/${FLUXION_TEST_MYSQL_DB:fluxion_test}?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&serverTimezone=UTC&useAffectedRows=true
     username: ${FLUXION_TEST_MYSQL_USER:root}
     password: ${FLUXION_TEST_MYSQL_PASSWORD:}
     hikari:
       connection-test-query: SELECT 1
-      connection-init-sql: set names utf8mb4
+      # allowMultiQueries=true（见 url）：两条语句在一次初始化中执行
+      connection-init-sql: set names utf8mb4; set time_zone='+00:00'
   jpa:
     hibernate:
       # 测试库幂等重建：按实体注解建表（含 fluxion_lock），退出时 drop
@@ -28,3 +36,11 @@ spring:
           time_zone: UTC
         order_updates: true
         order_inserts: true
+
+# 测试不启动 broker/worker 生命周期（同 H2 profile）：本 profile 只验证
+# 数据库映射与锁/upsert 原语的方言行为，不需要远程通信存活
+fluxion:
+  broker:
+    enabled: false
+  worker:
+    enabled: false

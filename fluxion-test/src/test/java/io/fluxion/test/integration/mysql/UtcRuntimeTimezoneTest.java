@@ -73,7 +73,8 @@ class UtcRuntimeTimezoneTest extends AbstractMySqlIntegrationTest {
 
         Instant deadline = Instant.parse("2026-09-28T12:00:00.500Z");
 
-        seedJob("job-utc-sh", deadline);
+        seedJob("job-utc-sh", "node-utc-sh", deadline);
+        seedJob("job-utc-sh2", "node-utc-sh2", deadline.plusSeconds(3600));
 
         // 回读：绝对时刻逐位一致
         assertThat(jobEntityRepo.findById("job-utc-sh").orElseThrow().getDeadlineAt()).isEqualTo(deadline);
@@ -86,8 +87,6 @@ class UtcRuntimeTimezoneTest extends AbstractMySqlIntegrationTest {
         assertThat(expiredPast).isEqualTo(1);
 
         // 未来截止不命中
-        Instant futureDeadline = deadline.plusSeconds(3600);
-        seedJob("job-utc-sh2", futureDeadline);
         int expiredFuture = entityManager.createQuery(
                 "update JobEntity set status = :expired where jobId = :jobId and deadlineAt <= :now")
             .setParameter("expired", "expired").setParameter("jobId", "job-utc-sh2")
@@ -104,7 +103,7 @@ class UtcRuntimeTimezoneTest extends AbstractMySqlIntegrationTest {
         // 12:00:00.500Z：若误绑本机墙钟（纽约）会得 08:00；若上海墙钟则 20:00
         Instant deadline = Instant.parse("2026-09-28T12:00:00.500Z");
 
-        seedJob("job-utc-ny", deadline);
+        seedJob("job-utc-ny", "node-utc-ny", deadline);
 
         // 以 SQL CAST 直读存储字面量：必须等于 UTC 墙钟，证明 jdbc.time_zone=UTC 全权解释
         String literal = (String) entityManager.createNativeQuery(
@@ -116,13 +115,13 @@ class UtcRuntimeTimezoneTest extends AbstractMySqlIntegrationTest {
         assertThat(jobEntityRepo.findById("job-utc-ny").orElseThrow().getDeadlineAt()).isEqualTo(deadline);
     }
 
-    private void seedJob(String jobId, Instant deadlineAt) {
+    private void seedJob(String jobId, String refId, Instant deadlineAt) {
         JobEntity job = new JobEntity();
         job.setJobId(jobId);
         job.setExecutionId("execution-utc");
         job.setBucket(1);
         job.setJobType("executor");
-        job.setRefId("node-utc");
+        job.setRefId(refId);
         job.setStatus("inited");
         job.setTriggerAt(Instant.now());
         job.setDeadlineAt(deadlineAt);

@@ -27,6 +27,7 @@ import org.hibernate.annotations.DynamicUpdate;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 import java.time.Instant;
 
 /**
@@ -37,7 +38,11 @@ import java.time.Instant;
  */
 @Setter
 @Getter
-@Table(name = TableConstants.FLUXION_JOB)
+@Table(name = TableConstants.FLUXION_JOB,
+    // 与生产 DDL uk_job_execution 对齐：同一 Execution 内同一 ref 仅一个 Job
+    //（Workflow 节点创建幂等防御；jobId 是主键但不含此业务键，hbm2ddl 环境必须显式声明，
+    // 规则同 LockEntity.uk_lock/ExecutionEntity.uk_execution_trigger_at）
+    uniqueConstraints = @UniqueConstraint(name = "uk_job_execution", columnNames = {"executionId", "refId"}))
 @Entity
 @DynamicInsert
 @DynamicUpdate

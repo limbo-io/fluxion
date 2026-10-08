@@ -37,6 +37,14 @@
             <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- mysql-integration-test profile 的真实 MySQL 驱动：starter 不携带，
+             版本与生产（fluxion-server-start）保持一致 -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.28</version>
+            <scope>test</scope>
+        </dependency>
 
         <!-- test -->
         <dependency>
@@ -151,8 +159,11 @@
                                 <include>**/integration/mysql/**/*Test.java</include>
                             </includes>
                             <excludes combine.self="override">
-                                <!-- MySQL native atomic-upsert semantics cannot be represented by H2. -->
+                                <!-- MySQL 原生方言断言（upsert 幂等写入、ON DUPLICATE KEY 独占
+                                     锁语义）无法由 H2 表达，仅由真实 MySQL profile 承担；
+                                     其余业务/事务语义由 H2 门禁覆盖。 -->
                                 <exclude>**/integration/mysql/DistributedLockMySqlTest.java</exclude>
+                                <exclude>**/integration/mysql/ExecutionIdentityUpsertMySqlTest.java</exclude>
                             </excludes>
                             <failIfNoTests>true</failIfNoTests>
                         </configuration>
@@ -175,7 +186,12 @@
                         <configuration>
                             <includes>
                                 <include>**/integration/mysql/DistributedLockMySqlTest.java</include>
+                                <include>**/integration/mysql/ExecutionIdentityUpsertMySqlTest.java</include>
                             </includes>
+                            <!-- 必须 override：默认构建排除了 integration/mysql，
+                                 若不覆盖，profile 的 include 会被默认 exclude 全部吃掉。
+                                 （b0e5761 曾丢失此覆盖，profile 变成 0 发现测试的假门禁） -->
+                            <excludes combine.self="override"/>
                             <failIfNoTests>true</failIfNoTests>
                         </configuration>
                     </plugin>

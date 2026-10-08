@@ -27,7 +27,6 @@ import io.fluxion.server.core.execution.cmd.ExecutionRunningCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionScheduleFeedbackCmd;
 import io.fluxion.server.core.execution.cmd.ExecutionSuccessCmd;
 import io.fluxion.server.core.schedule.Schedule;
-import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
 import io.fluxion.server.core.schedule.cmd.ScheduleFeedbackCmd;
 import io.fluxion.server.core.schedule.query.ScheduleByIdQuery;
 import io.fluxion.server.core.trigger.TriggerType;
@@ -89,7 +88,10 @@ public class ExecutionCommandService {
                 executable.id(), executable.type().value, executable.version(),
                 status, cmd.getTriggerAt(), deadlineAt,
                 Math.floorMod(executionId.hashCode(), 64) + 1);
-            entity = executionEntityRepo.findByTriggerIdAndTriggerAt(cmd.getTriggerId(), cmd.getTriggerAt());
+            // 回查必须走加锁当前读：REPEATABLE READ 事务的普通快照读若在先行者提交前已
+            // 建立，将永远看不到对方行（快照出生早于提交）；悲观锁读取最新已提交行。
+            entity = executionEntityRepo.findWithLockingByTriggerIdAndTriggerAt(
+                cmd.getTriggerId(), cmd.getTriggerAt());
             // 回查结果必然非空：本事务已写入或并发方已提交；并将身份归属判定为 CREATED/EXISTING
             if (entity == null) {
                 throw new IllegalStateException("execution identity not found after upsert, triggerId:"
