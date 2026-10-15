@@ -35,9 +35,11 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.EventListener;
 import org.springframework.util.Assert;
 
 import javax.annotation.Resource;
@@ -90,7 +92,9 @@ public class FluxionServerAutoConfiguration {
     }
 
     /**
-     * Fluxion Broker 实现，在 Axon 启动后自动启动
+     * Fluxion Broker 实现，应用就绪后自动启动。
+     * 原 Axon 版由 AxonStartedEvent 驱动，Axon 移除后接线丢失，
+     * 修复以 Spring Boot 应用就绪事件等价触发。
      */
     private static class FluxionBroker extends Broker {
 
@@ -101,6 +105,7 @@ public class FluxionServerAutoConfiguration {
             ReflectionUtils.configure("io.fluxion");
         }
 
+        @EventListener(ApplicationReadyEvent.class)
         @Override
         public void start() {
             super.start();
