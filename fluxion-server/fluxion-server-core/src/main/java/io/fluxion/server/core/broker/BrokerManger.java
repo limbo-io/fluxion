@@ -171,7 +171,14 @@ public class BrokerManger {
             BrokerNode node = BrokerContext.broker().node();
             BrokerEntity entity = entity(node);
             try {
-                brokerEntityRepo.saveAndFlush(entity);
+                // 必须走显式条件更新：saveAndFlush(merge) 会把 detached 实体的
+                // createdAt=null 覆盖进更新集，使每次心跳 UPDATE 因 NOT NULL 失败
+                int updated = brokerEntityRepo.heartbeat(
+                    entity.getId(), entity.getLastHeartbeatAt(),
+                    entity.getBrokerLoad(), entity.getProtocol());
+                if (updated == 0) {
+                    brokerEntityRepo.saveAndFlush(entity);
+                }
                 if (log.isDebugEnabled()) {
                     log.debug("{} send heartbeat id: {} time:{}",
                         TASK_NAME, node.id(), entity.getLastHeartbeatAt()
