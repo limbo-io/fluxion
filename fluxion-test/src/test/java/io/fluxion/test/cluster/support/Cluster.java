@@ -62,26 +62,32 @@ public class Cluster implements AutoCloseable {
             this.db = new Db(mysql.jdbcUrl(), mysql.username(), mysql.password());
         } catch (Exception e) {
             // 构造器抛出后调用方拿不到实例，只能在此回收已创建资源；
-            // 否则就绪超时等初始化失败会泄漏整个 MySQL 容器
+            // 否则就绪超时等初始化失败会泄漏整个 MySQL 容器。
+            // 先构造将要抛出的异常，清理失败以 suppressed 附带：不掩盖原始错误，
+            // 也不静默吞掉容器可能残留的真相
+            IOException failure;
+            if (e instanceof SQLException sqlException) {
+                failure = new IOException("mysql db connect failed: " + sqlException.getMessage(), sqlException);
+            } else if (e instanceof IOException ioException) {
+                failure = ioException;
+            } else {
+                failure = new IOException("cluster init failed: " + e.getMessage(), e);
+            }
             if (events != null) {
                 try {
                     events.close();
-                } catch (Exception ignore) {
-                    // 回收失败不可掩盖原始初始化错误
+                } catch (Exception cleanupFailure) {
+                    failure.addSuppressed(cleanupFailure);
                 }
             }
             try {
                 mysql.remove();
-            } catch (Exception ignore) {
-                // 已在丢弃初始化路径，清理自身失败不可掩盖原始初始化错误
+            } catch (Exception cleanupFailure) {
+                failure.addSuppressed(cleanupFailure);
+                System.err.println("[cluster-e2e] mysql container may have leaked: "
+                    + runId + "-mysql: " + cleanupFailure.getMessage());
             }
-            if (e instanceof SQLException sqlException) {
-                throw new IOException("mysql db connect failed: " + sqlException.getMessage(), sqlException);
-            }
-            if (e instanceof IOException ioException) {
-                throw ioException;
-            }
-            throw new IOException("cluster init failed: " + e.getMessage(), e);
+            throw failure;
         }
         mark("mysql-ready");
     }
