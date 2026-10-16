@@ -100,7 +100,9 @@ public class WorkerContext {
         this.node = new BaseNode(protocol, host, port);
         this.executors = executors == null ? Collections.emptyMap() : executors.stream().collect(Collectors.toMap(Executor::name, executor -> executor));
         this.tags = tags == null ? Collections.emptyMap() : tags;
-        this.queueSize = queueSize;
+        // queueSize=0 为默认语义：表示“队列容量等于并发数”，统一在此归一化，
+        // 避免 availableQueueNum() 按默认 0 上报导致服务端过滤时拒收所有 worker
+        this.queueSize = queueSize <= 0 ? concurrency : queueSize;
         this.concurrency = concurrency;
         this.brokerClient = brokerClient;
         this.client = ClientFactory.create(protocol);
