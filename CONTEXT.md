@@ -29,7 +29,7 @@ _避免使用_：Execution、Task、派发记录
 _避免使用_：ScheduleInstance、Job、仅指实际运行记录
 
 **Execution 状态**：
-`PENDING` 表示已计划但尚未被 Broker 领取；`CLAIMED` 表示 Broker 持有短租约、正在创建 Job，尚未开始实际运行；`RUNNING` 表示 Job 已创建并开始其生命周期；`INITED` 表示非调度方式（手动、接口触发）创建的 Execution 的初始状态，等待首个 Job 启动后进入 `RUNNING`（调度类 Execution 一律经 `PENDING` 进入，不走该状态）；`INVALID` 表示未运行即作废：Trigger 配置发布作废既有 `PENDING` 实例、领取时发现 Trigger 已停用时作废 `CLAIMED` 实例，均为终态，不派发、不补偿。`SUCCEED`、`FAILED`、`SKIPPED`、`MISFIRED` 和 `EXPIRED` 为其余终态：`MISFIRED` 表示补偿创建 Job 已耗尽仍失败，`FAILED` 表示已创建 Job 后的执行或 Workflow 最终失败，`SKIPPED` 表示策略明确选择不执行，`EXPIRED` 表示激活截止时间已到而被 Broker 或 Worker 拒绝。状态定义与发生状态迁移的代码必须说明进入条件、租约归属、允许迁移及崩溃后的恢复动作。
+`PENDING` 表示已计划但尚未被 Broker 领取；`CLAIMED` 表示 Broker 持有短租约、正在创建 Job，尚未开始实际运行；`RUNNING` 表示 Job 已创建并开始其生命周期；`INITED` 表示非调度方式（手动、接口触发）创建的 Execution 的初始状态，等待首个 Job 启动后进入 `RUNNING`（调度类 Execution 一律经 `PENDING` 进入，不走该状态）；`INVALID` 表示未运行即作废：Trigger 配置发布作废尚未创建首个 Job 的 `PENDING`、`CLAIMED` 实例，首批启动校验发现 Trigger 已停用时作废 `CLAIMED` 实例，均为终态，不派发、不补偿。`SUCCEED`、`FAILED`、`SKIPPED`、`MISFIRED` 和 `EXPIRED` 为其余终态：`MISFIRED` 表示补偿创建 Job 已耗尽仍失败，`FAILED` 表示已创建 Job 后的执行或 Workflow 最终失败，`SKIPPED` 表示策略明确选择不执行，`EXPIRED` 表示激活截止时间已到而被 Broker 或 Worker 拒绝。状态定义与发生状态迁移的代码必须说明进入条件、租约归属、允许迁移及崩溃后的恢复动作。
 _避免使用_：把 `INITED` 当作已开始运行；把 `INVALID`、`EXPIRED` 混同于 `FAILED`
 
 **Job 状态**：
@@ -49,10 +49,10 @@ Workflow 配置必须恰好有一个 `START` 节点和一个 `END` 节点；所�
 Execution 创建时必须固化所属 Trigger 和 Executable 的版本。每个 Execution 始终使用创建时的版本。
 
 **Trigger 配置发布**：
-任意 Trigger 配置发布都会切换未来 Execution 的版本。既有 `PENDING` Execution 必须批量置为 `INVALID`，再按新配置生成未来实例；这既修正时间规则变更后的 `triggerAt`，也保证未执行实例不混用新旧 Workflow 或 Executor 配置。`CLAIMED` 和 `RUNNING` 的 Execution 不回滚，继续使用已固化的版本。
+任意 Trigger 配置发布都会切换未来 Execution 的版本。尚未创建首个 Job 的 `PENDING`、`CLAIMED` Execution 必须置为 `INVALID`，再按新配置生成未来实例；这既修正时间规则变更后的 `triggerAt`，也保证未激活实例不混用新旧 Workflow 或 Executor 配置。已创建首个 Job 的 Execution 不回滚，继续使用已固化的版本；发布与 Job 创建并发时同样以此为切点。
 
 **Trigger 启用校验**：
-Trigger 的启用和禁用操作不直接修改既有 Execution。Broker 在持有租约且创建 Job 前校验 Trigger 当前的 `isEnabled`；未启用时，使用租约令牌将该 Execution 条件更新为 `INVALID`，否则继续执行。已实际运行的 Execution 不因 Trigger 禁用而被强制中断。
+Trigger 的启用和禁用操作不直接修改既有 Execution。Broker 在持有租约且创建首批 Job 前校验 Trigger 当前的 `isEnabled`；未启用时，使用租约令牌将该 Execution 条件更新为 `INVALID`，否则继续执行。校验仅适用于启动首批 Job，已启动的 Workflow 后续节点及 Map/Reduce 后续阶段或子任务不再校验 Trigger 启用状态。已实际运行的 Execution 不因 Trigger 禁用而被强制中断。
 
 **创建 Job 的原子边界**：
 在租约令牌仍有效的条件下，`CLAIMED → RUNNING` 状态迁移、Execution 版本校验和 Job 持久化必须处于同一数据库事务。事务提交后才可派发 Worker；提交前失败不留下半创建的 Job，租约到期后可安全恢复。
@@ -131,3 +131,10 @@ _避免使用_：Job 重试策略
 **Retry Option（重试配置）**：
 Execution 已进入运行阶段后，针对失败 Job 执行重试的规则。
 _避免使用_：错过触发策略
+
+**广播完成判定模式**：
+广播默认采用关注执行成败模式；两种模式均要求所有目标任务执行完成，并收到对应 Worker 的执行结果，而非接受确认。关注执行成败模式要求全部成功，任一失败则整体失败；不关注执行成败模式在收齐全部执行完成结果后整体成功，即使全部目标均执行失败。没有可用 Worker 或持续缺少完成反馈时，遵循 Job 节点容错配置重试，耗尽后整体失败；投递完成、接受确认或结果缺失均不等同于广播执行完成。
+_避免使用_：部分成功即成功、将投递完成等同于业务执行成功
+
+**Map 子任务容错**：
+Map 子任务节点异常后的恢复遵循所属 Job 节点的容错配置，包括重试次数等，不另设独立于 Job 配置的恢复规则。测试依据该节点具体配置判断恢复范围、次数及最终结果。
