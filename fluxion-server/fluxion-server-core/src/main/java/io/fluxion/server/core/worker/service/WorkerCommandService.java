@@ -106,8 +106,21 @@ public class WorkerCommandService {
             .setParameter("workerId", cmd.getWorkerId())
             .executeUpdate();
 
-        WorkerMetricEntity metricEntity = WorkerConverter.toMetricEntity(cmd.getWorkerId(), cmd.getMetric());
-        workerMetricEntityRepo.saveAndFlush(metricEntity);
+        // 必须走显式条件更新：saveAndFlush(merge) 会把分配主键 detached 实体的
+        // createdAt=null 覆盖进更新集，使每次心跳 UPDATE 因 NOT NULL 失败（同 Broker 心跳）
+        WorkerMetric metric = cmd.getMetric();
+        int updated = workerMetricEntityRepo.heartbeat(
+            cmd.getWorkerId(),
+            metric.getCpuProcessors(),
+            metric.getCpuLoad(),
+            metric.getFreeMemory(),
+            metric.getAvailableQueueNum(),
+            metric.getLastHeartbeatAt(),
+            metric.getLastHeartbeatAt());
+        if (updated == 0) {
+            WorkerMetricEntity metricEntity = WorkerConverter.toMetricEntity(cmd.getWorkerId(), metric);
+            workerMetricEntityRepo.saveAndFlush(metricEntity);
+        }
     }
 
     @Transactional
