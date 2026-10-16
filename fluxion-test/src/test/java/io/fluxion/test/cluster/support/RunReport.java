@@ -121,8 +121,49 @@ public class RunReport {
             MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(manifest));
     }
 
-    /** results.json：与 HTML/JUnit 同源的数据。 */
+    /**
+     * results.json：与 HTML/JUnit 同源的数据，为权威结果，最后落盘。
+     *
+     * <p>派生产物（HTML/JUnit）先行写入并聚合失败；任一产物失败即运行级
+     * ERROR（PASS 状态升级），修正后的权威 JSON 仍要写出——磁盘报告不得与
+     * CI 结论冲突——之后再抛出产物异常，保证构建红。该失败路径下已写出的
+     * HTML/JUnit 可能保留 PASS 渲染，结论以 results.json 与构建出口为准。</p>
+     */
     public void writeResults(long endedAtMs, List<Map<String, Object>> nodeEvidence) throws IOException {
+        List<Throwable> artifactFailures = new ArrayList<>();
+        Map<String, Object> results = buildResults(endedAtMs, nodeEvidence);
+        try {
+            Files.writeString(runRoot.resolve("report.html"), html(results));
+        } catch (Throwable t) {
+            artifactFailures.add(t);
+        }
+        try {
+            Files.writeString(runRoot.resolve("junit.xml"), junit(results));
+        } catch (Throwable t) {
+            artifactFailures.add(t);
+        }
+        if (!artifactFailures.isEmpty()) {
+            if ("PASS".equals(status)) {
+                status = "ERROR";
+                failureStage = "report";
+            }
+            errorMessage = errorMessage.isEmpty()
+                ? "report artifacts: " + artifactFailures.get(0).getMessage()
+                : errorMessage + "; report artifacts: " + artifactFailures.get(0).getMessage();
+            results = buildResults(endedAtMs, nodeEvidence);
+        }
+        Files.writeString(runRoot.resolve("results.json"),
+            MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(results));
+        if (!artifactFailures.isEmpty()) {
+            IOException failure = new IOException("report artifacts failed: " + artifactFailures.get(0).getMessage());
+            for (Throwable t : artifactFailures) {
+                failure.addSuppressed(t);
+            }
+            throw failure;
+        }
+    }
+
+    private Map<String, Object> buildResults(long endedAtMs, List<Map<String, Object>> nodeEvidence) {
         Map<String, Object> results = new LinkedHashMap<>();
         results.put("runId", runId);
         results.put("status", status);
@@ -146,10 +187,7 @@ public class RunReport {
             "snapshots", relative(caseDir.resolve("snapshots"))));
         caseResult.put("nodes", nodeEvidence);
         results.put("cases", List.of(caseResult));
-        Files.writeString(runRoot.resolve("results.json"),
-            MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(results));
-        Files.writeString(runRoot.resolve("report.html"), html(results));
-        Files.writeString(runRoot.resolve("junit.xml"), junit(results));
+        return results;
     }
 
     private String relative(Path path) {

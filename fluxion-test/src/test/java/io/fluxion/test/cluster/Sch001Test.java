@@ -537,10 +537,11 @@ class Sch001Test {
         try {
             report.writeResults(System.currentTimeMillis(), nodes);
         } catch (Throwable t) {
+            // 权威 results 由 writeResults 自证；此处抛出均带原因与 suppressed，不再重新包装失真
             for (Throwable suppressed : runLevelErrors) {
                 t.addSuppressed(suppressed);
             }
-            throw new RuntimeException("cannot write results.json", t);
+            rethrow(t);
         }
     }
 
