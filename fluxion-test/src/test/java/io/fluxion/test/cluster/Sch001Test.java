@@ -174,7 +174,12 @@ class Sch001Test {
             };
             report.failureStage = stage;
             report.errorMessage = t.getMessage() == null ? String.valueOf(t) : t.getMessage();
-            finish(report, cluster);
+            // finish 自身失败（如 results 写不进去）作为附加错误保留，不掩盖原始失败
+            try {
+                finish(report, cluster);
+            } catch (Throwable second) {
+                t.addSuppressed(second);
+            }
             rethrow(t);
         }
 
@@ -186,6 +191,11 @@ class Sch001Test {
             report.errorMessage = String.join(", ", failed);
         }
         finish(report, cluster);
+        // 归档与清理已结束：非 PASS 必须让构建红，否则 CI 会假绿
+        if (!("PASS".equals(report.status))) {
+            throw new AssertionError("SCH-001 " + report.status + " at " + report.failureStage
+                + ": " + report.errorMessage);
+        }
     }
 
     private static final String BROKER_JAR_HINT =
@@ -487,10 +497,13 @@ class Sch001Test {
 
     // ---- 收尾 ----
 
-    /** 无论成败：先归档产物与节点证据，再清理；采集错误不掩盖原始失败。 */
+    /**
+     * 无论成败：先归档产物与节点证据，再清理资源；归档/清理失败升级为运行级 ERROR
+     * 且不掩盖原始场景失败；results.json 最后落盘，包含清理阶段的错误；
+     * results 写入失败则抛出（无法自证时必须让外部看到失败）。
+     */
     private void finish(RunReport report, Cluster cluster) {
-        Throwable primary = null;
-        long endedAt = System.currentTimeMillis();
+        List<Throwable> runLevelErrors = new ArrayList<>();
         List<Map<String, Object>> nodes = List.of();
         try {
             nodes = cluster == null ? List.of() : cluster.nodeEvidence();
@@ -498,27 +511,31 @@ class Sch001Test {
             report.writeAssertions();
             report.writeManifest(Map.of("nodes", nodes));
         } catch (Throwable t) {
-            primary = t;
-        }
-        try {
-            report.writeResults(endedAt, nodes);
-        } catch (Throwable t) {
-            if (primary == null) {
-                primary = t;
-            }
+            runLevelErrors.add(t);
         }
         if (cluster != null) {
             try {
                 cluster.close();
             } catch (Throwable t) {
-                if (primary == null) {
-                    primary = t;
-                }
+                runLevelErrors.add(t);
             }
         }
-        if (primary != null && "PASS".equals(report.status)) {
-            throw new RuntimeException("report/cleanup failed (case status stays " + report.status
-                + "): " + primary.getMessage(), primary);
+        if (!runLevelErrors.isEmpty()) {
+            String detail = "report/cleanup: " + runLevelErrors.get(0).getMessage();
+            report.errorMessage = report.errorMessage.isEmpty() ? detail : report.errorMessage + "; " + detail;
+            // 已有场景失败时只追加错误信息，保留其中 failureStage（不掩盖）
+            if ("PASS".equals(report.status)) {
+                report.status = "ERROR";
+                report.failureStage = "report";
+            }
+        }
+        try {
+            report.writeResults(System.currentTimeMillis(), nodes);
+        } catch (Throwable t) {
+            for (Throwable suppressed : runLevelErrors) {
+                t.addSuppressed(suppressed);
+            }
+            throw new RuntimeException("cannot write results.json", t);
         }
     }
 
