@@ -105,6 +105,8 @@
                     </includes>
                     <excludes>
                         <exclude>**/integration/mysql/**</exclude>
+                        <!-- 集群 E2E 需 Podman/节点进程/自带数据库，只由 -Pcluster-e2e 运行 -->
+                        <exclude>**/cluster/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -131,6 +133,8 @@
                             </includes>
                             <excludes>
                                 <exclude>**/integration/mysql/**</exclude>
+                                <!-- 集群 E2E 需完整集群环境，不属于常规回归 -->
+                                <exclude>**/cluster/**</exclude>
                             </excludes>
                         </configuration>
                     </plugin>
@@ -191,6 +195,33 @@
                             <!-- 必须 override：默认构建排除了 integration/mysql，
                                  若不覆盖，profile 的 include 会被默认 exclude 全部吃掉。
                                  （b0e5761 曾丢失此覆盖，profile 变成 0 发现测试的假门禁） -->
+                            <excludes combine.self="override"/>
+                            <failIfNoTests>true</failIfNoTests>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- 集群 E2E 回归（批次 1）：只运行真实集群场景。
+             Broker 可执行 jar 由 fluxion-server-start 的同名 profile 在 process-test-classes
+             生成（classifier cluster-e2e）；Worker 不打包，直接以 surefire 的
+             surefire.test.class.path（含 test-classes 与本次 reactor构建的模块 classes）
+             用 java -cp 启动，保证节点运行当前代码。 -->
+        <profile>
+            <id>cluster-e2e</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${maven-surefire-plugin.version}</version>
+                        <configuration>
+                            <includes>
+                                <include>**/cluster/**/*Test.java</include>
+                            </includes>
                             <excludes combine.self="override"/>
                             <failIfNoTests>true</failIfNoTests>
                         </configuration>

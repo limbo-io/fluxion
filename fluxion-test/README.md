@@ -2,6 +2,10 @@
 
 集中存放所有层级的测试代码。清单与目录均以仓库实况为准。
 
+## 集群端到端回归设计（待实现）
+
+真实 Server/Worker 集群、定时触发、进程故障恢复及按任务类型配置的回归设计已整理为 [总体方案](../docs/guides/CLUSTER_E2E_TESTING.md)、[完整用例目录](../docs/guides/CLUSTER_E2E_CASES.md) 和 [实现与验收约定](../docs/guides/CLUSTER_E2E_DELIVERY.md)。现有 Maven profiles 尚不提供该集群入口，不能将组件/H2 集成通过视为集群回归通过。
+
 ## 📁 模块结构
 
 ```
@@ -51,7 +55,6 @@ fluxion-test/src/test/java/io/fluxion/test/
 │       ├── ObservationOverviewMySqlTest.java        # 观测指标聚合
 │       ├── ScheduleOwnershipTest.java               # Bucket Owner 游标收敛
 │       ├── UtcRuntimeTimezoneTest.java              # 运行态 UTC 时间模型回归
-│       ├── WorkerOfflineMigrationTest.java         # Worker 下线 Job 级接管
 │       └── DistributedLockMySqlTest.java            # MySQL 原子锁（仅真实 MySQL）
 │
 └── JsonTest.java / ReflectionTest.java          # 库级工具回归
@@ -138,7 +141,8 @@ schema 定义见 `src/test/resources/migration/`（Flyway）。
 | Profile | 说明 |
 |---------|------|
 | `regression-test` | 运行所有 `*Test`/`*Tests`，排除 `**/integration/mysql/**` |
-| `h2-integration-test` | 只运行 `**/integration/mysql/**`，排除 `DistributedLockMySqlTest`（MySQL 原子 upsert 无法用 H2 表达） |
+| `h2-integration-test` | 只运行 `**/integration/mysql/**`，排除 `DistributedLockMySqlTest` 和 `ExecutionIdentityUpsertMySqlTest` |
+| `mysql-integration-test` | 仅运行上述两个真实 MySQL 原生语义测试，数据库不可用时失败 |
 
 ---
 

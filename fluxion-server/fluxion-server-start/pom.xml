@@ -80,6 +80,39 @@
                 <profiles.active>prod</profiles.active>
             </properties>
         </profile>
+
+        <!-- 集群 E2E 回归：生成可执行 Broker jar（classifier cluster-e2e，标准 package
+             阶段 repacakage，上游模块 jar 均已构建）。由集群测试以嵌套构建触发
+             （mvn package -DskipTests 后再跑场景）。 -Pcluster-e2e 会关闭
+             activeByDefault 的 dev，故内置 profiles.active=dev 保证资源过滤与 log4j2.xml。
+             classifier 隔离不改默认构建主工件。 -->
+        <profile>
+            <id>cluster-e2e</id>
+            <properties>
+                <profiles.active>dev</profiles.active>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <version>${spring.boot.version}</version>
+                        <executions>
+                            <execution>
+                                <id>cluster-e2e-repackage</id>
+                                <goals>
+                                    <goal>repackage</goal>
+                                </goals>
+                                <configuration>
+                                    <classifier>cluster-e2e</classifier>
+                                    <mainClass>io.fluxion.server.start.ServerApplication</mainClass>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
 
