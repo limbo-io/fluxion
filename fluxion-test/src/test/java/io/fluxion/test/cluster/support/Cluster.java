@@ -54,17 +54,34 @@ public class Cluster implements AutoCloseable {
     public Cluster(String runId, Path runDir) throws IOException {
         this.runId = runId;
         this.runDir = runDir;
-        Files.createDirectories(nodesDir());
         this.mysql = new MySqlContainer(runId + "-mysql", FreePort.next(), "fluxion-e2e");
-        this.mysql.start(nodesDir());
-        this.events = new EventReceiver(runId);
         try {
+            Files.createDirectories(nodesDir());
+            mysql.start(nodesDir());
+            this.events = new EventReceiver(runId);
             this.db = new Db(mysql.jdbcUrl(), mysql.username(), mysql.password());
-        } catch (SQLException e) {
-            // 保证已启动资源被回收
-            events.close();
-            mysql.remove();
-            throw new IOException("mysql db connect failed: " + e.getMessage(), e);
+        } catch (Exception e) {
+            // 构造器抛出后调用方拿不到实例，只能在此回收已创建资源；
+            // 否则就绪超时等初始化失败会泄漏整个 MySQL 容器
+            if (events != null) {
+                try {
+                    events.close();
+                } catch (Exception ignore) {
+                    // 回收失败不可掩盖原始初始化错误
+                }
+            }
+            try {
+                mysql.remove();
+            } catch (Exception ignore) {
+                // 已在丢弃初始化路径，清理自身失败不可掩盖原始初始化错误
+            }
+            if (e instanceof SQLException sqlException) {
+                throw new IOException("mysql db connect failed: " + sqlException.getMessage(), sqlException);
+            }
+            if (e instanceof IOException ioException) {
+                throw ioException;
+            }
+            throw new IOException("cluster init failed: " + e.getMessage(), e);
         }
         mark("mysql-ready");
     }
