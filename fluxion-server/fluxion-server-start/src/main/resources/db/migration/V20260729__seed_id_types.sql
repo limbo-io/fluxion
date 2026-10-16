@@ -18,9 +18,13 @@
 -- 将初始化从运行期注册前移到迁移，消除双 Broker 并发冷启动时
 -- findById-then-insert 撞 uk_id 唯一键的竞态；运行期注册逻辑保留，
 -- 作为未来新增 IDType 时的兜底。
+-- 幂等要求：旧版本库已由 registerIds 写入这些类型并推进过计数器，
+-- 无条件 INSERT 会撞 uk_id 唯一键阻断升级启动；而覆盖 current_id 会
+-- 造成 ID 重复分配。只补缺失类型，已有行原样保留。
 INSERT INTO `fluxion_id` (`type`, `current_id`, `step`)
 VALUES ('WORKFLOW', 10000, 100),
        ('TRIGGER', 10000, 100),
        ('EXECUTION', 10000, 100),
        ('JOB', 10000, 100),
-       ('APP', 10000, 100);
+       ('APP', 10000, 100)
+ON DUPLICATE KEY UPDATE `type` = `type`;
