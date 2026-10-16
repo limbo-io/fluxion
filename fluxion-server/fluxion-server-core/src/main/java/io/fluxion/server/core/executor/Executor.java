@@ -89,6 +89,10 @@ public class Executor implements Executable {
         Job job = new Job();
         job.setExecutionId(execution.getId());
         job.setType(JobType.EXECUTOR);
+        // ref_id=引用对象 ID（data-model.md）：单执行器的首批 Job 引用即 Executor 本身；
+        // 不可为空——fluxion_job.ref_id NOT NULL，且 (execution_id, ref_id) 幂等
+        // 唯一键依赖它识别重建，缺失时首批 Job 创建必败（Execution 全部 MISFIRED）
+        job.setRefId(id);
         // 单执行器的 Job 即首批 Job：继承 Execution 的原始计划触发时刻（见 CONTEXT.md「Job 时间语义」）
         job.setTriggerAt(execution.getTriggerAt() == null ? Instant.now() : execution.getTriggerAt());
         // 激活截止时间仅约束首个 Job 启动：单执行器的 Job 即首批 Job，复制快照
