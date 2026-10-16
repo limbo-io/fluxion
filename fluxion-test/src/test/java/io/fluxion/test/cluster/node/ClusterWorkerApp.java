@@ -16,24 +16,23 @@
 
 package io.fluxion.test.cluster.node;
 
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 
 /**
- * Worker 节点 Spring 上下文。
+ * Worker 节点 Spring 上下文源。
  *
- * <p>仅扫描本包（测试执行器）。WebApplicationType.NONE 使 server 端自动配置
- * （@ConditionalOnWebApplication）自动失效，双 starter 共存于测试 jarclasspath 时不启动 Broker。
- * Worker 本地任务仓储由 fluxion.worker.datasource.* 配置驱动（H2 按节点隔离），
- * 无需 Spring DataSource，排除相关自动配置避免误建连接池。</p>
+ * <p>刻意只带 {@code @Configuration}（无 @SpringBootApplication / @EnableAutoConfiguration）：
+ * 本类会被集成测试的 {@code @ComponentScan("io.fluxion")} 捕获，
+ * 若在此声明 autoconfigure exclude 会把 DataSource 排除项泄漏进那些上下文
+ *（实测 H2 集成套件 42 项全部因缺 entityManagerFactory 初始化失败），
+ * 声明 @EnableAutoConfiguration 同理不能出现在可被扫描的类上。
+ * 节点装配由 ClusterWorkerBootstrap 显式 sources 驱动：
+ * FluxionWorkerAutoConfiguration + 本类的 TestExecutor 扫描；
+ * 全程无任何自动配置，Worker 本地任务仓储由
+ * fluxion.worker.datasource.* 配置驱动（H2 按节点隔离）。</p>
  */
-@SpringBootApplication(
-    scanBasePackages = "io.fluxion.test.cluster.node",
-    exclude = {
-        DataSourceAutoConfiguration.class,
-        FlywayAutoConfiguration.class
-    }
-)
+@Configuration(proxyBeanMethods = false)
+@ComponentScan("io.fluxion.test.cluster.node")
 public class ClusterWorkerApp {
 }
