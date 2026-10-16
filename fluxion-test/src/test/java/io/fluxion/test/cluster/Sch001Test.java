@@ -120,6 +120,10 @@ class Sch001Test {
             report.record("trigger-version-assigned", "non-empty version",
                 "version=" + trigger.path("version").asText(),
                 !trigger.path("version").asText("").isBlank());
+            String expectedVersion = trigger.path("version").asText();
+            if (expectedVersion.isBlank()) {
+                throw new IllegalStateException("trigger has no published version after publish+enable");
+            }
             report.mark(stage);
 
             stage = "pre-generation";
@@ -164,7 +168,7 @@ class Sch001Test {
             report.mark(stage);
 
             stage = "assertions";
-            assertScenario(report, cluster, t1Ms, t2Ms, executions, jobs);
+            assertScenario(report, cluster, t1Ms, t2Ms, expectedVersion, executions, jobs);
             report.mark(stage);
         } catch (Throwable t) {
             report.status = switch (stage) {
@@ -390,19 +394,20 @@ class Sch001Test {
     // ---- 断言 ----
 
     private void assertScenario(RunReport report, Cluster cluster, long t1Ms, long t2Ms,
+                                String expectedVersion,
                                 List<Map<String, Object>> executions, List<Map<String, Object>> jobs) {
         Map<String, Object> t1Exec = singleTarget(report, executions, t1Ms, "t1");
         Map<String, Object> t2Exec = singleTarget(report, executions, t2Ms, "t2");
-        String publishVersion = String.valueOf(t1Exec.get("executable_version"));
 
         report.record("t1-execution-status", "SUCCEED", s(t1Exec.get("status")),
             "succeed".equalsIgnoreCase(s(t1Exec.get("status"))));
         report.record("t2-execution-status", "SUCCEED", s(t2Exec.get("status")),
             "succeed".equalsIgnoreCase(s(t2Exec.get("status"))));
-        report.record("t1-execution-version", publishVersion, s(t1Exec.get("executable_version")),
-            publishVersion.equals(s(t1Exec.get("executable_version"))));
-        report.record("t2-execution-version", publishVersion, s(t2Exec.get("executable_version")),
-            publishVersion.equals(s(t2Exec.get("executable_version"))));
+        // 期望版本来自发布产物（Trigger API 响应），不得从 Execution 自身取值自证
+        report.record("t1-execution-version", expectedVersion, s(t1Exec.get("executable_version")),
+            expectedVersion.equals(s(t1Exec.get("executable_version"))));
+        report.record("t2-execution-version", expectedVersion, s(t2Exec.get("executable_version")),
+            expectedVersion.equals(s(t2Exec.get("executable_version"))));
 
         Map<String, List<Map<String, Object>>> jobsByExecution = new LinkedHashMap<>();
         for (Map<String, Object> job : jobs) {
