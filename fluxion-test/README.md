@@ -2,9 +2,11 @@
 
 集中存放所有层级的测试代码。清单与目录均以仓库实况为准。
 
-## 集群端到端回归设计（待实现）
+## 集群端到端回归（已实现 SCH-001）
 
-真实 Server/Worker 集群、定时触发、进程故障恢复及按任务类型配置的回归设计已整理为 [总体方案](../docs/guides/CLUSTER_E2E_TESTING.md)、[完整用例目录](../docs/guides/CLUSTER_E2E_CASES.md) 和 [实现与验收约定](../docs/guides/CLUSTER_E2E_DELIVERY.md)。现有 Maven profiles 尚不提供该集群入口，不能将组件/H2 集成通过视为集群回归通过。
+运行命令、环境要求、产物路径和失败排查见 [测试指南：真实集群回归](../docs/guides/TESTING_GUIDE.md#真实集群回归cluster-e2e)。当前入口自动启动 Podman MySQL、2 Broker、2 Worker，执行 SCH-001 的两次真实定时触发并清理资源。
+
+后续故障恢复场景及串行/并行模式仍待实现。完整范围见 [总体方案](../docs/guides/CLUSTER_E2E_TESTING.md)、[用例目录](../docs/guides/CLUSTER_E2E_CASES.md) 和 [实现与验收约定](../docs/guides/CLUSTER_E2E_DELIVERY.md)，不能把 SCH-001 通过当成全部场景通过。
 
 ## 📁 模块结构
 

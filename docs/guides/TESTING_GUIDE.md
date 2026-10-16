@@ -6,7 +6,7 @@
 
 ## 集群端到端回归设计
 
-针对真实定时触发、独立 Broker/Worker、节点强制退出与恢复的测试设计，见 [总体方案](CLUSTER_E2E_TESTING.md)、[完整用例目录](CLUSTER_E2E_CASES.md) 和 [实现与验收约定](CLUSTER_E2E_DELIVERY.md)。设计使用 Podman MySQL、JUnit 场景选择、串行/并行隔离及 HTML/JSON/JUnit 报告；尚未实现，本文现有 profile 不代表已运行这些集群场景。
+当前已实现 SCH-001 的真实集群运行入口和基础报告，运行方式见下文。节点故障恢复、其余业务场景、场景组选择和并行模式仍待实现。完整设计见 [总体方案](CLUSTER_E2E_TESTING.md)、[用例目录](CLUSTER_E2E_CASES.md) 和 [实现与验收约定](CLUSTER_E2E_DELIVERY.md)。
 
 ## 快速开始
 
@@ -16,13 +16,16 @@ mvn test -pl fluxion-test -am -Pregression-test
 
 # 2. 集成回归（只跑 integration/mysql 包；H2 MySQL 兼容模式）
 mvn test -pl fluxion-test -am -Ph2-integration-test
+
+# 3. 真实集群回归（需运行中的 Podman；当前仅 SCH-001）
+mvn test -pl fluxion-test -am -Pcluster-e2e
 ```
 
 > 注意：JDK 要求 21（`.mvn` 与 pom 的 release 配置）。本地若只有 JDK 17，测试不会执行。
 
 ## 回归测试（regression-test）
 
-跑 `**/*Test.java` / `**/*Tests.java`，**排除** `**/integration/mysql/**`。使用 `-am` 确保测试运行的是本次构建出的 server/worker 模块，而不是本地 Maven 仓库的旧依赖。
+跑 `**/*Test.java` / `**/*Tests.java`，**排除** `**/integration/mysql/**` 和 `**/cluster/**`。使用 `-am` 确保测试运行的是本次构建出的 server/worker 模块，而不是本地 Maven 仓库的旧依赖。
 
 ```bash
 mvn test -pl fluxion-test -am -Pregression-test
@@ -52,15 +55,65 @@ mvn test -pl fluxion-test -am -Pmysql-integration-test
 
 连接配置见 `fluxion-test/src/test/resources/application-test-real-mysql.yml`（`FLUXION_TEST_MYSQL_*` 环境变量可覆盖 host/port/db/user/password）。MySQL 不可用时该 profile 直接失败，不静默跳过。
 
+## 真实集群回归（cluster-e2e）
+
+从仓库根目录执行。准备 JDK 21、PATH 中可用的 `mvn` 和 `podman`，并确认 Podman machine 已启动；首次运行需要拉取 `docker.io/library/mysql:8.4` 镜像。
+
+```bash
+# 检查运行时；若 machine 未启动，先执行 podman machine start
+java -version
+mvn -version
+podman info
+
+# 独立启动并验证真实集群
+mvn test -pl fluxion-test -am -Pcluster-e2e
+```
+
+该入口会嵌套构建当前代码的 Broker 可执行 jar，自动启动专用 MySQL、2 个 Broker 与 2 个 Worker，再通过 API 创建、发布、启用 FIXED_RATE + STANDALONE 任务。SCH-001 选择两个连续计划触发点，检查 Job 派发、Worker 业务事件、结果上报、配置版本和终态，最后禁用任务并清理资源。
+
+不需要手动启动节点、创建任务或配置外部数据库。默认参数下包含真实扫描等待，通常需要数分钟；预生成等待预算为 20 分钟，不能用组件测试的耗时估计它。当前只实现 `Sch001Test`，这条命令尚不验证节点强制退出或恢复。暂未提供按场景 ID/组筛选、快速参数和并行运行入口，不要自行套用设计中的选项。
+
+嵌套构建会对 Broker 及其上游模块执行 `clean package -DskipTests`，同一工作目录不要同时进行另一次构建或集群测试。不同 profile 分别运行，不将多套 profile 合并为一次命令。
+
+### 结果与产物
+
+每次运行写入独立目录，相对于仓库根目录：
+
+```text
+fluxion-test/target/cluster-e2e/<run-id>/
+  results.json                    # 权威结果：状态、失败阶段、断言及错误
+  report.html                     # 离线明细及产物链接
+  junit.xml                       # 该次运行的 JUnit 派生报告
+  manifest.json                   # 代码版本、dirty 标记、节点身份
+  nodes/                          # 节点日志和 Worker 本地存储
+  cases/SCH-001/default/
+    events.jsonl                  # 实际业务开始/完成事件
+    assertions.json               # 每项预期、实际值和结论
+    snapshots/                    # 本次已采集的数据库快照
+```
+
+以终局验证的 run-id `20261016T102619Z-SCH-001` 为例，可直接打开该目录的 `report.html`。通过要求同时满足 Maven 成功退出、`results.json.status=PASS` 且无失败断言；当前样板正常运行有 38 项断言。Maven 自身的测试结果另见 `fluxion-test/target/surefire-reports/`。
+
+HTML/JUnit 写入失败时，已写出的派生报告可能保留之前状态；`results.json` 会记录最终运行级错误，构建返回失败。CI 不可仅根据派生 `junit.xml` 的失败计数放行；若权威 JSON 缺失，也不能视为成功。
+
+### 失败排查与当前边界
+
+1. 先读 `results.json` 的 `status`、`failureStage`、`errorMessage` 和失败断言，区分环境、触发、业务或报告错误。
+2. 查对应节点日志及 `events.jsonl`；已采集的快照在 `snapshots/`。失败发生得较早时可能尚未生成终态快照，不把文件缺失当成空数据库证据。
+3. 初始化清理失败时，Maven 异常包含 suppressed；控制台会输出 `mysql container may have leaked` 及容器名。用 `podman ps -a` 核对，仅清理该次运行资源。
+
+产物保留在 target 下，再次 `mvn clean` 前应复制需要跟进的运行目录。当前 Worker 按顺序注册，规避了已知的并发注册死锁；SCH-001 通过不代表该问题已修复。运行期故障的线程栈及更完整快照采集属于后续批次。
+
 ## 可用 Maven Profiles
 
 仓库仅存在以下测试 profile（见 `fluxion-test/pom.xml`）：
 
 | Profile | 命令 | 说明 |
 |---------|------|------|
-| `regression-test` | `mvn test -pl fluxion-test -am -Pregression-test` | 跑所有测试，排除 `integration/mysql` 包 |
+| `regression-test` | `mvn test -pl fluxion-test -am -Pregression-test` | 跑组件等测试，排除 `integration/mysql` 和 `cluster` 包 |
 | `h2-integration-test` | `mvn test -pl fluxion-test -am -Ph2-integration-test` | 只跑 `integration/mysql` 包（H2 MySQL 兼容模式），排除锁及身份 upsert 两个原生 MySQL 类 |
 | `mysql-integration-test` | `mvn test -pl fluxion-test -am -Pmysql-integration-test` | 运行 `DistributedLockMySqlTest`、`ExecutionIdentityUpsertMySqlTest`，需要真实 MySQL |
+| `cluster-e2e` | `mvn test -pl fluxion-test -am -Pcluster-e2e` | 自动启动真实集群，当前仅运行 `Sch001Test`；需要 Podman |
 
 ## 真实测试清单
 

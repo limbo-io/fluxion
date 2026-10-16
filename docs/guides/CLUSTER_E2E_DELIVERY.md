@@ -1,6 +1,6 @@
 # 集群回归的实现与验收约定
 
-状态：设计文档，尚未实现。与 [总体方案](CLUSTER_E2E_TESTING.md)、[完整用例目录](CLUSTER_E2E_CASES.md) 配套阅读。本文说明测试工具需要交付什么、怎样判定测试本身可靠，以及已知能力缺口，不承诺现有 Maven 已提供这些入口。
+状态：完整设计，批次 1 已实现，后续批次待实施。与 [总体方案](CLUSTER_E2E_TESTING.md)、[完整用例目录](CLUSTER_E2E_CASES.md) 配套阅读。本文说明完整交付目标；当前 Maven 已提供 SCH-001 集群入口，实际命令、产物及派生报告偏差见 [测试指南](TESTING_GUIDE.md#真实集群回归cluster-e2e)，不能将全文目标当作现有功能。
 
 ## 运行入口与场景选择
 
@@ -135,7 +135,7 @@ HTML 需总览计数、模式/版本/配置、场景明细、预期和实际差�
 | G6 | WorkflowCommandService.publish 保存 Workflow 版本，未看到它在该方法内级联更新所有引用 Trigger | VER-004。用真实 Trigger 发布步骤显式切换引用，验证在途旧快照；不把 Workflow 单独发布自动更新全部 Trigger 当成既有承诺 |
 | G7 | 部分扫描和租约/Misfire 周期硬编码，Worker liveness 有真实配置；ScheduleLeaseProperties 的存在不能证明当前 Execution 使用它 | 全部快速模式和 BND-006～008。逐项核对生效路径，补测试装配或保留默认耗时，测量后固定预算；默认模式不替换机制 |
 | G8 | API 查询未必暴露 Job/租约；Worker Task 使用本地仓储；业务 Context 不提供完整场景元数据 | 所有过程断言。最小测试事件、暂停点及只读快照方案接入并验证事务位置，禁止把最后状态当成全部过程证据 |
-| G9 | 现有测试 profile 只有组件、H2 和少量 MySQL 集成；集群编排、选择、并行隔离与报表尚未实现。Podman machine 已确认可用，完整集群容量未测 | TOOL 全组及运行入口。完成真实启动、默认/快速参数、场景选择、隔离、诊断和报告自检；镜像版本和并发默认值在实测后明确 |
+| G9 | 已提供 cluster-e2e profile，真实 2 Broker/2 Worker/Podman MySQL、SCH-001 和基础报告已验证；场景组选择、并行、快速参数及完整自检仍未实现 | TOOL 全组及其余运行能力。已有样板通过不代表完整设施验收；补齐选择、并行隔离、诊断和报告自检，并实测容量 |
 
 代码定位：
 
