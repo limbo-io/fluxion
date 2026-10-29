@@ -143,12 +143,12 @@ curl -X POST http://localhost:9786/api/v1/observation/overview
 | `fluxion-remote` | Broker/Worker 通信协议（remote-core + vertx/netty 实现） |
 | `fluxion-server` | Broker 端：调度、执行、状态机、容错（core + spring-boot-starter + start） |
 | `fluxion-worker` | Worker 端：JobTracker、执行器框架（core + spring-boot-starter + demo） |
-| `fluxion-test` | 全层级测试（组件回归 + MySQL 语义集成） |
+| `fluxion-test` | 全层级测试（单元测试 + 数据库集成 + 集群场景） |
 
 ## 开发与测试
 
 ```bash
-# 组件回归（H2，排除 integration/mysql 包）
+# 单元测试（无需 Spring、数据库或 Podman）
 mvn test -pl fluxion-test -am -Pregression-test
 
 # MySQL 语义集成回归（H2 MySQL 兼容模式）

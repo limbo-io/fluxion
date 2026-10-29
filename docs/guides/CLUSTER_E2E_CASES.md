@@ -214,4 +214,4 @@ V1/V2 均为 Server 配置快照，测试用不同执行器名称或节点关系
 | ENA | ENA-001～004 |
 | 测试工具自检 | TOOL-001～005 |
 
-SCH-001 已实现，对应 `io.fluxion.test.cluster.Sch001Test#sch001_fixed_rate_trigger_twice`；终局 run `20261016T102619Z-SCH-001` 为 38/38 PASS。其余用例仍为“已定义，未实现/未执行”。运行方式见 [测试指南](TESTING_GUIDE.md#真实集群回归cluster-e2e)。具体配置缺口集中在能力缺口表；后续实现将用例编号映射到 JUnit 方法和变体，报告按选中的全部具体用例逐项列出。
+SCH-001 已实现，对应 `io.fluxion.test.integration.cluster.Sch001Test#sch001_fixed_rate_trigger_twice`；终局 run `20261016T102619Z-SCH-001` 为 38/38 PASS。WRK-001 新增 `io.fluxion.test.integration.cluster.Wrk001Test#wrk001_worker_exit_recovers_same_job` 本地链路，覆盖真实触发、阻塞、Worker 强退、失联检测与重试收敛；2026-10-28 实跑 `20261028T135922Z-WRK-001`：9/9 断言通过，Worker-2 强退后约 10.15 秒由 Worker-1 恢复，同一 jobId 的 dispatch attempt 从 1 增至 2、retryTimes=1，Job/Execution 均成功，资源清理完成。该恢复耗时仅为本次运行证据，不是性能承诺。双 Broker 恢复竞争的细粒度过程证明尚未覆盖，不能据此宣称完整故障矩阵通过。其余用例仍为“已定义，未实现/未执行”。运行方式见 [测试指南](TESTING_GUIDE.md#真实集群回归cluster-e2e)。具体配置缺口集中在能力缺口表；后续实现将用例编号映射到 JUnit 方法和变体，报告按选中的全部具体用例逐项列出。

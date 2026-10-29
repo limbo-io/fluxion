@@ -100,11 +100,11 @@
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
                     <includes>
-                        <include>**/*Test.java</include>
-                        <include>**/*Tests.java</include>
+                        <include>**/unit/**/*Test.java</include>
+                        <include>**/unit/**/*Tests.java</include>
                     </includes>
                     <excludes>
-                        <exclude>**/integration/mysql/**</exclude>
+                        <exclude>**/integration/database/**</exclude>
                         <!-- 集群 E2E 需 Podman/节点进程/自带数据库，只由 -Pcluster-e2e 运行 -->
                         <exclude>**/cluster/**</exclude>
                     </excludes>
@@ -128,11 +128,11 @@
                         <version>${maven-surefire-plugin.version}</version>
                         <configuration>
                             <includes>
-                                <include>**/*Test.java</include>
-                                <include>**/*Tests.java</include>
+                                <include>**/unit/**/*Test.java</include>
+                                <include>**/unit/**/*Tests.java</include>
                             </includes>
                             <excludes>
-                                <exclude>**/integration/mysql/**</exclude>
+                                <exclude>**/integration/database/**</exclude>
                                 <!-- 集群 E2E 需完整集群环境，不属于常规回归 -->
                                 <exclude>**/cluster/**</exclude>
                             </excludes>
@@ -150,7 +150,7 @@
             </activation>
             <properties>
                 <!-- Skip regular tests, run only integration tests. -->
-                <test.includes>**/mysql/*Test.java</test.includes>
+                <test.includes>**/database/*Test.java</test.includes>
             </properties>
             <build>
                 <plugins>
@@ -160,14 +160,14 @@
                         <version>${maven-surefire-plugin.version}</version>
                         <configuration>
                             <includes>
-                                <include>**/integration/mysql/**/*Test.java</include>
+                                <include>**/integration/database/**/*Test.java</include>
                             </includes>
                             <excludes combine.self="override">
                                 <!-- MySQL 原生方言断言（upsert 幂等写入、ON DUPLICATE KEY 独占
                                      锁语义）无法由 H2 表达，仅由真实 MySQL profile 承担；
                                      其余业务/事务语义由 H2 门禁覆盖。 -->
-                                <exclude>**/integration/mysql/DistributedLockMySqlTest.java</exclude>
-                                <exclude>**/integration/mysql/ExecutionIdentityUpsertMySqlTest.java</exclude>
+                                <exclude>**/integration/database/DistributedLockMySqlTest.java</exclude>
+                                <exclude>**/integration/database/ExecutionIdentityUpsertMySqlTest.java</exclude>
                             </excludes>
                             <failIfNoTests>true</failIfNoTests>
                         </configuration>
@@ -189,10 +189,10 @@
                         <version>${maven-surefire-plugin.version}</version>
                         <configuration>
                             <includes>
-                                <include>**/integration/mysql/DistributedLockMySqlTest.java</include>
-                                <include>**/integration/mysql/ExecutionIdentityUpsertMySqlTest.java</include>
+                                <include>**/integration/database/DistributedLockMySqlTest.java</include>
+                                <include>**/integration/database/ExecutionIdentityUpsertMySqlTest.java</include>
                             </includes>
-                            <!-- 必须 override：默认构建排除了 integration/mysql，
+                            <!-- 必须 override：默认构建排除了 integration/database，
                                  若不覆盖，profile 的 include 会被默认 exclude 全部吃掉。
                                  （b0e5761 曾丢失此覆盖，profile 变成 0 发现测试的假门禁） -->
                             <excludes combine.self="override"/>

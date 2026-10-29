@@ -1,5 +1,5 @@
 # 真实 MySQL 集成测试 profile（-Pmysql-integration-test）
-# 目标类：integration/mysql/DistributedLockMySqlTest（MySQL 原生 ON DUPLICATE KEY 语义，H2 无法表达）
+# 目标类：integration/database/DistributedLockMySqlTest（MySQL 原生 ON DUPLICATE KEY 语义，H2 无法表达）
 # 连接信息可用环境变量覆盖：
 #   FLUXION_TEST_MYSQL_HOST / FLUXION_TEST_MYSQL_PORT / FLUXION_TEST_MYSQL_DB
 #   FLUXION_TEST_MYSQL_USER / FLUXION_TEST_MYSQL_PASSWORD

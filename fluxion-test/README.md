@@ -1,167 +1,47 @@
 # Fluxion Test Module
 
-集中存放所有层级的测试代码。清单与目录均以仓库实况为准。
+测试分类、完整清单、运行前提和新增测试规范以 [测试指南](../docs/guides/TESTING_GUIDE.md) 为准。
 
-## 集群端到端回归（已实现 SCH-001）
+## 固定目录
 
-运行命令、环境要求、产物路径和失败排查见 [测试指南：真实集群回归](../docs/guides/TESTING_GUIDE.md#真实集群回归cluster-e2e)。当前入口自动启动 Podman MySQL、2 Broker、2 Worker，执行 SCH-001 的两次真实定时触发并清理资源。
-
-后续故障恢复场景及串行/并行模式仍待实现。完整范围见 [总体方案](../docs/guides/CLUSTER_E2E_TESTING.md)、[用例目录](../docs/guides/CLUSTER_E2E_CASES.md) 和 [实现与验收约定](../docs/guides/CLUSTER_E2E_DELIVERY.md)，不能把 SCH-001 通过当成全部场景通过。
-
-## 📁 模块结构
-
-```
-fluxion-test/src/test/java/io/fluxion/test/
-│
-├── support/                          # 测试基础设施
-│   ├── base/
-│   │   └── TestApplication.java      #   core 组件测试 Spring 入口
-│   └── environment/
-│       └── LocalDistributedLock.java #   本地锁（替代数据库分布式锁）
-│
-├── core/                             # 组件回归（regression-test）
-│   ├── broker/
-│   │   └── BrokerLifecycleTest.java
-│   ├── executor/
-│   │   └── ExecutorExecutionTest.java
-│   ├── job/
-│   │   └── JobRetryCommandServiceTest.java
-│   ├── json/
-│   │   └── TimeWireProtocolTest.java               # 时间协议跨时区回归
-│   ├── lock/
-│   │   └── DatabaseDistributedLockDeadlockRetryTest.java  # 锁死锁自愈契约
-│   ├── schedule/
-│   │   ├── ScheduleRecoveryOptionTest.java       # recoveryEnabled 配置边界
-│   │   ├── DelayedTaskSchedulerTest.java
-│   │   └── PeriodicTaskSchedulerTest.java
-│   ├── workflow/
-│   │   ├── FirstBatchJobTriggerAtTest.java        # 首批 Job triggerAt 透传
-│   │   └── WorkflowConfigValidationTest.java
-│   └── worker/
-│       ├── WorkerCpuLoadSelectionTest.java
-│       ├── WorkerDispatchDeadlineTest.java
-│       └── WorkerLoadBalancingTest.java
-│
-├── integration/                      # MySQL 语义集成测试
-│   └── mysql/
-│       ├── MySqlTestApplication.java                # Spring 入口（真实 MySQL 专用锁/驱动 Bean）
-│       ├── AbstractMySqlIntegrationTest.java          # 空 abstract 基类（类型标记）
-│       ├── ExecutionIdentityConstraintTest.java     # (triggerId,triggerAt) 唯一约束（h2）
-│       ├── ExecutionIdentityUpsertMySqlTest.java    # 身份 upsert 谓词/行数/并发竞争（仅真实 MySQL）
-│       ├── FixedDelayScheduleFeedbackTest.java      # FIXED_DELAY 反馈推进
-│       ├── JobDeadlineExpireTest.java               # Job 激活截止超时
-│       ├── JobFaultStatePersistenceTest.java        # Job 容错字段持久化
-│       ├── JobLeaseServiceTest.java                 # Job 租约/fencing/RETRY_WAIT
-│       ├── MissedTriggerRecoveryTest.java           # 有界遗漏触发恢复（R1–R13）
-│       ├── MultiBrokerClaimConcurrencyTest.java    # 多 Broker 领取并发/幂等
-│       ├── ObservationOverviewMySqlTest.java        # 观测指标聚合
-│       ├── ScheduleOwnershipTest.java               # Bucket Owner 游标收敛
-│       ├── UtcRuntimeTimezoneTest.java              # 运行态 UTC 时间模型回归
-│       └── DistributedLockMySqlTest.java            # MySQL 原子锁（仅真实 MySQL）
-│
-└── JsonTest.java / ReflectionTest.java          # 库级工具回归
+```text
+src/test/java/
+├── io/fluxion/test/
+│   ├── unit/<业务模块>/          # 不启动 Spring、真实数据库或节点进程
+│   ├── integration/
+│   │   ├── database/             # Spring/数据库/事务/并发语义
+│   │   └── cluster/              # SCH-001、WRK-001 等真实集群场景
+│   │       ├── support/          # 集群生命周期、报告、事件等工具
+│   │       └── node/             # 测试 Worker 启动器与执行器
+│   └── support/                 # 共用测试装配
+└── io/fluxion/server/core/execution/service/
+    └── ExecutionScheduleClaimBridge.java  # 必须同生产类包名的测试访问桥
 ```
 
-> 历史空目录 `core/execution`、`core/faulttolerance/{failover,retry,store,timeout}`、`core/job/fault` 下没有任何测试文件。
+新增测试按实际依赖归类；目录与 Java package 一致。协议测试按是否启动服务放入上述类别；冒烟、回归、故障恢复属于运行集合或场景属性，不另建顶层目录，不复制用例。
 
----
+## 执行入口
 
-## 🧪 测试分层
-
-| 层级 | 目录 | 特点 | 执行 profile |
-|------|------|------|------------|
-| **组件回归** | `core/` | H2、Spring 上下文 | `regression-test` |
-| **MySQL 语义集成（H2 门禁）** | `integration/mysql/` | H2 MySQL 兼容模式；业务/事务语义 | `h2-integration-test`（排除 `DistributedLockMySqlTest`、`ExecutionIdentityUpsertMySqlTest`） |
-| **真实 MySQL 集成** | `integration/mysql/` | 真实 InnoDB/驱动方言（upsert 锁、身份毫等写入、会话时区） | `mysql-integration-test` |
-
----
-
-## 🚀 如何运行
+从仓库根目录运行，要求 JDK 21。一次只选择一个 profile。
 
 ```bash
-# 回归测试（排除 integration/mysql 包）
+# 默认与 regression-test 都只运行单元测试
+mvn test -pl fluxion-test -am
 mvn test -pl fluxion-test -am -Pregression-test
 
-# 集成回归（integration/mysql 业务/事务语义，H2）
+# H2 数据库集成测试，无需外部数据库
 mvn test -pl fluxion-test -am -Ph2-integration-test
 
-# 真实 MySQL 集成（锁/身份 upsert 方言断言；需可用 MySQL，连不上即失败不静默跳过）
-# 连接可用环境变量覆盖：FLUXION_TEST_MYSQL_HOST/PORT/DB/USER/PASSWORD
-FLUXION_TEST_MYSQL_PORT=3306 FLUXION_TEST_MYSQL_PASSWORD=... \
-  mvn test -pl fluxion-test -am -Pmysql-integration-test
+# MySQL 专属数据库语义测试，需要可用 MySQL
+mvn test -pl fluxion-test -am -Pmysql-integration-test
+
+# 真实集群：Podman MySQL + 2 Broker + 2 Worker
+mvn test -pl fluxion-test -am -Pcluster-e2e
+
+# 单独选择 Worker 强退恢复场景
+mvn test -pl fluxion-test -am -Pcluster-e2e -Dtest=Wrk001Test -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-**JDK 21 必需**。真实 MySQL 语义测试（`DistributedLockMySqlTest`、
-`ExecutionIdentityUpsertMySqlTest`）只由 `mysql-integration-test` 承担；
-连接配置见 `src/test/resources/application-test-real-mysql.yml`，要求新连接初始化
-强制 `time_zone='+00:00'`（与 Hibernate jdbc.time_zone=
-UTC 同口径，否则锁过期误判）。
+迁移目录后先运行 `mvn clean -pl fluxion-test`，避免旧 package 的编译产物残留。原 profile 名称继续保留，现有 CI 命令不变。
 
----
-
-## 📖 如何编写测试
-
-### 组件测试
-
-```java
-package io.fluxion.test.core.schedule;
-
-import org.junit.jupiter.api.Test;
-
-class MyComponentTest {
-    @Test
-    void shouldDoSomething() {
-        // Given / When / Then
-    }
-}
-```
-
-### MySQL 语义集成测试
-
-```java
-package io.fluxion.test.integration.mysql;
-
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-
-@SpringBootTest(classes = MySqlTestApplication.class)
-@ActiveProfiles("test-mysql")
-class MyMySqlTest {
-    @Test
-    void shouldWorkWithMySQL() {
-        // 事务/条件更新/锁语义验证
-    }
-}
-```
-
-schema 定义见 `src/test/resources/migration/`（Flyway）。
-
----
-
-## 🔧 配置说明
-
-| Profile | 说明 |
-|---------|------|
-| `regression-test` | 运行所有 `*Test`/`*Tests`，排除 `**/integration/mysql/**` |
-| `h2-integration-test` | 只运行 `**/integration/mysql/**`，排除 `DistributedLockMySqlTest` 和 `ExecutionIdentityUpsertMySqlTest` |
-| `mysql-integration-test` | 仅运行上述两个真实 MySQL 原生语义测试，数据库不可用时失败 |
-
----
-
-## 📝 命名规范
-
-- **组件测试**: `*Test.java`
-- **MySQL 集成测试**: `*MySqlTest.java`
-- **测试方法**: `should*When*` 或 `test*` 格式
-
----
-
-## ⚠️ 注意事项
-
-1. **H2 不能替代 MySQL 原生语义，真实 MySQL 验证已闭环**：`DistributedLockMySqlTest` 与
-   `ExecutionIdentityUpsertMySqlTest`（upsert 锁/身份幂等/会话时区方言断言）被
-   `h2-integration-test` 显式排除，由 `mysql-integration-test` 在真实 MySQL 上承担
-   （MySQL 8.4 + Connector/J + REPEATABLE READ，要求连接初始化强制 `time_zone='+00:00'`），
-   详见 `docs/architecture/scheduling-reliability-audit.md` 的 R4。
-2. 旧文档提及的 `ScheduleLeaseMySqlTest`、`ExecutionRecoveryMySqlTest`、`BrokerMultiNodeLeaseTest`、`LeaseBoundaryTest`、`BaseIntegrationTest` 已随 `ScheduleDelay → Execution` 合并删除，不存在于本仓库。
-3. 本地编译可使用 `-DskipTests` 跳过测试。
+集群测试当前实现 SCH-001 和 WRK-001 的首个本地恢复闭环；不代表 Broker 接管、迟到结果隔离或完整故障矩阵已经验证。场景定义见 [用例目录](../docs/guides/CLUSTER_E2E_CASES.md)，产物位于 `target/cluster-e2e/<run-id>/`。
